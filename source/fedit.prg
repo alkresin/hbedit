@@ -111,10 +111,6 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
    IF !::lReadIni
       edi_ReadIni( hb_DirBase() + "hbedit.ini" )
-      ::aCBoards := Array( MAX_CBOARDS,2 )
-      FOR i := 1 TO MAX_CBOARDS
-         ::aCBoards[i,1] := ::aCBoards[i,2] := ""
-      NEXT
    ENDIF
    IF !Empty( cFileName )
       ::cFileName := cFileName
@@ -1127,6 +1123,11 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["seahismax"]  := nseahis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
+
+   TEdit():aCBoards := Array( MAX_CBOARDS,2 )
+   FOR i := 1 TO MAX_CBOARDS
+      TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
+   NEXT
 
    //IF !hb_hHaskey( aLangs, "prg" )
    //   hHili := aLangs["prg"] := hb_hash()
