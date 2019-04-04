@@ -639,6 +639,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_F1
             mnu_Help( Self )
+            ::lTextOut := .T.
             DevPos( ::nRow, ::nCol )
 
          ELSEIF nKey == K_F2
