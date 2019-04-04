@@ -416,7 +416,15 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                ELSEIF ::nMode == 1
                   nKey := edi_MapKey( Self, nKey )
-                  IF nKey == 119   // w Move to the next word
+                  IF nKey == 104   // h Move left
+                     edi_GoLeft( Self )
+                  ELSEIF nKey == 108   // l Move right
+                     edi_GoRight( Self )
+                  ELSEIF nKey == 107   // k Move up
+                     edi_GoUp( Self )
+                  ELSEIF nKey == 106   // j Move down
+                     edi_GoDown( Self )
+                  ELSEIF nKey == 119   // w Move to the next word
                      edi_NextWord( Self )
                   ELSEIF nKey == 101   // e Move to the end of word
                      edi_NextWord( Self, .T. )
@@ -427,6 +435,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      nKey := K_RIGHT
                   ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
                      ::nDopMode := nKey
+                  ELSEIF nKey == 105   // i - to edit mode
+                     mnu_ChgMode( Self, .T. )
                   ENDIF
                ELSE
                   IF ( i := (nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
@@ -540,42 +550,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
 
          ELSEIF nKey == K_UP
-            IF nRow == ::y1
-               IF ::nyFirst > 1
-                  ::nyFirst --
-                  ::lTextOut := .T.
-               ENDIF
-            ELSE
-               DevPos( nRow-1, Col() )
-            ENDIF
+            edi_GoUp( Self )
 
          ELSEIF nKey == K_DOWN
-            IF nRow - ::y1 + ::nyFirst < Len(::aText)
-               IF nRow < ::y2
-                  DevPos( nRow+1, Col() )
-               ELSE
-                  ::nyFirst ++
-                  ::lTextOut := .T.
-               ENDIF
-            ENDIF
+            edi_GoDown( Self )
 
          ELSEIF nKey == K_LEFT
-            IF nCol == ::x1
-               IF ::nxFirst > 1
-                  ::nxFirst --
-                  ::lTextOut := .T.
-               ENDIF
-            ELSE
-               DevPos( Row(), nCol-1 )
-            ENDIF
+            edi_GoLeft( Self )
 
          ELSEIF nKey == K_RIGHT
-            IF nCol == ::x2
-               ::nxFirst ++
-               ::lTextOut := .T.
-            ELSE
-               DevPos( Row(), nCol+1 )
-            ENDIF
+            edi_GoRight( Self )
 
          ELSEIF nKey == K_HOME
             IF ::nxFirst > 1
@@ -1203,16 +1187,16 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
 FUNCTION mnu_Windows( oEdit, aXY )
 
-   LOCAL aMenu := { {"New",@mnu_NewWin(),Nil} }, i, nCurr := 1
+   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil}, {"Open file",@mnu_OpenFile(),Nil} }, i, nCurr := 1
 
    FOR i := 1 TO Len( oEdit:aWindows )
       IF oEdit:aWindows[i] == oEdit
-         nCurr := i + 1
+         nCurr := i + 2
       ENDIF
-      AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_OpenWin(),i} )
+      AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_ToWin(),i} )
    NEXT
    IF !Empty( oEdit:cLauncher )
-      AAdd( aMenu, {oEdit:cLauncher,@mnu_OpenWin(),0} )
+      AAdd( aMenu, {oEdit:cLauncher,@mnu_ToWin(),0} )
    ENDIF
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,, nCurr )
@@ -1229,7 +1213,11 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
    RETURN Nil
 
-FUNCTION mnu_OpenWin( oEdit, n )
+FUNCTION mnu_OpenFile( oEdit )
+
+   RETURN Nil
+
+FUNCTION mnu_ToWin( oEdit, n )
 
    oEdit:lShow := .F.
    oEdit:nCurr := n
@@ -1449,6 +1437,63 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
          oEdit:WriteTopPane( .T. )
          mnu_CmdLine( oEdit )
       ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_GoUp( oEdit )
+
+   LOCAL nRow := Row()
+
+   IF nRow == oEdit:y1
+      IF oEdit:nyFirst > 1
+         oEdit:nyFirst --
+         oEdit:lTextOut := .T.
+      ENDIF
+   ELSE
+      DevPos( nRow-1, Col() )
+   ENDIF
+   RETURN Nil
+
+STATIC FUNCTION edi_GoDown( oEdit )
+
+   LOCAL nRow := Row()
+
+   IF nRow - oEdit:y1 + oEdit:nyFirst < Len(oEdit:aText)
+      IF nRow < oEdit:y2
+         DevPos( nRow+1, Col() )
+      ELSE
+         oEdit:nyFirst ++
+         oEdit:lTextOut := .T.
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_GoRight( oEdit )
+
+   LOCAL nCol := Col()
+
+   IF nCol == oEdit:x2
+      oEdit:nxFirst ++
+      oEdit:lTextOut := .T.
+   ELSE
+      DevPos( Row(), nCol+1 )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_GoLeft( oEdit )
+
+   LOCAL nCol := Col()
+
+   IF nCol == oEdit:x1
+      IF oEdit:nxFirst > 1
+         oEdit:nxFirst --
+         oEdit:lTextOut := .T.
+      ENDIF
+   ELSE
+      DevPos( Row(), nCol-1 )
    ENDIF
 
    RETURN Nil
