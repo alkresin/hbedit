@@ -10,7 +10,9 @@
 #include "inkey.ch"
 #include "setcurs.ch"
 #include "hbgtinfo.ch"
-//#include "hbfunclist.ch"
+#ifdef _FULL
+#include "hbfunclist.ch"
+#endif
 
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
@@ -50,6 +52,7 @@ CLASS TEdit
    CLASS VAR options    SHARED INIT { => }
    CLASS VAR aCmdHis    SHARED INIT {}
    CLASS VAR aSeaHis    SHARED INIT {}
+   CLASS VAR aEditHis   SHARED INIT {}
    CLASS VAR aCBoards   SHARED
    CLASS VAR aHiliAttrs SHARED INIT { "W+/B", "W+/B", "GR+/B", "W/B" }
    CLASS VAR nDefMode   SHARED INIT 0
@@ -266,8 +269,9 @@ METHOD LineOut( nLine ) CLASS TEdit
          aStru := ::oHili:aLineStru
          IF ::oHili:nItems > 0
             FOR i := 1 TO ::oHili:nItems
-               IF aStru[i,2] >= ::nxFirst .AND. aStru[i,3] > 0
-                  nbx1 := Max( ::nxFirst, aStru[i,1] ); nbx2 := aStru[i,2]
+               IF aStru[i,2] >= ::nxFirst .AND. aStru[i,3] > 0 .AND. aStru[i,1] < ::nxFirst + nWidth
+                  nbx1 := Max( ::nxFirst, aStru[i,1] )
+                  nbx2 := Min( aStru[i,2], ::nxFirst + nWidth - 1 )
                   DevPos( ::y1 + nLine - 1, nbx1 -::nxFirst )
                   SetColor( ::aHiliAttrs[aStru[i,3]] )
                   DevOut( cp_Substr( ::lUtf8, ::aText[n], nbx1, nbx2-nbx1+1 ) )
@@ -287,9 +291,13 @@ METHOD LineOut( nLine ) CLASS TEdit
       IF lSel
          nbx1 := Iif( n > nby1, 1, nbx1 )
          nbx2 := Iif( n < nby2, cp_Len(::lUtf8,::aText[n])+1, nbx2 )
-         DevPos( ::y1 + nLine - 1, nbx1 -::nxFirst )
-         SetColor( ::cColorSel )
-         DevOut( cp_Substr( ::lUtf8, ::aText[n], nbx1, nbx2-nbx1 ) )
+         IF nbx1 < (::nxFirst+nWidth) .AND. nbx2 > ::nxFirst
+            nbx1 := Max( nbx1, ::nxFirst )
+            nbx2 := Min( nbx2, ::nxFirst + nWidth - 1 )
+            DevPos( ::y1 + nLine - 1, nbx1 -::nxFirst + ::x1 )
+            SetColor( ::cColorSel )
+            DevOut( cp_Substr( ::lUtf8, ::aText[n], nbx1, nbx2-nbx1 ) )
+         ENDIF
          SetColor( Iif( n < nby2, ::cColorSel, ::cColor ) )
       ENDIF
       IF nLen < nWidth
@@ -1827,4 +1835,5 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
 
