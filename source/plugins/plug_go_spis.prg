@@ -7,11 +7,7 @@ Function plug_go_Spis( oEdit )
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF cfirst == "func"
-         cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
-         IF Right( cFirst,1 ) == Chr(13)
-            cFirst := Left( cFirst, Len(cFirst)-1 )
-         ENDIF
-         Aadd( arrfnc, { cFirst, Nil, i } )
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
    NEXT
    IF !Empty( arrfnc )

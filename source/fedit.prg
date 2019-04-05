@@ -37,6 +37,7 @@ STATIC aMenu_CB
 STATIC aPlugins := {}
 STATIC aLangs
 STATIC lCase_Sea
+STATIC cDopMode := ""
 
 CLASS TEdit
 
@@ -50,6 +51,7 @@ CLASS TEdit
    CLASS VAR aSeaHis    SHARED INIT {}
    CLASS VAR aCBoards   SHARED
    CLASS VAR aHiliAttrs SHARED INIT { "W+/B", "W+/B", "GR+/B", "W/B" }
+   CLASS VAR nDefMode   SHARED INIT 0
 
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
@@ -75,6 +77,9 @@ CLASS TEdit
    DATA   lIns        INIT .T.
    DATA   lShiftKey   INIT .F.
 
+   DATA   lTabs       INIT .F.
+   DATA   nTabLen     INIT 4
+
    DATA   nCol, nRow
    DATA   lF3         INIT .F.
    DATA   nby1        INIT -1
@@ -91,6 +96,7 @@ CLASS TEdit
    DATA   hBookMarks
 
    METHOD New( cText, cFileName, y1, x1, y2, x2, cColor )
+   METHOD SetText( cText, cFileName )
    METHOD Edit()
    METHOD TextOut( n1, n2 )
    METHOD LineOut( nLine )
@@ -112,9 +118,6 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    IF !::lReadIni
       edi_ReadIni( hb_DirBase() + "hbedit.ini" )
    ENDIF
-   IF !Empty( cFileName )
-      ::cFileName := cFileName
-   ENDIF
    ::aRect[1] := Iif( y1==Nil, ::aRect[1], y1 )
    ::aRect[2] := Iif( x1==Nil, ::aRect[2], x1 )
    ::aRect[3] := Iif( y2==Nil, ::aRect[3], y2 )
@@ -122,24 +125,10 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
    ::nxFirst := ::nyFirst := ::nRow := ::nCol := 1
 
-   IF Empty( cText )
-      ::aText := { "" }
-      ::cEol := Chr(13) + Chr(10)
-   ELSE
-      ::aText := hb_ATokens( cText, Chr(10) )
-      ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
-   ENDIF
-
+   ::nMode := ::nDefMode
    ::cp := ::cpInit := hb_cdpSelect()
-   IF hb_hGetDef( TEdit():options, "syntax", .F. )
-      cExt := Lower( hb_fnameExt(cFileName) )
-      FOR i := 1 TO Len(aLangExten)
-         IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
-            mnu_SyntaxOn( Self, aLangExten[i,1] )
-            EXIT
-         ENDIF
-      NEXT
-   ENDIF
+
+   ::SetText( cText, cFileName )
 
    ::hBookMarks := hb_Hash()
 
@@ -150,6 +139,50 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
    RETURN Self
 
+METHOD SetText( cText, cFileName ) CLASS TEdit
+
+   LOCAL i
+
+   IF !Empty( cFileName )
+      IF Empty( hb_fnameDir( cFileName ) )
+#ifdef __PLATFORM__UNIX
+         cFileName := '/' + Curdir() + '/' + cFileName
+#else
+         cFileName := hb_curDrive() + ":\" + Curdir() + '\' + cFileName
+#endif
+      ENDIF
+      ::cFileName := cFileName
+   ENDIF
+
+   IF Empty( cText )
+      ::aText := { "" }
+      ::cEol := Chr(13) + Chr(10)
+   ELSE
+      ::aText := hb_ATokens( cText, Chr(10) )
+      ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+      FOR i := 1 TO Len( ::aText )
+         IF Chr(9) $ ::aText[i]
+            ::aText[i] := Strtran( ::aText[i], Chr(9), Space(::nTablen) )
+            ::lTabs := .T.
+         ENDIF
+         IF Right( ::aText[i],1 ) == Chr(13)
+            ::aText[i] := Left( ::aText[i], Len( ::aText[i])-1 )
+         ENDIF
+      NEXT
+   ENDIF
+
+   IF hb_hGetDef( TEdit():options, "syntax", .F. ) .AND. !Empty( cFileName )
+      cExt := Lower( hb_fnameExt(cFileName) )
+      FOR i := 1 TO Len(aLangExten)
+         IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
+            mnu_SyntaxOn( Self, aLangExten[i,1] )
+            EXIT
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN Nil
+
 METHOD Edit() CLASS TEdit
 
    LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
@@ -157,7 +190,6 @@ METHOD Edit() CLASS TEdit
 
    hb_cdpSelect( ::cp )
    ::nCurr := Ascan( ::aWindows, {|o|o==Self} )
-   ::nMode := 0
 
    SetCursor( SC_NONE )
    SetColor( ::cColor )
@@ -217,9 +249,6 @@ METHOD LineOut( nLine ) CLASS TEdit
    LOCAL aStru, i
 
    IF n <= Len( ::aText )
-      IF Right( ::aText[n],1 ) == Chr(13)
-         ::aText[n] := cp_Left( ::lUtf8, ::aText[n], cp_Len( ::lUtf8, ::aText[n])-1 )
-      ENDIF
 
       DevPos( ::y1 + nLine - 1, ::x1 )
       nLen := Max( 0, Min( nWidth, cp_Len( ::lUtf8,::aText[n])-::nxFirst+1 ) )
@@ -279,13 +308,40 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    n := nRow - ::y1 + ::nyFirst
    ::lTextOut := .F.
 
-   IF ::nDopMode == 109     // m
-      edi_BookMarks( Self, nKey, .T. )
-      ::nDopMode := 0
-      lSkip := .T.
-   ELSEIF ::nDopMode == 39  // '
-      edi_BookMarks( Self, nKey, .F. )
-      ::nDopMode := 0
+   IF ::nDopMode > 0
+      IF nKey == K_ESC
+         ::nDopMode := 0
+      ELSE
+         nKey := edi_MapKey( Self, nKey ) 
+         IF ::nDopMode == 109     // m
+            edi_BookMarks( Self, nKey, .T. )
+            ::nDopMode := 0
+         ELSEIF ::nDopMode == 39  // '
+            edi_BookMarks( Self, nKey, .F. )
+            ::nDopMode := 0
+         ELSEIF ::nDopMode == 49  // 1
+            IF nKey >= 48 .AND. nKey <= 57
+               cDopMode += Chr( nKey )
+            ELSEIF nKey == 103    // g
+               IF Right( cDopMode,1 ) == "g"
+                  ::Goto( Val( cDopMode ) )
+                  ::nDopMode := 0
+               ELSE
+                  cDopMode += Chr( nKey )
+               ENDIF
+            ELSE
+               ::nDopMode := 0
+            ENDIF
+         ELSEIF ::nDopMode == 103  // g
+            IF nKey == 103    // g
+               ::Goto( 1 )
+            ENDIF
+            ::nDopMode := 0
+         ENDIF
+      ENDIF
+      IF ::nDopMode == 0
+         cDopMode := ""
+      ENDIF
       lSkip := .T.
    ENDIF
 
@@ -433,10 +489,17 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 118   // v Start selection
                      mnu_F3( Self )
                      nKey := K_RIGHT
-                  ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
-                     ::nDopMode := nKey
                   ELSEIF nKey == 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
+                  ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
+                     ::nDopMode := nKey
+                     cDopMode := Chr( nKey )
+                  ELSEIF nKey == 103   // g
+                     ::nDopMode := 103
+                     cDopMode := Chr( nKey )
+                  ELSEIF nKey >= 49 .AND. nKey <= 57  // 1...9
+                     ::nDopMode := 49
+                     cDopMode := Chr( nKey )
                   ENDIF
                ELSE
                   IF ( i := (nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
@@ -605,16 +668,18 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDDO
 
          ELSEIF nKey == K_LBUTTONDOWN
-            nCol := MCol()
-            nRow := MRow()
-            IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
-               FMenu( Self, aMenuMain )
-               ::lTextOut := .T.
-            ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
-               IF nRow - ::y1 + ::nyFirst > Len(::aText)
-                  nRow := Len(::aText) - ::nyFirst + ::y1
+            IF ::nDopMode == 0
+               nCol := MCol()
+               nRow := MRow()
+               IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
+                  FMenu( Self, aMenuMain )
+                  ::lTextOut := .T.
+               ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
+                  IF nRow - ::y1 + ::nyFirst > Len(::aText)
+                     nRow := Len(::aText) - ::nyFirst + ::y1
+                  ENDIF
+                  DevPos( nRow, nCol )
                ENDIF
-               DevPos( nRow, nCol )
             ENDIF
 
          ELSEIF nKey == K_ALT_TAB
@@ -703,11 +768,15 @@ METHOD WriteTopPane( lFull ) CLASS TEdit
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
    IF ::lTopPane
+      DispBegin()
       SetColor( ::cColorPane )
+      Scroll( y, ::x1, y, ::x1 + 7 )
+      DevPos( y, ::x1 )
+      DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
       IF !Empty( lFull )
-         Scroll( y, ::x1, y, ::x2 )
-         DevPos( y, ::x1 )
-         DevOut( "F9-menu " + NameShortcut( ::cFileName, ::nTopName, '~' ) )
+         Scroll( y, ::x1 + 8 , y, ::x2 )
+         DevPos( y, ::x1 + 8 )
+         DevOut( NameShortcut( ::cFileName, ::nTopName, '~' ) )
       ELSE
          Scroll( y, ::x1 + 8 + ::nTopName, y, ::x2 )
       ENDIF
@@ -717,9 +786,8 @@ METHOD WriteTopPane( lFull ) CLASS TEdit
       DevOut( PAdl(Ltrim(Str(nRow-::y1+::nyFirst)),nchars) + "/" + cLen )
       DevPos( y, ::x1 + 8 + ::nTopName + 10 + nchars*2 + 3 )
       DevOut( "[" + Ltrim(Str(nCol-::x1+::nxFirst)) + "]" )     
-      DevPos( y, ::x2 - 5 )
-      DevOut( Iif( ::nDopMode>0, Chr(::nDopMode)+" ", "  " ) )
       SetColor( "W+/N" )
+      DevPos( y, ::x2-3 )
       IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
          DevOut( "Sele" )
       ELSE
@@ -727,6 +795,7 @@ METHOD WriteTopPane( lFull ) CLASS TEdit
       ENDIF
       SetColor( ::cColor )
       DevPos( nRow, nCol )
+      DispEnd()
    ENDIF
 
    RETURN Nil
@@ -806,7 +875,7 @@ METHOD ToString( cEol ) CLASS TEdit
       cEol := ::cEol
    ENDIF
    FOR i := 1 TO Len( ::aText )
-      s += Iif( Right(::aText[i],1) == Chr(13), Left(::aText[i],Len(::aText[i])-1), ::aText[i] ) + cEol
+      s += Iif( ::lTabs, Strtran(::aText[i],Space(::nTablen),Chr(9)), ::aText[i] ) + cEol
    NEXT
 
    RETURN s
@@ -894,7 +963,7 @@ STATIC FUNCTION Text2cb( oEdit )
       ENDIF
    ENDIF
 
-   RETURN s
+   RETURN Iif( oEdit:lTabs, Strtran(s,Space(oEdit:nTablen),Chr(9)), s )
 
 STATIC FUNCTION cb2Text( oEdit )
 
@@ -926,6 +995,9 @@ STATIC FUNCTION cb2Text( oEdit )
       oEdit:lTextOut := .T.
    ENDIF
 
+   IF oEdit:lTabs
+      s := Strtran( s, Chr(9), Space(oEdit:nTablen) )
+   ENDIF
    IF Chr(10) $ s
       arr := hb_ATokens( s, Chr(10) )
       s := cp_Substr( oEdit:lUtf8, oEdit:aText[n], oEdit:nCol-oEdit:x1+oEdit:nxFirst )
@@ -1014,6 +1086,9 @@ FUNCTION edi_ReadIni( xIni )
          IF Upper(aIni[nSect]) == "OPTIONS"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, "defmode" ) .AND. !Empty( cTemp := aSect[ "defmode" ] )
+                  TEdit():nDefMode := Iif( (n := Val(cTemp)) < 2 .AND. n >= 0, n, 0 )
+               ENDIF
                IF hb_hHaskey( aSect, "incsearch" ) .AND. !Empty( cTemp := aSect[ "incsearch" ] )
                   lIncSea := ( Lower(cTemp) == "on" )
                ENDIF
@@ -1205,11 +1280,16 @@ FUNCTION mnu_Windows( oEdit, aXY )
 
 FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
-   LOCAL oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
+   LOCAL oNew
 
-   oNew:funSave := oEdit:funSave
-   oEdit:lShow := .F.
-   oEdit:nCurr := Len( oEdit:aWindows )
+   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) .OR. oEdit:lUpdated
+      oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
+      oNew:funSave := oEdit:funSave
+      oEdit:lShow := .F.
+      oEdit:nCurr := Len( oEdit:aWindows )
+   ELSE
+      oEdit:SetText( cText, cFileName )
+   ENDIF
 
    RETURN Nil
 
@@ -1641,12 +1721,14 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    LOCAL arr
 
-   IF lSet
-      oEdit:hBookMarks[nKey] := { oEdit:nRow - oEdit:y1 + oEdit:nyFirst, oEdit:nCol - oEdit:x1 + oEdit:nxFirst }
-   ELSE
-      IF hb_hHaskey( oEdit:hBookMarks, nKey )
-         arr := oEdit:hBookMarks[nKey]
-         oEdit:Goto( arr[1], arr[2] )
+   IF nKey >= 97 .AND. nKey <= 122
+      IF lSet
+         oEdit:hBookMarks[nKey] := { oEdit:nRow - oEdit:y1 + oEdit:nyFirst, oEdit:nCol - oEdit:x1 + oEdit:nxFirst }
+      ELSE
+         IF hb_hHaskey( oEdit:hBookMarks, nKey )
+            arr := oEdit:hBookMarks[nKey]
+            oEdit:Goto( arr[1], arr[2] )
+         ENDIF
       ENDIF
    ENDIF
 

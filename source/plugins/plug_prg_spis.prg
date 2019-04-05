@@ -11,22 +11,14 @@ Function plug_prg_Spis( oEdit )
             cfirst == "proc" .OR. ( cfirst == "static" .AND. ;
             ( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "function" .OR. ;
             cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
-         cItem := cp_Left( oEdit:lUtf8,arr[i],64 )
-         IF Right( cItem,1 ) == Chr(13)
-            cItem := Left( cItem, Len(cItem)-1 )
-         ENDIF
-         Aadd( arrfnc, { cItem, Nil, i } )
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
       IF cfirst == "class" .or. ( cfirst == "create" .AND. ;
             ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "class" )
          IF cfirst == "create" .OR. ( !( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "var" ) ;
                .AND. !( cSecond == "data" ) )
             lClassDef := .T.
-            cItem := cp_Left( oEdit:lUtf8,arr[i],64 )
-            IF Right( cItem,1 ) == Chr(13)
-               cItem := Left( cItem, Len(cItem)-1 )
-            ENDIF
-            Aadd( arrfnc, { cItem, Nil, i } )
+            Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
          ENDIF
       ELSEIF cfirst == "end" .or. cfirst == "endclass"
          lClassDef := .F.

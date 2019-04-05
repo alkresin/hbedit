@@ -5,7 +5,7 @@
  * www - http://www.kresin.ru
  */
 
-STATIC xKoef := 1.32, yKoef := 1.3
+STATIC xKoef := 1, yKoef := 1
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH := 25, nScreenW := 80
@@ -54,27 +54,21 @@ FUNCTION Main( ... )
 
    FOR i := 1 TO Len( aParams )
       cFileName := aParams[i]
-      IF Empty( hb_fnameDir( cFileName ) )
-#ifdef __PLATFORM__UNIX
-         cFileName := '/' + Curdir() + '/' + cFileName
-#else
-         cFileName := hb_curDrive() + ":\" + Curdir() + '\' + cFileName
-#endif
-      ENDIF
       TEdit():New( Iif(!Empty(cFileName),Memoread(cFileName),""), cFileName, 0, 0, nScreenH-1, nScreenW-1 )
    NEXT
 
    IF Empty( TEdit():aWindows )
-      TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 ):Edit()
+      TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
    ENDIF
 
    TEdit():nCurr := 1
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)
-         TEdit():aWindows[1]:Edit()
-      ELSE
-         TEdit():aWindows[TEdit():nCurr]:Edit()
+         TEdit():nCurr := 1
+      ELSEIF TEdit():nCurr <= 0
+         TEdit():nCurr := Len(TEdit():aWindows)
       ENDIF
+      TEdit():aWindows[TEdit():nCurr]:Edit()
    ENDDO
 
    RETURN Nil

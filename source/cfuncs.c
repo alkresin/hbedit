@@ -25,7 +25,7 @@ HB_FUNC( CEDI_REDIROFF )
 
 #if defined(__linux__) || defined(__unix__)
 
-HB_FUNC( HWG_RUNCONSOLEAPP ) 
+HB_FUNC( CEDI_RUNCONSOLEAPP ) 
 { 
     /* Ensure that output of command does interfere with stdout */
     fflush(stdin);
@@ -64,7 +64,7 @@ HB_FUNC( HWG_RUNCONSOLEAPP )
 
 #include <windows.h>
 
-HB_FUNC( HWG_RUNCONSOLEAPP )
+HB_FUNC( CEDI_RUNCONSOLEAPP )
 {
    SECURITY_ATTRIBUTES sa; 
    HANDLE g_hChildStd_OUT_Rd = NULL;
