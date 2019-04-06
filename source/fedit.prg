@@ -133,6 +133,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
    ::nMode := ::nDefMode
    ::cp := ::cpInit := hb_cdpSelect()
+   ::lUtf8 := ( Lower(::cp) == "utf8" )
 
    ::SetText( cText, cFileName )
 
@@ -1065,13 +1066,14 @@ STATIC FUNCTION cbDele( oEdit )
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
       IF nby1 == nby2
-         oEdit:aText[nby1] := Left( oEdit:aText[nby1], nbx1-1 ) + Substr( oEdit:aText[nby1], nbx2 )
+         oEdit:aText[nby1] := cp_Left( oEdit:lUtf8, oEdit:aText[nby1], nbx1-1 ) + ;
+            cp_Substr( oEdit:lUtf8, oEdit:aText[nby1], nbx2 )
          IF nby1 >= oEdit:nyFirst .AND. nby1 < oEdit:nyFirst + (oEdit:y2 - oEdit:y1 + 1)
             oEdit:LineOut( nby1 - oEdit:nyFirst + 1 )
          ENDIF
       ELSE
          IF nbx1 > 1
-            oEdit:aText[nby1] := Left( oEdit:aText[nby1], nbx1-1 )
+            oEdit:aText[nby1] := cp_Left( oEdit:lUtf8, oEdit:aText[nby1], nbx1-1 )
             n := nby1 + 1
          ELSE
             ADel( oEdit:aText, nby1 )
@@ -1083,7 +1085,7 @@ STATIC FUNCTION cbDele( oEdit )
             ncou ++
          NEXT
          oEdit:aText := ASize( oEdit:aText, Len(oEdit:aText) - ncou )
-         oEdit:aText[nby1+1] := Substr( oEdit:aText[nby1+1], nbx2 )
+         oEdit:aText[nby1+1] := cp_Substr( oEdit:lUtf8, oEdit:aText[nby1+1], nbx2 )
          IF ( i := oEdit:nby1 - oEdit:nyFirst + 1 ) > 0 .AND. i < (oEdit:y2-oEdit:y1+1)
             DevPos( oEdit:nRow := (oEdit:nby1-oEdit:nyFirst+1-oEdit:y1), oEdit:nCol := (oEdit:nbx1-oEdit:nxFirst+1-oEdit:x1) )
          ELSE
@@ -1265,7 +1267,7 @@ FUNCTION mnu_CPages( oEdit )
    IF !Empty( iRes := FMenu( oEdit, aMenu_cps, 13, 40 ) )
       oEdit:cp := oEdit:aCPages[iRes]
       hb_cdpSelect( oEdit:cp )
-      oEdit:lUtf8 := ( iRes == 6 )
+      oEdit:lUtf8 := ( Lower(oEdit:cp) == "utf8" )
       oEdit:TextOut()
    ENDIF
 
@@ -1312,9 +1314,12 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
    LOCAL oNew
 
-   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) .OR. oEdit:lUpdated
+   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
+         .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
+      hb_cdpSelect( oEdit:cpInit )
       oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
       oNew:funSave := oEdit:funSave
+      hb_cdpSelect( oEdit:cp )
       oEdit:lShow := .F.
       oEdit:nCurr := Len( oEdit:aWindows )
    ELSE
@@ -1671,7 +1676,8 @@ STATIC FUNCTION edi_NextWord( oEdit, lEndWord )
       ENDIF
    ENDDO
    IF nx - oEdit:nxFirst + oEdit:x1 >= oEdit:x2
-      oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 - 3
+      oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 + 3
+      oEdit:lTextOut := .T.
    ENDIF
    DevPos( nRow, oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
 
@@ -1692,8 +1698,9 @@ STATIC FUNCTION edi_PrevWord( oEdit )
          EXIT
       ENDIF
    ENDDO
-   IF nx - oEdit:nxFirst + oEdit:x1 >= oEdit:x2
-      oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 - 3
+   IF nx < oEdit:nxFirst
+      oEdit:nxFirst := Max( nx + oEdit:x1 - oEdit:x2 + 3, 1 )
+      oEdit:lTextOut := .T.
    ENDIF
    DevPos( nRow, oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
 
@@ -1835,5 +1842,8 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
+
+
 
 
