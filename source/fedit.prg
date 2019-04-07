@@ -31,6 +31,8 @@
 #define UNDO_OP_DEL     3
 #define UNDO_OP_SHIFT   4
 
+#define UNDO_INC       12
+
 REQUEST HB_CODEPAGE_RU866, HB_CODEPAGE_RU1251, HB_CODEPAGE_RUKOI8, HB_CODEPAGE_FR850
 REQUEST HB_CODEPAGE_FRWIN, HB_CODEPAGE_FRISO, HB_CODEPAGE_UTF8
 REQUEST QOUT, MAXCOL, MAXROW
@@ -84,6 +86,7 @@ CLASS TEdit
    DATA   cSyntaxType
 
    DATA   aUndo       INIT {}
+   DATA   nUndo       INIT 0
 
    DATA   lBorder     INIT .F.
    DATA   lTopPane    INIT .T.
@@ -1041,6 +1044,13 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2 ) CLASS TEdit
 METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
 
    IF PCount() == 0
+      IF ::nUndo > 0
+         IF ( nOper := ::aUndo[::nUndo, UNDO_OPER] ) == UNDO_OP_INS
+         ELSEIF nOper == UNDO_OP_OVER
+         ELSEIF nOper == UNDO_OP_DEL
+         ELSEIF nOper == UNDO_OP_SHIFT
+         ENDIF
+      ENDIF
    ELSEIF nOper == UNDO_OP_INS
    ELSEIF nOper == UNDO_OP_OVER
    ELSEIF nOper == UNDO_OP_DEL
