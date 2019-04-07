@@ -21,12 +21,15 @@
 #define G_TYPE_CHECK   1
 #define G_TYPE_BUTTON  2
 
+#define SHIFT_PRESSED 0x010000
+#define CTRL_PRESSED  0x020000
+
 STATIC aClrdef
 
-FUNCTION edi_READ( aGets, lUtf8 )
+FUNCTION edi_READ( oEdit, aGets )
 
-   LOCAL nCurr := 1, i, nKey, lRes := .F., nCol, nRow, nx, x, y
-   LOCAL clrdef := SetColor()
+   LOCAL nCurr := 1, i, nKeyExt, nKey, lRes := .F., nCol, nRow, nx, x, y, s
+   LOCAL clrdef := SetColor(), lUtf8 := oEdit:lUtf8
    
    aClrdef := hb_aTokens( clrdef, ',' )
    FOR i := 1 TO Len( aGets )
@@ -36,7 +39,8 @@ FUNCTION edi_READ( aGets, lUtf8 )
    ShowGetItem( aGets[1], .T., lUtf8 )
 
    DO WHILE .T.
-      nKey := Inkey( 0, HB_INKEY_ALL )
+      nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
+      nKey := hb_keyStd( nKeyExt )
       nx := Col()
       y := Row()
       x := nx - aGets[nCurr,G_X] + 1
@@ -118,6 +122,21 @@ FUNCTION edi_READ( aGets, lUtf8 )
       ELSEIF nKey == K_END
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             DevPos( y, nx := ( aGets[nCurr,G_X] + cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) ) )
+         ENDIF
+
+      ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
+         ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
+         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            s := cb2Text( oEdit )
+            aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
+                  s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
+            DevPos( y, aGets[nCurr,G_X] )
+            DevOut( aGets[nCurr,G_VALUE] )
+            nx += cp_Len( lUtf8, s )
+            IF nx > aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1
+               nx := aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1
+            ENDIF
+            DevPos( y, nx )
          ENDIF
 
       ELSEIF nKey == K_LBUTTONDOWN

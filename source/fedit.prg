@@ -26,15 +26,16 @@ REQUEST HB_TOKENPTR
 
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
-   {"Mark block",@mnu_F3(),Nil,"F3"}, {"Search&GoTo",@mnu_Sea_Goto(),{11,40},">"}, ;
-   {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Z"}, ;
-   {"Codepage",@mnu_CPages(),Nil,">"}, {"Syntax",@mnu_Syntax(),{16,40},"F4 >"}, ;
-   {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{16,40},"F12 >"} }
+   {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{11,40},"F4 >"}, ;
+   {"Search&GoTo",@mnu_Sea_Goto(),{12,40},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Z"}, ;
+   {"Codepage",@mnu_CPages(),Nil,">"}, {"Syntax",@mnu_Syntax(),{16,40},"F8 >"}, ;
+   {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{17,40},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
 
 STATIC aLangExten := { {"prg", ".prg"}, {"c", ".c.cpp"}, {"go", ".go"}, ;
    {"php",".php"}, {"js",".js"}, {"xml",".xml.fb2.htm.html"} }
+STATIC cHelpName := "Help"
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aPlugins := {}
@@ -114,6 +115,7 @@ CLASS TEdit
    METHOD DelText( nLine1, nPos1, nLine2, nPos2 )
    METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText )
    METHOD Highlighter( oHili )
+   METHOD OnExit()
 
 ENDCLASS
 
@@ -124,10 +126,10 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    IF !::lReadIni
       edi_ReadIni( hb_DirBase() + "hbedit.ini" )
    ENDIF
-   ::aRect[1] := Iif( y1==Nil, ::aRect[1], y1 )
-   ::aRect[2] := Iif( x1==Nil, ::aRect[2], x1 )
-   ::aRect[3] := Iif( y2==Nil, ::aRect[3], y2 )
-   ::aRect[4] := Iif( x2==Nil, ::aRect[4], x2 )
+   ::y1 := ::aRect[1] := Iif( y1==Nil, ::aRect[1], y1 )
+   ::x1 := ::aRect[2] := Iif( x1==Nil, ::aRect[2], x1 )
+   ::y2 := ::aRect[3] := Iif( y2==Nil, ::aRect[3], y2 )
+   ::x2 := ::aRect[4] := Iif( x2==Nil, ::aRect[4], x2 )
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
    ::nxFirst := ::nyFirst := ::nRow := ::nCol := 1
 
@@ -148,17 +150,41 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i
+   LOCAL i, arr
 
    IF !Empty( cFileName )
-      IF Empty( hb_fnameDir( cFileName ) )
+      IF cFileName == cHelpName
+         ::cFileName := cFileName
+      ELSE
+         IF Empty( hb_fnameDir( cFileName ) )
 #ifdef __PLATFORM__UNIX
-         cFileName := '/' + Curdir() + '/' + cFileName
+            cFileName := '/' + Curdir() + '/' + cFileName
 #else
-         cFileName := hb_curDrive() + ":\" + Curdir() + '\' + cFileName
+            cFileName := hb_curDrive() + ":\" + Curdir() + '\' + cFileName
 #endif
+         ENDIF
+         ::cFileName := cFileName
+         IF ( i := Ascan( TEdit():aEditHis, {|a|a[1]==cFileName} ) ) > 0
+            arr := TEdit():aEditHis[i]
+            ADel( TEdit():aEditHis, i )
+            hb_AIns( TEdit():aEditHis, 1, arr, .F. )
+            hb_cdpSelect( ::cp := arr[2] )
+            IF arr[3] >= ::y2 -::y1 - 1
+               ::nyFirst := arr[3] - 4
+               ::nRow := 4
+            ELSE
+               ::nRow := arr[3]
+            ENDIF
+            IF arr[4] > ::x2 -::x1 - 1
+               ::nxFirst := arr[4] + ::x1 - ::x2 + 3
+               ::nCol := arr[4] - ::nxFirst + 1
+            ELSE
+               ::nCol := arr[4] - 1
+            ENDIF
+         ELSE
+            hb_AIns( TEdit():aEditHis, 1, {cFileName,,,}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
+         ENDIF
       ENDIF
-      ::cFileName := cFileName
    ENDIF
 
    IF Empty( cText )
@@ -176,6 +202,9 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
             ::aText[i] := Left( ::aText[i], Len( ::aText[i])-1 )
          ENDIF
       NEXT
+   ENDIF
+   IF Len( ::aText ) < ::nyFirst + ::nRow - 1
+      ::nyFirst := ::nRow := 1
    ENDIF
 
    IF hb_hGetDef( TEdit():options, "syntax", .F. ) .AND. !Empty( cFileName )
@@ -216,7 +245,7 @@ METHOD Edit() CLASS TEdit
 
    ::TextOut()
 
-   DevPos( ::y1, ::x1 )
+   DevPos( ::nRow, ::nCol )
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
@@ -224,6 +253,12 @@ METHOD Edit() CLASS TEdit
       SetCursor( SC_NONE )
       ::onKey( nKeyExt )
    ENDDO
+
+   IF !Empty( ::cFileName ) .AND. ( i := Ascan( TEdit():aEditHis, {|a|a[1]==::cFileName} ) ) > 0
+      TEdit():aEditHis[i,2] := ::cp
+      TEdit():aEditHis[i,3] := ::nRow - ::y1 + ::nyFirst
+      TEdit():aEditHis[i,4] := ::nCol - ::x1 + ::nxFirst
+   ENDIF
 
    hb_cdpSelect( ::cpInit )
    Restscreen( 0, 0, 24, 79, cScBuf )
@@ -389,7 +424,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == 22                          // Ctrl-v
             IF !::lReadOnly
-               cb2Text( Self )
+               cb2Text( Self, .T. )
             ENDIF
 
          ELSEIF nKey == K_CTRL_Z .AND. hb_keyVal( nKeyExt ) == 90
@@ -498,11 +533,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 112   // p Insert clipboard after current coloumn
                      IF !::lReadOnly
                         DevPos( ::nRow, ++::nCol )
-                        cb2Text( Self )
+                        cb2Text( Self, .T. )
                      ENDIF
                   ELSEIF nKey == 80    // P Insert clipboard
                      IF !::lReadOnly
-                        cb2Text( Self )
+                        cb2Text( Self, .T. )
                      ENDIF
                   ELSEIF nKey == 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
@@ -601,7 +636,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          ELSEIF nKey == K_INS
             IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
                IF !::lReadOnly
-                  cb2Text( Self )
+                  cb2Text( Self, .T. )
                ENDIF
             ELSE
                ::lIns := !::lIns
@@ -697,11 +732,15 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             nKey := K_RIGHT
 
          ELSEIF nKey == K_F4
-            mnu_Syntax( Self, {8, 32} )
+            mnu_F4( Self, {7, 22} )
             ::lTextOut := .T.
 
          ELSEIF nKey == K_F7
             mnu_Search( Self )
+            ::lTextOut := .T.
+
+         ELSEIF nKey == K_F8
+            mnu_Syntax( Self, {8, 32} )
             ::lTextOut := .T.
 
          ELSEIF nKey == K_F9
@@ -975,6 +1014,37 @@ METHOD Highlighter( oHili ) CLASS TEdit
    ENDIF
    RETURN Nil
 
+METHOD OnExit() CLASS TEdit
+
+   LOCAL i, s := ""
+
+   IF !Empty( TEdit():aSeaHis )
+      s += "[SEARCH]" + Chr(13) + Chr(10)
+      FOR i := 1 TO Len( TEdit():aSeaHis )
+         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aSeaHis[i] + Chr(13) + Chr(10)
+      NEXT
+   ENDIF
+
+   IF !Empty( TEdit():aCmdHis )
+      s += Chr(13) + Chr(10) + "[COMMANDS]" + Chr(13) + Chr(10)
+      FOR i := 1 TO Len( TEdit():aCmdHis )
+         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aCmdHis[i] + Chr(13) + Chr(10)
+      NEXT
+   ENDIF
+
+   IF !Empty( TEdit():aEditHis )
+      s += Chr(13) + Chr(10) + "[EDIT]" + Chr(13) + Chr(10)
+      FOR i := 1 TO Len( TEdit():aEditHis )
+         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aEditHis[i,2] + "," + ;
+            Ltrim(Str(TEdit():aEditHis[i,3])) + "," + Ltrim(Str(TEdit():aEditHis[i,4])) + "," + ;
+            TEdit():aEditHis[i,1] + Chr(13) + Chr(10)
+      NEXT
+   ENDIF
+
+   hb_MemoWrit( hb_DirBase() + "hbedit.his", s )
+
+   RETURN Nil
+
 FUNCTION NameShortcut( cName, nWidth, cIns )
 
    IF Len( cName ) > nWidth
@@ -1015,9 +1085,9 @@ STATIC FUNCTION Text2cb( oEdit )
 
    RETURN Iif( oEdit:lTabs, Strtran(s,Space(oEdit:nTablen),Chr(9)), s )
 
-STATIC FUNCTION cb2Text( oEdit )
+FUNCTION cb2Text( oEdit, lToText )
 
-   LOCAL arr, n := oEdit:nRow - oEdit:y1 + oEdit:nyFirst
+   LOCAL arr
    LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
 
    TEdit():aCBoards[1,1] := s
@@ -1045,13 +1115,18 @@ STATIC FUNCTION cb2Text( oEdit )
       oEdit:lTextOut := .T.
    ENDIF
 
-   IF oEdit:lTabs
-      s := Strtran( s, Chr(9), Space(oEdit:nTablen) )
+   IF Empty( lToText )
+      RETURN s
+   ELSE
+      IF oEdit:lTabs
+         s := Strtran( s, Chr(9), Space(oEdit:nTablen) )
+      ENDIF
+      IF Chr(13) $ s
+         s := Strtran( s, Chr(13), "" )
+      ENDIF
+
+      oEdit:InsText( oEdit:nRow - oEdit:y1 + oEdit:nyFirst, oEdit:nCol-oEdit:x1+oEdit:nxFirst, s, .F., .T. )
    ENDIF
-   IF Chr(13) $ s
-      s := Strtran( s, Chr(13), "" )
-   ENDIF
-   oEdit:InsText( n, oEdit:nCol-oEdit:x1+oEdit:nxFirst, s, .F., .T. )
 
    RETURN Nil
 
@@ -1102,8 +1177,8 @@ STATIC FUNCTION cbDele( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, arr, s, n, i, cTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., ncmdhis := 20, nseahis := 20
+   LOCAL hIni, aIni, nSect, aSect, arr, arr1, s, n, i, cTemp
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., ncmdhis := 20, nseahis := 20, nedithis := 20
    LOCAL hHili
 
    TEdit():lReadIni := .T.
@@ -1135,6 +1210,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, "seahismax" ) .AND. !Empty( cTemp := aSect[ "seahismax" ] )
                   nseahis :=  Val(cTemp)
+               ENDIF
+               IF hb_hHaskey( aSect, "edithismax" ) .AND. !Empty( cTemp := aSect[ "edithismax" ] )
+                  nedithis :=  Val(cTemp)
                ENDIF
                IF hb_hHaskey( aSect, "langmap_cp" ) .AND. !Empty( cTemp := aSect[ "langmap_cp" ] )
                   IF Ascan( TEdit():aCPages, cTemp ) > 0
@@ -1213,6 +1291,7 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["incsearch"]  := lIncSea
    TEdit():options["cmdhismax"]  := ncmdhis
    TEdit():options["seahismax"]  := nseahis
+   TEdit():options["edithismax"]  := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
 
@@ -1221,20 +1300,51 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 
-   //IF !hb_hHaskey( aLangs, "prg" )
-   //   hHili := aLangs["prg"] := hb_hash()
-   //   hHili["commands"] := "and case class data do else elseif end endcase enddo endif exit for func function if local loop method next or private proc procedure public request return set seek skip static use while"
-   //   hHili["funcs"] := "aadd abs adel aeval afill ains alert alias alltrim array asc ascan asize asort at bof chr col ctod curdir date day dtoc dtos empty eof eval fclose fcreate ferase file fopen found fread fseek fwrite isalpha isdigit islower left len recno right set str stuff substr updated upper val valtype year"
-   //   hHili["scomm"] := "//"
-   //   hHili["mcomm"] := "/* */"
-   //   hHili["case"] := .F.
-   //ENDIF
+   hIni := hb_iniRead( hb_DirBase() + "hbedit.his" )
+   IF !Empty( hIni )
+      hb_hCaseMatch( hIni, .F. )
+      IF hb_hHaskey( hIni, "SEARCH" ) .AND. !Empty( aSect := hIni[ "SEARCH" ] )
+         arr := hb_hKeys( aSect )
+         arr := ASort( arr )
+         TEdit():aSeaHis := Array( Len(arr) )
+         FOR i := 1 TO Len(arr)
+            TEdit():aSeaHis[i] := aSect[ arr[i] ]
+         NEXT
+      ENDIF
+      IF hb_hHaskey( hIni, "COMMANDS" ) .AND. !Empty( aSect := hIni[ "COMMANDS" ] )
+         arr := hb_hKeys( aSect )
+         arr := ASort( arr )
+         TEdit():aCmdHis := Array( Len(arr) )
+         FOR i := 1 TO Len(arr)
+            TEdit():aCmdHis[i] := aSect[ arr[i] ]
+         NEXT
+      ENDIF
+      IF hb_hHaskey( hIni, "EDIT" ) .AND. !Empty( aSect := hIni[ "EDIT" ] )
+         arr := hb_hKeys( aSect )
+         arr := ASort( arr )
+         TEdit():aEditHis := Array( Len(arr) )
+         FOR i := 1 TO Len(arr)
+            arr1 := hb_ATokens( aSect[ arr[i] ], "," )
+            IF Len(arr1) < 4
+               TEdit():aEditHis[i] := { "ru866", 1, 1, "err" }
+            ELSE
+               s := Upper( arr1[1] )
+               IF Ascan( TEdit():aCPages, s ) == 0
+                  s := TEdit():aCPages[1]
+               ENDIF
+               arr1[2] := Max( 1, Val(arr1[2]) )
+               arr1[3] := Max( 1, Val(arr1[3]) )
+               TEdit():aEditHis[i] := { Ltrim(arr1[4]), s, arr1[2], arr1[3] }
+            ENDIF
+         NEXT
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
 FUNCTION mnu_Help( oEdit )
 
-   LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), "Help", ;
+   LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), cHelpName, ;
          oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4] )
 
    oHelp:lReadOnly := .T.
@@ -1294,11 +1404,11 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
 FUNCTION mnu_Windows( oEdit, aXY )
 
-   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil}, {"Open file",@mnu_OpenFile(),Nil} }, i, nCurr := 1
+   LOCAL aMenu := { }, i, nCurr := 1
 
    FOR i := 1 TO Len( oEdit:aWindows )
       IF oEdit:aWindows[i] == oEdit
-         nCurr := i + 2
+         nCurr := i
       ENDIF
       AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_ToWin(),i} )
    NEXT
@@ -1307,28 +1417,6 @@ FUNCTION mnu_Windows( oEdit, aXY )
    ENDIF
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,, nCurr )
-
-   RETURN Nil
-
-FUNCTION mnu_NewWin( oEdit, cText, cFileName )
-
-   LOCAL oNew
-
-   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
-         .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
-      hb_cdpSelect( oEdit:cpInit )
-      oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
-      oNew:funSave := oEdit:funSave
-      hb_cdpSelect( oEdit:cp )
-      oEdit:lShow := .F.
-      oEdit:nCurr := Len( oEdit:aWindows )
-   ELSE
-      oEdit:SetText( cText, cFileName )
-   ENDIF
-
-   RETURN Nil
-
-FUNCTION mnu_OpenFile( oEdit )
 
    RETURN Nil
 
@@ -1397,6 +1485,47 @@ FUNCTION mnu_F3( oEdit )
 
    RETURN Nil
 
+FUNCTION mnu_F4( oEdit, aXY )
+
+   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil}, {"Open file",@mnu_OpenFile(),Nil} }, i
+
+   FOR i := 1 TO Len( oEdit:aEditHis )
+      AAdd( aMenu, {NameShortcut(oEdit:aEditHis[i,1],36,'~'),@mnu_OpenRecent(),i} )
+   NEXT
+
+   FMenu( oEdit, aMenu, aXY[1], aXY[2] )
+
+   RETURN Nil
+
+FUNCTION mnu_OpenRecent( oEdit, n )
+
+   LOCAL cFileName := oEdit:aEditHis[n,1] 
+
+   RETURN mnu_NewWin( oEdit, Memoread(cFileName), cFileName )
+
+FUNCTION mnu_NewWin( oEdit, cText, cFileName )
+
+   LOCAL oNew
+
+   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
+         .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
+      hb_cdpSelect( oEdit:cpInit )
+      oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
+      oNew:funSave := oEdit:funSave
+      hb_cdpSelect( oEdit:cp )
+      oEdit:lShow := .F.
+      oEdit:nCurr := Len( oEdit:aWindows )
+   ELSE
+      oEdit:SetText( cText, cFileName )
+      DevPos( oEdit:nRow, oEdit:nCol )
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION mnu_OpenFile( oEdit )
+
+   RETURN Nil
+
 FUNCTION mnu_DelSelected( oEdit )
 
    IF !oEdit:lReadOnly
@@ -1437,7 +1566,7 @@ FUNCTION mnu_Search( oEdit )
       //aGets[1,4] := TEdit():aSeaHis[1]
       aGets[3,4] := lCase_Sea
    ENDIF
-   lRes := edi_READ( aGets, oEdit:lUtf8 )
+   lRes := edi_READ( oEdit, aGets )
 
    IF lRes
       cSearch := Trim( aGets[1,4] )
@@ -1500,7 +1629,7 @@ FUNCTION mnu_GoTo( oEdit )
    @ 10,32 SAY "Go to position"
    SetColor( "W+/BG" )
 
-   lRes := edi_READ( aGets, oEdit:lUtf8 )
+   lRes := edi_READ( oEdit, aGets )
 
    IF lRes .AND. (ny := Val(aGets[1,4]) ) > 0 .AND. ny <= Len(oEdit:aText)
       oEdit:GoTo( ny, 1, 0 )
@@ -1718,7 +1847,7 @@ STATIC FUNCTION edi_FileName( oEdit )
    @ 10,22 SAY "Save file as"
    SetColor( "W+/BG" ) 
 
-   IF edi_READ( aGets, oEdit:lUtf8 )
+   IF edi_READ( oEdit, aGets )
       cName := aGets[1,4]
    ENDIF
 

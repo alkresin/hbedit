@@ -70,6 +70,7 @@ FUNCTION Main( ... )
       ENDIF
       TEdit():aWindows[TEdit():nCurr]:Edit()
    ENDDO
+   TEdit():onExit()
 
    RETURN Nil
 
