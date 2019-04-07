@@ -19,6 +19,18 @@
 #define ALT_PRESSED   0x040000
 #define MAX_CBOARDS         10
 
+#define UNDO_LINE1      1
+#define UNDO_POS1       2
+#define UNDO_LINE2      3
+#define UNDO_POS2       4
+#define UNDO_OPER       5
+#define UNDO_TEXT       6
+
+#define UNDO_OP_INS     1
+#define UNDO_OP_OVER    2
+#define UNDO_OP_DEL     3
+#define UNDO_OP_SHIFT   4
+
 REQUEST HB_CODEPAGE_RU866, HB_CODEPAGE_RU1251, HB_CODEPAGE_RUKOI8, HB_CODEPAGE_FR850
 REQUEST HB_CODEPAGE_FRWIN, HB_CODEPAGE_FRISO, HB_CODEPAGE_UTF8
 REQUEST QOUT, MAXCOL, MAXROW
@@ -40,7 +52,7 @@ STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aPlugins := {}
 STATIC aLangs
-STATIC lCase_Sea
+STATIC lCase_Sea := .T.
 STATIC cDopMode := ""
 
 CLASS TEdit
@@ -70,6 +82,8 @@ CLASS TEdit
    DATA   nMode                       // “екущий режим (Edit, Vim, Cmd)
    DATA   nDopMode    INIT 0          // Ќажатие некоторых клавиш в режиме Vim, требующее дополнительных клавиш (m, ', g, ...)
    DATA   cSyntaxType
+
+   DATA   aUndo       INIT {}
 
    DATA   lBorder     INIT .F.
    DATA   lTopPane    INIT .T.
@@ -135,8 +149,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
    ::nMode := ::nDefMode
    ::cp := ::cpInit := hb_cdpSelect()
-   ::lUtf8 := ( Lower(::cp) == "utf8" )
-
+   
    ::SetText( cText, cFileName )
 
    ::hBookMarks := hb_Hash()
@@ -187,6 +200,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       ENDIF
    ENDIF
 
+   ::lUtf8 := ( Lower(::cp) == "utf8" )
    IF Empty( cText )
       ::aText := { "" }
       ::cEol := Chr(13) + Chr(10)
@@ -284,7 +298,7 @@ METHOD TextOut( n1, n2 ) CLASS TEdit
 
    RETURN Nil
 
-METHOD LineOut( nLine ) CLASS TEdit
+METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
    LOCAL n := nLine + ::nyFirst - 1, nWidth := ::x2 - ::x1 + 1, nLen
    LOCAL lSel := .F., nby1, nby2, nbx1, nbx2, xs1, xs2
@@ -295,7 +309,9 @@ METHOD LineOut( nLine ) CLASS TEdit
       DevPos( ::y1 + nLine - 1, ::x1 )
       nLen := Max( 0, Min( nWidth, cp_Len( ::lUtf8,::aText[n])-::nxFirst+1 ) )
 
-      DispBegin()
+      //IF Empty( lInTextOut )
+         DispBegin()
+      //ENDIF
       IF nLen > 0
          DevOut( cp_Substr( ::lUtf8, ::aText[n], ::nxFirst, nLen ) )
       ENDIF
@@ -340,7 +356,9 @@ METHOD LineOut( nLine ) CLASS TEdit
          Scroll( ::y1 + nLine - 1, ::x1 + nLen, ::y1 + nLine - 1, ::x2 )
       ENDIF
       SetColor( ::cColor )
-      DispEnd()
+      //IF Empty( lInTextOut )
+         DispEnd()
+      //ENDIF
    ELSE
       Scroll( ::y1 + nLine - 1, ::x1, ::y1 + nLine - 1, ::x2 )
    ENDIF
@@ -411,6 +429,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_GoTo( Self )
             ::lTextOut := .T.
 
+         ELSEIF nKey == K_ALT_M
+            ::nDopMode := 109
+            cDopMode := "m"
+            
+         ELSEIF nKey == K_ALT_QUOTE
+            ::nDopMode := 39
+            cDopMode := "'"
+            
          ENDIF
       ENDIF
       IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
@@ -432,10 +458,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_CTRL_Y
             IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
-               hb_ADel( ::aText, n, .T. )
-               ::lTextOut := .T.
-               ::Undo( n ) //, nPos1, nLine2, nPos2, nOper, cText )
-               ::lUpdated := .T.
+               ::DelText( n, 0, n+1, 0 )
             ENDIF
 
          ELSEIF nKey == K_CTRL_A
@@ -498,7 +521,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_PrevWord( Self )
                      nKey := K_LEFT
                   ELSEIF nKey == 100   // d Deletes selection
-                     mnu_DelSelected( Self )
+                     cbDele( Self )
                   ELSEIF nKey == 121   // y Copy to clipboard
                      IF !Empty( s := Text2cb( Self ) )
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
@@ -554,9 +577,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ELSE
                   IF ( i := (nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
                      ::nCol -= (i-1)
-                     ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), ::lIns, .T. )
+                     ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                   ELSE
-                     ::InsText( n, nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), ::lIns, .T. )
+                     ::InsText( n, nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                   ENDIF
                ENDIF
             ENDIF
@@ -582,23 +605,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                      TEdit():aCBoards[1,2] := Nil
                   ENDIF
-                  mnu_DelSelected( Self )
+                  cbDele( Self )
                ELSE
-                  IF nCol == cp_Len( ::lUtf8, ::aText[n] ) - ::nxFirst + 1
-                     IF n < Len( ::aText )
-                        ::aText[n] := ::aText[n] + ::aText[n+1]
-                        hb_ADel( ::aText, n+1, .T. )
-                        ::lTextOut := .T.
-                     ENDIF
-                  ELSE
-                     ::aText[n] := cp_Left( ::lUtf8, ::aText[n], nCol-::x1+::nxFirst-1 ) + ;
-                        cp_Substr( ::lUtf8, ::aText[n], nCol-::x1+::nxFirst+1 )
-                     ::LineOut( nRow - ::y1 + 1 )
-                  ENDIF
+                  ::DelText( n, nCol-::x1+::nxFirst, n, nCol-::x1+::nxFirst )
                ENDIF
                DevPos( nRow, nCol )
-               ::Undo( n )
-               ::lUpdated := .T.
             ENDIF
 
          ELSEIF nKey == K_BS
@@ -608,25 +619,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                      TEdit():aCBoards[1,2] := Nil
                   ENDIF
-                  mnu_DelSelected( Self )
+                  cbDele( Self )
                ELSE
                   IF nCol == ::x1
                      IF n > 1
-                        ::onKey( K_UP )
-                        ::onKey( K_END )
-                        ::aText[n-1] := ::aText[n-1] + ::aText[n]
-                        hb_ADel( ::aText, n, .T. )
-                        ::lTextOut := .T.
+                        edi_GoUp( Self )
+                        edi_GoEnd( Self )
+                        ::DelText( n-1, Col()-::x1+::nxFirst, n-1, Col()-::x1+::nxFirst )
                      ENDIF
                   ELSE
-                     ::aText[n] := cp_Left( ::lUtf8, ::aText[n], nCol-::x1+::nxFirst-2 ) + ;
-                        cp_Substr( ::lUtf8, ::aText[n], nCol-::x1+::nxFirst )
-                     ::LineOut( nRow - ::y1 + 1 )
-                     DevPos( nRow, nCol-1 )
+                     ::DelText( n, nCol-::x1+::nxFirst-1, n, nCol-::x1+::nxFirst-1 )
+                     DevPos( nRow, ::nCol := (nCol-1) )
                   ENDIF
                ENDIF
-               ::Undo( n )
-               ::lUpdated := .T.
             ENDIF
 
          ELSEIF nKey == K_TAB
@@ -662,14 +667,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             DevPos( Row(), ::x1 )
 
          ELSEIF nKey == K_END
-            nCol := cp_Len( ::lUtf8, ::aText[n] ) - ::nxFirst + Iif( ::nMode==1, 0, 1 )
-            IF nCol <= 0 .OR. nCol > ::x2 - ::x1
-               ::nxFirst := Max( 1, cp_Len( ::lUtf8, ::aText[n] ) - ( ::x2 - ::x1 ) + 1 )
-               ::lTextOut := .T.
-               DevPos( Row(), Iif( nCol <= 0, cp_Len( ::lUtf8, ::aText[n] ) - ::nxFirst + 1, ::x2 ) )
-            ELSE
-               DevPos( Row(), nCol )
-            ENDIF
+            edi_GoEnd( Self )
 
          ELSEIF nKey == K_PGUP
             i := 1
@@ -971,7 +969,7 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos ) CLASS TEdit
    ELSE
       i := cp_Len( ::lUtf8, cText )
       ::aText[nLine] := cp_Left( ::lUtf8, ::aText[nLine], nPos-1 ) + cText + ;
-         cp_Substr( ::lUtf8, ::aText[nLine], nPos + Iif(lOver,0,i) )
+         cp_Substr( ::lUtf8, ::aText[nLine], nPos + Iif(lOver,i,0) )
       IF lChgPos
          ::nCol += i
       ENDIF
@@ -995,9 +993,59 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos ) CLASS TEdit
 
 METHOD DelText( nLine1, nPos1, nLine2, nPos2 ) CLASS TEdit
 
+   LOCAL i, n, ncou := 0
+   
+   IF nLine1 == nLine2
+      IF nPos1 == nPos2 .AND. nPos1 > cp_Len( ::lUtf8, ::aText[nLine1] )
+         IF nLine1 < Len( ::aText )
+            ::aText[nLine1] += ::aText[nLine1+1]
+            hb_ADel( ::aText, nLine1+1, .T. )
+            ::lTextOut := .T.
+         ENDIF
+      ELSE
+         ::aText[nLine1] := cp_Left( ::lUtf8, ::aText[nLine1], nPos1-1 ) + ;
+            cp_Substr( ::lUtf8, ::aText[nLine1], nPos2+1 )
+         ::LineOut( nLine1 -::nyFirst + 1 )
+      ENDIF
+   ELSE
+      IF nPos1 > 1
+         ::aText[nLine1] := cp_Left( ::lUtf8, ::aText[nLine1], nPos1-1 )
+         n := nLine1 + 1
+      ELSE
+         ADel( ::aText, nLine1 )
+         n := nLine1
+         ncou ++
+      ENDIF
+      FOR i := nLine1+1 TO nLine2-1
+         ADel( ::aText, n )
+         ncou ++
+      NEXT
+      ::aText := ASize( ::aText, Len(::aText) - ncou )
+      IF nPos2 > 0
+         ::aText[nLine1+1] := cp_Substr( ::lUtf8, ::aText[nLine1+1], nPos2 )
+      ENDIF
+      IF ( i := nLine1 - ::nyFirst + 1 ) > 0 .AND. i < (::y2-::y1+1)
+         DevPos( ::nRow := (nLine1-::nyFirst-::y1+2), ::nCol := (nPos1-::nxFirst+1-::x1) )
+      ELSE
+         ::nyFirst := nLine1
+         DevPos( ::nRow := 1, ::nCol := nPos1 )
+      ENDIF
+      ::lTextOut := .T.
+   ENDIF
+   
+   ::Undo( nLine1 )
+   ::lUpdated := .T.
+   
    RETURN Nil
 
 METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
+
+   IF PCount() == 0
+   ELSEIF nOper == UNDO_OP_INS
+   ELSEIF nOper == UNDO_OP_OVER
+   ELSEIF nOper == UNDO_OP_DEL
+   ELSEIF nOper == UNDO_OP_SHIFT
+   ENDIF
 
    IF !Empty( ::oHili )
       ::oHili:UpdSource( nLine1 )
@@ -1132,46 +1180,16 @@ FUNCTION cb2Text( oEdit, lToText )
 
 STATIC FUNCTION cbDele( oEdit )
 
-   LOCAL i, n, nby1, nby2, nbx1, nbx2, ncou := 0
+   LOCAL nby1, nby2, nbx1, nbx2
 
-   IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
+   IF !oEdit:lReadOnly .AND. oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
          nby1 := oEdit:nby1; nbx1 := oEdit:nbx1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
       ELSE
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
-      IF nby1 == nby2
-         oEdit:aText[nby1] := cp_Left( oEdit:lUtf8, oEdit:aText[nby1], nbx1-1 ) + ;
-            cp_Substr( oEdit:lUtf8, oEdit:aText[nby1], nbx2 )
-         IF nby1 >= oEdit:nyFirst .AND. nby1 < oEdit:nyFirst + (oEdit:y2 - oEdit:y1 + 1)
-            oEdit:LineOut( nby1 - oEdit:nyFirst + 1 )
-         ENDIF
-      ELSE
-         IF nbx1 > 1
-            oEdit:aText[nby1] := cp_Left( oEdit:lUtf8, oEdit:aText[nby1], nbx1-1 )
-            n := nby1 + 1
-         ELSE
-            ADel( oEdit:aText, nby1 )
-            n := nby1
-            ncou ++
-         ENDIF
-         FOR i := nby1+1 TO nby2-1
-            ADel( oEdit:aText, n )
-            ncou ++
-         NEXT
-         oEdit:aText := ASize( oEdit:aText, Len(oEdit:aText) - ncou )
-         oEdit:aText[nby1+1] := cp_Substr( oEdit:lUtf8, oEdit:aText[nby1+1], nbx2 )
-         IF ( i := oEdit:nby1 - oEdit:nyFirst + 1 ) > 0 .AND. i < (oEdit:y2-oEdit:y1+1)
-            DevPos( oEdit:nRow := (oEdit:nby1-oEdit:nyFirst+1-oEdit:y1), oEdit:nCol := (oEdit:nbx1-oEdit:nxFirst+1-oEdit:x1) )
-         ELSE
-            oEdit:nyFirst := oEdit:nby1
-            DevPos( oEdit:nRow := 1, oEdit:nCol := oEdit:nbx1 )
-         ENDIF
-         oEdit:nby1 := oEdit:nby2 := -1
-         oEdit:TextOut()
-      ENDIF
-      oEdit:Undo( nby1 )
-      oEdit:lUpdated := .T.
+      oEdit:DelText( nby1, nbx1, nby2, nbx2-1 )
+      oEdit:nby1 := oEdit:nby2 := -1
    ENDIF
    RETURN Nil
 
@@ -1526,14 +1544,6 @@ FUNCTION mnu_OpenFile( oEdit )
 
    RETURN Nil
 
-FUNCTION mnu_DelSelected( oEdit )
-
-   IF !oEdit:lReadOnly
-      cbDele( oEdit )
-   ENDIF
-
-   RETURN Nil
-
 FUNCTION mnu_Sea_goto( oEdit, aXY )
 
    LOCAL aMenu := { {"Search",@mnu_Search(),Nil,"F7"}, {"Next",@mnu_SeaNext(),.T.,"Shift-F7"}, ;
@@ -1695,7 +1705,7 @@ STATIC FUNCTION edi_GoUp( oEdit )
          oEdit:lTextOut := .T.
       ENDIF
    ELSE
-      DevPos( nRow-1, Col() )
+      DevPos( oEdit:nRow := (nRow-1), oEdit:nCol )
    ENDIF
    RETURN Nil
 
@@ -1742,6 +1752,21 @@ STATIC FUNCTION edi_GoLeft( oEdit )
 
    RETURN Nil
 
+STATIC FUNCTION edi_GoEnd( oEdit )
+
+   LOCAL n := oEdit:nRow - oEdit:y1 + oEdit:nyFirst
+   LOCAL nCol := cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - oEdit:nxFirst + Iif( oEdit:nMode==1, 0, 1 )
+   
+   IF nCol <= 0 .OR. nCol > oEdit:x2 - oEdit:x1
+      oEdit:nxFirst := Max( 1, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - ( oEdit:x2 - oEdit:x1 ) + 1 )
+      oEdit:lTextOut := .T.
+      DevPos( Row(), oEdit:nCol := (Iif( nCol <= 0, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - oEdit:nxFirst + 1, oEdit:x2 )) )
+   ELSE
+      DevPos( Row(), oEdit:nCol := nCol )
+   ENDIF
+   
+   RETURN Nil
+   
 STATIC FUNCTION edi_ConvertCase( oEdit, lUpper )
 
    LOCAL s, i, nby1, nby2, nbx1, nbx2, lUtf8 := oEdit:lUtf8
@@ -1757,28 +1782,18 @@ STATIC FUNCTION edi_ConvertCase( oEdit, lUpper )
    ENDIF
    IF nby1 == nby2
       s := cp_Substr( lUtf8, oEdit:aText[nby1], nbx1, nbx2-nbx1 )
-      oEdit:aText[nby1] := cp_Left( lUtf8,oEdit:aText[nby1],nbx1-1 ) + ;
-          Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ) + ;
-         cp_Substr( lUtf8, oEdit:aText[nby1], nbx2 )
    ELSE
       FOR i := nby1 TO nby2
          IF i == nby1
             s := cp_Substr( lUtf8, oEdit:aText[nby1], nbx1 )
-            oEdit:aText[i] := cp_Left( lUtf8,oEdit:aText[nby1],nbx1-1 ) + ;
-               Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) )
          ELSEIF i == nby2
-            s := cp_Left( lUtf8, oEdit:aText[i], nbx2-1 )
-            oEdit:aText[i] := Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ) + ;
-               cp_Substr( lUtf8, oEdit:aText[i], nbx2 )
+            s += Chr(10) + cp_Left( lUtf8, oEdit:aText[i], nbx2-1 )
          ELSE
-            oEdit:aText[i] := Iif( lUpper, cp_Upper(lUtf8,oEdit:aText[i]), cp_Lower(lUtf8,oEdit:aText[i]) )
+            s += oEdit:aText[i]
          ENDIF
       NEXT
    ENDIF
-
-   oEdit:Undo( nby1 )
-   oEdit:lUpdated := .T.
-   oEdit:lTextOut := ( nby1 != nby2 )
+   oEdit:InsText( nby1, nbx1, Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ), .T., .F. )   
 
    RETURN Nil
 
@@ -1971,6 +1986,21 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
