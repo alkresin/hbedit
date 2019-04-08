@@ -402,6 +402,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSE
                ::nDopMode := 0
             ENDIF
+         ELSEIF ::nDopMode == 100  // d
+            IF nKey == 100    // d
+               IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
+                  ::DelText( n, 0, n+1, 0 )
+               ENDIF
+            ENDIF
+            ::nDopMode := 0
          ELSEIF ::nDopMode == 103  // g
             IF nKey == 103    // g
                ::Goto( 1 )
@@ -493,9 +500,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nxFirst := 1
                ::nyFirst := Len( ::aText ) - (::y2-::y1)
                ::lTextOut := .T.
-               DevPos( ::y2, Min( nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
+               DevPos( ::y2, Min( ::nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
             ELSE
-               DevPos( Len(::aText)+::y1-1, Min( nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
+               DevPos( Len(::aText)+::y1-1, Min( ::nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
             ENDIF
 
          ELSEIF nKey == K_CTRL_D
@@ -575,7 +582,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
-                  ELSEIF nKey == 103   // g
+                  ELSEIF nKey == 100   // d - delete
+                     ::nDopMode := 100
+                     cDopMode := Chr( nKey )
+                  
+                  ELSEIF nKey == 103   // g                  
                      ::nDopMode := 103
                      cDopMode := Chr( nKey )
                   ELSEIF nKey >= 49 .AND. nKey <= 57  // 1...9
@@ -583,11 +594,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cDopMode := Chr( nKey )
                   ENDIF
                ELSE
-                  IF ( i := (nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
+                  IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
                      ::nCol -= (i-1)
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                   ELSE
-                     ::InsText( n, nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
+                     ::InsText( n, ::nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                   ENDIF
                ENDIF
             ENDIF
@@ -615,9 +626,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                   cbDele( Self )
                ELSE
-                  ::DelText( n, nCol-::x1+::nxFirst, n, nCol-::x1+::nxFirst )
+                  ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
                ENDIF
-               //DevPos( nRow, nCol )
             ENDIF
 
          ELSEIF nKey == K_BS
@@ -629,15 +639,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                   cbDele( Self )
                ELSE
-                  IF nCol == ::x1
+                  IF ::nCol == ::x1
                      IF n > 1
                         edi_GoUp( Self )
                         edi_GoEnd( Self )
                         ::DelText( n-1, Col()-::x1+::nxFirst, n-1, Col()-::x1+::nxFirst )
                      ENDIF
                   ELSE
-                     ::DelText( n, nCol-::x1+::nxFirst-1, n, nCol-::x1+::nxFirst-1 )
-                     //DevPos( nRow, ::nCol := (nCol-1) )
+                     ::DelText( n, ::nCol-::x1+::nxFirst-1, n, ::nCol-::x1+::nxFirst-1 )
                   ENDIF
                ENDIF
             ENDIF
@@ -2100,6 +2109,7 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
 
 
 

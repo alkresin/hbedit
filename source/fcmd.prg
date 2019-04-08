@@ -330,7 +330,7 @@ FUNCTION cmd_Run( oEdit, acmd )
 
    RETURN Nil
 
-STATIC FUNCTION MacroError( e )
+FUNCTION MacroError( e )
 
    Alert( ErrorMessage( e ) )
    BREAK
