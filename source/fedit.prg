@@ -951,12 +951,13 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
          cTextOld := cp_Substr( ::lUtf8, ::aText[nLine], nPos ) + Chr(10)
          ::aText[nLine] := cp_Left( ::lUtf8, ::aText[nLine], nPos-1 ) + arr[1]      
          FOR i := 2 TO Len(arr)-1
-            cTextOld += ::aText[i] + Chr(10)
+            cTextOld += ::aText[nLine+i-1] + Chr(10)
             ::aText[nLine+i-1] := arr[i]
             nLine2 ++
          NEXT
+         cTextOld += cp_Left( ::lUtf8, ::aText[nLine+i-1], cp_Len( ::lUtf8,arr[i] ) )
          ::aText[nLine+i-1] := arr[i] + cp_Substr( ::lUtf8, ::aText[nLine+i-1], ;
-            cp_Len( ::lUtf8,arr[i] ) )
+            cp_Len(::lUtf8,arr[i]) + 1 )
          nLine2 ++            
       ELSE
          cTemp := cp_Substr( ::lUtf8, ::aText[nLine], nPos )
@@ -2099,6 +2100,8 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
+
 
 
 
