@@ -110,6 +110,25 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
             MenuRefresh( arr, nFirst, y1, x1, y2 )
          ENDIF
 
+      ELSEIF nKey == K_PGDN
+         IF nFirst + (y2-y1-2) < nLen
+            nFirst := Min( nFirst+(y2-y1-2), nLen-(y2-y1-2) )
+            MenuRefresh( arr, nFirst, y1, x1, y2 )
+         ELSE
+            i := nLen - nFirst + 1
+         ENDIF
+
+      ELSEIF nKey == K_PGUP
+         IF nFirst > (y2-y1-2)
+            nFirst -= (y2-y1-2)
+            MenuRefresh( arr, nFirst, y1, x1, y2 )
+         ELSEIF nFirst > 1
+            nFirst := 1
+            MenuRefresh( arr, nFirst, y1, x1, y2 )
+         ELSE
+            i := 1
+         ENDIF
+
       ELSEIF nKey == K_HOME
          i := 1
          IF nFirst > 1
@@ -152,3 +171,9 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2 )
    NEXT
 
    RETURN Nil
+
+
+
+
+
+
