@@ -1664,6 +1664,28 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
+   LOCAL oldc := SetColor( "N/W,W+/BG" )
+   LOCAL aGets := { {11,22,0,"",36} }, cName
+
+   hb_cdpSelect( "RU866" )
+   @ 09, 20, 13, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   hb_cdpSelect( oEdit:cp )
+
+   @ 10,22 SAY "Open file"
+   SetColor( "W+/BG" ) 
+
+   IF edi_READ( oEdit, aGets )
+      cName := aGets[1,4]
+      IF File( cName )
+         mnu_NewWin( oEdit, MemoRead(cName), cName )
+      ELSE
+         edi_Alert( oEdit, "File not found" )
+      ENDIF
+   ENDIF
+
+   SetColor( oldc )
+   DevPos( oEdit:nRow, oEdit:nCol )
+
    RETURN Nil
 
 FUNCTION mnu_Sea_goto( oEdit, aXY )
@@ -1682,12 +1704,15 @@ FUNCTION mnu_Search( oEdit )
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {12,23,1,.T.,1}, {12,43,1,.F.,1}, ;
       {14,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {14,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}} }
+      {14,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F.
    LOCAL ny := oEdit:nRow - oEdit:y1 + oEdit:nyFirst, nx := oEdit:nCol - oEdit:x1 + oEdit:nxFirst  
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 15, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 13, 20 SAY "Ã"
+   @ 13, 60 SAY "´"
+   @ 13, 21 TO 13, 59
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Search for"
@@ -1752,10 +1777,16 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 FUNCTION mnu_GoTo( oEdit )
 
    LOCAL oldc := SetColor( "N/W,W+/BG" )
-   LOCAL aGets := { {11,32,0,"",16} }, ny, lRes
+   LOCAL aGets := { {11,27,0,"",26}, ;
+      {13,28,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,42,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL arr, ny, nx, lRes
 
    hb_cdpSelect( "RU866" )
-   @ 09, 30, 12, 50 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 09, 25, 14, 55 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 12, 25 SAY "Ã"
+   @ 12, 55 SAY "´"
+   @ 12, 26 TO 12, 54
    hb_cdpSelect( oEdit:cp )
 
    @ 10,32 SAY "Go to position"
@@ -1763,8 +1794,16 @@ FUNCTION mnu_GoTo( oEdit )
 
    lRes := edi_READ( oEdit, aGets )
 
-   IF lRes .AND. (ny := Val(aGets[1,4]) ) > 0 .AND. ny <= Len(oEdit:aText)
-      oEdit:GoTo( ny, 1, 0 )
+   IF lRes
+      arr := hb_aTokens( aGets[1,4], "," )
+      ny := Val( arr[1] )
+      nx := Iif( Len(arr)>1 .AND. Val(arr[2])>0, Val(arr[2]), 1 )
+      IF ny > 0 .AND. ny <= Len(oEdit:aText)
+         IF nx >= cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
+            nx := 1
+         ENDIF
+         oEdit:GoTo( ny, nx, 0 )
+      ENDIF
    ENDIF
 
    SetColor( oldc )
@@ -2109,34 +2148,3 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -7,7 +7,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
    LOCAL nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0
    LOCAL i, nKey, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, nDop, arr
-   LOCAL nFirst := 1
+   LOCAL nFirst := 1, nHeight
 
    IF y1 == Nil; y1 := 6; ENDIF
    IF x1 == Nil; x1 := 30; ENDIF
@@ -50,7 +50,15 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
    NEXT
    MenuRefresh( arr, nFirst, y1, x1, y2 )
 
+   nHeight := y2 -y1 -1
    i := Iif( !Empty(nCurr), nCurr, 1 )
+   IF i > nHeight
+      nFirst := i
+      IF nFirst + nHeight - 1 > nLen
+         nFirst -= ( nLen - (nFirst + nHeight - 1) )
+      ENDIF
+      i := i - nFirst + 1
+   ENDIF
    DO WHILE lDo
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1] COLOR clrMenuSel
       nKey := Inkey( 0, INKEY_ALL )
@@ -73,10 +81,10 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
                i := nKey - 86
             ENDIF
             IF i > (y2-y1-1)
-               IF i - nFirst + 1 > (y2-y1-1)
-                  nFirst := i - (y2-y1-1) + 1
+               IF i - nFirst + 1 > nHeight
+                  nFirst := i - nHeight + 1
                   MenuRefresh( arr, nFirst, y1, x1, y2 )
-                  i := (y2-y1-1)
+                  i := nHeight
                ELSE
                   i := i - nFirst + 1
                ENDIF
@@ -95,7 +103,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
          lDo := .F.
 
       ELSEIF nKey == K_DOWN
-         IF i < y2-y1-1
+         IF i < nHeight
             i ++
          ELSEIF i + nFirst - 1 < nLen
             nFirst ++
@@ -111,16 +119,16 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
          ENDIF
 
       ELSEIF nKey == K_PGDN
-         IF nFirst + (y2-y1-2) < nLen
-            nFirst := Min( nFirst+(y2-y1-2), nLen-(y2-y1-2) )
+         IF nFirst + nHeight - 1 < nLen
+            nFirst := Min( nFirst+(nHeight-1), nLen-(nHeight-1) )
             MenuRefresh( arr, nFirst, y1, x1, y2 )
          ELSE
             i := nLen - nFirst + 1
          ENDIF
 
       ELSEIF nKey == K_PGUP
-         IF nFirst > (y2-y1-2)
-            nFirst -= (y2-y1-2)
+         IF nFirst > (nHeight-1)
+            nFirst -= (nHeight-1)
             MenuRefresh( arr, nFirst, y1, x1, y2 )
          ELSEIF nFirst > 1
             nFirst := 1
@@ -138,8 +146,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
 
       ELSEIF nKey == K_END
          IF nLen > y2-y1-1
-            nFirst := nLen - (y2-y1-1) + 1
-            i := (y2-y1-1)
+            nFirst := nLen - nHeight + 1
+            i := nHeight
             MenuRefresh( arr, nFirst, y1, x1, y2 )
          ELSE
             i := nLen
@@ -163,17 +171,11 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
 
 STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2 )
 
-   LOCAL i, nLen := y2 - y1 - 1
+   LOCAL i, nHeight := y2 - y1 - 1
 
-   FOR i := 1 TO nLen
+   FOR i := 1 TO nHeight
       DevPos( y1 + i, x1+2 )
       DevOut( arr[i+nFirst-1] )
    NEXT
 
    RETURN Nil
-
-
-
-
-
-

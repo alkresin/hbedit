@@ -1,6 +1,6 @@
 Function plug_prg_Spis( oEdit )
 
-   Local i, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F., cItem
+   Local i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F., cItem
 
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
@@ -26,10 +26,19 @@ Function plug_prg_Spis( oEdit )
    NEXT
    IF !Empty( arrfnc )
       oEdit:TextOut()
-      IF ( i := FMenu( oEdit, arrfnc, 5, Int((MaxCol()-66)/2) ) ) > 0
+      n := oEdit:nRow - oEdit:y1 + oEdit:nyFirst
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), ATail(arrfnc)[3], Iif( n == 0, 1, n ) )
+      IF ( i := FMenu( oEdit, arrfnc, 5, Int((MaxCol()-66)/2),,,,, n ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF
 
    RETURN Nil
+
 

@@ -204,3 +204,25 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
    ENDIF
 
    RETURN Nil
+
+FUNCTION edi_Alert( oEdit, cText )
+
+   LOCAL nLen := Len( cText ) + 4, cp, x1 := Int((MaxCol()-nLen)/2), oldc
+   LOCAL aGets := { {12,Int((MaxCol()-10)/2),2,"[Ok]",10,"W+/N","W+/N",{||__KeyBoard(Chr(K_ENTER))}} }
+
+   oldc := SetColor( "W+/R" )   
+   cp := hb_cdpSelect( "RU866" )
+   @ 09, x1, 13, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 11, x1 SAY "Ã"
+   @ 11, x1+nLen SAY "´"
+   @ 11, x1+1 TO 11, x1+nLen-1
+   @ 10, x1 + 2 SAY cText
+   hb_cdpSelect( cp )
+   SetColor( oldc )
+   edi_Read( oEdit, aGets )
+   
+   RETURN Nil
+
+
+
+

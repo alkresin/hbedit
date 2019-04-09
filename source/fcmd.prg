@@ -246,6 +246,17 @@ FUNCTION cmd_Edit( oEdit, acmd )
 
 FUNCTION cmd_Write( oEdit, acmd )
 
+   LOCAL cFileName, cPath
+   
+   IF Len( acmd ) > 1
+      cFileName := acmd[2]
+      IF Empty( hb_fnameDir(cFileName) ) .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
+         cFileName := cPath + cFileName
+      ENDIF
+      oEdit:Save( cFileName )
+      lEnd := .T.
+   ENDIF
+
    RETURN Nil
 
 FUNCTION cmd_Set( oEdit, acmd )
@@ -335,3 +346,4 @@ FUNCTION MacroError( e )
    Alert( ErrorMessage( e ) )
    BREAK
 RETURN .T.
+
