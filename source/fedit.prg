@@ -407,8 +407,55 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
                   ::DelText( n, 0, n+1, 0 )
                ENDIF
+               
+            ELSEIF nKey == 105    // i
+               IF cDopMode == "d"
+                  cDopMode += Chr( nKey )
+               ENDIF
+               
+            ELSEIF nKey == 98     // b
+               IF cDopMode == "d"
+                  mnu_F3( Self )
+                  edi_PrevWord( Self )
+                  ::nby2 := Row() - ::y1 + ::nyFirst
+                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  cbDele( Self )
+               ENDIF
+               ::nDopMode := 0
+               
+            ELSEIF nKey == 101    // e
+               IF cDopMode == "d"
+                  mnu_F3( Self )
+                  edi_NextWord( Self, .T. )
+                  edi_GoRight( Self )
+                  ::nby2 := Row() - ::y1 + ::nyFirst
+                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  cbDele( Self )
+               ENDIF
+               ::nDopMode := 0
+
+            ELSEIF nKey == 119    // w
+               IF cDopMode == "d"
+                  mnu_F3( Self )
+                  edi_NextWord( Self )
+                  ::nby2 := Row() - ::y1 + ::nyFirst
+                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  cbDele( Self )
+               ELSEIF cDopMode == "di"
+                  edi_PrevWord( Self )
+                  mnu_F3( Self )                  
+                  edi_NextWord( Self, .T. )
+                  edi_GoRight( Self )
+                  ::nby2 := Row() - ::y1 + ::nyFirst
+                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  cbDele( Self )
+               ENDIF
+               ::nDopMode := 0
+               
+            ELSE
+               ::nDopMode := 0
             ENDIF
-            ::nDopMode := 0
+
          ELSEIF ::nDopMode == 103  // g
             IF nKey == 103    // g
                ::Goto( 1 )
@@ -572,6 +619,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 118   // v Start selection
                      mnu_F3( Self )
                      nKey := K_RIGHT
+                  ELSEIF nKey == 117   // u Undo
+                     ::Undo()
                   ELSEIF nKey == 112   // p Insert clipboard after current coloumn
                      IF !::lReadOnly
                         DevPos( ::nRow, ++::nCol )
