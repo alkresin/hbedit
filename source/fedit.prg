@@ -514,7 +514,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          ELSEIF nKey == K_CTRL_LEFT .AND. hb_keyVal( nKeyExt ) == 15
             edi_PrevWord( Self )
 
-         ENDIF
+         ELSEIF nKey == K_CTRL_F4
+            mnu_OpenFile( Self )
+            ::lTextOut := .T.
+                                 
+        ENDIF
       ELSE
          IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( ::lUtf8 .AND. nKey > 3000 )
             IF !::lReadOnly
@@ -702,7 +706,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nyFirst += (::y2-::y1)
                ::lTextOut := .T.
             ELSE
-               DevPos( ::nRow := (::nRow+Len(::aText)-::nyFirst), ::nCol )
+               DevPos( ::nRow := (Len(::aText)-::nyFirst+2-::y1), ::nCol )
             ENDIF
 
          ELSEIF nKey == K_LBUTTONDOWN
@@ -741,6 +745,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_F4
             mnu_F4( Self, {7, 22} )
+            ::lTextOut := .T.
+
+         ELSEIF nKey == K_SH_F4
+            mnu_NewWin( Self )
             ::lTextOut := .T.
 
          ELSEIF nKey == K_F7
@@ -911,12 +919,15 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
 
 METHOD ToString( cEol ) CLASS TEdit
 
-   LOCAL i, s := ""
+   LOCAL i, nLen := Len( ::aText ), s := ""
 
    IF Empty( cEol )
       cEol := ::cEol
    ENDIF
-   FOR i := 1 TO Len( ::aText )
+   IF Empty( ::aText[nLen] )
+      nLen --
+   ENDIF
+   FOR i := 1 TO nLen
       s += Iif( ::lTabs, Strtran(::aText[i],Space(::nTablen),Chr(9)), ::aText[i] ) + cEol
    NEXT
 
@@ -1627,7 +1638,7 @@ FUNCTION mnu_F3( oEdit )
 
 FUNCTION mnu_F4( oEdit, aXY )
 
-   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil}, {"Open file",@mnu_OpenFile(),Nil} }, i
+   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
 
    FOR i := 1 TO Len( oEdit:aEditHis )
       AAdd( aMenu, {NameShortcut(oEdit:aEditHis[i,1],36,'~'),@mnu_OpenRecent(),i} )
@@ -1657,6 +1668,7 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
       oEdit:nCurr := Len( oEdit:aWindows )
    ELSE
       oEdit:SetText( cText, cFileName )
+      oEdit:WriteTopPane( .T. )
       DevPos( oEdit:nRow, oEdit:nCol )
    ENDIF
 
@@ -1664,11 +1676,12 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,W+/BG" )
-   LOCAL aGets := { {11,22,0,"",36} }, cName
+   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName
+   LOCAL aGets := { {11,12,0,"",56}, ;
+      {11,69,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}} }
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 13, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 09, 10, 13, 73 BOX "ÚÄ¿³ÙÄÀ³ "
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Open file"
@@ -1688,6 +1701,27 @@ FUNCTION mnu_OpenFile( oEdit )
 
    RETURN Nil
 
+FUNCTION mnu_FileList( oEdit, aGet )
+
+   LOCAL cPrefix, cFileName
+   LOCAL cScBuf := Savescreen( 12, 12, 22, 67 )   
+
+#ifdef __PLATFORM__UNIX
+   cPrefix := '/'
+#else
+   cPrefix := hb_curDrive() + ':\'
+#endif
+
+   cFileName := edi_SeleFile( oEdit, cPrefix + CurDir() + hb_ps(), 12, 12, 22, 67 )
+   Restscreen( 12, 12, 22, 67, cScBuf )
+   
+   IF !Empty( cFileName )
+      aGet[4] := cFileName
+      ShowGetItem( aGet, .F., oEdit:lUtf8 )
+   ENDIF
+   
+   RETURN Nil
+   
 FUNCTION mnu_Sea_goto( oEdit, aXY )
 
    LOCAL aMenu := { {"Search",@mnu_Search(),Nil,"F7"}, {"Next",@mnu_SeaNext(),.T.,"Shift-F7"}, ;
@@ -2148,3 +2182,14 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cString; ENDIF
    RETURN Upper( cString )
+
+
+
+
+
+
+
+
+
+
+

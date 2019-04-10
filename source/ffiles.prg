@@ -1,26 +1,35 @@
 
 FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
 
-   LOCAL aDirTmp := edi_Directory( cPath )
-   LOCAL aMenu := Array( Len( aDirTmp ) ), i
+   LOCAL aMenu := edi_Directory( cPath ), i, nPos
 
-   FOR i := 1 TO Len( aMenu )
-      aMenu[i] := { aDirTmp[i,1], Nil, Nil, Iif("D" $ aDirTmp[i,5], "<DIR>", Nil ) }
-   NEXT
+   DO WHILE .T.
+      i := FMenu( oEdit, aMenu, y1, x1, y2, x2 )
 
-   i := FMenu( oEdit, aMenu, y1, x1, y2, x2 )
-
-   IF i > 0 
-      IF Empty(aMenu[i,4])
+      IF i > 0 
+         IF Empty(aMenu[i,4])
+            RETURN cPath + aMenu[i,1]
+         ELSE
+            IF aMenu[i,1] == ".."
+               IF ( nPos := hb_Rat( hb_ps(), cPath,, Len(cPath)-1 ) ) > 0
+                  cPath := Left( cPath, nPos )
+                  aMenu := edi_Directory( cPath )
+               ENDIF
+            ELSE
+               cPath += aMenu[i,1] + hb_ps()
+               aMenu := edi_Directory( cPath )
+            ENDIF
+         ENDIF
       ELSE
+         RETURN Nil
       ENDIF
-   ENDIF
+   ENDDO
 
    RETURN Nil
 
 FUNCTION edi_Directory( cPath )
 
-   LOCAL aDirTmp := Directory( cPath, "HSD" )
+   LOCAL aDirTmp := Directory( cPath, "HSD" ), aMenu
    LOCAL i, l1 := .F., l2 := .F., nPos
 
    FOR i := 1 TO Len( aDirTmp )
@@ -49,11 +58,14 @@ FUNCTION edi_Directory( cPath )
       ENDIF
    ENDIF
    aDirTmp := ASort( aDirTmp,,, {|z,y|Lower(z[1]) < Lower(y[1])} )
+   aMenu := Array( Len( aDirTmp ) )
    FOR i := 1 TO Len( aDirTmp )
       IF "D" $ aDirTmp[i,5] .AND. Left( aDirTmp[i,1],1 ) == " "
          aDirTmp[i,1] := Substr( aDirTmp[i,1],2 )
       ENDIF
+      aMenu[i] := { aDirTmp[i,1], Nil, Nil, Iif("D" $ aDirTmp[i,5], "<DIR>", Nil ) }
    NEXT
 
-   RETURN aDirTmp
-   
+   RETURN aMenu
+
+

@@ -139,6 +139,12 @@ FUNCTION edi_READ( oEdit, aGets )
             DevPos( y, nx )
          ENDIF
 
+      ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_DOWN ;
+            .AND. hb_keyVal( nKeyExt ) == 14
+         IF nCurr < Len( aGets ) .AND. aGets[nCurr+1,G_TYPE] == G_TYPE_BUTTON
+            __KeyBoard( Chr(K_DOWN) + Chr(K_SPACE) )
+         ENDIF
+      
       ELSEIF nKey == K_LBUTTONDOWN
          nCol := MCol()
          nRow := MRow()
@@ -187,7 +193,8 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
    Scroll( aGet[G_Y], aGet[G_X], aGet[G_Y], aGet[G_X] + aGet[G_WIDTH] - 1 )
 
    IF aGet[G_TYPE] == G_TYPE_STRING
-      @ aGet[G_Y], aGet[G_X] SAY aGet[G_VALUE]
+      @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
+         aGet[G_VALUE], cp_Left( lUtf8, aGet[G_VALUE], aGet[G_WIDTH] ) )
 
    ELSEIF aGet[G_TYPE] == G_TYPE_CHECK
       @ aGet[G_Y], aGet[G_X] SAY Iif(aGet[G_VALUE],"x"," ")
@@ -222,7 +229,4 @@ FUNCTION edi_Alert( oEdit, cText )
    edi_Read( oEdit, aGets )
    
    RETURN Nil
-
-
-
 
