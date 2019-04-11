@@ -562,7 +562,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_Exit( Self )
 
          ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 66
-            edi_GoBracket( Self )
+            IF ( i := edi_Bracket( Self ) ) > 0
+               ::GoTo( , i )
+            ENDIF
          
          ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 16
             edi_NextWord( Self )
@@ -659,7 +661,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::nDopMode := 49
                      cDopMode := Chr( nKey )
                   ELSEIF nKey == 37   // %  Go to matching parentheses
-                     edi_GoBracket( Self )
+                     IF ( i := edi_Bracket( Self ) ) > 0
+                        ::GoTo( , i )
+                     ENDIF
                   ENDIF
                ELSE
                   IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
@@ -953,6 +957,7 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
 
    LOCAL lTextOut := .F., nRowOld
 
+   IF ny == Nil; ny := ::RowToLine(); ENDIF
    IF nx == Nil; nx := 1; ENDIF
    IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
       ::nyFirst := Max( ny-3, 1 )
@@ -2183,7 +2188,7 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    RETURN Nil
 
-STATIC FUNCTION edi_GoBracket( oEdit )
+STATIC FUNCTION edi_Bracket( oEdit )
 
    LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
    LOCAL c := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ), nPos := 0
@@ -2221,11 +2226,7 @@ STATIC FUNCTION edi_GoBracket( oEdit )
       ENDIF
    ENDIF
    
-   IF nPos > 0
-      oEdit:GoTo( ny, nPos )
-   ENDIF
-
-   RETURN Nil
+   RETURN nPos
 
 STATIC FUNCTION edi_FindChNext( oEdit, nLine, nPos, ch1, ch2, ch3 )
 
