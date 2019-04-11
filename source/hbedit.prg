@@ -49,6 +49,7 @@ FUNCTION Main( ... )
    arr := hb_gtinfo( HB_GTI_PALETTE )
    arr[2] := 0x800000
    arr[4] := 0x808000
+   arr[8] := 0xC8C8C8
    hb_gtinfo( HB_GTI_PALETTE, arr )
 #endif
 

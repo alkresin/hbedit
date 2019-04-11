@@ -215,7 +215,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
 FUNCTION edi_Alert( oEdit, cText )
 
    LOCAL nLen := Len( cText ) + 4, cp, x1 := Int((MaxCol()-nLen)/2), oldc
-   LOCAL aGets := { {12,Int((MaxCol()-10)/2),2,"[Ok]",10,"W+/N","W+/N",{||__KeyBoard(Chr(K_ENTER))}} }
+   LOCAL aGets := { {12,Int((MaxCol()-10)/2),2,"[Ok]",8,"W+/B","W+/B",{||__KeyBoard(Chr(K_ENTER))}} }
 
    oldc := SetColor( "W+/R" )   
    cp := hb_cdpSelect( "RU866" )

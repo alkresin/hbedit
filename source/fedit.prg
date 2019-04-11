@@ -459,6 +459,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          ELSEIF ::nDopMode == 103  // g
             IF nKey == 103    // g
                ::Goto( 1 )
+            ELSEIF nKey == 105    // i
+               IF ::nUndo > 0
+                  ::GoTo( ::aUndo[::nUndo][UNDO_LINE2], ::aUndo[::nUndo][UNDO_POS2] )
+               ENDIF
             ENDIF
             ::nDopMode := 0
          ENDIF
@@ -593,6 +597,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                         TEdit():aCBoards[1,2] := Nil
                      ENDIF
+                     
                   ELSEIF nKey == 62    // > Shift lines right
                      edi_Indent( Self, .T. )
                      lNoDeselect := .T.
@@ -632,6 +637,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                   ELSEIF nKey == 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
+                  ELSEIF nKey == 111   // o Insert line after current
+                     ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F., .T. )
+                     mnu_ChgMode( Self, .T. )                   
                   ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
@@ -639,12 +647,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::nDopMode := 100
                      cDopMode := Chr( nKey )
                   
-                  ELSEIF nKey == 103   // g                  
+                  ELSEIF nKey == 103   // g
                      ::nDopMode := 103
                      cDopMode := Chr( nKey )
                   ELSEIF nKey >= 49 .AND. nKey <= 57  // 1...9
                      ::nDopMode := 49
                      cDopMode := Chr( nKey )
+                  ELSEIF nKey == 37   // %  Go to matching parentheses
+                     edi_GoBracket( Self )
                   ENDIF
                ELSE
                   IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
@@ -1012,7 +1022,7 @@ METHOD Save( cFileName ) CLASS TEdit
 
 METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
-   LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld
+   LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew
 
    IF Chr(10) $ cText
       arr := hb_ATokens( cText, Chr(10) )
@@ -1038,20 +1048,20 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
          hb_AIns( ::aText, nLine+i-1, arr[i] + cTemp, .T. )
          nLine2 ++
       ENDIF
-      nPos2 := cp_Len( ::lUtf8, arr[i] )      
+      nPos2 := Max( cp_Len( ::lUtf8, arr[i] ), 1 )
       ::lTextOut := .T.
       IF lChgPos
-         nLine := nLine + i - 1
-         IF nLine - ::nyFirst + 1 > ::y2 - ::y1 - 1
-            ::nyFirst := nLine - 3
+         nLineNew := nLine + i - 1
+         IF nLineNew - ::nyFirst + 1 > ::y2 - ::y1 - 1
+            ::nyFirst := nLineNew - 3
          ENDIF
-         nPos := cp_Len( ::lUtf8, arr[i] ) + 1
-         IF nPos - ::nxFirst + 1 > ::x2 - ::x1 - 1
-            ::nxFirst := nPos - 3
-         ELSEIF nPos < ::nxFirst
-            nPos := 1
+         nPosNew := cp_Len( ::lUtf8, arr[i] ) + 1
+         IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 - 1
+            ::nxFirst := nPosNew - 3
+         ELSEIF nPosNew < ::nxFirst
+            nPosNew := 1
          ENDIF
-         DevPos( ::nRow := nLine - ::nyFirst + ::y1, ::nCol := nPos - ::nxFirst + ::x1 )
+         DevPos( ::nRow := nLineNew - ::nyFirst + ::y1, ::nCol := nPosNew - ::nxFirst + ::x1 )
       ENDIF
    ELSE
       i := cp_Len( ::lUtf8, cText )
@@ -1727,12 +1737,16 @@ FUNCTION mnu_OpenFile( oEdit )
 
    LOCAL oldc := SetColor( "N/W,W+/BG" ), cName
    LOCAL aGets := { {11,12,0,"",56}, ;
-      {11,69,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}} }
+      {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
+      {13,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,46,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
 
    hb_cdpSelect( "RU866" )
-   @ 09, 10, 13, 73 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 09, 10, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 12, 10 SAY "Ã"
+   @ 12, 72 SAY "´"
+   @ 12, 11 TO 12, 71
    hb_cdpSelect( oEdit:cp )
-
    @ 10,22 SAY "Open file"
    SetColor( "W+/BG" ) 
 
@@ -2161,6 +2175,10 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
          ENDIF
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_GoBracket( oEdit )
 
    RETURN Nil
 
