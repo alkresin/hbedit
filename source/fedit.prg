@@ -385,7 +385,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    IF npy1 > 0
       DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
       DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
-      DevPos( ::nRow, ::nCol )
+      IF npy2 >= ::nyFirst .AND. npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
+            npx2 >= ::nxFirst .AND. npx2 < ::nxFirst + ::x2 - ::x1
+         DevPos( npy2 - ::nyFirst + ::y1, npx2 - ::nxFirst + ::x1 )
+         DevOut( cp_Substr( ::lUtf8, ::aText[npy2], npx2, 1 ) )
+      ENDIF
+      DevPos( ::nRow, ::nCol )      
+      npy1 := npx1 := npy2 := npx2 := 0      
    ENDIF
    IF ::nDopMode > 0
       IF nKey == K_ESC
@@ -880,14 +886,17 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
    ::nCol := Col(); ::nRow := Row()
    
-   IF Empty( x := edi_Bracket( Self, .T., .T. ) )
-      npy1 := npx1 := npy2 := npx2 := 0
-   ELSE
+   IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
       npy1 := ::RowToLine(); npx1 := ::ColToPos()
       npy2 := Iif( Valtype(x)=="A",x[1], npy1 ); npx2 := Iif( Valtype(x)=="A",x[2], x )
       SetColor( ::cColorBra )
       DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
       DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
+      IF npy2 >= ::nyFirst .AND. npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
+            npx2 >= ::nxFirst .AND. npx2 < ::nxFirst + ::x2 - ::x1
+         DevPos( npy2 - ::nyFirst + ::y1, npx2 - ::nxFirst + ::x1 )
+         DevOut( cp_Substr( ::lUtf8, ::aText[npy2], npx2, 1 ) )
+      ENDIF
       SetColor( ::cColor )
       DevPos( ::nRow, ::nCol )
    ENDIF
