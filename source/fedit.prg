@@ -77,6 +77,7 @@ CLASS TEdit
    DATA   cColor      INIT "BG+/B"
    DATA   cColorSel   INIT "N/W"
    DATA   cColorPane  INIT "N/BG"
+   DATA   cColorBra   INIT "R/B"
    DATA   cFileName   INIT ""
    DATA   cp, cpInit
    DATA   nxFirst, nyFirst
@@ -374,12 +375,18 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 METHOD onKey( nKeyExt ) CLASS TEdit
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, n, nCol := Col(), nRow := Row()
-   LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F.
+   LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F., x
+   STATIC npy1 := 0, npx1 := 0, npy2 := 0, npx2 := 0
 
    ::nCol := nCol; ::nRow := nRow
    n := ::RowToLine( nRow )
    ::lTextOut := .F.
 
+   IF npy1 > 0
+      DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
+      DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
+      DevPos( ::nRow, ::nCol )
+   ENDIF
    IF ::nDopMode > 0
       IF nKey == K_ESC
          ::nDopMode := 0
@@ -562,9 +569,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_Exit( Self )
 
          ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 66
-            IF ( i := edi_Bracket( Self ) ) > 0
-               ::GoTo( , i )
-            ENDIF
+            edi_Bracket( Self )
          
          ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 16
             edi_NextWord( Self )
@@ -661,9 +666,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::nDopMode := 49
                      cDopMode := Chr( nKey )
                   ELSEIF nKey == 37   // %  Go to matching parentheses
-                     IF ( i := edi_Bracket( Self ) ) > 0
-                        ::GoTo( , i )
-                     ENDIF
+                     edi_Bracket( Self )
                   ENDIF
                ELSE
                   IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
@@ -876,6 +879,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ENDIF
 
    ::nCol := Col(); ::nRow := Row()
+   
+   IF Empty( x := edi_Bracket( Self, .T., .T. ) )
+      npy1 := npx1 := npy2 := npx2 := 0
+   ELSE
+      npy1 := ::RowToLine(); npx1 := ::ColToPos()
+      npy2 := Iif( Valtype(x)=="A",x[1], npy1 ); npx2 := Iif( Valtype(x)=="A",x[2], x )
+      SetColor( ::cColorBra )
+      DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
+      DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
+      SetColor( ::cColor )
+      DevPos( ::nRow, ::nCol )
+   ENDIF
+   
    ::WriteTopPane()
 
    RETURN Nil
@@ -2188,20 +2204,28 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    RETURN Nil
 
-STATIC FUNCTION edi_Bracket( oEdit )
+STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly )
 
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL nyInit, ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
    LOCAL c := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ), nPos := 0
    LOCAL b1 := "([{", b2 := ")]}", i, np := 0
-   
+
+   nyInit := ny
    IF ( i := At( c, b1 ) ) > 0
       IF edi_InQuo( oEdit, ny, nx ) == 0
          nPos := nx
-         DO WHILE ( nPos := edi_FindChNext( oEdit, ny, nPos, c, Substr( b2,i,1 ) ) ) > 0
-            IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
-               np ++
-            ELSEIF np > 0
-               np --
+         DO WHILE ny <= Len( oEdit:aText )
+            DO WHILE ( nPos := edi_FindChNext( oEdit, ny, nPos, c, Substr( b2,i,1 ) ) ) > 0
+               IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
+                  np ++
+               ELSEIF np > 0
+                  np --
+               ELSE
+                  EXIT
+               ENDIF
+            ENDDO
+            IF nPos == 0
+               ny ++
             ELSE
                EXIT
             ENDIF
@@ -2210,23 +2234,34 @@ STATIC FUNCTION edi_Bracket( oEdit )
    ELSEIF ( i := At( c, b2 ) ) > 0
       IF edi_InQuo( oEdit, ny, nx ) == 0
          nPos := nx
-         DO WHILE ( nPos := edi_FindChPrev( oEdit, ny, nPos, c, Substr( b1,i,1 ) ) ) > 0
-            IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
-               np ++
-            ELSEIF np > 0
-               np --
+         DO WHILE ny > 0
+            DO WHILE ( nPos := edi_FindChPrev( oEdit, ny, nPos, c, Substr( b1,i,1 ) ) ) > 0
+               IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
+                  np ++
+               ELSEIF np > 0
+                  np --
+               ELSE
+                  EXIT
+               ENDIF
+            ENDDO
+            IF nPos == 0
+               ny --
+               nPos := Iif( ny > 0, cp_Len( oEdit:lUtf8, oEdit:aText[ny] ) + 1, 1 )
             ELSE
                EXIT
             ENDIF
          ENDDO
       ENDIF
-   ELSE
+   ELSEIF Empty( lPairOnly )
       IF edi_InQuo( oEdit, ny, nx ) == 0
          nPos := edi_FindChNext( oEdit, ny, nx, ")", "]", "}" )
       ENDIF
    ENDIF
+   IF Empty( lCalcOnly ) .AND. nPos > 0
+      oEdit:GoTo( ny, nPos )
+   ENDIF
    
-   RETURN nPos
+   RETURN Iif( !Empty(lCalcOnly), Iif( ny == nyInit, nPos, {ny,nPos} ), Nil )
 
 STATIC FUNCTION edi_FindChNext( oEdit, nLine, nPos, ch1, ch2, ch3 )
 
