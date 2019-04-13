@@ -7,6 +7,7 @@
 
 #include "inkey.ch"
 #include "setcurs.ch"
+#include "hbgtinfo.ch"
 
 #define G_Y      1
 #define G_X      2
@@ -25,11 +26,12 @@
 #define CTRL_PRESSED  0x020000
 
 STATIC aClrdef
+STATIC iChoic
 
-FUNCTION edi_READ( oEdit, aGets )
+FUNCTION edi_READ( aGets )
 
-   LOCAL nCurr := 1, i, nKeyExt, nKey, lRes := .F., nCol, nRow, nx, x, y, s
-   LOCAL clrdef := SetColor(), lUtf8 := oEdit:lUtf8
+   LOCAL nCurr := 1, i, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
+   LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
    
    aClrdef := hb_aTokens( clrdef, ',' )
    FOR i := 1 TO Len( aGets )
@@ -127,7 +129,7 @@ FUNCTION edi_READ( oEdit, aGets )
       ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
          ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            s := cb2Text( oEdit )
+            s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
                   s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
             DevPos( y, aGets[nCurr,G_X] )
@@ -167,7 +169,7 @@ FUNCTION edi_READ( oEdit, aGets )
          NEXT
 
       ELSEIF nKey == K_ENTER .OR. nKey == K_PGDN
-         lRes := .T.
+         nRes := nCurr
          EXIT
 
       ELSEIF nKey == K_ESC
@@ -179,7 +181,7 @@ FUNCTION edi_READ( oEdit, aGets )
    SetColor( clrdef )
    SetCursor( SC_NORMAL )
 
-   RETURN lRes
+   RETURN nRes
 
 FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
 
@@ -212,21 +214,47 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
 
    RETURN Nil
 
-FUNCTION edi_Alert( oEdit, cText )
+FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
-   LOCAL nLen := Len( cText ) + 4, cp, x1 := Int((MaxCol()-nLen)/2), oldc
-   LOCAL aGets := { {12,Int((MaxCol()-10)/2),2,"[Ok]",8,"W+/B","W+/B",{||__KeyBoard(Chr(K_ENTER))}} }
+   LOCAL aText := hb_aTokens( cText, ";" ), i
+   LOCAL aGets := { {,,2," Ok ",4,"W+/R","W+/B",{||__KeyBoard(Chr(K_ENTER))}} }
+   LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc  
 
-   oldc := SetColor( "W+/R" )   
+   FOR i := 1 TO Len( aText )
+      nLen := Max( nLen, Len( aText[i] ) )
+   NEXT
+   nLen += 4
+   IF cAns1 != Nil
+      nBtnsLen := Max( nBtnsLen, Len(cAns1) + 4 )
+      aGets[1,4] := " " + cAns1 + " "
+   ENDIF
+   nBtnsLen := nBtnsLen + Iif( cAns2==Nil,0,Len(cAns2)+4 ) + ;
+      Iif( cAns3==Nil,0,Len(cAns3)+2 )
+   nLen := Max( nLen, nBtnsLen+4 )
+      
+   aGets[1,1] := y1+Len(aText)+2
+   aGets[1,2] := Int( (MaxCol()-nBtnsLen)/2 ) + 1
+   aGets[1,5] := Len(aGets[1,4])   
+   
+   IF cAns2 != Nil
+      Aadd( aGets, { aGets[1,1], aGets[1,2] + aGets[1,5] + 2, 2, " " + cAns2 + " ", ;
+         Len(" " + cAns2 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
+   ENDIF   
+   IF cAns3 != Nil
+      Aadd( aGets, { aGets[1,1], aGets[2,2] + aGets[2,5] + 2, 2, " " + cAns3 + " ", ;
+         Len(" " + cAns3 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
+   ENDIF   
+   
+   oldc := SetColor( "W+/R" )
    cp := hb_cdpSelect( "RU866" )
-   @ 09, x1, 13, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 11, x1 SAY "Ã"
-   @ 11, x1+nLen SAY "´"
-   @ 11, x1+1 TO 11, x1+nLen-1
-   @ 10, x1 + 2 SAY cText
+   x1 := Int( (MaxCol()-nLen)/2 )
+   @ y1, x1, y1+Len(aText)+3, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
+   FOR i := 1 TO Len( aText )   
+      @ y1+i, x1 + 2 SAY aText[i]
+   NEXT
    hb_cdpSelect( cp )
    SetColor( oldc )
-   edi_Read( oEdit, aGets )
-   
-   RETURN Nil
 
+   i := edi_Read( aGets )
+   
+   RETURN i
