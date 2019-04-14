@@ -111,6 +111,7 @@ CLASS TEdit
    DATA   lShow
    DATA   lClose      INIT .F.
    DATA   cEol
+   DATA   lBom        INIT .F.
 
    DATA   funSave
    DATA   oHili
@@ -167,7 +168,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, cFile_utf8
+   LOCAL i, arr, cFile_utf8, cBom := e"\xef\xbb\xbf"
 
    IF !Empty( cFileName )
       IF cFileName == cHelpName
@@ -212,6 +213,12 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
    ELSE
       ::aText := hb_ATokens( cText, Chr(10) )
       ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+      IF Left( ::aText[1], 3 ) == cBom
+         hb_cdpSelect( ::cp := "UTF8" )
+         ::lUtf8 := .T.
+         ::aText[1] := Substr( ::aText[1], 4 )
+         ::lBom := .T.
+      ENDIF
       FOR i := 1 TO Len( ::aText )
          IF Chr(9) $ ::aText[i]
             ::aText[i] := Strtran( ::aText[i], Chr(9), Space(::nTablen) )
@@ -1018,7 +1025,7 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
 
 METHOD ToString( cEol ) CLASS TEdit
 
-   LOCAL i, nLen := Len( ::aText ), s := ""
+   LOCAL i, nLen := Len( ::aText ), cBom := e"\xef\xbb\xbf", s := Iif( ::lBom, cBom, "" )
 
    IF Empty( cEol )
       cEol := ::cEol
