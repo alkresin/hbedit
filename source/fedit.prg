@@ -1386,7 +1386,7 @@ FUNCTION cb2Text( oEdit, lToText )
             aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
          ENDIF
       NEXT
-      IF ( i := FMenu( oEdit, aMenu_CB ) ) != Nil
+      IF !Empty( i := FMenu( oEdit, aMenu_CB ) )
          s := TEdit():aCBoards[i,1]
          IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
             s := hb_Translate( s, TEdit():aCBoards[i,2], oEdit:cp )
@@ -1724,7 +1724,7 @@ FUNCTION mnu_F3( oEdit )
             aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
          ENDIF
       NEXT
-      IF ( i := FMenu( oEdit, aMenu_CB ) ) != Nil
+      IF !Empty( i := FMenu( oEdit, aMenu_CB ) )
          TEdit():aCBoards[i,1] := Text2cb( oEdit )
          TEdit():aCBoards[i,2] := oEdit:cp
          IF i == 1
