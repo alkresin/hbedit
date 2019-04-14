@@ -11,7 +11,9 @@
 #include "setcurs.ch"
 #include "hbgtinfo.ch"
 #ifdef _FULL
-#include "hbfunclist.ch"
+#include "hbfuncsfull.ch"
+#else
+#include "hbfuncs.ch"
 #endif
 
 #define SHIFT_PRESSED 0x010000
@@ -32,12 +34,6 @@
 #define UNDO_OP_SHIFT   4
 
 #define UNDO_INC       12
-
-REQUEST HB_CODEPAGE_RU866, HB_CODEPAGE_RU1251, HB_CODEPAGE_RUKOI8, HB_CODEPAGE_FR850
-REQUEST HB_CODEPAGE_FRWIN, HB_CODEPAGE_FRISO, HB_CODEPAGE_UTF8
-REQUEST QOUT, MAXCOL, MAXROW
-REQUEST HB_TOKENPTR
-REQUEST HB_FNAMENAME, HB_FNAMEEXT, HB_FNAMEDIR
 
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
@@ -1613,7 +1609,7 @@ FUNCTION mnu_Exit( oEdit )
    LOCAL nRes := 2
 
    IF oEdit:lUpdated
-      nRes := Alert( "File has been modified. Save?", { "Yes", "No", "Cancel" } )
+      nRes := edi_Alert( "File has been modified. Save?", "Yes", "No", "Cancel" )
    ENDIF
    IF nRes == 1 .OR. nRes == 2
       IF nRes == 1

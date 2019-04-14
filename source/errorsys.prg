@@ -39,7 +39,7 @@ RETURN
 */
 STATIC FUNC DefError( e )
 
-LOCAL i, cMessage, aOptions, nChoice
+LOCAL i, cMessage
 
    // by default, division by zero yields zero
    IF ( e:genCode == EG_ZERODIV )
@@ -65,54 +65,12 @@ LOCAL i, cMessage, aOptions, nChoice
    // build error message
    cMessage := ErrorMessage( e )
 
-   // build options array
-   // aOptions := {"Break", "Quit"}
-   aOptions := { "Quit" }
-
-   IF ( e:canRetry )
-      Aadd( aOptions, "Retry" )
+   IF ( Empty( e:osCode ) )
+      edi_Alert( cMessage, "Quit" )
+   ELSE
+      edi_Alert( cMessage + ";(DOS Error " + NTRIM( e:osCode ) + ")", "Quit" )
    END
 
-   IF ( e:canDefault )
-      Aadd( aOptions, "Default" )
-   END
-
-   // put up alert box
-   nChoice := 0
-   WHILE ( nChoice == 0 )
-
-      IF ( Empty( e:osCode ) )
-         nChoice := Alert( cMessage, aOptions )
-
-      ELSE
-         nChoice := Alert( cMessage + ;
-                           ";(DOS Error " + NTRIM( e:osCode ) + ")", ;
-                           aOptions )
-      END
-
-      IF ( nChoice == NIL )
-         EXIT
-      END
-
-   END
-
-   IF ( !Empty( nChoice ) )
-
-      // do as instructed
-      IF ( aOptions[ nChoice ] == "Break" )
-         BREAK( e )
-
-      ELSEIF ( aOptions[ nChoice ] == "Retry" )
-         RETURN ( .t. )
-
-      ELSEIF ( aOptions[ nChoice ] == "Default" )
-         RETURN ( .f. )
-
-      END
-
-   END
-
-   // display message and traceback
    IF ( !Empty( e:osCode ) )
       cMessage += " (DOS Error " + NTRIM( e:osCode ) + ") "
    END
@@ -120,22 +78,21 @@ LOCAL i, cMessage, aOptions, nChoice
    SET DEFAULT TO
    SET DEVICE TO PRINTER
    SET PRINTER TO "apps.err" ADDITIVE
-   @  1,  0 SAY " "                                                                                    
-   @  2,  0 SAY Iif( Type( "mnam" ) = "C", m->mnam, "" ) + ' ' + Dtoc( Date() ) + ' ' + Time()         
-   @  3,  0 SAY cMessage                                                                               
+   @  1,  0 SAY " "
+   @  2,  0 SAY Dtoc( Date() ) + ' ' + Time()
+   @  3,  0 SAY cMessage
    i := 2
    WHILE ( !Empty( Procname( i ) ) )
-      @ i + 2, 0 SAY "Called from " + Trim( Procname( i ) ) + ;         
+      @ i + 2, 0 SAY "Called from " + Trim( Procname( i ) ) + ;
               "(" + NTRIM( Procline( i ) ) + ")  "
 
       i ++
-   END
+   ENDDO
    SET DEVICE TO SCREEN
-   // give up
    Errorlevel( 1 )
    QUIT
 
-RETURN ( .f. )
+RETURN .F.
 
 /***
 *       ErrorMessage()

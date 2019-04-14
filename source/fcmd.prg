@@ -343,7 +343,7 @@ FUNCTION cmd_Run( oEdit, acmd )
 
 FUNCTION MacroError( e )
 
-   Alert( ErrorMessage( e ) )
+   edi_Alert( ErrorMessage( e ) )
    BREAK
 RETURN .T.
 
