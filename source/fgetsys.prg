@@ -92,14 +92,21 @@ FUNCTION edi_READ( aGets )
          ENDIF
 
       ELSEIF nKey == K_LEFT
-         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING .AND. nx > aGets[nCurr,G_X]
-            DevPos( Row(), --nx )
+         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING 
+            IF nx > aGets[nCurr,G_X]
+               DevPos( Row(), --nx )
+            ENDIF
+         ELSE
+            __Keyboard( Chr(K_UP) )
          ENDIF
 
       ELSEIF nKey == K_RIGHT
-         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING .AND. x < aGets[nCurr,G_WIDTH] .AND. ;
-               x < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
-            DevPos( Row(), ++nx )
+         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING 
+            IF x < aGets[nCurr,G_WIDTH] .AND. x < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
+               DevPos( Row(), ++nx )
+            ENDIF
+         ELSE
+            __Keyboard( Chr(K_DOWN) )
          ENDIF
 
       ELSEIF nKey == K_UP

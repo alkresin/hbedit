@@ -38,7 +38,7 @@
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
    {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{11,40},"F4 >"}, ;
-   {"Search&GoTo",@mnu_Sea_Goto(),{12,40},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Z"}, ;
+   {"Search&GoTo",@mnu_Sea_Goto(),{12,40},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Q"}, ;
    {"Codepage",@mnu_CPages(),Nil,">"}, {"Syntax",@mnu_Syntax(),{16,40},"F8 >"}, ;
    {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{17,40},"F12 >"} }
 
@@ -150,7 +150,8 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    ::y2 := ::aRect[3] := Iif( y2==Nil, ::aRect[3], y2 )
    ::x2 := ::aRect[4] := Iif( x2==Nil, ::aRect[4], x2 )
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
-   ::nxFirst := ::nyFirst := ::nRow := ::nCol := 1
+   ::nxFirst := ::nyFirst := ::nRow := 1
+   ::nCol := 0
 
    ::nMode := ::nDefMode
    ::cp := ::cpInit
@@ -544,6 +545,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
 
          ELSEIF nKey == K_CTRL_Z .AND. hb_keyVal( nKeyExt ) == 90
+            ::Undo()
+            
+         ELSEIF nKey == K_CTRL_Q .AND. hb_keyVal( nKeyExt ) == 81
             mnu_ChgMode( Self )
 
          ELSEIF nKey == K_CTRL_Y
@@ -565,19 +569,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nCurr ++
             ENDIF
 
-         ELSEIF nKey == K_CTRL_PGUP
+         ELSEIF nKey == K_CTRL_PGUP .OR. nKey == K_CTRL_HOME
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
             ::nxFirst := ::nyFirst := 1
             DevPos( ::y1, ::x1 )
 
-         ELSEIF nKey == K_CTRL_PGDN
+         ELSEIF nKey == K_CTRL_PGDN .OR. nKey == K_CTRL_END
             IF Len( ::aText ) > ::y2-::y1+1
                ::nxFirst := 1
                ::nyFirst := Len( ::aText ) - (::y2-::y1)
                ::lTextOut := .T.
-               DevPos( ::y2, Min( ::nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
+               DevPos( ::y2, Min( ::nCol,Iif(nKey==K_CTRL_END,1,cp_Len(::lUtf8,ATail(::aText))+1)) )
             ELSE
-               DevPos( Len(::aText)+::y1-1, Min( ::nCol,cp_Len( ::lUtf8,ATail(::aText))+1 ) )
+               DevPos( Len(::aText)+::y1-1, Iif(nKey==K_CTRL_END,1,Min(::nCol,cp_Len(::lUtf8,ATail(::aText))+1)) )
             ENDIF
 
          ELSEIF nKey == K_CTRL_D
