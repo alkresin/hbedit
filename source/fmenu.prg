@@ -51,7 +51,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr )
 
    nHeight := Min( y2 -y1 -1, nLen )
    i := Iif( !Empty(nCurr), nCurr, 1 )
-   IF i > nHeight
+   IF i > nLen
+      i := nLen
+   ELSEIF i > nHeight
       nFirst := i
       IF nFirst + nHeight - 1 > nLen
          nFirst -= ( (nFirst + nHeight - 1) -nLen )

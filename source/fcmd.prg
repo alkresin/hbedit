@@ -253,9 +253,9 @@ FUNCTION cmd_Write( oEdit, acmd )
       IF Empty( hb_fnameDir(cFileName) ) .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
          cFileName := cPath + cFileName
       ENDIF
-      oEdit:Save( cFileName )
-      lEnd := .T.
    ENDIF
+   oEdit:Save( cFileName )
+   lEnd := .T.
 
    RETURN Nil
 

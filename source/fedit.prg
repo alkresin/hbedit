@@ -170,6 +170,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
    LOCAL i, arr, cFile_utf8, cBom := e"\xef\xbb\xbf"
+   LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )
       IF cFileName == cHelpName
@@ -210,10 +211,14 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
    ::lUtf8 := ( Lower(::cp) == "utf8" )
    IF Empty( cText )
       ::aText := { "" }
-      ::cEol := Chr(13) + Chr(10)
+      ::cEol := Iif( nEol == 1, Chr(10), Chr(13) + Chr(10) )
    ELSE
       ::aText := hb_ATokens( cText, Chr(10) )
-      ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+      IF nEol == 0
+         ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+      ELSE
+         ::cEol := Iif( nEol == 1, Chr(10), Chr(13) + Chr(10) )
+      ENDIF
       IF Left( ::aText[1], 3 ) == cBom
          hb_cdpSelect( ::cp := "UTF8" )
          ::lUtf8 := .T.
@@ -444,7 +449,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSEIF nKey == 98     // b
                IF cDopMode == "d"
                   mnu_F3( Self )
-                  edi_PrevWord( Self )
+                  edi_PrevWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := Col() - ::x1 + ::nxFirst
                   cbDele( Self )
@@ -470,7 +475,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::nbx2 := Col() - ::x1 + ::nxFirst
                   cbDele( Self )
                ELSEIF cDopMode == "di"
-                  edi_PrevWord( Self )
+                  edi_PrevWord( Self, .F. )
                   mnu_F3( Self )                  
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
@@ -599,7 +604,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             edi_NextWord( Self, .F. )
 
          ELSEIF nKey == K_CTRL_LEFT .AND. hb_keyVal( nKeyExt ) == 15
-            edi_PrevWord( Self )
+            edi_PrevWord( Self, .F. )
 
          ELSEIF nKey == K_CTRL_F4
             mnu_OpenFile( Self )
@@ -630,7 +635,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_NextWord( Self, .T., .T. )
                      nKey := K_RIGHT
                   ELSEIF nKey == 98    // b Move to the previous word
-                     edi_PrevWord( Self )
+                     edi_PrevWord( Self, .F. )
+                     nKey := K_LEFT
+                  ELSEIF nKey == 66    // B Move to the previous big word
+                     edi_PrevWord( Self, .T. )
                      nKey := K_LEFT
                   ELSEIF nKey == 100   // d Deletes selection
                      cbDele( Self )
@@ -666,7 +674,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 69    // E Move to the end of a big word
                      edi_NextWord( Self, .T., .T. )
                   ELSEIF nKey == 98    // b Move to the previous word
-                     edi_PrevWord( Self )
+                     edi_PrevWord( Self, .F. )
+                  ELSEIF nKey == 66    // B Move to the previous word
+                     edi_PrevWord( Self, .T. )
                   ELSEIF nKey == 118   // v Start selection
                      mnu_F3( Self )
                      nKey := K_RIGHT
@@ -1049,6 +1059,7 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
 METHOD ToString( cEol ) CLASS TEdit
 
    LOCAL i, nLen := Len( ::aText ), cBom := e"\xef\xbb\xbf", s := Iif( ::lBom, cBom, "" )
+   LOCAL lTrim := hb_hGetDef( TEdit():options,"trimspaces", .F. )
 
    IF Empty( cEol )
       cEol := ::cEol
@@ -1057,6 +1068,9 @@ METHOD ToString( cEol ) CLASS TEdit
       nLen --
    ENDIF
    FOR i := 1 TO nLen
+      IF lTrim .AND. Right( ::aText[i], 1 ) == " "
+         ::aText[i] := Trim( ::aText[i] )
+      ENDIF
       s += Iif( ::lTabs, Strtran(::aText[i],Space(::nTablen),Chr(9)), ::aText[i] ) + cEol
    NEXT
 
@@ -1456,7 +1470,8 @@ STATIC FUNCTION cbDele( oEdit )
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, arr, arr1, s, n, i, cTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., ncmdhis := 20, nseahis := 20, nedithis := 20
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
+   LOCAL ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
 
    TEdit():lReadIni := .T.
@@ -1480,6 +1495,9 @@ FUNCTION edi_ReadIni( xIni )
                IF hb_hHaskey( aSect, cTemp := "autoindent" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lAutoIndent := ( Lower(cTemp) == "on" )
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "trimspaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lTrimSpaces := ( Lower(cTemp) == "on" )
+               ENDIF
                IF hb_hHaskey( aSect, cTemp := "syntax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lSyntax := ( Lower(cTemp) == "on" )
                ENDIF
@@ -1491,6 +1509,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "edithismax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nedithis :=  Val(cTemp)
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "eol" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nEol := Val(cTemp)
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "langmap_cp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   IF Ascan( TEdit():aCPages, cTemp ) > 0
@@ -1579,7 +1600,9 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["incsearch"]  := lIncSea
    TEdit():options["cmdhismax"]  := ncmdhis
    TEdit():options["seahismax"]  := nseahis
-   TEdit():options["edithismax"]  := nedithis
+   TEdit():options["eol"]        := nEol
+   TEdit():options["trimspaces"] := lTrimSpaces
+   TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
 
@@ -1822,8 +1845,8 @@ FUNCTION mnu_OpenFile( oEdit )
 
    hb_cdpSelect( "RU866" )
    @ 09, 10, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 12, 10 SAY "Ã"
-   @ 12, 72 SAY "´"
+   //@ 12, 10 SAY "Ã"
+   //@ 12, 72 SAY "´"
    @ 12, 11 TO 12, 71
    hb_cdpSelect( oEdit:cp )
    @ 10,22 SAY "Open file"
@@ -2162,7 +2185,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
       DO WHILE ++nx <= nLen
          ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
          IF ( ch == " " ) .OR. ( !lBigW .AND. ;
-               ( lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) ) )
+               lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) )
             IF !Empty( lEndWord ) .AND. nx - (nCol - oEdit:x1 + oEdit:nxFirst) > 1
                nx --
                EXIT
@@ -2188,21 +2211,27 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
 
    RETURN Nil
 
-STATIC FUNCTION edi_PrevWord( oEdit )
+STATIC FUNCTION edi_PrevWord( oEdit, lBigW )
    LOCAL ny, nx, nRow := Row(), nCol := Col(), lUtf8 := oEdit:lUtf8
+   LOCAL ch, lAlphaNum
 
    ny := oEdit:RowToLine(nRow)
    nx := nCol - oEdit:x1 + oEdit:nxFirst
 
-   IF cp_Substr( lUtf8, oEdit:aText[ny], nx-1, 1 ) == " "
+   ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
+   IF ch == " "
       DO WHILE --nx > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
    ENDIF
-   DO WHILE --nx >= 0
-      IF nx == 0 .OR. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "
+   
+   lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
+   DO WHILE --nx > 0
+      IF ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " .OR. ;
+            ( !lBigW .AND. lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) )
          nx ++
          EXIT
       ENDIF
    ENDDO
+   nx := Max( nx, 1 )
    IF nx < oEdit:nxFirst
       oEdit:nxFirst := Max( nx + oEdit:x1 - oEdit:x2 + 3, 1 )
       oEdit:lTextOut := .T.

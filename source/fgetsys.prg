@@ -225,7 +225,7 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    LOCAL aText := hb_aTokens( cText, ";" ), i
    LOCAL aGets := { {,,2," Ok ",4,"W+/R","W+/B",{||__KeyBoard(Chr(K_ENTER))}} }
-   LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc  
+   LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc, bufsc
 
    FOR i := 1 TO Len( aText )
       nLen := Max( nLen, Len( aText[i] ) )
@@ -252,9 +252,12 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
          Len(" " + cAns3 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
    ENDIF   
    
+   x1 := Int( (MaxCol()-nLen)/2 )
+
+   bufsc := Savescreen( y1, x1, y1+Len(aText)+3, x1+nLen )
+
    oldc := SetColor( "W+/R" )
    cp := hb_cdpSelect( "RU866" )
-   x1 := Int( (MaxCol()-nLen)/2 )
    @ y1, x1, y1+Len(aText)+3, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
    FOR i := 1 TO Len( aText )   
       @ y1+i, x1 + 2 SAY aText[i]
@@ -263,5 +266,6 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
    SetColor( oldc )
 
    i := edi_Read( aGets )
+   Restscreen( y1, x1, y1+Len(aText)+3, x1+nLen, bufsc )
    
    RETURN i
