@@ -699,13 +699,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_ENTER
             IF !::lReadOnly .AND. ::nMode == 0
-               nCol := nCol - ::x1 + ::nxFirst
+               nCol := ::ColToPos( nCol )
                s := ""
                IF hb_hGetDef( TEdit():options, "autoindent", .F. )
                   i := 0
                   DO WHILE cp_Substr( ::lUtf8, ::aText[n], i+1, 1 ) == " "; i++; ENDDO
                   IF i > 0
-                     s := Space( i )
+                     IF nCol <= i
+                        i := nCol - 1
+                     ENDIF
+                     s := Space( i )                     
                   ENDIF
                ENDIF
                ::InsText( n, nCol, Chr(10) + s, .F., .T. )
@@ -1174,22 +1177,20 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
       IF nPos1 > 1
          cTextOld := cp_Substr( ::lUtf8, ::aText[nLine1], nPos1 ) + Chr(10)
          ::aText[nLine1] := cp_Left( ::lUtf8, ::aText[nLine1], nPos1-1 )
-         n := nLine1 + 1
       ELSE
          cTextOld := ::aText[nLine1] + Chr(10)
-         ADel( ::aText, nLine1 )
-         n := nLine1
-         ncou ++
+         ::aText[nLine1] := ""
       ENDIF
+      n := nLine1 + 1
       FOR i := nLine1+1 TO nLine2-1
          cTextOld += ::aText[n] + Chr(10)
          ADel( ::aText, n )
          ncou ++
       NEXT
       IF nPos2 > 0
-         cTextOld += cp_Left( ::lUtf8, ::aText[nLine1+1], nPos2 )
-         ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[nLine1+1], nPos2+1 )
-         ADel( ::aText, nLine1+1 )
+         cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
+         ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+         ADel( ::aText, n )
          ncou ++
       ENDIF
       ::aText := ASize( ::aText, Len(::aText) - ncou )      

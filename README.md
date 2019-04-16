@@ -46,3 +46,11 @@ A fullscreen console multiplatform text editor.
   to edit, for example, a file "my.txt".
 
   Also, compiled and linked with hbedit.prg, it is a standalone editor.
+
+### Hbedit command line parameters
+  
+  hbedit [-f iniFileName] [-xy=xPos,yPos] [files...]
+
+  - -f iniFileName    - a name of ini file to use instead of hbedit.ini
+  - -xy=xPos,yPos     - initial window position in pixels (for Windows only)
+  - files...          - the list of files to edit

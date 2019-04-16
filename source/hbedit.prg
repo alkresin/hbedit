@@ -12,10 +12,33 @@ STATIC nScreenH := 25, nScreenW := 80
 
 FUNCTION Main( ... )
 
-   LOCAL aParams := hb_aParams(), i, arr
-   LOCAL cFileName
+   LOCAL aParams := hb_aParams(), i, c, arr, aFiles := {}
+   LOCAL cIniName := hb_DirBase() + "hbedit.ini"
+   LOCAL ypos, xpos
 
-   ReadIni( hb_DirBase() + "hbedit.ini" )
+   FOR i := 1 TO Len( aParams )
+      IF Left( aParams[i],1 ) $ "-/"
+         IF ( c := Substr( aParams[i],2,1 ) ) == "f"
+            IF Len( aParams[i] ) == 2
+               i ++
+               cIniName := aParams[i]
+            ELSE
+               cIniName := Substr( aParams[i],3 )
+            ENDIF
+            IF Empty( hb_fnameDir( cIniName ) )
+               cIniName := hb_DirBase() + cIniName
+            ENDIF
+         ELSEIF ( c := Substr( aParams[i],2,1 ) ) == "x" .AND. Substr( aParams[i],3,2 ) == "y="
+            arr := hb_ATokens( Substr( aParams[i],5 ), "," )
+            xPos := Val( arr[1] )
+            yPos := Iif( Len(arr)>1, Val( arr[2] ), 0 )
+         ENDIF
+      ELSE
+         Aadd( aFiles, aParams[i] )
+      ENDIF
+   NEXT
+
+   ReadIni( cIniName )
 
    IF nScreenH != 25 .OR. nScreenW != 80
       IF !SetMode( nScreenH, nScreenW )
@@ -44,6 +67,9 @@ FUNCTION Main( ... )
    ELSE
       hb_gtinfo( HB_GTI_FONTWIDTH, nFontWidth )
    ENDIF
+   IF yPos != Nil
+      hb_gtinfo( HB_GTI_SETPOS_XY, xPos, yPos )
+   ENDIF
    hb_gtinfo( HB_GTI_CLOSABLE, .F. )
 
    arr := hb_gtinfo( HB_GTI_PALETTE )
@@ -53,9 +79,8 @@ FUNCTION Main( ... )
    hb_gtinfo( HB_GTI_PALETTE, arr )
 #endif
 
-   FOR i := 1 TO Len( aParams )
-      cFileName := aParams[i]
-      TEdit():New( Iif(!Empty(cFileName),Memoread(cFileName),""), cFileName, 0, 0, nScreenH-1, nScreenW-1 )
+   FOR i := 1 TO Len( aFiles )
+      TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
    NEXT
 
    IF Empty( TEdit():aWindows )
