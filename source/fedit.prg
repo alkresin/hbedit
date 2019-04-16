@@ -454,7 +454,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSEIF nKey == 101    // e
                IF cDopMode == "d"
                   mnu_F3( Self )
-                  edi_NextWord( Self, .T. )
+                  edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := Col() - ::x1 + ::nxFirst
@@ -465,14 +465,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSEIF nKey == 119    // w
                IF cDopMode == "d"
                   mnu_F3( Self )
-                  edi_NextWord( Self )
+                  edi_NextWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := Col() - ::x1 + ::nxFirst
                   cbDele( Self )
                ELSEIF cDopMode == "di"
                   edi_PrevWord( Self )
                   mnu_F3( Self )                  
-                  edi_NextWord( Self, .T. )
+                  edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := Col() - ::x1 + ::nxFirst
@@ -596,7 +596,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             edi_Bracket( Self )
          
          ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 16
-            edi_NextWord( Self )
+            edi_NextWord( Self, .F. )
 
          ELSEIF nKey == K_CTRL_LEFT .AND. hb_keyVal( nKeyExt ) == 15
             edi_PrevWord( Self )
@@ -618,10 +618,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_ConvertCase( Self, .F. )
                      lNoDeselect := .T.
                   ELSEIF nKey == 119   // w Move to the next word
-                     edi_NextWord( Self )
+                     edi_NextWord( Self, .F. )
+                     nKey := K_RIGHT
+                  ELSEIF nKey == 87    // W Move to the next big word
+                     edi_NextWord( Self, .T. )
                      nKey := K_RIGHT
                   ELSEIF nKey == 101   // e Move to the end of word
-                     edi_NextWord( Self, .T. )
+                     edi_NextWord( Self, .F., .T. )
+                     nKey := K_RIGHT
+                  ELSEIF nKey == 69    // E Move to the end of a big word
+                     edi_NextWord( Self, .T., .T. )
                      nKey := K_RIGHT
                   ELSEIF nKey == 98    // b Move to the previous word
                      edi_PrevWord( Self )
@@ -652,9 +658,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ELSEIF nKey == 106   // j Move down
                      edi_GoDown( Self )
                   ELSEIF nKey == 119   // w Move to the next word
-                     edi_NextWord( Self )
-                  ELSEIF nKey == 101   // e Move to the end of word
+                     edi_NextWord( Self, .F. )
+                  ELSEIF nKey == 87    // W Move to the next big word
                      edi_NextWord( Self, .T. )
+                  ELSEIF nKey == 101   // e Move to the end of word
+                     edi_NextWord( Self, .F., .T. )
+                  ELSEIF nKey == 69    // E Move to the end of a big word
+                     edi_NextWord( Self, .T., .T. )
                   ELSEIF nKey == 98    // b Move to the previous word
                      edi_PrevWord( Self )
                   ELSEIF nKey == 118   // v Start selection
@@ -2124,28 +2134,52 @@ STATIC FUNCTION edi_ConvertCase( oEdit, lUpper )
 
    RETURN Nil
 
-STATIC FUNCTION edi_NextWord( oEdit, lEndWord )
-   LOCAL ny, nx, nRow := Row(), nCol := Col(), nLen
+STATIC FUNCTION edi_AlphaNum( nch )
+
+   RETURN (nch >= 48 .AND. nch <= 57) .OR. (nch >= 65 .AND. nch <= 90) .OR. ;
+      (nch >= 97 .AND. nch <= 122) .OR. nch == 95 .OR. nch >= 128
+
+STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
+   LOCAL ny, nx, nRow := Row(), nCol := Col(), nLen, lUtf8 := oEdit:lUtf8, ch, nch
+   LOCAL lOk := .F., lAlphaNum
 
    ny := oEdit:RowToLine(nRow)
    nx := nCol - oEdit:x1 + oEdit:nxFirst
-   nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
+   nLen := cp_Len( lUtf8, oEdit:aText[ny] )
 
    IF nx > nLen
       RETURN Nil
    ENDIF
-   DO WHILE ++nx <= nLen
-      IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ) == " "
-         IF !Empty( lEndWord ) .AND. nx - (nCol - oEdit:x1 + oEdit:nxFirst) > 1
-            nx --
-            EXIT
+
+   ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
+   IF ch == " "
+      DO WHILE ++nx <= nLen .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == ch; ENDDO
+      lOk := Empty( lEndWord )
+   ENDIF
+
+   IF !lOk
+      lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
+      DO WHILE ++nx <= nLen
+         ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
+         IF ( ch == " " ) .OR. ( !lBigW .AND. ;
+               ( lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) ) )
+            IF !Empty( lEndWord ) .AND. nx - (nCol - oEdit:x1 + oEdit:nxFirst) > 1
+               nx --
+               EXIT
+            ENDIF
+            IF ch == " "
+               DO WHILE ++nx <= nLen .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == ch; ENDDO
+            ENDIF
+            IF Empty( lEndWord )
+               EXIT
+            ENDIF
+            lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
          ENDIF
-         DO WHILE ++nx <= nLen .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
-         IF Empty( lEndWord )
-            EXIT
-         ENDIF
+      ENDDO
+      IF nx > nLen .AND. !Empty( lEndWord )
+         nx --
       ENDIF
-   ENDDO
+   ENDIF
    IF nx - oEdit:nxFirst + oEdit:x1 >= oEdit:x2
       oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 + 3
       oEdit:lTextOut := .T.
@@ -2155,16 +2189,16 @@ STATIC FUNCTION edi_NextWord( oEdit, lEndWord )
    RETURN Nil
 
 STATIC FUNCTION edi_PrevWord( oEdit )
-   LOCAL ny, nx, nRow := Row(), nCol := Col()
+   LOCAL ny, nx, nRow := Row(), nCol := Col(), lUtf8 := oEdit:lUtf8
 
    ny := oEdit:RowToLine(nRow)
    nx := nCol - oEdit:x1 + oEdit:nxFirst
 
-   IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx-1, 1 ) == " "
-      DO WHILE --nx > 1 .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
+   IF cp_Substr( lUtf8, oEdit:aText[ny], nx-1, 1 ) == " "
+      DO WHILE --nx > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
    ENDIF
    DO WHILE --nx >= 0
-      IF nx == 0 .OR. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 ) == " "
+      IF nx == 0 .OR. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "
          nx ++
          EXIT
       ENDIF
