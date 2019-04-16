@@ -8,13 +8,13 @@
 STATIC xKoef := 1, yKoef := 1
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
-STATIC nScreenH := 25, nScreenW := 80
+STATIC nScreenH, nScreenW
 
 FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr, aFiles := {}
    LOCAL cIniName := hb_DirBase() + "hbedit.ini"
-   LOCAL ypos, xpos
+   LOCAL ypos, xpos, nStartLine, bStart
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) $ "-/"
@@ -28,10 +28,20 @@ FUNCTION Main( ... )
             IF Empty( hb_fnameDir( cIniName ) )
                cIniName := hb_DirBase() + cIniName
             ENDIF
-         ELSEIF ( c := Substr( aParams[i],2,1 ) ) == "x" .AND. Substr( aParams[i],3,2 ) == "y="
+
+         ELSEIF c == "g"
+            nStartLine := Val( Substr( aParams[i],3 ) )
+
+         ELSEIF c == "s" .AND. Substr( aParams[i],3,4 ) == "ize="
+            arr := hb_ATokens( Substr( aParams[i],7 ), "," )
+            nScreenW := Val( arr[1] )
+            nScreenH := Iif( Len(arr)>1, Val( arr[2] ), 25 )
+
+         ELSEIF c == "x" .AND. Substr( aParams[i],3,2 ) == "y="
             arr := hb_ATokens( Substr( aParams[i],5 ), "," )
             xPos := Val( arr[1] )
             yPos := Iif( Len(arr)>1, Val( arr[2] ), 0 )
+
          ENDIF
       ELSE
          Aadd( aFiles, aParams[i] )
@@ -39,13 +49,19 @@ FUNCTION Main( ... )
    NEXT
 
    ReadIni( cIniName )
-
+   IF Empty( nScreenH )
+      nScreenH := 25
+   ENDIF
+   IF Empty( nScreenW )
+      nScreenW := 80
+   ENDIF
    IF nScreenH != 25 .OR. nScreenW != 80
       IF !SetMode( nScreenH, nScreenW )
          nScreenH := 25
          nScreenW := 80
       ENDIF
    ENDIF
+
 #ifdef GTWVT
    ANNOUNCE HB_GTSYS
    REQUEST HB_GT_WVT
@@ -87,6 +103,11 @@ FUNCTION Main( ... )
       TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
    ENDIF
 
+   IF nStartLine != Nil
+      IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
+      bStart := {|o|o:Goto(nStartLine)}
+   ENDIF
+
    TEdit():nCurr := 1
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)
@@ -94,7 +115,8 @@ FUNCTION Main( ... )
       ELSEIF TEdit():nCurr <= 0
          TEdit():nCurr := Len(TEdit():aWindows)
       ENDIF
-      TEdit():aWindows[TEdit():nCurr]:Edit()
+      TEdit():aWindows[TEdit():nCurr]:Edit( bStart )
+      bStart := Nil
    ENDDO
    TEdit():onExit()
 
@@ -125,10 +147,14 @@ STATIC FUNCTION ReadIni( cIniName )
             nFontWidth := Val(cTmp)
          ENDIF
          IF hb_hHaskey( aSect, "screen_height" ) .AND. !Empty( cTmp := aSect[ "screen_height" ] )
-            nScreenH := Val(cTmp)
+            IF Empty( nScreenH )
+               nScreenH := Val(cTmp)
+            ENDIF
          ENDIF
          IF hb_hHaskey( aSect, "screen_width" ) .AND. !Empty( cTmp := aSect[ "screen_width" ] )
-            nScreenW := Val(cTmp)
+            IF Empty( nScreenW )
+               nScreenW := Val(cTmp)
+            ENDIF
          ENDIF
          IF hb_hHaskey( aSect, "cp" ) .AND. !Empty( cTmp := aSect[ "cp" ] )
             cp := cTmp

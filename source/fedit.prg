@@ -119,7 +119,7 @@ CLASS TEdit
 
    METHOD New( cText, cFileName, y1, x1, y2, x2, cColor )
    METHOD SetText( cText, cFileName )
-   METHOD Edit()
+   METHOD Edit( bStart )
    METHOD TextOut( n1, n2 )
    METHOD LineOut( nLine )
    METHOD onKey( nKeyExt )
@@ -248,7 +248,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
 
    RETURN Nil
 
-METHOD Edit() CLASS TEdit
+METHOD Edit( bStart ) CLASS TEdit
 
    LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
    LOCAL i, nKeyExt, cFile_utf8
@@ -273,8 +273,11 @@ METHOD Edit() CLASS TEdit
    Scroll( ::y1, ::x1, ::y2, ::x2 )
 
    ::TextOut()
-
    DevPos( ::nRow, ::nCol )
+   IF bStart != Nil
+      Eval( bStart, Self )
+   ENDIF
+
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
@@ -538,6 +541,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                TEdit():aCBoards[1,2] := Nil
             ENDIF
+            lNoDeselect := .T.
 
          ELSEIF nKey == 22                          // Ctrl-v
             IF !::lReadOnly
@@ -568,6 +572,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::lShow := .F.
                ::nCurr ++
             ENDIF
+            lNoDeselect := .T.
 
          ELSEIF nKey == K_CTRL_PGUP .OR. nKey == K_CTRL_HOME
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
@@ -820,10 +825,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
             ENDIF
 
-         ELSEIF nKey == K_ALT_TAB
-            ::lShow := .F.
-            ::nCurr --
-
          ELSEIF nKey == K_F1
             mnu_Help( Self )
             ::lTextOut := .T.
@@ -837,6 +838,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_F3
             mnu_F3( Self )
+            lNoDeselect := .T.
             nKey := K_RIGHT
 
          ELSEIF nKey == K_F4
@@ -906,6 +908,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ::nCol := Col(); ::nRow := Row()
    
    IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
+      // Подсветка парных скобок
       npy1 := ::RowToLine(); npx1 := ::ColToPos()
       npy2 := Iif( Valtype(x)=="A",x[1], npy1 ); npx2 := Iif( Valtype(x)=="A",x[2], x )
       SetColor( ::cColorBra )
@@ -1003,6 +1006,9 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
 
    IF ny == Nil; ny := ::RowToLine(); ENDIF
    IF nx == Nil; nx := 1; ENDIF
+   IF ny > Len(::aText)
+      RETURN Nil
+   ENDIF
    IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
       ::nyFirst := Max( ny-3, 1 )
       lTextOut := .T.
@@ -1455,43 +1461,52 @@ FUNCTION edi_ReadIni( xIni )
          IF Upper(aIni[nSect]) == "OPTIONS"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
-               IF hb_hHaskey( aSect, "defmode" ) .AND. !Empty( cTemp := aSect[ "defmode" ] )
+               IF hb_hHaskey( aSect, cTemp := "defmode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():nDefMode := Iif( (n := Val(cTemp)) < 2 .AND. n >= 0, n, 0 )
                ENDIF
-               IF hb_hHaskey( aSect, "incsearch" ) .AND. !Empty( cTemp := aSect[ "incsearch" ] )
+               IF hb_hHaskey( aSect, cTemp := "incsearch" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lIncSea := ( Lower(cTemp) == "on" )
                ENDIF
-               IF hb_hHaskey( aSect, "autoindent" ) .AND. !Empty( cTemp := aSect[ "autoindent" ] )
+               IF hb_hHaskey( aSect, cTemp := "autoindent" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lAutoIndent := ( Lower(cTemp) == "on" )
                ENDIF
-               IF hb_hHaskey( aSect, "syntax" ) .AND. !Empty( cTemp := aSect[ "syntax" ] )
+               IF hb_hHaskey( aSect, cTemp := "syntax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lSyntax := ( Lower(cTemp) == "on" )
                ENDIF
-               IF hb_hHaskey( aSect, "cmdhismax" ) .AND. !Empty( cTemp := aSect[ "cmdhismax" ] )
+               IF hb_hHaskey( aSect, cTemp := "cmdhismax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   ncmdhis :=  Val(cTemp)
                ENDIF
-               IF hb_hHaskey( aSect, "seahismax" ) .AND. !Empty( cTemp := aSect[ "seahismax" ] )
+               IF hb_hHaskey( aSect, cTemp := "seahismax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nseahis :=  Val(cTemp)
                ENDIF
-               IF hb_hHaskey( aSect, "edithismax" ) .AND. !Empty( cTemp := aSect[ "edithismax" ] )
+               IF hb_hHaskey( aSect, cTemp := "edithismax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nedithis :=  Val(cTemp)
                ENDIF
-               IF hb_hHaskey( aSect, "langmap_cp" ) .AND. !Empty( cTemp := aSect[ "langmap_cp" ] )
+               IF hb_hHaskey( aSect, cTemp := "langmap_cp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   IF Ascan( TEdit():aCPages, cTemp ) > 0
                      cLangMapCP := cTemp
                   ENDIF
                ENDIF
-               IF hb_hHaskey( aSect, "langmap_upper" ) .AND. !Empty( cTemp := aSect[ "langmap_upper" ] )
+               IF hb_hHaskey( aSect, cTemp := "langmap_upper" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   aLangMapUpper := hb_aTokens( cTemp )
                ENDIF
-               IF hb_hHaskey( aSect, "langmap_lower" ) .AND. !Empty( cTemp := aSect[ "langmap_lower" ] )
+               IF hb_hHaskey( aSect, cTemp := "langmap_lower" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   aLangMapLower := hb_aTokens( cTemp )
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "colormain" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cColor := cTemp
+               ENDIF             
+               IF hb_hHaskey( aSect, cTemp := "colorsel" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cColorSel := cTemp
+               ENDIF             
+               IF hb_hHaskey( aSect, cTemp := "colorpane" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cColorPane := cTemp
+               ENDIF             
+               IF hb_hHaskey( aSect, cTemp := "colorbra" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cColorbra := cTemp
+               ENDIF             
             ENDIF
-         ELSEIF Upper(aIni[nSect]) == "KEYBOARD"
-            IF !Empty( aSect := hIni[ aIni[nSect] ] )
-               hb_hCaseMatch( aSect, .F. )
-            ENDIF
+
          ELSEIF Upper(aIni[nSect]) == "PLUGINS"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )

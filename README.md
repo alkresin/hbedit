@@ -49,8 +49,10 @@ A fullscreen console multiplatform text editor.
 
 ### Hbedit command line parameters
   
-  hbedit [-f iniFileName] [-xy=xPos,yPos] [files...]
+  hbedit [-f iniFileName] [-gN] [-xy=xPos,yPos] [-size=nCols,nRows] [files...]
 
-  - -f iniFileName    - a name of ini file to use instead of hbedit.ini
-  - -xy=xPos,yPos     - initial window position in pixels (for Windows only)
-  - files...          - the list of files to edit
+  - -f iniFileName      - a name of ini file to use instead of hbedit.ini
+  - -gN                 - goto line N; If N is negative it is a number of lines before the end
+  - -xy=xPos,yPos       - initial window position in pixels (for Windows only)
+  - [-size=nCols,nRows] - number of columns and rows in an editor window
+  - files...            - the list of files to edit
