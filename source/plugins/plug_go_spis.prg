@@ -19,7 +19,7 @@ Function plug_go_Spis( oEdit )
             EXIT
          ENDIF
       NEXT
-      n := Iif( n > Len(arrfnc), ATail(arrfnc)[3], Iif( n == 0, 1, n ) )
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
       IF ( i := FMenu( oEdit, arrfnc, 5, Int((MaxCol()-66)/2),,,,, n ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF

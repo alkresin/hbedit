@@ -180,5 +180,3 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, nHeight )
    NEXT
 
    RETURN Nil
-
-
