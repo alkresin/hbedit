@@ -66,7 +66,7 @@ CLASS TEdit
    CLASS VAR aSeaHis    SHARED  INIT {}
    CLASS VAR aEditHis   SHARED  INIT {}
    CLASS VAR aCBoards   SHARED
-   CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "GR+/B", "W/B" }
+   CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0
    CLASS VAR cColor     SHARED  INIT "BG+/B"
@@ -1482,7 +1482,7 @@ STATIC FUNCTION cbDele( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, arr, arr1, s, n, i, cTemp
+   LOCAL hIni, aIni, nSect, aSect, cSect, arr, arr1, s, n, i, cTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
    LOCAL ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
@@ -1572,37 +1572,58 @@ FUNCTION edi_ReadIni( xIni )
          ELSEIF Upper(aIni[nSect]) == "HILIGHT"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
-               IF hb_hHaskey( aSect, "commands" ) .AND. !Empty( cTemp := aSect[ "commands" ] )
+               IF hb_hHaskey( aSect, cTemp := "keywords1" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():aHiliAttrs[1] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "funcs" ) .AND. !Empty( cTemp := aSect[ "funcs" ] )
+               IF hb_hHaskey( aSect, cTemp := "keywords2" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():aHiliAttrs[2] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "quotes" ) .AND. !Empty( cTemp := aSect[ "quotes" ] )
+               IF hb_hHaskey( aSect, cTemp := "keywords3" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():aHiliAttrs[3] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "comments" ) .AND. !Empty( cTemp := aSect[ "comments" ] )
+               IF hb_hHaskey( aSect, cTemp := "keywords4" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():aHiliAttrs[4] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "quotes" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():aHiliAttrs[5] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "slcomments" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():aHiliAttrs[6] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "startline" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():aHiliAttrs[7] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "block1" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():aHiliAttrs[8] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "block2" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():aHiliAttrs[9] := cTemp
                ENDIF
             ENDIF
          ELSEIF Left( Upper(aIni[nSect]),5 ) == "LANG_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
                hHili := aLangs[ Lower(Substr(aIni[nSect],6)) ] := hb_hash()
-               IF hb_hHaskey( aSect, "commands" ) .AND. !Empty( cTemp := aSect[ "commands" ] )
-                  hHili["commands"] := cTemp
+               IF hb_hHaskey( aSect, cSect := "keywords1" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "funcs" ) .AND. !Empty( cTemp := aSect[ "funcs" ] )
-                  hHili["funcs"] := cTemp
+               IF hb_hHaskey( aSect, cSect := "keywords2" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "scomm" ) .AND. !Empty( cTemp := aSect[ "scomm" ] )
-                  hHili["scomm"] := cTemp
+               IF hb_hHaskey( aSect, cSect := "keywords3" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "mcomm" ) .AND. !Empty( cTemp := aSect[ "mcomm" ] )
-                  hHili["mcomm"] := cTemp
+               IF hb_hHaskey( aSect, cSect := "keywords4" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, "case" ) .AND. !Empty( cTemp := aSect[ "case" ] )
-                  hHili["case"] := ( Lower(cTemp) == "on" )
+               IF hb_hHaskey( aSect, cSect := "scomm" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cSect := "mcomm" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cSect := "case" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  hHili[cSect] := ( Lower(cTemp) == "on" )
                ENDIF
             ENDIF
          ENDIF
