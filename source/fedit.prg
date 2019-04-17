@@ -44,8 +44,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
 
-STATIC aLangExten := { {"prg", ".prg"}, {"c", ".c.cpp"}, {"go", ".go"}, ;
-   {"php",".php"}, {"js",".js"}, {"xml",".xml.fb2.htm.html"} }
+STATIC aLangExten := {}
 STATIC cHelpName := "Help"
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
@@ -1482,7 +1481,7 @@ STATIC FUNCTION cbDele( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, cSect, arr, arr1, s, n, i, cTemp
+   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, cTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
    LOCAL ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
@@ -1603,7 +1602,11 @@ FUNCTION edi_ReadIni( xIni )
          ELSEIF Left( Upper(aIni[nSect]),5 ) == "LANG_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
-               hHili := aLangs[ Lower(Substr(aIni[nSect],6)) ] := hb_hash()
+               cLang := Lower( Substr(aIni[nSect],6) )
+               hHili := aLangs[ cLang ] := hb_hash()
+               IF hb_hHaskey( aSect, cSect := "ext" ) .AND. !Empty( cTemp := aSect[ cSect ] )
+                  AAdd( aLangExten, { cLang, cTemp } )
+               ENDIF
                IF hb_hHaskey( aSect, cSect := "keywords1" ) .AND. !Empty( cTemp := aSect[ cSect ] )
                   hHili[cSect] := cTemp
                ENDIF

@@ -9,6 +9,7 @@ STATIC xKoef := 1, yKoef := 1
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH, nScreenW
+STATIC cStartPlugin
 
 FUNCTION Main( ... )
 
@@ -108,6 +109,10 @@ FUNCTION Main( ... )
       bStart := {|o|o:Goto(nStartLine)}
    ENDIF
 
+   IF !Empty( cStartPlugin ) .AND. File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+      hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+   ENDIF
+
    TEdit():nCurr := 1
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)
@@ -129,35 +134,41 @@ STATIC FUNCTION ReadIni( cIniName )
 
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
-      IF hb_hHaskey( hIni, "SCREEN" ) .AND. !Empty( aSect := hIni[ "SCREEN" ] )
+      IF hb_hHaskey( hIni, cTmp := "SCREEN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
-         IF hb_hHaskey( aSect, "xkoef" ) .AND. !Empty( cTmp := aSect[ "xkoef" ] )
+         IF hb_hHaskey( aSect, cTmp := "xkoef" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             xKoef := Val(cTmp)
          ENDIF
-         IF hb_hHaskey( aSect, "ykoef" ) .AND. !Empty( cTmp := aSect[ "ykoef" ] )
+         IF hb_hHaskey( aSect, cTmp := "ykoef" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             yKoef := Val(cTmp)
          ENDIF
-         IF hb_hHaskey( aSect, "fontname" ) .AND. !Empty( cTmp := aSect[ "fontname" ] )
+         IF hb_hHaskey( aSect, cTmp := "fontname" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cFontName := cTmp
          ENDIF
-         IF hb_hHaskey( aSect, "fontheight" ) .AND. !Empty( cTmp := aSect[ "fontheight" ] )
+         IF hb_hHaskey( aSect, cTmp := "fontheight" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             nFontheight := Val(cTmp)
          ENDIF
-         IF hb_hHaskey( aSect, "fontwidth" ) .AND. !Empty( cTmp := aSect[ "fontwidth" ] )
+         IF hb_hHaskey( aSect, cTmp := "fontwidth" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             nFontWidth := Val(cTmp)
          ENDIF
-         IF hb_hHaskey( aSect, "screen_height" ) .AND. !Empty( cTmp := aSect[ "screen_height" ] )
+         IF hb_hHaskey( aSect, cTmp := "screen_height" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             IF Empty( nScreenH )
                nScreenH := Val(cTmp)
             ENDIF
          ENDIF
-         IF hb_hHaskey( aSect, "screen_width" ) .AND. !Empty( cTmp := aSect[ "screen_width" ] )
+         IF hb_hHaskey( aSect, cTmp := "screen_width" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             IF Empty( nScreenW )
                nScreenW := Val(cTmp)
             ENDIF
          ENDIF
-         IF hb_hHaskey( aSect, "cp" ) .AND. !Empty( cTmp := aSect[ "cp" ] )
+         IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := cTmp
+         ENDIF
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "START" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         IF hb_hHaskey( aSect, cTmp := "plugin" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            cStartPlugin := cTmp
          ENDIF
       ENDIF
    ENDIF

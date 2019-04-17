@@ -228,7 +228,7 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::aDop[nLine] := 1
             ENDIF
             IF !lCheck; ::AddItem( nPos1, nPos, HILIGHT_BLOCK1 ); ENDIF
-            nPos += nLenM - 1
+            nPos += nLenM //- 1
 
          ELSEIF !lCheck .AND. IsLetter( c )
             nPos1 := nPos
