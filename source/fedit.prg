@@ -102,6 +102,7 @@ CLASS TEdit
    DATA   nTabLen     INIT 4
 
    DATA   nCol, nRow
+   DATA   nPosBack, nLineBack
    DATA   lF3         INIT .F.
    DATA   nby1        INIT -1
    DATA   nby2        INIT -1
@@ -283,6 +284,8 @@ METHOD Edit( bStart ) CLASS TEdit
       Eval( bStart, Self )
    ENDIF
 
+   ::nPosBack := ::ColToPos()
+   ::nLineBack := ::RowToLine()
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
@@ -525,7 +528,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_GoTo( Self )
             ::lTextOut := .T.
 
-         ELSEIF nKey == K_ALT_M
+         ELSEIF nKey == K_ALT_B
+            ::GoTo( ::nLineBack, ::nPosBack )
+
+         ELSEIF nKey == K_ALT_M         
             ::nDopMode := 109
             cDopMode := "m"
             
@@ -580,11 +586,15 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             lNoDeselect := .T.
 
          ELSEIF nKey == K_CTRL_PGUP .OR. nKey == K_CTRL_HOME
+            ::nPosBack := ::ColToPos()
+            ::nLineBack := ::RowToLine()
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
             ::nxFirst := ::nyFirst := 1
             DevPos( ::y1, ::x1 )
 
          ELSEIF nKey == K_CTRL_PGDN .OR. nKey == K_CTRL_END
+            ::nPosBack := ::ColToPos()
+            ::nLineBack := ::RowToLine()
             IF Len( ::aText ) > ::y2-::y1+1
                ::nxFirst := 1
                ::nyFirst := Len( ::aText ) - (::y2-::y1)
@@ -1029,6 +1039,9 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
    IF ny > Len(::aText)
       RETURN Nil
    ENDIF
+   
+   ::nPosBack := ::ColToPos()
+   ::nLineBack := ::RowToLine()  
    IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
       ::nyFirst := Max( ny-3, 1 )
       lTextOut := .T.
