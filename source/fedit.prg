@@ -1487,7 +1487,7 @@ FUNCTION edi_ReadIni( xIni )
    LOCAL hHili
 
    TEdit():lReadIni := .T.
-   hIni := Iif( Valtype( xIni ) == "C", hb_iniRead( xIni ), xIni )
+   hIni := Iif( Valtype( xIni ) == "C", edi_iniRead( xIni ), xIni )
 
    SetBlink( .F. )
    aLangs := hb_Hash()
@@ -1648,7 +1648,7 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 
-   hIni := hb_iniRead( hb_DirBase() + "hbedit.his" )
+   hIni := edi_iniRead( hb_DirBase() + "hbedit.his" )
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, "SEARCH" ) .AND. !Empty( aSect := hIni[ "SEARCH" ] )

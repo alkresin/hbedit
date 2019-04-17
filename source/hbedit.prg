@@ -129,7 +129,7 @@ FUNCTION Main( ... )
 
 STATIC FUNCTION ReadIni( cIniName )
 
-   LOCAL hIni := hb_iniRead( cIniName ), aSect, cTmp
+   LOCAL hIni := edi_iniRead( cIniName ), aSect, cTmp
    LOCAL cp
 
    IF !Empty( hIni )
