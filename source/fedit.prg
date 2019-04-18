@@ -1230,12 +1230,12 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
          ADel( ::aText, n )
          ncou ++
       NEXT
-      IF nPos2 > 0
-         cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
-         ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
-         ADel( ::aText, n )
-         ncou ++
-      ENDIF
+
+      cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
+      ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+      ADel( ::aText, n )
+      ncou ++
+
       ::aText := ASize( ::aText, Len(::aText) - ncou )
       IF ( i := nLine1 - ::nyFirst + 1 ) > 0 .AND. i < (::y2-::y1+1)
          DevPos( ::nRow := (nLine1-::nyFirst-::y1+2), ::nCol := (nPos1-::nxFirst+1-::x1) )
