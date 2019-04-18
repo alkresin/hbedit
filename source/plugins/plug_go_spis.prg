@@ -1,6 +1,6 @@
 Function plug_go_Spis( oEdit )
 
-   Local i, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL i, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
 
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )

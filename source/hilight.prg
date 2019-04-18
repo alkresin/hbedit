@@ -14,8 +14,8 @@
 #define HILIGHT_QUOTE   5
 #define HILIGHT_SCOMM   6
 #define HILIGHT_SLEFT   7
-#define HILIGHT_BLOCK1  8
-#define HILIGHT_BLOCK1  9
+#define HILIGHT_MCOMM   8
+#define HILIGHT_BLOCK   9
 
 #define MAX_ITEMS    1024
 
@@ -41,6 +41,7 @@ METHOD End() CLASS HiliBase
 
 CLASS Hili INHERIT HiliBase
 
+   DATA   hHili
    DATA   cKeywords1, cKeywords2   // A list of keywords (commands), divided by space
    DATA   cKeywords3, cKeywords4
    DATA   cScomm                   // A string, which starts single line comments
@@ -66,12 +67,13 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
    ::aLineStru := Array( 20, 3 )
 
    IF !Empty( hHili )
+      ::hHili := hHili
       cKeywords1 := hb_hGetDef( hHili, "keywords1", "" )
       cKeywords2 := hb_hGetDef( hHili, "keywords2", "" )
       cKeywords3 := hb_hGetDef( hHili, "keywords3", "" )
       cKeywords4 := hb_hGetDef( hHili, "keywords4", "" )            
       cSComm := hb_hGetDef( hHili, "scomm", "" )
-      cSLeft := hb_hGetDef( hHili, "sleft", "" )      
+      cSLeft := hb_hGetDef( hHili, "startline", "" )      
       cMComm := hb_hGetDef( hHili, "mcomm", "" )
       lCase := hb_hGetDef( hHili, "case", .F. )
    ENDIF
@@ -126,6 +128,7 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
 METHOD SET( oEdit ) CLASS Hili
    LOCAL oHili := Hili():New()
 
+   oHili:hHili      := ::hHili
    oHili:cKeywords1 := ::cKeywords1
    oHili:cKeywords2 := ::cKeywords2
    oHili:cKeywords3 := ::cKeywords3
@@ -186,12 +189,12 @@ METHOD DO( nLine, lCheck ) CLASS Hili
 
    IF !Empty( lComm )
       IF ( nPos := At( ::cMcomm2, cLine ) ) == 0
-         IF !lCheck; ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_BLOCK1 ); ENDIF
+         IF !lCheck; ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM ); ENDIF
          ::lMultiComm := .T.
          ::aDop[nLine] := 1
          RETURN Nil
       ELSE
-         IF !lCheck; ::AddItem( 1, nPos, HILIGHT_BLOCK1 ); ENDIF
+         IF !lCheck; ::AddItem( 1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM ); ENDIF
          nPos += nLenM
       ENDIF
    ELSE
@@ -227,7 +230,7 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::lMultiComm := .T.
                ::aDop[nLine] := 1
             ENDIF
-            IF !lCheck; ::AddItem( nPos1, nPos, HILIGHT_BLOCK1 ); ENDIF
+            IF !lCheck; ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM ); ENDIF
             nPos += nLenM //- 1
 
          ELSEIF !lCheck .AND. IsLetter( c )
