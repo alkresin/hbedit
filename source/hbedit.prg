@@ -96,6 +96,10 @@ FUNCTION Main( ... )
    hb_gtinfo( HB_GTI_PALETTE, arr )
 #endif
 
+   IF !Empty( cStartPlugin ) .AND. File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+      hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+   ENDIF
+
    FOR i := 1 TO Len( aFiles )
       TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
    NEXT
@@ -107,10 +111,6 @@ FUNCTION Main( ... )
    IF nStartLine != Nil
       IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
       bStart := {|o|o:Goto(nStartLine)}
-   ENDIF
-
-   IF !Empty( cStartPlugin ) .AND. File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
-      hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
    ENDIF
 
    TEdit():nCurr := 1

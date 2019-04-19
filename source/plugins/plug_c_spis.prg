@@ -75,7 +75,7 @@ Function plug_C_Spis( oEdit )
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEdit, arrfnc, 5, Int((MaxCol()-66)/2),,,,, n ) ) > 0
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF

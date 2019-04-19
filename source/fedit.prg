@@ -39,7 +39,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
    {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
    {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Q"}, ;
-   {"Codepage",@mnu_CPages(),Nil,">"}, {"Syntax",@mnu_Syntax(),{12,16},"F8 >"}, ;
+   {"Codepage",@mnu_CPages(),{11,16},">"}, {"Syntax",@mnu_Syntax(),{12,16},"F8 >"}, ;
    {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{13,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
@@ -55,23 +55,24 @@ STATIC cDopMode := ""
 CLASS TEdit
 
    CLASS VAR aCPages    SHARED  INIT { "RU866", "RU1251", "FR850", "FRWIN", "FRISO", "UTF8" }
-   CLASS VAR aWindows   SHARED
-   CLASS VAR nCurr      SHARED
+   CLASS VAR aWindows   SHARED                   // An array with all TEdit objects
+   CLASS VAR nCurr      SHARED                   // A currently processed TEdit object number
    CLASS VAR cpInit     SHARED
    CLASS VAR cLauncher  SHARED  INIT ""
-   CLASS VAR lReadIni   SHARED  INIT .F.
+   CLASS VAR lReadIni   SHARED  INIT .F.         // If ini file have been read already
    CLASS VAR options    SHARED  INIT { => }
    CLASS VAR aCmdHis    SHARED  INIT {}
    CLASS VAR aSeaHis    SHARED  INIT {}
    CLASS VAR aEditHis   SHARED  INIT {}
-   CLASS VAR aCBoards   SHARED
+   CLASS VAR aCBoards   SHARED                   // An array for clipboard buffers
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
-   CLASS VAR nDefMode   SHARED  INIT 0
+   CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( 0 - Edit, 1- Vim )
    CLASS VAR cColor     SHARED  INIT "BG+/B"
    CLASS VAR cColorSel  SHARED  INIT "N/W"
    CLASS VAR cColorPane SHARED  INIT "N/BG"
    CLASS VAR cColorBra  SHARED  INIT "R+/B"
+   CLASS VAR bNew       SHARED
 
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
@@ -79,8 +80,9 @@ CLASS TEdit
    DATA   cp
    DATA   nxFirst, nyFirst
    DATA   aText
-   DATA   nMode                       // Текущий режим (Edit, Vim, Cmd)
-   DATA   nDopMode    INIT 0          // Нажатие некоторых клавиш в режиме Vim, требующее дополнительных клавиш (m, ', g, ...)
+   DATA   nMode                       // Current mode (Edit, Vim, Cmd)
+   DATA   nDopMode    INIT 0          // A state in a Vim mode after pressing some keys
+                                      // (m, ', 0..9, ...) when other keys are expected
    DATA   cSyntaxType
 
    DATA   aUndo       INIT {}
@@ -114,8 +116,11 @@ CLASS TEdit
    DATA   lBom        INIT .F.
 
    DATA   funSave
+   DATA   bEdit
+   DATA   bOnKey
    DATA   oHili
    DATA   hBookMarks
+   DATA   npy1, npx1, npy2, npx2
 
    METHOD New( cText, cFileName, y1, x1, y2, x2, cColor )
    METHOD SetText( cText, cFileName )
@@ -152,6 +157,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
    ::nxFirst := ::nyFirst := ::nRow := 1
    ::nCol := 0
+   ::npy1 := ::npx1 := ::npy2 := ::npx2 := 0
 
    ::nMode := ::nDefMode
    ::cp := ::cpInit
@@ -164,6 +170,10 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
       ::aWindows := {}
    ENDIF
    Aadd( ::aWindows, Self )
+
+   IF !Empty( ::bNew )
+      Eval( ::bNew, Self )
+   ENDIF
 
    RETURN Self
 
@@ -276,6 +286,10 @@ METHOD Edit( bStart ) CLASS TEdit
       SetColor( ::cColor )
    ENDIF
    Scroll( ::y1, ::x1, ::y2, ::x2 )
+
+   IF !Empty( ::bEdit )
+      Eval( ::bEdit, Self )
+   ENDIF
 
    ::TextOut()
    DevPos( ::nRow, ::nCol )
@@ -397,23 +411,33 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, n, nCol := Col(), nRow := Row()
    LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F., x
-   STATIC npy1 := 0, npx1 := 0, npy2 := 0, npx2 := 0
 
    ::nCol := nCol; ::nRow := nRow
    n := ::RowToLine( nRow )
    ::lTextOut := .F.
 
-   IF npy1 > 0
-      DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
-      DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
-      IF npy2 >= ::nyFirst .AND. npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
-            npx2 >= ::nxFirst .AND. npx2 < ::nxFirst + ::x2 - ::x1
-         DevPos( npy2 - ::nyFirst + ::y1, npx2 - ::nxFirst + ::x1 )
-         DevOut( cp_Substr( ::lUtf8, ::aText[npy2], npx2, 1 ) )
+   IF ::npy1 > 0
+      DevPos( ::npy1 - ::nyFirst + ::y1, ::npx1 - ::nxFirst + ::x1 )
+      DevOut( cp_Substr( ::lUtf8, ::aText[::npy1], ::npx1, 1 ) )
+      IF ::npy2 >= ::nyFirst .AND. ::npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
+            ::npx2 >= ::nxFirst .AND. ::npx2 < ::nxFirst + ::x2 - ::x1
+         DevPos( ::npy2 - ::nyFirst + ::y1, ::npx2 - ::nxFirst + ::x1 )
+         DevOut( cp_Substr( ::lUtf8, ::aText[::npy2], ::npx2, 1 ) )
       ENDIF
       DevPos( ::nRow, ::nCol )
-      npy1 := npx1 := npy2 := npx2 := 0
+      ::npy1 := ::npx1 := ::npy2 := ::npx2 := 0
    ENDIF
+
+   IF !Empty( ::bOnKey )
+      i := Eval( ::bOnKey, Self, nKeyExt )
+      IF i == - 1
+         RETURN Nil
+      ELSEIF i > 0
+         nKeyExt := i
+         nKey := hb_keyStd(nKeyExt)
+      ENDIF
+   ENDIF
+
    IF ::nDopMode > 0
       IF nKey == K_ESC
          ::nDopMode := 0
@@ -911,7 +935,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_SeaNext( Self, .T. )
 
          ELSEIF nKey == K_SH_F8
-            mnu_cPages( Self )
+            mnu_cPages( Self, {2,6} )
             ::lTextOut := .T.
          ENDIF
       ENDIF
@@ -938,16 +962,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ::nCol := Col(); ::nRow := Row()
 
    IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
-      // Џ®¤бўҐвЄ  Ї а­ле бЄ®Ў®Є
-      npy1 := ::RowToLine(); npx1 := ::ColToPos()
-      npy2 := Iif( Valtype(x)=="A",x[1], npy1 ); npx2 := Iif( Valtype(x)=="A",x[2], x )
+
+      ::npy1 := ::RowToLine(); ::npx1 := ::ColToPos()
+      ::npy2 := Iif( Valtype(x)=="A",x[1], ::npy1 ); ::npx2 := Iif( Valtype(x)=="A",x[2], x )
       SetColor( ::cColorBra )
-      DevPos( npy1 - ::nyFirst + ::y1, npx1 - ::nxFirst + ::x1 )
-      DevOut( cp_Substr( ::lUtf8, ::aText[npy1], npx1, 1 ) )
-      IF npy2 >= ::nyFirst .AND. npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
-            npx2 >= ::nxFirst .AND. npx2 < ::nxFirst + ::x2 - ::x1
-         DevPos( npy2 - ::nyFirst + ::y1, npx2 - ::nxFirst + ::x1 )
-         DevOut( cp_Substr( ::lUtf8, ::aText[npy2], npx2, 1 ) )
+      DevPos( ::npy1 - ::nyFirst + ::y1, ::npx1 - ::nxFirst + ::x1 )
+      DevOut( cp_Substr( ::lUtf8, ::aText[::npy1], ::npx1, 1 ) )
+      IF ::npy2 >= ::nyFirst .AND. ::npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
+            ::npx2 >= ::nxFirst .AND. ::npx2 < ::nxFirst + ::x2 - ::x1
+         DevPos( ::npy2 - ::nyFirst + ::y1, ::npx2 - ::nxFirst + ::x1 )
+         DevOut( cp_Substr( ::lUtf8, ::aText[::npy2], ::npx2, 1 ) )
       ENDIF
       SetColor( ::cColor )
       DevPos( ::nRow, ::nCol )
@@ -1370,7 +1394,7 @@ METHOD OnExit() CLASS TEdit
    IF !Empty( TEdit():aEditHis )
       s += Chr(13) + Chr(10) + "[EDIT]" + Chr(13) + Chr(10)
       FOR i := 1 TO Len( TEdit():aEditHis )
-         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aEditHis[i,2] + "," + ;
+         s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aEditHis[i,2] + "," + ;
             Ltrim(Str(TEdit():aEditHis[i,3])) + "," + Ltrim(Str(TEdit():aEditHis[i,4])) + "," + ;
             TEdit():aEditHis[i,1] + Chr(13) + Chr(10)
       NEXT
@@ -1643,8 +1667,7 @@ FUNCTION edi_ReadIni( xIni )
          NEXT
       ENDIF
       IF hb_hHaskey( hIni, "EDIT" ) .AND. !Empty( aSect := hIni[ "EDIT" ] )
-         arr := hb_hKeys( aSect )
-         arr := ASort( arr )
+         arr := ASort( hb_hKeys( aSect ) )
          TEdit():aEditHis := Array( Len(arr) )
          FOR i := 1 TO Len(arr)
             arr1 := hb_ATokens( aSect[ arr[i] ], "," )
@@ -1692,12 +1715,12 @@ FUNCTION mnu_Exit( oEdit )
    ENDIF
    RETURN Nil
 
-FUNCTION mnu_CPages( oEdit )
+FUNCTION mnu_CPages( oEdit, aXY )
 
    LOCAL iRes
    STATIC aMenu_cps := { {"cp866",,1}, {"cp1251",,2}, {"fr850",,3}, {"frwin",,4}, {"friso",,5}, {"utf8",,6} }
 
-   IF !Empty( iRes := FMenu( oEdit, aMenu_cps, 9, 16 ) )
+   IF !Empty( iRes := FMenu( oEdit, aMenu_cps, aXY[1], aXY[2] ) )
       oEdit:cp := oEdit:aCPages[iRes]
       hb_cdpSelect( oEdit:cp )
       oEdit:lUtf8 := ( Lower(oEdit:cp) == "utf8" )
@@ -1947,6 +1970,9 @@ FUNCTION mnu_Search( oEdit )
       ENDIF
       IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
+      ELSE
+         edi_Alert( "String is not found:;" + cSearch )
+         oEdit:lTextOut := .T.
       ENDIF
    ENDIF
 
@@ -1977,10 +2003,16 @@ FUNCTION mnu_SeaHist( oEdit, aGet )
 FUNCTION mnu_SeaNext( oEdit, lNext )
 
    LOCAL ny := oEdit:RowToLine(), nx := oEdit:nCol - oEdit:x1 + oEdit:nxFirst
+   LOCAL cSearch
 
-   IF !Empty( TEdit():aSeaHis ) .AND. ;
-         oEdit:Search( hb_Translate(TEdit():aSeaHis[1],"UTF8"), lCase_Sea, lNext, @ny, @nx )
-      oEdit:GoTo( ny, nx, 0 )
+   IF !Empty( TEdit():aSeaHis )
+      cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
+      IF oEdit:Search( cSearch, lCase_Sea, lNext, @ny, @nx )
+         oEdit:GoTo( ny, nx, 0 )
+      ELSE
+         edi_Alert( "String is not found:;" + cSearch )
+         oEdit:lTextOut := .T.
+      ENDIF
    ENDIF
 
    RETURN Nil

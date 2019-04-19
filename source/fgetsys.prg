@@ -32,7 +32,7 @@ FUNCTION edi_READ( aGets )
 
    LOCAL nCurr := 1, i, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
-   
+
    aClrdef := hb_aTokens( clrdef, ',' )
    FOR i := 1 TO Len( aGets )
       ShowGetItem( aGets[i], .F., lUtf8 )
@@ -92,7 +92,7 @@ FUNCTION edi_READ( aGets )
          ENDIF
 
       ELSEIF nKey == K_LEFT
-         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING 
+         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF nx > aGets[nCurr,G_X]
                DevPos( Row(), --nx )
             ENDIF
@@ -101,7 +101,7 @@ FUNCTION edi_READ( aGets )
          ENDIF
 
       ELSEIF nKey == K_RIGHT
-         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING 
+         IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF x < aGets[nCurr,G_WIDTH] .AND. x < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
                DevPos( Row(), ++nx )
             ENDIF
@@ -153,7 +153,7 @@ FUNCTION edi_READ( aGets )
          IF nCurr < Len( aGets ) .AND. aGets[nCurr+1,G_TYPE] == G_TYPE_BUTTON
             __KeyBoard( Chr(K_DOWN) + Chr(K_SPACE) )
          ENDIF
-      
+
       ELSEIF nKey == K_LBUTTONDOWN
          nCol := MCol()
          nRow := MRow()
@@ -238,20 +238,20 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
    nBtnsLen := nBtnsLen + Iif( cAns2==Nil,0,Len(cAns2)+4 ) + ;
       Iif( cAns3==Nil,0,Len(cAns3)+2 )
    nLen := Max( nLen, nBtnsLen+4 )
-      
+
    aGets[1,1] := y1+Len(aText)+2
    aGets[1,2] := Int( (MaxCol()-nBtnsLen)/2 ) + 1
-   aGets[1,5] := Len(aGets[1,4])   
-   
+   aGets[1,5] := Len(aGets[1,4])
+
    IF cAns2 != Nil
       Aadd( aGets, { aGets[1,1], aGets[1,2] + aGets[1,5] + 2, 2, " " + cAns2 + " ", ;
          Len(" " + cAns2 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
-   ENDIF   
+   ENDIF
    IF cAns3 != Nil
       Aadd( aGets, { aGets[1,1], aGets[2,2] + aGets[2,5] + 2, 2, " " + cAns3 + " ", ;
          Len(" " + cAns3 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
-   ENDIF   
-   
+   ENDIF
+
    x1 := Int( (MaxCol()-nLen)/2 )
 
    bufsc := Savescreen( y1, x1, y1+Len(aText)+3, x1+nLen )
@@ -259,13 +259,13 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
    oldc := SetColor( "W+/R" )
    cp := hb_cdpSelect( "RU866" )
    @ y1, x1, y1+Len(aText)+3, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
-   FOR i := 1 TO Len( aText )   
+   hb_cdpSelect( cp )
+   FOR i := 1 TO Len( aText )
       @ y1+i, x1 + 2 SAY aText[i]
    NEXT
-   hb_cdpSelect( cp )
    SetColor( oldc )
 
    i := edi_Read( aGets )
    Restscreen( y1, x1, y1+Len(aText)+3, x1+nLen, bufsc )
-   
+
    RETURN i
