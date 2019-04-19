@@ -591,7 +591,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
          ELSEIF nKey == K_CTRL_Y
             IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
-               ::DelText( n, 0, n+1, 0 )
+               ::DelText( n, 1, n+1, 1 )
             ENDIF
 
          ELSEIF nKey == K_CTRL_A
@@ -1255,8 +1255,12 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
          ncou ++
       NEXT
 
-      cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
-      ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+      IF nPos2 > 1
+         cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
+         ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+      ELSE
+         ::aText[nLine1] += ::aText[n]
+      ENDIF
       ADel( ::aText, n )
       ncou ++
 
@@ -1325,7 +1329,8 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
       ENDIF
 
    ELSEIF nOper == UNDO_OP_INS .OR. nOper == UNDO_OP_OVER
-      IF nOper == nOpLast .AND. alast[UNDO_LINE2] == nLine2 .AND. alast[UNDO_POS2] == nPos1-1
+      IF nOper == nOpLast .AND. alast[UNDO_LINE2] == nLine2 .AND. alast[UNDO_POS2] == nPos1-1 ;
+         .AND. alast[UNDO_LINE1] == nLine2 .AND. nLine1 == nLine2
          alast[UNDO_POS2] := nPos2
          IF nOper == UNDO_OP_OVER
             alast[UNDO_TEXT] += cText
@@ -1335,7 +1340,8 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
       ENDIF
    ELSEIF nOper == UNDO_OP_DEL
       IF nOper == nOpLast .AND. alast[UNDO_LINE2] == nLine2 .AND. ;
-         ( alast[UNDO_POS2] == nPos1 .OR. alast[UNDO_POS1] == nPos1+1 )
+         ( alast[UNDO_POS2] == nPos1 .OR. alast[UNDO_POS1] == nPos1+1 ) ;
+         .AND. alast[UNDO_LINE1] == nLine2 .AND. nLine1 == nLine2
          IF alast[UNDO_POS2] == nPos1    // Del
             alast[UNDO_TEXT] += cText
             alast[UNDO_POS2] := nPos2
@@ -1500,7 +1506,7 @@ STATIC FUNCTION cbDele( oEdit )
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
       oEdit:nby1 := oEdit:nby2 := -1
-      oEdit:DelText( nby1, nbx1, nby2, nbx2-1 )
+      oEdit:DelText( nby1, nbx1, nby2, Max(nbx2-1,1) )
    ENDIF
    RETURN Nil
 
