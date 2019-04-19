@@ -137,6 +137,7 @@ METHOD SET( oEdit ) CLASS Hili
    oHili:cSleft     := ::cSleft
    oHili:cMcomm1    := ::cMcomm1
    oHili:cMcomm2    := ::cMcomm2
+   oHili:lCase      := ::lCase
    oHili:oEdit      := oEdit
 
    RETURN oHili
