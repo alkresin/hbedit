@@ -447,7 +447,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             edi_BookMarks( Self, nKey, .T. )
             ::nDopMode := 0
          ELSEIF ::nDopMode == 39  // '
-            edi_BookMarks( Self, nKey, .F. )
+            IF nKey == 46   // .
+               ::GoTo( ::aUndo[::nUndo][UNDO_LINE2], ::aUndo[::nUndo][UNDO_POS2] )
+            ELSE
+               edi_BookMarks( Self, nKey, .F. )
+            ENDIF
             ::nDopMode := 0
          ELSEIF ::nDopMode == 49  // 1
             IF nKey >= 48 .AND. nKey <= 57
