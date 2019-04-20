@@ -54,7 +54,7 @@ STATIC cDopMode := ""
 
 CLASS TEdit
 
-   CLASS VAR aCPages    SHARED  INIT { "RU866", "RU1251", "FR850", "FRWIN", "FRISO", "UTF8" }
+   CLASS VAR aCPages    SHARED  INIT {}
    CLASS VAR aWindows   SHARED                   // An array with all TEdit objects
    CLASS VAR nCurr      SHARED                   // A currently processed TEdit object number
    CLASS VAR cpInit     SHARED
@@ -482,7 +482,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_F3( Self )
                   edi_PrevWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
                ENDIF
                ::nDopMode := 0
@@ -493,7 +493,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
                ENDIF
                ::nDopMode := 0
@@ -503,7 +503,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_F3( Self )
                   edi_NextWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
                ELSEIF cDopMode == "di"
                   edi_PrevWord( Self, .F. )
@@ -511,7 +511,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := Col() - ::x1 + ::nxFirst
+                  ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
                ENDIF
                ::nDopMode := 0
@@ -542,7 +542,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       IF lShift
          IF !::lShiftKey
             ::nby1 := ::RowToLine()
-            ::nbx1 := ::nCol - ::x1 + ::nxFirst
+            ::nbx1 := ::ColToPos()
             ::lShiftKey := .T.
          ENDIF
       ELSE
@@ -950,7 +950,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       IF (::lF3 .OR. lShift)
          IF !( lCtrl .AND. nKey == K_CTRL_A)
             ::nby2 := ::RowToLine( Row() )
-            ::nbx2 := Col() - ::x1 + ::nxFirst
+            ::nbx2 := ::ColToPos( Col() )
          ENDIF
       ELSEIF !lNoDeselect
          IF ::nby1 >= 0 .AND. ::nby2 >= 0
@@ -999,7 +999,7 @@ METHOD WriteTopPane( lFull ) CLASS TEdit
       IF !Empty( lFull )
          Scroll( y, ::x1 + 8 , y, ::x2 )
          DevPos( y, ::x1 + 8 )
-         DevOut( NameShortcut( ::cFileName, ::nTopName, '~' ) )
+         DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
       ELSE
          Scroll( y, ::x1 + 8 + ::nTopName, y, ::x2 )
       ENDIF
@@ -1562,7 +1562,7 @@ FUNCTION edi_ReadIni( xIni )
                   nEol := Val(cTemp)
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "langmap_cp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  IF Ascan( TEdit():aCPages, cTemp ) > 0
+                  IF hb_cdpExists( cTemp )
                      cLangMapCP := cTemp
                   ENDIF
                ENDIF
@@ -1584,6 +1584,16 @@ FUNCTION edi_ReadIni( xIni )
                IF hb_hHaskey( aSect, cTemp := "colorbra" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():cColorbra := cTemp
                ENDIF
+            ENDIF
+
+         ELSEIF Upper(aIni[nSect]) == "CODEPAGES"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := ASort( hb_hKeys( aSect ) )
+               TEdit():aCPages := Array( Len( arr ) )
+               FOR i := 1 TO Len( arr )
+                  TEdit():aCPages[i] := aSect[ arr[i] ]
+               NEXT
             ENDIF
 
          ELSEIF Upper(aIni[nSect]) == "PLUGINS"
@@ -1652,6 +1662,9 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
 
+   IF Empty( TEdit():aCPages )
+      TEdit():aCPages := { "RU866", "RU1251", "UTF8" }
+   ENDIF
    TEdit():aCBoards := Array( MAX_CBOARDS,2 )
    FOR i := 1 TO MAX_CBOARDS
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
@@ -1728,9 +1741,8 @@ FUNCTION mnu_Exit( oEdit )
 FUNCTION mnu_CPages( oEdit, aXY )
 
    LOCAL iRes
-   STATIC aMenu_cps := { {"cp866",,1}, {"cp1251",,2}, {"fr850",,3}, {"frwin",,4}, {"friso",,5}, {"utf8",,6} }
 
-   IF !Empty( iRes := FMenu( oEdit, aMenu_cps, aXY[1], aXY[2] ) )
+   IF !Empty( iRes := FMenu( oEdit, oEdit:aCPages, aXY[1], aXY[2] ) )
       oEdit:cp := oEdit:aCPages[iRes]
       hb_cdpSelect( oEdit:cp )
       oEdit:lUtf8 := ( Lower(oEdit:cp) == "utf8" )
@@ -1950,7 +1962,7 @@ FUNCTION mnu_Search( oEdit )
       {14,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
       {14,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F., cs_utf8
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:nCol - oEdit:x1 + oEdit:nxFirst
+   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 15, 60 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -2012,7 +2024,7 @@ FUNCTION mnu_SeaHist( oEdit, aGet )
 
 FUNCTION mnu_SeaNext( oEdit, lNext )
 
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:nCol - oEdit:x1 + oEdit:nxFirst
+   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
    LOCAL cSearch
 
    IF !Empty( TEdit():aSeaHis )
@@ -2221,7 +2233,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
    LOCAL lOk := .F., lAlphaNum
 
    ny := oEdit:RowToLine(nRow)
-   nx := nCol - oEdit:x1 + oEdit:nxFirst
+   nx := oEdit:ColToPos( nCol )
    nLen := cp_Len( lUtf8, oEdit:aText[ny] )
 
    IF nx > nLen
@@ -2270,7 +2282,7 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW )
    LOCAL ch, lAlphaNum
 
    ny := oEdit:RowToLine(nRow)
-   nx := nCol - oEdit:x1 + oEdit:nxFirst
+   nx := oEdit:ColToPos( nCol )
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
    IF ch == " "
@@ -2353,7 +2365,7 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    IF nKey >= 97 .AND. nKey <= 122
       IF lSet
-         oEdit:hBookMarks[nKey] := { oEdit:RowToLine(), oEdit:nCol - oEdit:x1 + oEdit:nxFirst }
+         oEdit:hBookMarks[nKey] := { oEdit:RowToLine(), oEdit:ColToPos() }
       ELSE
          IF hb_hHaskey( oEdit:hBookMarks, nKey )
             arr := oEdit:hBookMarks[nKey]
@@ -2562,9 +2574,9 @@ FUNCTION cp_NextPos( lUtf8, cLine, nPos )
    RETURN nPos + 1
 
 FUNCTION cp_Lower( lUtf8, cString )
-   IF lUtf8; RETURN cString; ENDIF
+   IF lUtf8; RETURN cedi_utf8_Lower( cString ); ENDIF
    RETURN Lower( cString )
 
 FUNCTION cp_Upper( lUtf8, cString )
-   IF lUtf8; RETURN cString; ENDIF
+   IF lUtf8; RETURN cedi_utf8_Upper( cString ); ENDIF
    RETURN Upper( cString )

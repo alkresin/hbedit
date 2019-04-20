@@ -173,7 +173,7 @@ STATIC FUNCTION ReadIni( cIniName )
       ENDIF
    ENDIF
 
-   IF Empty(cp) .OR. Ascan( TEdit():aCpages, cp ) == 0
+   IF Empty(cp) .OR. !hb_cdpExists( cp )
       cp := "RU866"
    ENDIF
    hb_cdpSelect( cp )
