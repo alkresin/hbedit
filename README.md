@@ -56,3 +56,22 @@ A fullscreen console multiplatform text editor.
   - -xy=xPos,yPos       - initial window position in pixels (for Windows only)
   - [-size=nCols,nRows] - number of columns and rows in an editor window
   - files...            - the list of files to edit
+
+
+### hbedit.ini
+
+ hbedit.ini includes many important options, you may edit it to tune the editor.
+
+ One of them - codepages used. The list is in [CODEPAGES] section, you can include there those,
+ which you need and delete others. Below is a list of possible values:
+
+ BG866, BGISO, BGMIK, BGWIN, BIG5, CP950, CS852, CS852C, CSISO, CSKAMC,
+ CSWIN, DE850, DE850M, DEISO, DEWIN, DK865, EL437, EL737, ELISO, ELWIN,
+ EN, ES850, ES850C, ES850M, ESISO, ESMWIN, ESWIN, FI850, FR850, FR850C,
+ FR850M, FRISO, FRWIN, GBK, HE862, HEWIN, HR646, HR852, HRISO, HRWIN,
+ HU852, HU852C, HUISO, HUWIN, IS850, IS861, IT437, IT850, IT850M, ITISB,
+ ITISO, ITWIN, LT775, LTWIN, NL850, NL850M, NO865, PL852, PLISO, PLMAZ,
+ PLWIN, PT850, PT860, PTISO, RO852, ROISO, ROWIN, RU1251, RU866, RUISO,
+ RUKOI8, SK852, SK852C, SKISO, SKKAMC, SKWIN, SL646, SL852, SLISO, SLWIN,
+ SR646, SR646C, SRWIN, SV437C, SV850, SV850M, SVISO, SVWIN, TR857, TRISO,
+ TRWIN, UA1125, UA1251, UA866, UAKOI8, UTF8.
