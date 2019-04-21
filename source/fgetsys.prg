@@ -116,7 +116,7 @@ FUNCTION edi_READ( aGets )
             ShowGetItem( aGets[nCurr], .T., lUtf8 )
          ENDIF
 
-      ELSEIF nKey == K_DOWN
+      ELSEIF nKey == K_DOWN .OR. nKey == K_TAB
          IF nCurr < Len( aGets )
             ShowGetItem( aGets[nCurr], .F., lUtf8 )
             nCurr ++

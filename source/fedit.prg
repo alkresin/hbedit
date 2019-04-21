@@ -63,6 +63,7 @@ CLASS TEdit
    CLASS VAR options    SHARED  INIT { => }
    CLASS VAR aCmdHis    SHARED  INIT {}
    CLASS VAR aSeaHis    SHARED  INIT {}
+   CLASS VAR aReplHis   SHARED  INIT {}
    CLASS VAR aEditHis   SHARED  INIT {}
    CLASS VAR aCBoards   SHARED                   // An array for clipboard buffers
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
@@ -648,6 +649,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_OpenFile( Self )
             ::lTextOut := .T.
 
+         ELSEIF nKey == K_CTRL_F7
+            mnu_SeaAndRepl( Self )
+            ::lTextOut := .T.
+
         ENDIF
       ELSE
          IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( ::lUtf8 .AND. nKey > 3000 )
@@ -1149,6 +1154,8 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
    LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew
 
+   IF lOver == Nil; lOver := .F.; ENDIF
+   IF lChgPos == Nil; lChgPos := .T.; ENDIF
    IF Chr(10) $ cText
       arr := hb_ATokens( cText, Chr(10) )
       IF lOver
@@ -1385,32 +1392,42 @@ METHOD Highlighter( oHili ) CLASS TEdit
 
 METHOD OnExit() CLASS TEdit
 
-   LOCAL i, s := ""
+   LOCAL i, s := "", nSaveHis := TEdit():options["savehis"]
 
-   IF !Empty( TEdit():aSeaHis )
-      s += "[SEARCH]" + Chr(13) + Chr(10)
-      FOR i := 1 TO Len( TEdit():aSeaHis )
-         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aSeaHis[i] + Chr(13) + Chr(10)
-      NEXT
+
+   IF nSaveHis > 0
+      IF !Empty( TEdit():aSeaHis )
+         s += "[SEARCH]" + Chr(13) + Chr(10)
+         FOR i := 1 TO Len( TEdit():aSeaHis )
+            s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aSeaHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+
+      IF !Empty( TEdit():aReplHis )
+         s += "[REPLACE]" + Chr(13) + Chr(10)
+         FOR i := 1 TO Len( TEdit():aReplHis )
+            s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aReplHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+
+      IF !Empty( TEdit():aCmdHis )
+         s += Chr(13) + Chr(10) + "[COMMANDS]" + Chr(13) + Chr(10)
+         FOR i := 1 TO Len( TEdit():aCmdHis )
+            s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aCmdHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+
+      IF !Empty( TEdit():aEditHis )
+         s += Chr(13) + Chr(10) + "[EDIT]" + Chr(13) + Chr(10)
+         FOR i := 1 TO Len( TEdit():aEditHis )
+            s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aEditHis[i,2] + "," + ;
+               Ltrim(Str(TEdit():aEditHis[i,3])) + "," + Ltrim(Str(TEdit():aEditHis[i,4])) + "," + ;
+               TEdit():aEditHis[i,1] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+
+      hb_MemoWrit( IIf( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his", s )
    ENDIF
-
-   IF !Empty( TEdit():aCmdHis )
-      s += Chr(13) + Chr(10) + "[COMMANDS]" + Chr(13) + Chr(10)
-      FOR i := 1 TO Len( TEdit():aCmdHis )
-         s += "h" + Ltrim(Str(i)) + "=" + TEdit():aCmdHis[i] + Chr(13) + Chr(10)
-      NEXT
-   ENDIF
-
-   IF !Empty( TEdit():aEditHis )
-      s += Chr(13) + Chr(10) + "[EDIT]" + Chr(13) + Chr(10)
-      FOR i := 1 TO Len( TEdit():aEditHis )
-         s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aEditHis[i,2] + "," + ;
-            Ltrim(Str(TEdit():aEditHis[i,3])) + "," + Ltrim(Str(TEdit():aEditHis[i,4])) + "," + ;
-            TEdit():aEditHis[i,1] + Chr(13) + Chr(10)
-      NEXT
-   ENDIF
-
-   hb_MemoWrit( hb_DirBase() + "hbedit.his", s )
 
    RETURN Nil
 
@@ -1518,7 +1535,7 @@ FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
-   LOCAL ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
+   LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
    LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","quotes","scomm","startline","mcomm","block" }
 
@@ -1548,6 +1565,12 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "syntax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lSyntax := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "savehis" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nSaveHis := Val(cTemp)
+                  IF nSaveHis < 0 .OR. nSaveHis > 2
+                     nSaveHis := 1
+                  ENDIF
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "cmdhismax" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   ncmdhis :=  Val(cTemp)
@@ -1654,6 +1677,7 @@ FUNCTION edi_ReadIni( xIni )
 
    TEdit():cpInit := hb_cdpSelect()
    TEdit():options["incsearch"]  := lIncSea
+   TEdit():options["savehis"]    := nSaveHis
    TEdit():options["cmdhismax"]  := ncmdhis
    TEdit():options["seahismax"]  := nseahis
    TEdit():options["eol"]        := nEol
@@ -1670,42 +1694,49 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 
-   hIni := edi_iniRead( hb_DirBase() + "hbedit.his" )
-   IF !Empty( hIni )
-      hb_hCaseMatch( hIni, .F. )
-      IF hb_hHaskey( hIni, "SEARCH" ) .AND. !Empty( aSect := hIni[ "SEARCH" ] )
-         arr := hb_hKeys( aSect )
-         arr := ASort( arr )
-         TEdit():aSeaHis := Array( Len(arr) )
-         FOR i := 1 TO Len(arr)
-            TEdit():aSeaHis[i] := aSect[ arr[i] ]
-         NEXT
-      ENDIF
-      IF hb_hHaskey( hIni, "COMMANDS" ) .AND. !Empty( aSect := hIni[ "COMMANDS" ] )
-         arr := hb_hKeys( aSect )
-         arr := ASort( arr )
-         TEdit():aCmdHis := Array( Len(arr) )
-         FOR i := 1 TO Len(arr)
-            TEdit():aCmdHis[i] := aSect[ arr[i] ]
-         NEXT
-      ENDIF
-      IF hb_hHaskey( hIni, "EDIT" ) .AND. !Empty( aSect := hIni[ "EDIT" ] )
-         arr := ASort( hb_hKeys( aSect ) )
-         TEdit():aEditHis := Array( Len(arr) )
-         FOR i := 1 TO Len(arr)
-            arr1 := hb_ATokens( aSect[ arr[i] ], "," )
-            IF Len(arr1) < 4
-               TEdit():aEditHis[i] := { "ru866", 1, 1, "err" }
-            ELSE
-               s := Upper( arr1[1] )
-               IF Ascan( TEdit():aCPages, s ) == 0
-                  s := TEdit():aCPages[1]
+   IF nSaveHis > 0
+      hIni := edi_iniRead( Iif( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his" )
+      IF !Empty( hIni )
+         hb_hCaseMatch( hIni, .F. )
+         IF hb_hHaskey( hIni, "SEARCH" ) .AND. !Empty( aSect := hIni[ "SEARCH" ] )
+            arr := ASort( hb_hKeys( aSect ) )
+            TEdit():aSeaHis := Array( Len(arr) )
+            FOR i := 1 TO Len(arr)
+               TEdit():aSeaHis[i] := aSect[ arr[i] ]
+            NEXT
+         ENDIF
+         IF hb_hHaskey( hIni, "REPLACE" ) .AND. !Empty( aSect := hIni[ "REPLACE" ] )
+            arr := ASort( hb_hKeys( aSect ) )
+            TEdit():aReplHis := Array( Len(arr) )
+            FOR i := 1 TO Len(arr)
+               TEdit():aReplHis[i] := aSect[ arr[i] ]
+            NEXT
+         ENDIF
+         IF hb_hHaskey( hIni, "COMMANDS" ) .AND. !Empty( aSect := hIni[ "COMMANDS" ] )
+            arr := ASort( hb_hKeys( aSect ) )
+            TEdit():aCmdHis := Array( Len(arr) )
+            FOR i := 1 TO Len(arr)
+               TEdit():aCmdHis[i] := aSect[ arr[i] ]
+            NEXT
+         ENDIF
+         IF hb_hHaskey( hIni, "EDIT" ) .AND. !Empty( aSect := hIni[ "EDIT" ] )
+            arr := ASort( hb_hKeys( aSect ) )
+            TEdit():aEditHis := Array( Len(arr) )
+            FOR i := 1 TO Len(arr)
+               arr1 := hb_ATokens( aSect[ arr[i] ], "," )
+               IF Len(arr1) < 4
+                  TEdit():aEditHis[i] := { "ru866", 1, 1, "err" }
+               ELSE
+                  s := Upper( arr1[1] )
+                  IF Ascan( TEdit():aCPages, s ) == 0
+                     s := TEdit():aCPages[1]
+                  ENDIF
+                  arr1[2] := Max( 1, Val(arr1[2]) )
+                  arr1[3] := Max( 1, Val(arr1[3]) )
+                  TEdit():aEditHis[i] := { Ltrim(arr1[4]), s, arr1[2], arr1[3] }
                ENDIF
-               arr1[2] := Max( 1, Val(arr1[2]) )
-               arr1[3] := Max( 1, Val(arr1[3]) )
-               TEdit():aEditHis[i] := { Ltrim(arr1[4]), s, arr1[2], arr1[3] }
-            ENDIF
-         NEXT
+            NEXT
+         ENDIF
       ENDIF
    ENDIF
 
@@ -1947,7 +1978,8 @@ FUNCTION mnu_FileList( oEdit, aGet )
 FUNCTION mnu_Sea_goto( oEdit, aXY )
 
    LOCAL aMenu := { {"Search",@mnu_Search(),Nil,"F7"}, {"Next",@mnu_SeaNext(),.T.,"Shift-F7"}, ;
-      {"Previous",@mnu_SeaNext(),.F.,"Alt-F7"}, {"Go to",@mnu_GoTo(),Nil,"Alt-F8"} }
+      {"Previous",@mnu_SeaNext(),.F.,"Alt-F7"}, {"Replace",@mnu_SeaAndRepl(),Nil,"Ctrl-F7"}, ;
+      {"Go to",@mnu_GoTo(),Nil,"Alt-F8"} }
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2] )
 
@@ -2039,11 +2071,124 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 
    RETURN Nil
 
+FUNCTION mnu_SeaAndRepl( oEdit )
+
+   LOCAL oldc := SetColor( "N/W,N/W,,,N/W" ), nRes, i
+   LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
+      {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
+      {13,22,0,"",33,"W+/BG","W+/BG"}, ;
+      {14,23,1,.F.,1}, {14,43,1,.F.,1}, ;
+      {16,25,2,"[Replace]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {16,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL cSearch, cRepl, lCase, lBack := .F., cs_utf8, cr_utf8, nSeaLen
+   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+
+   hb_cdpSelect( "RU866" )
+   @ 09, 20, 17, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 15, 20 SAY "Ã"
+   @ 15, 60 SAY "´"
+   @ 15, 21 TO 15, 59
+   hb_cdpSelect( oEdit:cp )
+
+   @ 10,22 SAY "Search for"
+   @ 12,22 SAY "Replace with"
+   @ 14, 22 SAY "[ ] Case sensitive"
+   @ 14, 42 SAY "[ ] Backward"
+
+   IF !Empty( TEdit():aSeaHis )
+      aGets[4,4] := lCase_Sea
+   ENDIF
+
+   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+      cSearch := Trim( aGets[1,4] )
+      nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
+      cRepl := Trim( aGets[3,4] )
+      lCase := aGets[4,4]
+      lBack := aGets[5,4]
+      cs_utf8 := hb_Translate( cSearch,, "UTF8" )
+      cr_utf8 := hb_Translate( cRepl,, "UTF8" )
+      IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
+         ADel( TEdit():aSeaHis, i )
+         hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
+      ELSE
+         hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+      ENDIF
+      IF ( i := Ascan( TEdit():aReplHis, {|cs|cs==cr_utf8} ) ) > 0
+         ADel( TEdit():aReplHis, i )
+         hb_AIns( TEdit():aReplHis, 1, cr_utf8, .F. )
+      ELSE
+         hb_AIns( TEdit():aReplHis, 1, cr_utf8, Len(TEdit():aReplHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+      ENDIF
+      nRes := 0
+      DO WHILE .T.
+         IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, @ny, @nx )
+            oEdit:GoTo( ny, nx, nSeaLen )
+            oEdit:TextOut()
+            DevPos( oEdit:nRow, oEdit:nCol )
+            IF nRes != 2
+               nRes := mnu_ReplNext( oEdit )
+            ENDIF
+            IF nRes == 1 .OR. nRes == 2
+               oEdit:DelText( ny, nx, ny, nx + nSeaLen - 1 )
+               oEdit:InsText( ny, nx, cRepl )
+            ELSEIF nRes == 3
+               LOOP
+            ELSE
+               EXIT
+            ENDIF
+         ELSE
+            edi_Alert( "String is not found:;" + cSearch )
+            oEdit:lTextOut := .T.
+            EXIT
+         ENDIF
+      ENDDO
+   ENDIF
+
+   SetColor( oldc )
+   DevPos( oEdit:nRow, oEdit:nCol )
+
+   RETURN Nil
+
+FUNCTION mnu_ReplNext( oEdit )
+
+   LOCAL oldc := SetColor( "N/W,N/W,,,N/W" ), nRes := 0
+   LOCAL y1 := Iif( Row()>oEdit:y2-6, oEdit:y1+2, oEdit:y2-6 ), x1 := oEdit:x2-40
+   LOCAL aGets := { ;
+      {y1+4,x1+2,2,"[Replace]",9,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+14,2,"[All]",5,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+21,2,"[Skip]",6,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+30,2,"[Cancel]",8,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}} }
+   LOCAL cSearch, cRepl, nSeaLen, ny, nx
+
+   IF !Empty( TEdit():aSeaHis ) .AND. !Empty( TEdit():aReplHis )
+      hb_cdpSelect( "RU866" )
+      @ y1, x1, y1+5, x1+40 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ y1+3, x1 SAY "Ã"
+      @ y1+3, x1+40 SAY "´"
+      @ y1+3, x1+1 TO y1+3, x1+39
+      hb_cdpSelect( oEdit:cp )
+
+      ny := oEdit:RowToLine()
+      nx := oEdit:ColToPos()
+      cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
+      nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
+      cSearch := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, nSeaLen )
+      cRepl := hb_Translate(TEdit():aReplHis[1],"UTF8")
+      @ y1+1,x1+2 SAY 'Replace "' + cSearch + '"'
+      @ y1+2,x1+2 SAY 'With "' + cRepl + '"'
+
+      nRes := edi_Read( aGets )
+      SetColor( oldc )
+      DevPos( oEdit:nRow, oEdit:nCol )
+   ENDIF
+
+   RETURN nRes
+
 FUNCTION mnu_GoTo( oEdit )
 
    LOCAL oldc := SetColor( "N/W,W+/BG" )
    LOCAL aGets := { {11,27,0,"",26}, ;
-      {13,28,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,28,2,"[Ok]",4,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
       {13,42,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL arr, ny, nx, nRes
 
