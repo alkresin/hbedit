@@ -43,6 +43,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{13,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
+STATIC cKeysMove := "hjklwWeEbBG0$^"
 
 STATIC aLangExten := {}
 STATIC cHelpName := "Help"
@@ -418,6 +419,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ::lTextOut := .F.
 
    IF ::npy1 > 0
+      // drop highlighting of matched parenthesis
       DevPos( ::npy1 - ::nyFirst + ::y1, ::npx1 - ::nxFirst + ::x1 )
       DevOut( cp_Substr( ::lUtf8, ::aText[::npy1], ::npx1, 1 ) )
       IF ::npy2 >= ::nyFirst .AND. ::npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
@@ -444,34 +446,45 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          ::nDopMode := 0
       ELSE
          nKey := edi_MapKey( Self, nKey )
-         IF ::nDopMode == 109     // m
+         SWITCH ::nDopMode
+         CASE 109     // m
             edi_BookMarks( Self, nKey, .T. )
             ::nDopMode := 0
-         ELSEIF ::nDopMode == 39  // '
+            EXIT
+         CASE 39  // '
             IF nKey == 46   // .
                ::GoTo( ::aUndo[::nUndo][UNDO_LINE2], ::aUndo[::nUndo][UNDO_POS2] )
             ELSE
                edi_BookMarks( Self, nKey, .F. )
             ENDIF
             ::nDopMode := 0
-         ELSEIF ::nDopMode == 49  // 1
-            IF nKey >= 48 .AND. nKey <= 57
-               cDopMode += Chr( nKey )
-            ELSEIF nKey == 103    // g
-               IF Right( cDopMode,1 ) == "g"
-                  ::Goto( Val( cDopMode ) )
-                  ::nDopMode := 0
-               ELSE
-                  cDopMode += Chr( nKey )
-               ENDIF
-            ELSE
+            EXIT
+         CASE 49  // 1
+            cDopMode += Chr( nKey )
+            IF nKey == 103    // g
+               ::nDopMode := 103
+            ELSEIF Chr(nKey) $ cKeysMove
+               edi_Move( Self, nKey, Val( cDopMode ) )
+               nKey := K_RIGHT
+               ::nDopMode := 0
+            ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
                ::nDopMode := 0
             ENDIF
-         ELSEIF ::nDopMode == 100  // d
+            EXIT
+         CASE 99   // c
+         CASE 100  // d
             IF nKey == 100    // d
-               IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
+               IF ::nDopMode == 100 .AND. n > 0 .AND. n <= Len( ::aText )
                   ::DelText( n, 0, n+1, 0 )
                ENDIF
+               ::nDopMode := 0
+
+            ELSEIF nKey == 99    // c
+               IF ::nDopMode == 99 .AND. n > 0 .AND. n <= Len( ::aText )
+                  ::DelText( n, 1, n, cp_Len(::lUtf8,::aText[n]) )
+                  mnu_ChgMode( Self, .T. )
+               ENDIF
+               ::nDopMode := 0
 
             ELSEIF nKey == 105    // i
                IF cDopMode == "d"
@@ -479,33 +492,42 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
 
             ELSEIF nKey == 98     // b
-               IF cDopMode == "d"
+               IF cDopMode $ "cd"
                   mnu_F3( Self )
                   edi_PrevWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
+                  IF ::nDopMode == 99
+                     mnu_ChgMode( Self, .T. )
+                  ENDIF
                ENDIF
                ::nDopMode := 0
 
             ELSEIF nKey == 101    // e
-               IF cDopMode == "d"
+               IF cDopMode $ "cd"
                   mnu_F3( Self )
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
+                  IF ::nDopMode == 99
+                     mnu_ChgMode( Self, .T. )
+                  ENDIF
                ENDIF
                ::nDopMode := 0
 
             ELSEIF nKey == 119    // w
-               IF cDopMode == "d"
+               IF cDopMode $ "cd"
                   mnu_F3( Self )
                   edi_NextWord( Self, .F. )
                   ::nby2 := ::RowToLine( Row() )
                   ::nbx2 := ::ColToPos( Col() )
                   cbDele( Self )
+                  IF ::nDopMode == 99
+                     mnu_ChgMode( Self, .T. )
+                  ENDIF
                ELSEIF cDopMode == "di"
                   edi_PrevWord( Self, .F. )
                   mnu_F3( Self )
@@ -520,17 +542,23 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSE
                ::nDopMode := 0
             ENDIF
-
-         ELSEIF ::nDopMode == 103  // g
+            EXIT
+         CASE 103  // g
             IF nKey == 103    // g
-               ::Goto( 1 )
+               IF Val( cDopMode ) > 0
+                  ::Goto( Val( cDopMode ) )
+                  ::nDopMode := 0
+               ELSE
+                  ::Goto( 1 )
+               ENDIF
             ELSEIF nKey == 105    // i
                IF ::nUndo > 0
                   ::GoTo( ::aUndo[::nUndo][UNDO_LINE2], ::aUndo[::nUndo][UNDO_POS2] )
                ENDIF
             ENDIF
             ::nDopMode := 0
-         ENDIF
+            EXIT
+         END
       ENDIF
       IF ::nDopMode == 0
          cDopMode := ""
@@ -550,218 +578,230 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          ::lShiftKey := .F.
       ENDIF
       IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
-         IF nKey == K_ALT_F7
+         SWITCH nKey
+         CASE K_ALT_F7
             mnu_SeaNext( Self, .F. )
-
-         ELSEIF nKey == K_ALT_F8
+            EXIT
+         CASE K_ALT_F8
             mnu_GoTo( Self )
             ::lTextOut := .T.
-
-         ELSEIF nKey == K_ALT_B
+            EXIT
+         CASE K_ALT_B
             ::GoTo( ::nLineBack, ::nPosBack )
-
-         ELSEIF nKey == K_ALT_M
+            EXIT
+         CASE K_ALT_M
             ::nDopMode := 109
             cDopMode := "m"
-
-         ELSEIF nKey == K_ALT_QUOTE
+            EXIT
+         CASE K_ALT_QUOTE
             ::nDopMode := 39
             cDopMode := "'"
-
-         ELSEIF nKey == K_ALT_BS
+            EXIT
+         CASE K_ALT_BS
             ::Undo()
-
-         ENDIF
+            EXIT
+         END
       ENDIF
       IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
 
          lCtrl := .T.
-         IF nKey == K_CTRL_INS .OR. nKey == 3       // Ctrl-Ins or Ctrl-c
+         SWITCH nKey
+         CASE K_CTRL_INS
+         CASE 3                           // Ctrl-Ins or Ctrl-c
             IF !Empty( s := Text2cb( Self ) )
                hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                TEdit():aCBoards[1,2] := Nil
             ENDIF
             lNoDeselect := .T.
-
-         ELSEIF nKey == 22                          // Ctrl-v
+            EXIT
+         CASE 22                          // Ctrl-v
             IF !::lReadOnly
                cb2Text( Self, .T. )
             ENDIF
-
-         ELSEIF nKey == K_CTRL_Z .AND. hb_keyVal( nKeyExt ) == 90
-            ::Undo()
-
-         ELSEIF nKey == K_CTRL_Q .AND. hb_keyVal( nKeyExt ) == 81
-            mnu_ChgMode( Self )
-
-         ELSEIF nKey == K_CTRL_Y
+            EXIT
+         CASE K_CTRL_Q
+            IF hb_keyVal( nKeyExt ) == 81
+               mnu_ChgMode( Self )
+            ENDIF
+            EXIT
+         CASE K_CTRL_Y
             IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
                ::DelText( n, 1, n+1, 1 )
             ENDIF
-
-         ELSEIF nKey == K_CTRL_A
+            EXIT
+         CASE K_CTRL_A
             IF !::lF3
                ::nby1 := ::nbx1 := 1
                ::nby2 := Len( ::aText )
                ::nbx2 := cp_Len( ::lUtf8, ::aText[Len(::aText)] )
                ::lF3 := .T.
             ENDIF
-
-         ELSEIF nKey == K_CTRL_TAB
+            EXIT
+         CASE K_CTRL_TAB
             IF ::lCtrlTab
                ::lShow := .F.
                ::nCurr ++
             ENDIF
             lNoDeselect := .T.
-
-         ELSEIF nKey == K_CTRL_PGUP .OR. nKey == K_CTRL_HOME
+            EXIT
+         CASE K_CTRL_PGUP
+         CASE K_CTRL_HOME
             ::nPosBack := ::ColToPos()
             ::nLineBack := ::RowToLine()
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
             ::nxFirst := ::nyFirst := 1
             DevPos( ::y1, ::x1 )
-
-         ELSEIF nKey == K_CTRL_PGDN .OR. nKey == K_CTRL_END
-            ::nPosBack := ::ColToPos()
-            ::nLineBack := ::RowToLine()
-            IF Len( ::aText ) > ::y2-::y1+1
-               ::nxFirst := 1
-               ::nyFirst := Len( ::aText ) - (::y2-::y1)
-               ::lTextOut := .T.
-               DevPos( ::y2, Min( ::nCol,Iif(nKey==K_CTRL_END,1,cp_Len(::lUtf8,ATail(::aText))+1)) )
-            ELSE
-               DevPos( Len(::aText)+::y1-1, Iif(nKey==K_CTRL_END,1,Min(::nCol,cp_Len(::lUtf8,ATail(::aText))+1)) )
+            EXIT
+         CASE K_CTRL_PGDN
+         CASE K_CTRL_END
+            edi_Move( Self, 71 )
+            EXIT
+         CASE K_CTRL_RIGHT
+            IF hb_keyVal( nKeyExt ) == 66 // Ctrl-B
+               edi_Bracket( Self )
+            ELSEIF hb_keyVal( nKeyExt ) == 16
+               edi_NextWord( Self, .F. )
             ENDIF
-
-         ELSEIF nKey == K_CTRL_D
-            mnu_Exit( Self )
-
-         ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 66
-            edi_Bracket( Self )
-
-         ELSEIF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 16
-            edi_NextWord( Self, .F. )
-
-         ELSEIF nKey == K_CTRL_LEFT .AND. hb_keyVal( nKeyExt ) == 15
-            edi_PrevWord( Self, .F. )
-
-         ELSEIF nKey == K_CTRL_F4
+            EXIT
+         CASE K_CTRL_LEFT
+            IF hb_keyVal( nKeyExt ) == 90// Ctrl-Z
+               ::Undo()
+            ELSEIF hb_keyVal( nKeyExt ) == 15
+               edi_PrevWord( Self, .F. )
+            ENDIF
+            EXIT
+         CASE K_CTRL_F4
             mnu_OpenFile( Self )
             ::lTextOut := .T.
-
-         ELSEIF nKey == K_CTRL_F7
+            EXIT
+         CASE K_CTRL_F7
             mnu_SeaAndRepl( Self )
             ::lTextOut := .T.
-
-        ENDIF
+            EXIT
+        END
       ELSE
          IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( ::lUtf8 .AND. nKey > 3000 )
-            IF !::lReadOnly
-               IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                  nKey := edi_MapKey( Self, nKey )
-                  IF nKey == 85   // U  Convert to upper case
+            IF ::nby1 >= 0 .AND. ::nby2 >= 0
+               nKey := edi_MapKey( Self, nKey )
+               IF Chr(nKey) $ cKeysMove
+                  edi_Move( Self, nKey )
+                  nKey := K_RIGHT
+               ELSE
+                  SWITCH nKey
+                  CASE 85   // U  Convert to upper case
                      edi_ConvertCase( Self, .T. )
                      lNoDeselect := .T.
-                  ELSEIF nKey == 117   // u Convert to lower case
+                     EXIT
+                  CASE 117   // u Convert to lower case
                      edi_ConvertCase( Self, .F. )
                      lNoDeselect := .T.
-                  ELSEIF nKey == 119   // w Move to the next word
-                     edi_NextWord( Self, .F. )
-                     nKey := K_RIGHT
-                  ELSEIF nKey == 87    // W Move to the next big word
-                     edi_NextWord( Self, .T. )
-                     nKey := K_RIGHT
-                  ELSEIF nKey == 101   // e Move to the end of word
-                     edi_NextWord( Self, .F., .T. )
-                     nKey := K_RIGHT
-                  ELSEIF nKey == 69    // E Move to the end of a big word
-                     edi_NextWord( Self, .T., .T. )
-                     nKey := K_RIGHT
-                  ELSEIF nKey == 98    // b Move to the previous word
-                     edi_PrevWord( Self, .F. )
-                     nKey := K_LEFT
-                  ELSEIF nKey == 66    // B Move to the previous big word
-                     edi_PrevWord( Self, .T. )
-                     nKey := K_LEFT
-                  ELSEIF nKey == 100   // d Deletes selection
+                     EXIT
+                  CASE 100   // d Deletes selection
                      cbDele( Self )
-                  ELSEIF nKey == 121   // y Copy to clipboard
+                     EXIT
+                  CASE 121   // y Copy to clipboard
                      IF !Empty( s := Text2cb( Self ) )
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                         TEdit():aCBoards[1,2] := Nil
                      ENDIF
-
-                  ELSEIF nKey == 62    // > Shift lines right
+                     EXIT
+                  CASE 62    // > Shift lines right
                      edi_Indent( Self, .T. )
                      lNoDeselect := .T.
-                  ELSEIF nKey == 60    // > Shift lines left
+                     EXIT
+                  CASE 60    // > Shift lines left
                      edi_Indent( Self, .F. )
                      lNoDeselect := .T.
-                  ENDIF
-               ELSEIF ::nMode == 1
-                  nKey := edi_MapKey( Self, nKey )
-                  IF nKey == 104   // h Move left
-                     edi_GoLeft( Self )
-                  ELSEIF nKey == 108   // l Move right
-                     edi_GoRight( Self )
-                  ELSEIF nKey == 107   // k Move up
-                     edi_GoUp( Self )
-                  ELSEIF nKey == 106   // j Move down
-                     edi_GoDown( Self )
-                  ELSEIF nKey == 119   // w Move to the next word
-                     edi_NextWord( Self, .F. )
-                  ELSEIF nKey == 87    // W Move to the next big word
-                     edi_NextWord( Self, .T. )
-                  ELSEIF nKey == 101   // e Move to the end of word
-                     edi_NextWord( Self, .F., .T. )
-                  ELSEIF nKey == 69    // E Move to the end of a big word
-                     edi_NextWord( Self, .T., .T. )
-                  ELSEIF nKey == 98    // b Move to the previous word
-                     edi_PrevWord( Self, .F. )
-                  ELSEIF nKey == 66    // B Move to the previous word
-                     edi_PrevWord( Self, .T. )
-                  ELSEIF nKey == 118   // v Start selection
+                     EXIT
+                  END
+               ENDIF
+            ELSEIF ::nMode == 1
+               nKey := edi_MapKey( Self, nKey )
+               IF Chr(nKey) $ cKeysMove
+                  edi_Move( Self, nKey )
+                  nKey := K_RIGHT
+               ELSEIF nKey >= 49 .AND. nKey <= 57  // 1...9
+                  ::nDopMode := 49
+                  cDopMode := Chr( nKey )
+               ELSE
+                  SWITCH nKey
+                  CASE 118   // v Start selection
                      mnu_F3( Self )
                      nKey := K_RIGHT
-                  ELSEIF nKey == 117   // u Undo
+                     EXIT
+                  CASE 117   // u Undo
                      ::Undo()
-                  ELSEIF nKey == 112   // p Insert clipboard after current coloumn
+                     EXIT
+                  CASE 112   // p Insert clipboard after current coloumn
                      IF !::lReadOnly
                         DevPos( ::nRow, ++::nCol )
                         cb2Text( Self, .T. )
                      ENDIF
-                  ELSEIF nKey == 80    // P Insert clipboard
+                     EXIT
+                  CASE 80    // P Insert clipboard
                      IF !::lReadOnly
                         cb2Text( Self, .T. )
                      ENDIF
-                  ELSEIF nKey == 105   // i - to edit mode
+                     EXIT
+                  CASE 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
-                  ELSEIF nKey == 111   // o Insert line after current
+                     EXIT
+                  CASE 73    // I - to edit mode
+                     edi_Move( Self, 94 )
+                     mnu_ChgMode( Self, .T. )
+                     EXIT
+                  CASE 97    // a - to edit mode
+                     edi_GoRight( Self )
+                     mnu_ChgMode( Self, .T. )
+                     EXIT
+                  CASE 65    // A - to edit mode
+                     edi_GoEnd( Self ); edi_GoRight( Self )
+                     mnu_ChgMode( Self, .T. )
+                     EXIT
+                  CASE 111   // o Insert line after current
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F., .T. )
                      mnu_ChgMode( Self, .T. )
-                  ELSEIF nKey == 109 .OR. nKey == 39  // m - set bookmark, ' - goto bookmark
+                     EXIT
+                  CASE 109
+                  CASE 39  // m - set bookmark, ' - goto bookmark
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
-                  ELSEIF nKey == 100   // d - delete
+                     EXIT
+                  CASE 99    // c - delete and edit
+                     ::nDopMode := 99
+                     cDopMode := Chr( nKey )
+                     EXIT
+                  CASE 100   // d - delete
                      ::nDopMode := 100
                      cDopMode := Chr( nKey )
-
-                  ELSEIF nKey == 103   // g
+                     EXIT
+                  CASE 103   // g
                      ::nDopMode := 103
                      cDopMode := Chr( nKey )
-                  ELSEIF nKey >= 49 .AND. nKey <= 57  // 1...9
-                     ::nDopMode := 49
-                     cDopMode := Chr( nKey )
-                  ELSEIF nKey == 37   // %  Go to matching parentheses
+                     EXIT
+                  CASE 37   // %  Go to matching parentheses
                      edi_Bracket( Self )
-                  ENDIF
+                     EXIT
+                  CASE 72   // H
+                     DevPos( ::nRow := ::y1, ::nCol := ::x1 )
+                     edi_Move( Self, 94 )
+                     EXIT
+                  CASE 77   // M
+                     DevPos( ::nRow := ::y1 + Int((::y2-::y1)/2), ::nCol := ::x1 )
+                     edi_Move( Self, 94 )
+                     EXIT
+                  CASE 76   // L
+                     DevPos( ::nRow := ::y2, ::nCol := ::x1 )
+                     edi_Move( Self, 94 )
+                     EXIT
+                  END
+               ENDIF
+            ELSE
+               IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
+                  ::nCol -= (i-1)
+                  ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                ELSE
-                  IF ( i := (::nCol - ::x1 + ::nxFirst - cp_Len(::lUtf8,::aText[n])) ) > 0
-                     ::nCol -= (i-1)
-                     ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
-                  ELSE
-                     ::InsText( n, ::nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
-                  ENDIF
+                  ::InsText( n, ::nCol-::x1+::nxFirst, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                ENDIF
             ENDIF
 
@@ -842,11 +882,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             edi_GoRight( Self )
 
          ELSEIF nKey == K_HOME
-            IF ::nxFirst > 1
-               ::nxFirst := 1
-               ::lTextOut := .T.
-            ENDIF
-            DevPos( Row(), ::x1 )
+            edi_Move( Self, 48 )
 
          ELSEIF nKey == K_END
             edi_GoEnd( Self )
@@ -971,7 +1007,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ::nCol := Col(); ::nRow := Row()
 
    IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
-
+      // highlighting matched parenthesis
       ::npy1 := ::RowToLine(); ::npx1 := ::ColToPos()
       ::npy2 := Iif( Valtype(x)=="A",x[1], ::npy1 ); ::npx2 := Iif( Valtype(x)=="A",x[2], x )
       SetColor( ::cColorBra )
@@ -1136,7 +1172,7 @@ METHOD Save( cFileName ) CLASS TEdit
       RETURN Nil
    ELSE
       IF Empty( hb_fnameDir( cFileName ) )
-         cFileName := edi_CurPath() + cFileName
+         cFileName := edi_CurrPath() + cFileName
       ENDIF
       ::cFileName := cFileName
    ENDIF
@@ -1154,6 +1190,9 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
    LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew
 
+   IF ::lReadOnly
+      RETURN Nil
+   ENDIF
    IF lOver == Nil; lOver := .F.; ENDIF
    IF lChgPos == Nil; lChgPos := .T.; ENDIF
    IF Chr(10) $ cText
@@ -1236,6 +1275,9 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
 
    LOCAL i, n, ncou := 0, cTextOld
 
+   IF ::lReadOnly
+      RETURN Nil
+   ENDIF
    IF nLine1 == nLine2
       IF nPos1 == nPos2 .AND. nPos1 > cp_Len( ::lUtf8, ::aText[nLine1] )
          cTextOld := Chr(10)
@@ -1299,6 +1341,9 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
 
    LOCAL alast, nOpLast := 0, arrnew, i
 
+   IF ::lReadOnly
+      RETURN Nil
+   ENDIF
    IF ::nUndo>0
       alast := ::aUndo[::nUndo]
       nOpLast := alast[UNDO_OPER]
@@ -1318,7 +1363,7 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
          ELSEIF nOpLast == UNDO_OP_DEL
             ::InsText( alast[UNDO_LINE1], alast[UNDO_POS1], alast[UNDO_TEXT], ;
                .F., .F., .T. )
-            ::GoTo( alast[UNDO_LINE2], alast[UNDO_POS2] )
+            ::GoTo( alast[UNDO_LINE1], alast[UNDO_POS1] )
 
          ELSEIF nOpLast == UNDO_OP_SHIFT
             FOR i := alast[UNDO_LINE1] TO alast[UNDO_LINE2]
@@ -1628,7 +1673,8 @@ FUNCTION edi_ReadIni( xIni )
                   s := aSect[ arr[i] ]
                   IF ( n := At( ",", s ) ) > 0
                      cTemp := AllTrim( Left( s,n-1 ) )
-                     IF File( hb_DirBase() + "plugins" + hb_ps() + cTemp )
+                     IF File( edi_CurrPath() + "plugins" + hb_ps() + cTemp ) .OR. ;
+                           File( hb_DirBase() + "plugins" + hb_ps() + cTemp )
                         s := Substr( s, n+1 )
                         IF ( n := At( ",", s ) ) > 0
                            Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil } )
@@ -2221,7 +2267,7 @@ FUNCTION mnu_GoTo( oEdit )
 
 FUNCTION mnu_Plugins( oEdit )
 
-   LOCAL aMenu := {}, i
+   LOCAL aMenu := {}, i, cPlugin, cFullPath
 
    FOR i := 1 TO Len( TEdit():aPlugins )
       IF Empty( TEdit():aPlugins[i,3] ) .OR. TEdit():aPlugins[i,3] == oEdit:cSyntaxType
@@ -2232,8 +2278,12 @@ FUNCTION mnu_Plugins( oEdit )
       IF ( i := FMenu( oEdit, aMenu, 2, 6 ) ) > 0
          i := aMenu[i,3]
          IF Empty( TEdit():aPlugins[i,4] )
-            TEdit():aPlugins[i,4] := hb_hrbLoad( hb_DirBase() + "plugins" + ;
-               hb_ps() + TEdit():aPlugins[i,1] )
+            cPlugin := TEdit():aPlugins[i,1]
+            IF File( cFullPath := ( edi_CurrPath() + "plugins" + hb_ps() + cPlugin ) )
+               TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
+            ELSEIF File( cFullPath := ( hb_DirBase() + "plugins" + hb_ps() + cPlugin ) )
+               TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
+            ENDIF
          ENDIF
          IF !Empty( TEdit():aPlugins[i,4] )
             hb_hrbDo( TEdit():aPlugins[i,4], oEdit )
@@ -2263,6 +2313,79 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
          mnu_CmdLine( oEdit )
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
+
+   LOCAL i
+
+   IF nRepeat == Nil; nRepeat := 1; ENDIF
+   IF nKey == 71 // G
+      IF nRepeat == 1
+         oEdit:nPosBack := oEdit:ColToPos()
+         oEdit:nLineBack := oEdit:RowToLine()
+         IF Len( oEdit:aText ) > oEdit:y2-oEdit:y1+1
+            oEdit:nxFirst := 1
+            oEdit:nyFirst := Len( oEdit:aText ) - (oEdit:y2-oEdit:y1)
+            oEdit:lTextOut := .T.
+            DevPos( oEdit:y2, Min( oEdit:nCol,Iif(nKey==K_CTRL_END,1,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+         ELSE
+            DevPos( Len(oEdit:aText)+oEdit:y1-1, Iif(nKey==K_CTRL_END,1,Min(oEdit:nCol,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+         ENDIF
+      ELSE
+         oEdit:GoTo( nRepeat )
+      ENDIF
+      RETURN Nil
+   ELSEIF nKey == 48  // 0
+      IF oEdit:nxFirst > 1
+         oEdit:nxFirst := 1
+         oEdit:lTextOut := .T.
+      ENDIF
+      DevPos( Row(), oEdit:x1 )
+      RETURN Nil
+   ELSEIF nKey == 94  // ^
+      edi_Move( oEdit, 48 )
+      edi_Move( oEdit, 119 )
+      RETURN Nil
+   ELSEIF nKey == 36  // $
+      edi_GoEnd( oEdit )
+      RETURN Nil
+   ENDIF
+   FOR i := 1 TO nRepeat
+      SWITCH nKey
+      CASE 104   // h Move left
+         edi_GoLeft( oEdit )
+         EXIT
+      CASE 108   // l Move right
+         edi_GoRight( oEdit )
+         EXIT
+      CASE 107   // k Move up
+         edi_GoUp( oEdit )
+         EXIT
+      CASE 106   // j Move down
+         edi_GoDown( oEdit )
+         EXIT
+      CASE 119   // w Move to the next word
+         edi_NextWord( oEdit, .F. )
+         EXIT
+      CASE 87    // W Move to the next big word
+         edi_NextWord( oEdit, .T. )
+         EXIT
+      CASE 101   // e Move to the end of word
+         edi_NextWord( oEdit, .F., .T. )
+         EXIT
+      CASE 69    // E Move to the end of a big word
+         edi_NextWord( oEdit, .T., .T. )
+         EXIT
+      CASE 98    // b Move to the previous word
+         edi_PrevWord( oEdit, .F. )
+         EXIT
+      CASE 66    // B Move to the previous big word
+         edi_PrevWord( oEdit, .T. )
+         EXIT
+      END
+   NEXT
 
    RETURN Nil
 
@@ -2476,7 +2599,7 @@ STATIC FUNCTION edi_Indent( oEdit, lRight )
 
    LOCAL i, n, nby1, nby2, nbx2
 
-   IF oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
+   IF oEdit:lReadOnly .OR. oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
       RETURN Nil
    ENDIF
    IF oEdit:nby1 <= oEdit:nby2
@@ -2658,7 +2781,7 @@ STATIC FUNCTION edi_InQuo( oEdit, nLine, nPos )
 
    RETURN nPosQuo
 
-STATIC FUNCTION edi_CurPath()
+FUNCTION edi_CurrPath()
 
    LOCAL cPrefix
 

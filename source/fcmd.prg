@@ -9,11 +9,17 @@
 #include "setcurs.ch"
 
 STATIC aCommands := { ;
+   { "bn", @cmd_BNext() },    ;
    { "bnext", @cmd_BNext() }, ;
+   { "bp", @cmd_BNext() },    ;
    { "bprev", @cmd_BNext() }, ;
+   { "e", @cmd_Edit() },      ;
    { "edit", @cmd_Edit() },   ;
+   { "q", @cmd_quit() },      ;
+   { "q!", @cmd_quit() },     ;
    { "run", @cmd_Run() },     ;
    { "set", @cmd_Set() },     ;
+   { "w", @cmd_Write() },     ;
    { "write", @cmd_Write() }  ;
 }
 
@@ -87,7 +93,7 @@ FUNCTION mnu_CmdLine( oEdit )
             s := TEdit():aCmdHis[nInCmdHis]
             DevPos( y, oEdit:x1 )
             DevOut( s )
-         ELSE 
+         ELSE
             nInCmdHis --
          ENDIF
 
@@ -247,7 +253,7 @@ FUNCTION cmd_Edit( oEdit, acmd )
 FUNCTION cmd_Write( oEdit, acmd )
 
    LOCAL cFileName, cPath
-   
+
    IF Len( acmd ) > 1
       cFileName := acmd[2]
       IF Empty( hb_fnameDir(cFileName) ) .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
@@ -289,6 +295,15 @@ FUNCTION cmd_BNext( oEdit, acmd )
       ENDIF
       lEnd := .T.
    ENDIF
+
+   RETURN Nil
+
+FUNCTION cmd_Quit( oEdit, acmd )
+
+   IF Substr( acmd[1],2,1 ) == "!"
+      oEdit:lUpdated := .F.
+   ENDIF
+   mnu_Exit( oEdit )
 
    RETURN Nil
 

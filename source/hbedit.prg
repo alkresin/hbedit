@@ -14,7 +14,7 @@ STATIC cStartPlugin
 FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr, aFiles := {}
-   LOCAL cIniName := hb_DirBase() + "hbedit.ini"
+   LOCAL cCurrPath := edi_CurrPath(), cIniName
    LOCAL ypos, xpos, nStartLine, bStart
 
    FOR i := 1 TO Len( aParams )
@@ -27,7 +27,7 @@ FUNCTION Main( ... )
                cIniName := Substr( aParams[i],3 )
             ENDIF
             IF Empty( hb_fnameDir( cIniName ) )
-               cIniName := hb_DirBase() + cIniName
+               cIniName := cCurrPath + cIniName
             ENDIF
 
          ELSEIF c == "g"
@@ -49,7 +49,14 @@ FUNCTION Main( ... )
       ENDIF
    NEXT
 
+   IF Empty( cIniName ) .OR. !File( cIniName )
+      cIniName := cCurrPath + "hbedit.ini"
+      IF !File( cIniName )
+         cIniName := hb_DirBase() + "hbedit.ini"
+      ENDIF
+   ENDIF
    ReadIni( cIniName )
+
    IF Empty( nScreenH )
       nScreenH := 25
    ENDIF

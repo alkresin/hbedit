@@ -71,9 +71,9 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
       cKeywords1 := hb_hGetDef( hHili, "keywords1", "" )
       cKeywords2 := hb_hGetDef( hHili, "keywords2", "" )
       cKeywords3 := hb_hGetDef( hHili, "keywords3", "" )
-      cKeywords4 := hb_hGetDef( hHili, "keywords4", "" )            
+      cKeywords4 := hb_hGetDef( hHili, "keywords4", "" )
       cSComm := hb_hGetDef( hHili, "scomm", "" )
-      cSLeft := hb_hGetDef( hHili, "startline", "" )      
+      cSLeft := hb_hGetDef( hHili, "startline", "" )
       cMComm := hb_hGetDef( hHili, "mcomm", "" )
       lCase := hb_hGetDef( hHili, "case", .F. )
    ENDIF
@@ -96,7 +96,7 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
    IF !Empty( cSleft )
       ::cSleft := AllTrim( cSleft )
    ENDIF
-   
+
    IF !Empty( cMComm )
       ::cMcomm1 := AllTrim( cMcomm )
       IF !Empty( ::cMcomm1 ) .AND. ( nPos := At( " ", ::cMcomm1 ) ) > 0
@@ -149,8 +149,8 @@ METHOD SET( oEdit ) CLASS Hili
 
 METHOD DO( nLine, lCheck ) CLASS Hili
    LOCAL aText, cLine, nLen, nLenS, nLenM, i, lComm, lUtf8 := ::oEdit:lUtf8
-   LOCAL cs, cm
-   LOCAL nPos, nPos1, nPrev, cWord, c
+   LOCAL cs, cm, cf
+   LOCAL nPos, nPos1, nPrev, cWord, c, lFirst := .T.
 
    ::nItems := 0
    ::lMultiComm := .F.
@@ -209,6 +209,12 @@ METHOD DO( nLine, lCheck ) CLASS Hili
       nLenS := Len( ::cScomm )
    ENDIF
 
+   IF Empty( ::cSleft )
+      cf := ""
+   ELSE
+      cf := Left( ::cSleft, 1 )
+   ENDIF
+
    DO WHILE nPos <= nLen
       DO WHILE nPos <= nLen .AND. cp_Substr( lUtf8, cLine, nPos, 1 ) $ cSpaces; nPos ++ ; ENDDO
       DO WHILE nPos <= nLen
@@ -234,6 +240,16 @@ METHOD DO( nLine, lCheck ) CLASS Hili
             IF !lCheck; ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM ); ENDIF
             nPos += nLenM //- 1
 
+         ELSEIF lFirst .AND. c == cf .AND. cp_Substr( lUtf8, cLine, nPos, Len( ::cSleft ) ) == ::cSleft
+            nPos1 := nPos
+            IF ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 .OR. ;
+               ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0
+               nPos --
+            ELSE
+               nPos := cp_Len( lUtf8, cLine )
+            ENDIF
+            ::AddItem( nPos1, nPos, HILIGHT_SLEFT )
+
          ELSEIF !lCheck .AND. IsLetter( c )
             nPos1 := nPos
             nPrev := nPos
@@ -255,7 +271,9 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::AddItem( nPos1, nPos, HILIGHT_KEYW4 )
             ENDIF
          ENDIF
-         nPos := cp_NextPos( lUtf8, cLine, nPos )
+         //nPos := cp_NextPos( lUtf8, cLine, nPos )
+         nPos ++
+         lFirst := .F.
       ENDDO
    ENDDO
    IF !lCheck
