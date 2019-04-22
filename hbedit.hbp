@@ -1,13 +1,12 @@
-#
-
--inc
+# hbedit
 
 -ohbedit
 
 -n -q0 -w -es2
 
-"{win}-dGTWVT"
-"{win}-cflag=-tW"
+{win}-dGTWVT
+{win&bcc}-ldflag=-tW
+{win&mingw}-ldflag=-Wall -gui
 
 source/*.c
 source/*.prg
