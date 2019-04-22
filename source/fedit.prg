@@ -181,7 +181,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, cFile_utf8, cBom := e"\xef\xbb\xbf"
+   LOCAL i, arr, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )

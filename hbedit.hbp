@@ -1,0 +1,13 @@
+#
+
+-inc
+
+-ohbedit
+
+-n -q0 -w -es2
+
+"{win}-dGTWVT"
+"{win}-cflag=-tW"
+
+source/*.c
+source/*.prg
