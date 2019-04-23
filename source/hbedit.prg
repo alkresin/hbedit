@@ -103,8 +103,12 @@ FUNCTION Main( ... )
    hb_gtinfo( HB_GTI_PALETTE, arr )
 #endif
 
-   IF !Empty( cStartPlugin ) .AND. File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
-      hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+   IF !Empty( cStartPlugin )
+      IF File( cCurrPath + "plugins" + hb_ps() + cStartPlugin )
+         hb_hrbRun( cCurrPath + "plugins" + hb_ps() + cStartPlugin )
+      ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+         hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
+      ENDIF
    ENDIF
 
    FOR i := 1 TO Len( aFiles )

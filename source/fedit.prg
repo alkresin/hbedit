@@ -181,7 +181,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
+   LOCAL i, arr, cPlugin, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )
@@ -258,6 +258,13 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       FOR i := 1 TO Len(aLangExten)
          IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
+            IF !Empty( cPlugin := hb_hGetDef( ::oHili:hHili, "plugin", "" ) )
+               IF File( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
+                  hb_hrbRun( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
+               ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
+                  hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
+               ENDIF
+            ENDIF
             EXIT
          ENDIF
       NEXT
@@ -1713,6 +1720,8 @@ FUNCTION edi_ReadIni( xIni )
                         AAdd( aLangExten, { cLang, cTemp } )
                      ELSEIF arr[i] == "case"
                         hHili[arr[i]] := ( Lower(cTemp) == "on" )
+                     ELSEIF arr[i] == "plugin"
+                        hHili["plugin"] := cTemp
                      ENDIF
                   ENDIF
                NEXT

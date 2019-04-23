@@ -3,7 +3,9 @@
 -ohbedit
 -n -q0 -w -es2
 
-{win}-dGTWVT
+-lhbwin
+
+{win}-dGTWVT -d_FULL
 {win&bcc}-ldflag=-tW
 {win&mingw}-ldflag=-Wall -gui
 

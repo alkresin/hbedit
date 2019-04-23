@@ -76,3 +76,6 @@ A fullscreen console multiplatform text editor.
  RUKOI8, SK852, SK852C, SKISO, SKKAMC, SKWIN, SL646, SL852, SLISO, SLWIN,
  SR646, SR646C, SRWIN, SV437C, SV850, SV850M, SVISO, SVWIN, TR857, TRISO,
  TRWIN, UA1125, UA1251, UA866, UAKOI8, UTF8.
+
+### Download
+   You may download some ready binaries from http://www.kresin.ru/en/hbedit.html

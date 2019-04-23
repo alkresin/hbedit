@@ -238,12 +238,12 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::aDop[nLine] := 1
             ENDIF
             IF !lCheck; ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM ); ENDIF
-            nPos += nLenM //- 1
+            nPos += nLenM - 1
 
          ELSEIF lFirst .AND. c == cf .AND. cp_Substr( lUtf8, cLine, nPos, Len( ::cSleft ) ) == ::cSleft
             nPos1 := nPos
-            IF ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 .OR. ;
-               ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0
+            IF ( !Empty(::cScomm) .AND. ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 ) .OR. ;
+               ( !Empty(::cMcomm1) .AND. ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0 )
                nPos --
             ELSE
                nPos := cp_Len( lUtf8, cLine )
