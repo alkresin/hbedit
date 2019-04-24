@@ -260,14 +260,16 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
             mnu_SyntaxOn( Self, aLangExten[i,1] )
             IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
                IF Valtype( xPlugin ) == "C"
-                  IF File( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
+                  IF File( edi_CurrPath() + "plugins" + hb_ps() + xPlugin )
                      xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( edi_CurrPath() + "plugins" + hb_ps() + xPlugin )
-                  ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
+                  ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + xPlugin )
                      xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( hb_DirBase() + "plugins" + hb_ps() + xPlugin )
                   ENDIF
-               ELSE
-                  hb_hrbDo( xPlugin, oEdit )
+                  IF Empty( xPlugin )
+                     EXIT
+                  ENDIF
                ENDIF
+               hb_hrbDo( xPlugin, Self )
             ENDIF
             EXIT
          ENDIF
@@ -296,7 +298,6 @@ METHOD Edit( bStart ) CLASS TEdit
       ::y1 ++
       DevPos( ::y1, ::x1 )
       ::WriteTopPane( .T. )
-      SetColor( ::cColor )
    ENDIF
    Scroll( ::y1, ::x1, ::y2, ::x2 )
 
@@ -629,6 +630,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             IF !::lReadOnly
                cb2Text( Self, .T. )
             ENDIF
+            EXIT
+         CASE K_CTRL_X
+            IF !Empty( s := Text2cb( Self ) )
+               hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
+               TEdit():aCBoards[1,2] := Nil
+            ENDIF
+            cbDele( Self )
             EXIT
          CASE K_CTRL_Q
             IF hb_keyVal( nKeyExt ) == 81

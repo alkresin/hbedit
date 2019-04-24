@@ -9,7 +9,7 @@ STATIC xKoef := 1, yKoef := 1
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH, nScreenW
-STATIC cStartPlugin
+STATIC cStartPlugin, lMaximize := .F.
 
 FUNCTION Main( ... )
 
@@ -101,6 +101,9 @@ FUNCTION Main( ... )
    arr[4] := 0x808000
    arr[8] := 0xC8C8C8
    hb_gtinfo( HB_GTI_PALETTE, arr )
+   IF lMaximize
+      hb_gtinfo( HB_GTI_MAXIMIZED, .T. )
+   ENDIF
 #endif
 
    IF !Empty( cStartPlugin )
@@ -181,7 +184,10 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "plugin" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cStartPlugin := cTmp
          ENDIF
-      ENDIF
+         IF hb_hHaskey( aSect, cTmp := "maximize" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            lMaximize := ( Lower(cTmp) == "on" )
+         ENDIF
+       ENDIF
    ENDIF
 
    IF Empty(cp) .OR. !hb_cdpExists( cp )
