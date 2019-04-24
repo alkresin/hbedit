@@ -181,7 +181,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, cPlugin, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
+   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )
@@ -258,11 +258,15 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       FOR i := 1 TO Len(aLangExten)
          IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
-            IF !Empty( cPlugin := hb_hGetDef( ::oHili:hHili, "plugin", "" ) )
-               IF File( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
-                  hb_hrbRun( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
-               ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
-                  hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
+            IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
+               IF Valtype( xPlugin ) == "C"
+                  IF File( edi_CurrPath() + "plugins" + hb_ps() + cPlugin )
+                     xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( edi_CurrPath() + "plugins" + hb_ps() + xPlugin )
+                  ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cPlugin )
+                     xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( hb_DirBase() + "plugins" + hb_ps() + xPlugin )
+                  ENDIF
+               ELSE
+                  hb_hrbDo( xPlugin, oEdit )
                ENDIF
             ENDIF
             EXIT
