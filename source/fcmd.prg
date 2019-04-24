@@ -244,7 +244,7 @@ FUNCTION cmd_Edit( oEdit, acmd )
       IF Empty( hb_fnameDir(cFileName) ) .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
          cFileName := cPath + cFileName
       ENDIF
-      mnu_NewWin( oEdit, MemoRead(cFileName), cFileName )
+      mnu_NewWin( oEdit, cFileName )
       lEnd := .T.
    ENDIF
 

@@ -79,18 +79,7 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
    IF !Empty( aFiles )
       IF ( i := FMenu( oEdit, aFiles ) ) > 0
          cName := cPathBase + aFiles[i]
-         s := Lower( cName )
-         IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
-            oEdit:lShow := .F.
-            oEdit:nCurr := j
-         ELSE
-            IF File( cName )
-               mnu_NewWin( oEdit, MemoRead(cName), cName )
-               RETURN Nil
-            ELSE
-               edi_Alert( "File not found" )
-            ENDIF
-         ENDIF
+         mnu_NewWin( oEdit, cName )
       ENDIF
       oEdit:TextOut()
    ENDIF

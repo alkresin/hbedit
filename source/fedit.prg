@@ -1978,11 +1978,26 @@ FUNCTION mnu_OpenRecent( oEdit, n )
 
    LOCAL cFileName := hb_Translate( oEdit:aEditHis[n,1], "UTF8", oEdit:cpInit )
 
-   RETURN mnu_NewWin( oEdit, Memoread(cFileName), cFileName )
+   RETURN mnu_NewWin( oEdit, cFileName )
 
-FUNCTION mnu_NewWin( oEdit, cText, cFileName )
+FUNCTION mnu_NewWin( oEdit, cFileName )
 
-   LOCAL oNew
+   LOCAL oNew, s, j, cText
+
+   IF !Empty( cFileName )
+      s := Lower( cFileName )
+      IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
+         oEdit:lShow := .F.
+         oEdit:nCurr := j
+         RETURN Nil
+      ENDIF
+      IF File( cFileName )
+         cText := Memoread( cFileName )
+      ELSE
+         edi_Alert( "File not found" )
+         RETURN Nil
+      ENDIF
+   ENDIF
 
    IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
          .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
@@ -2002,7 +2017,7 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes, s, j
+   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes
    LOCAL aGets := { {11,12,0,"",56}, ;
       {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
       {13,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
@@ -2019,17 +2034,7 @@ FUNCTION mnu_OpenFile( oEdit )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       cName := aGets[1,4]
-      s := Lower( cName )
-      IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
-         oEdit:lShow := .F.
-         oEdit:nCurr := j
-      ELSE
-         IF File( cName )
-            mnu_NewWin( oEdit, MemoRead(cName), cName )
-         ELSE
-            edi_Alert( "File not found" )
-         ENDIF
-      ENDIF
+      mnu_NewWin( oEdit, cName )
    ENDIF
 
    SetColor( oldc )
