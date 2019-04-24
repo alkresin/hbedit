@@ -9,5 +9,6 @@ harbour plug_go_run.prg -n -gh
 harbour plug_prg_compile.prg -n -gh
 harbour plug_prg_run.prg -n -gh
 harbour plug_prg_spis.prg -n -gh
+harbour plug_hbp_init.prg -n -gh
 cd ..\..\
 

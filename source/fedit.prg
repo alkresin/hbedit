@@ -87,6 +87,7 @@ CLASS TEdit
                                       // (m, ', 0..9, ...) when other keys are expected
    DATA   cSyntaxType
 
+   DATA   oParent                     // A TEdit object of a parent edit window
    DATA   aUndo       INIT {}
    DATA   nUndo       INIT 0
 
@@ -336,6 +337,13 @@ METHOD Edit( bStart ) CLASS TEdit
    IF ::lClose
       i := Ascan( ::aWindows, {|o|o==Self} )
       hb_ADel( ::aWindows, i, .T. )
+      IF !Empty( ::oParent )
+      ELSE
+         FOR i := 1 TO Len( ::aWindows )
+            IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
+            ENDIF
+         NEXT
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -940,6 +948,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      nRow := Len(::aText) - ::nyFirst + ::y1
                   ENDIF
                   DevPos( nRow, nCol )
+               ELSE
+                  RETURN Nil
                ENDIF
             ENDIF
 
@@ -1992,7 +2002,7 @@ FUNCTION mnu_NewWin( oEdit, cText, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes
+   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes, s, j
    LOCAL aGets := { {11,12,0,"",56}, ;
       {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
       {13,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
@@ -2009,10 +2019,16 @@ FUNCTION mnu_OpenFile( oEdit )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       cName := aGets[1,4]
-      IF File( cName )
-         mnu_NewWin( oEdit, MemoRead(cName), cName )
+      s := Lower( cName )
+      IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
+         oEdit:lShow := .F.
+         oEdit:nCurr := j
       ELSE
-         edi_Alert( "File not found" )
+         IF File( cName )
+            mnu_NewWin( oEdit, MemoRead(cName), cName )
+         ELSE
+            edi_Alert( "File not found" )
+         ENDIF
       ENDIF
    ENDIF
 

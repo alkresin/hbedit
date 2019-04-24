@@ -79,11 +79,17 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
    IF !Empty( aFiles )
       IF ( i := FMenu( oEdit, aFiles ) ) > 0
          cName := cPathBase + aFiles[i]
-         IF File( cName )
-            mnu_NewWin( oEdit, MemoRead(cName), cName )
-            RETURN Nil
+         s := Lower( cName )
+         IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
+            oEdit:lShow := .F.
+            oEdit:nCurr := j
          ELSE
-            edi_Alert( "File not found" )
+            IF File( cName )
+               mnu_NewWin( oEdit, MemoRead(cName), cName )
+               RETURN Nil
+            ELSE
+               edi_Alert( "File not found" )
+            ENDIF
          ENDIF
       ENDIF
       oEdit:TextOut()
@@ -93,13 +99,23 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
 
 STATIC FUNCTION _hbp_Init_Build( oEdit )
 
-   LOCAL cBuff
+   LOCAL cBuff, oNew
 
    SetColor( "W+/R" )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, "hb_compile_err.out" )
    cBuff := MemoRead( "hb_compile_err.out" )
-   edi_Alert( "Done" )
+   IF Empty( cBuff )
+      edi_Alert( "Done" )
+   ELSE
+      /*
+      oEdit:y2 -= 6
+      oNew := TEdit():New( cBuff, "hb_compile_err.out", oEdit:y2+1, oEdit:x1, oEdit:y2+6, oEdit:x2 )
+      oNew:lReadOnly := .T.
+      oNew:Edit()
+      */
+      edi_Alert( "Done" )
+   ENDIF
    SetColor( oEdit:cColor )
    oEdit:TextOut()
 
