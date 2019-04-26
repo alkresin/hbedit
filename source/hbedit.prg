@@ -10,10 +10,11 @@ STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH, nScreenW
 STATIC cStartPlugin, lMaximize := .F.
+STATIC aFiles := {}
 
 FUNCTION Main( ... )
 
-   LOCAL aParams := hb_aParams(), i, c, arr, aFiles := {}
+   LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
    LOCAL ypos, xpos, nStartLine, bStart
 
@@ -143,7 +144,7 @@ FUNCTION Main( ... )
 
 STATIC FUNCTION ReadIni( cIniName )
 
-   LOCAL hIni := edi_iniRead( cIniName ), aSect, cTmp
+   LOCAL hIni := edi_iniRead( cIniName ), aSect, cTmp, arr, i
    LOCAL cp
 
    IF !Empty( hIni )
@@ -186,6 +187,14 @@ STATIC FUNCTION ReadIni( cIniName )
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "maximize" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             lMaximize := ( Lower(cTmp) == "on" )
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "files" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            arr := hb_ATokens( cTmp, "," )
+            FOR i := 1 TO Len( arr )
+               IF !Empty( arr[i] )
+                  AAdd( aFiles, arr[i] )
+               ENDIF
+            NEXT
          ENDIF
        ENDIF
    ENDIF

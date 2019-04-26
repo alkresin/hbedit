@@ -74,6 +74,7 @@ CLASS TEdit
    CLASS VAR cColorSel  SHARED  INIT "N/W"
    CLASS VAR cColorPane SHARED  INIT "N/BG"
    CLASS VAR cColorBra  SHARED  INIT "R+/B"
+   CLASS VAR aRectFull  SHARED
    CLASS VAR bNew       SHARED
 
    DATA   aRect       INIT { 0,0,24,79 }
@@ -91,7 +92,6 @@ CLASS TEdit
    DATA   aUndo       INIT {}
    DATA   nUndo       INIT 0
 
-   DATA   lBorder     INIT .F.
    DATA   lTopPane    INIT .T.
    DATA   nTopName    INIT 36
 
@@ -153,10 +153,17 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    IF !::lReadIni
       edi_ReadIni( hb_DirBase() + "hbedit.ini" )
    ENDIF
-   ::y1 := ::aRect[1] := Iif( y1==Nil, ::aRect[1], y1 )
-   ::x1 := ::aRect[2] := Iif( x1==Nil, ::aRect[2], x1 )
-   ::y2 := ::aRect[3] := Iif( y2==Nil, ::aRect[3], y2 )
-   ::x2 := ::aRect[4] := Iif( x2==Nil, ::aRect[4], x2 )
+   IF Empty( ::aRectFull )
+      ::aRectFull := { 0, 0, MaxRow(), MaxCol() }
+      IF y1 != Nil; ::aRectFull[1] := y1; ENDIF
+      IF x1 != Nil; ::aRectFull[2] := x1; ENDIF
+      IF y2 != Nil; ::aRectFull[3] := y2; ENDIF
+      IF x2 != Nil; ::aRectFull[4] := x2; ENDIF
+   ENDIF
+   ::y1 := ::aRect[1] := Iif( y1==Nil, ::aRectFull[1], y1 )
+   ::x1 := ::aRect[2] := Iif( x1==Nil, ::aRectFull[2], x1 )
+   ::y2 := ::aRect[3] := Iif( y2==Nil, ::aRectFull[3], y2 )
+   ::x2 := ::aRect[4] := Iif( x2==Nil, ::aRectFull[4], x2 )
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
    ::nxFirst := ::nyFirst := ::nRow := 1
    ::nCol := 0
@@ -290,10 +297,6 @@ METHOD Edit( bStart ) CLASS TEdit
    SetCursor( SC_NONE )
    SetColor( ::cColor )
    ::y1 := ::aRect[1]; ::x1 := ::aRect[2]; ::y2 := ::aRect[3]; ::x2 := ::aRect[4]
-   IF ::lBorder
-      @ ::y1, ::x1, ::y2, ::x2 BOX "ÚÄ¿³ÙÄÀ³ "
-      ::y1 ++; ::x1 ++; ::y2 --; ::x2 --
-   ENDIF
    ::nTopName := Max( ::x2 - ::x1 - 44, 0 )
    IF ::lTopPane
       ::y1 ++
@@ -832,185 +835,201 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
             ENDIF
 
-         ELSEIF nKey == K_ENTER
-            IF !::lReadOnly .AND. ::nMode == 0
-               nCol := ::ColToPos( nCol )
-               s := ""
-               IF hb_hGetDef( TEdit():options, "autoindent", .F. )
-                  i := 0
-                  DO WHILE cp_Substr( ::lUtf8, ::aText[n], i+1, 1 ) == " "; i++; ENDDO
-                  IF i > 0
-                     IF nCol <= i
-                        i := nCol - 1
+         ELSE
+            SWITCH nKey
+            CASE K_ENTER
+               IF !::lReadOnly .AND. ::nMode == 0
+                  nCol := ::ColToPos( nCol )
+                  s := ""
+                  IF hb_hGetDef( TEdit():options, "autoindent", .F. )
+                     i := 0
+                     DO WHILE cp_Substr( ::lUtf8, ::aText[n], i+1, 1 ) == " "; i++; ENDDO
+                     IF i > 0
+                        IF nCol <= i
+                           i := nCol - 1
+                        ENDIF
+                        s := Space( i )
                      ENDIF
-                     s := Space( i )
+                  ENDIF
+                  ::InsText( n, nCol, Chr(10) + s, .F., .T. )
+               ENDIF
+               EXIT
+            CASE K_DEL
+               IF !::lReadOnly
+                  IF ::nby1 >= 0 .AND. ::nby2 >= 0
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
+                        hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
+                        TEdit():aCBoards[1,2] := Nil
+                     ENDIF
+                     cbDele( Self )
+                  ELSE
+                     ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
                   ENDIF
                ENDIF
-               ::InsText( n, nCol, Chr(10) + s, .F., .T. )
-            ENDIF
-
-         ELSEIF nKey == K_DEL
-            IF !::lReadOnly
-               IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                  IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
-                     hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-                     TEdit():aCBoards[1,2] := Nil
+               EXIT
+            CASE K_BS
+               IF !::lReadOnly .AND. ::nMode == 0
+                  IF ::nby1 >= 0 .AND. ::nby2 >= 0
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
+                        hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
+                        TEdit():aCBoards[1,2] := Nil
+                     ENDIF
+                     cbDele( Self )
+                  ELSE
+                     IF ::nCol == ::x1
+                        IF n > 1
+                           edi_GoUp( Self )
+                           edi_GoEnd( Self )
+                           ::DelText( n-1, Col()-::x1+::nxFirst, n-1, Col()-::x1+::nxFirst )
+                        ENDIF
+                     ELSE
+                        ::DelText( n, ::nCol-::x1+::nxFirst-1, n, ::nCol-::x1+::nxFirst-1 )
+                     ENDIF
                   ENDIF
-                  cbDele( Self )
-               ELSE
-                  ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
                ENDIF
-            ENDIF
-
-         ELSEIF nKey == K_BS
-            IF !::lReadOnly .AND. ::nMode == 0
-               IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                  IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
-                     hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-                     TEdit():aCBoards[1,2] := Nil
+               EXIT
+            CASE K_TAB
+               IF !::lReadOnly
+               ENDIF
+               EXIT
+            CASE K_INS
+               IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+                  IF !::lReadOnly
+                     cb2Text( Self, .T. )
                   ENDIF
-                  cbDele( Self )
                ELSE
-                  IF ::nCol == ::x1
-                     IF n > 1
-                        edi_GoUp( Self )
-                        edi_GoEnd( Self )
-                        ::DelText( n-1, Col()-::x1+::nxFirst, n-1, Col()-::x1+::nxFirst )
+                  ::lIns := !::lIns
+               ENDIF
+               EXIT
+            CASE K_UP
+               edi_GoUp( Self )
+               EXIT
+            CASE K_DOWN
+               edi_GoDown( Self )
+               EXIT
+            CASE K_LEFT
+               edi_GoLeft( Self )
+               EXIT
+            CASE K_RIGHT
+               edi_GoRight( Self )
+               EXIT
+            CASE K_HOME
+               edi_Move( Self, 48 )
+               EXIT
+            CASE K_END
+               edi_GoEnd( Self )
+               EXIT
+            CASE K_PGUP
+               IF ::nyFirst > (::y2-::y1)
+                  ::nyFirst -= (::y2-::y1)
+                  ::lTextOut := .T.
+               ELSEIF ::nyFirst > 1
+                  ::nyFirst := 1
+                  ::lTextOut := .T.
+               ELSE
+                  Devpos( ::nRow := 1, ::nCol )
+               ENDIF
+               EXIT
+            CASE K_PGDN
+               IF ::nyFirst + (::y2-::y1) <= Len( ::aText )
+                  ::nyFirst += (::y2-::y1)
+                  IF ::nyFirst + ::nRow - ::y1 >= Len( ::aText )
+                     DevPos( ::nRow := (Len(::aText)-::nyFirst+2-::y1), ::nCol := ::x1 )
+                  ENDIF
+                  ::lTextOut := .T.
+               ELSE
+                  DevPos( ::nRow := (Len(::aText)-::nyFirst+2-::y1), ::nCol )
+               ENDIF
+               EXIT
+            CASE K_LBUTTONDOWN
+               IF ::nDopMode == 0
+                  nCol := MCol()
+                  nRow := MRow()
+                  IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
+                     FMenu( Self, aMenuMain, 2, 6 )
+                     ::lTextOut := .T.
+                  ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
+                     IF ::RowToLine(nRow) > Len(::aText)
+                        nRow := Len(::aText) - ::nyFirst + ::y1
+                     ENDIF
+                     DevPos( nRow, nCol )
+                  ELSEIF nRow >= ::aRextFull[1] .AND. nRow <= ::aRextFull[3] .AND. nCol >= ::aRextFull[2] .AND. nCol <= ::aRextFull[4]
+                     IF !Empty( x := ::oParent ) .AND. nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
+                     ELSE
+                        FOR i := 1 TO Len( ::aWindows )
+                           IF !Empty( ::aWindows[i]:oParent ) .AND. (x := ::aWindows[i]):oParent == Self .AND. ;
+                              nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
+                              ::lShow := .F.
+                              ::nCurr := i
+                           ENDIF
+                        NEXT
                      ENDIF
                   ELSE
-                     ::DelText( n, ::nCol-::x1+::nxFirst-1, n, ::nCol-::x1+::nxFirst-1 )
+                     RETURN Nil
                   ENDIF
                ENDIF
-            ENDIF
-
-         ELSEIF nKey == K_TAB
-            IF !::lReadOnly
-            ENDIF
-
-         ELSEIF nKey == K_INS
-            IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-               IF !::lReadOnly
-                  cb2Text( Self, .T. )
-               ENDIF
-            ELSE
-               ::lIns := !::lIns
-            ENDIF
-
-         ELSEIF nKey == K_UP
-            edi_GoUp( Self )
-
-         ELSEIF nKey == K_DOWN
-            edi_GoDown( Self )
-
-         ELSEIF nKey == K_LEFT
-            edi_GoLeft( Self )
-
-         ELSEIF nKey == K_RIGHT
-            edi_GoRight( Self )
-
-         ELSEIF nKey == K_HOME
-            edi_Move( Self, 48 )
-
-         ELSEIF nKey == K_END
-            edi_GoEnd( Self )
-
-         ELSEIF nKey == K_PGUP
-            IF ::nyFirst > (::y2-::y1)
-               ::nyFirst -= (::y2-::y1)
+               EXIT
+            CASE K_F1
+               mnu_Help( Self )
                ::lTextOut := .T.
-            ELSEIF ::nyFirst > 1
-               ::nyFirst := 1
+               DevPos( ::nRow, ::nCol )
+               EXIT
+            CASE K_F2
+               ::Save()
+               EXIT
+            CASE K_SH_F2
+               mnu_Save( Self, .T. )
+               EXIT
+            CASE K_F3
+               mnu_F3( Self )
+               lNoDeselect := .T.
+               nKey := K_RIGHT
+               EXIT
+            CASE K_F4
+               mnu_F4( Self, {2, 6} )
                ::lTextOut := .T.
-            ELSE
-               Devpos( ::nRow := 1, ::nCol )
-            ENDIF
-
-         ELSEIF nKey == K_PGDN
-            IF ::nyFirst + (::y2-::y1) <= Len( ::aText )
-               ::nyFirst += (::y2-::y1)
-               IF ::nyFirst + ::nRow - ::y1 >= Len( ::aText )
-                  DevPos( ::nRow := (Len(::aText)-::nyFirst+2-::y1), ::nCol := ::x1 )
-               ENDIF
+               EXIT
+            CASE K_SH_F4
+               mnu_NewWin( Self )
                ::lTextOut := .T.
-            ELSE
-               DevPos( ::nRow := (Len(::aText)-::nyFirst+2-::y1), ::nCol )
-            ENDIF
-
-         ELSEIF nKey == K_LBUTTONDOWN
-            IF ::nDopMode == 0
-               nCol := MCol()
-               nRow := MRow()
-               IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
-                  FMenu( Self, aMenuMain, 2, 6 )
-                  ::lTextOut := .T.
-               ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
-                  IF ::RowToLine(nRow) > Len(::aText)
-                     nRow := Len(::aText) - ::nyFirst + ::y1
-                  ENDIF
-                  DevPos( nRow, nCol )
+               EXIT
+            CASE K_F7
+               mnu_Search( Self )
+               ::lTextOut := .T.
+               EXIT
+            CASE K_F8
+               mnu_Syntax( Self, {2, 6} )
+               ::lTextOut := .T.
+               EXIT
+            CASE K_F9
+               FMenu( Self, aMenuMain, 2, 6 )
+               ::lTextOut := .T.
+               DevPos( ::nRow, ::nCol )
+               EXIT
+            CASE K_F10
+            CASE K_ESC
+               IF ::nMode == 1 .AND. nKey == K_ESC
+                  mnu_ChgMode( Self, .T. )
                ELSE
-                  RETURN Nil
+                  mnu_Exit( Self )
                ENDIF
-            ENDIF
-
-         ELSEIF nKey == K_F1
-            mnu_Help( Self )
-            ::lTextOut := .T.
-            DevPos( ::nRow, ::nCol )
-
-         ELSEIF nKey == K_F2
-            ::Save()
-
-         ELSEIF nKey == K_SH_F2
-            mnu_Save( Self, .T. )
-
-         ELSEIF nKey == K_F3
-            mnu_F3( Self )
-            lNoDeselect := .T.
-            nKey := K_RIGHT
-
-         ELSEIF nKey == K_F4
-            mnu_F4( Self, {2, 6} )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_SH_F4
-            mnu_NewWin( Self )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_F7
-            mnu_Search( Self )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_F8
-            mnu_Syntax( Self, {2, 6} )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_F9
-            FMenu( Self, aMenuMain, 2, 6 )
-            ::lTextOut := .T.
-            DevPos( ::nRow, ::nCol )
-
-         ELSEIF nKey == K_F10 .OR. nKey == K_ESC
-            IF ::nMode == 1 .AND. nKey == K_ESC
-               mnu_ChgMode( Self, .T. )
-            ELSE
-               mnu_Exit( Self )
-            ENDIF
-
-         ELSEIF nKey == K_F11
-            mnu_Plugins( Self )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_F12
-            mnu_Windows( Self, {2, 6} )
-            ::lTextOut := .T.
-
-         ELSEIF nKey == K_SH_F7
-            mnu_SeaNext( Self, .T. )
-
-         ELSEIF nKey == K_SH_F8
-            mnu_cPages( Self, {2,6} )
-            ::lTextOut := .T.
+               EXIT
+            CASE K_F11
+               mnu_Plugins( Self )
+               ::lTextOut := .T.
+               EXIT
+            CASE K_F12
+               mnu_Windows( Self, {2, 6} )
+               ::lTextOut := .T.
+               EXIT
+            CASE K_SH_F7
+               mnu_SeaNext( Self, .T. )
+               EXIT
+            CASE K_SH_F8
+               mnu_cPages( Self, {2,6} )
+               ::lTextOut := .T.
+               EXIT
+            END
          ENDIF
       ENDIF
 
@@ -1822,7 +1841,7 @@ FUNCTION edi_ReadIni( xIni )
 FUNCTION mnu_Help( oEdit )
 
    LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), cHelpName, ;
-         oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4] )
+         oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
    oHelp:lReadOnly := .T.
    oHelp:lCtrlTab  := .F.
@@ -2002,7 +2021,7 @@ FUNCTION mnu_NewWin( oEdit, cFileName )
    IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
          .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
       hb_cdpSelect( oEdit:cpInit )
-      oNew := TEdit():New( cText, cFileName, oEdit:aRect[1], oEdit:aRect[2], oEdit:aRect[3], oEdit:aRect[4])
+      oNew := TEdit():New( cText, cFileName, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
       oNew:funSave := oEdit:funSave
       hb_cdpSelect( oEdit:cp )
       oEdit:lShow := .F.

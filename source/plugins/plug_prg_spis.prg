@@ -7,8 +7,8 @@ Function plug_prg_Spis( oEdit )
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF cfirst == "function" .OR. cfirst == "procedure" .OR. ;
-            ( cfirst == "method" .AND. !lClassDef ) .OR. cfirst == "func" .OR. ;
-            cfirst == "proc" .OR. ( cfirst == "static" .AND. ;
+            ( cfirst == "method" .AND. (!lClassDef .OR. " inline " $ cLine .OR. " block " $ cLine )) ;
+            .OR. cfirst == "func" .OR. cfirst == "proc" .OR. ( cfirst == "static" .AND. ;
             ( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "function" .OR. ;
             cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
          Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
