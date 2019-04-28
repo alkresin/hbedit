@@ -42,7 +42,7 @@ Function plug_prg_compile( oEdit )
    ENDIF
 
    SetColor( oEdit:cColor )
-   oEdit:WriteTopPane( .T. )
+   oEdit:WriteTopPane()
    oEdit:TextOut()
 
    RETURN Nil

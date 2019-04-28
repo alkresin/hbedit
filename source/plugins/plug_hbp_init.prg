@@ -1,26 +1,36 @@
 #define CTRL_PRESSED  0x020000
 #define K_LBUTTONDOWN 1002
+#define K_LDBLCLK     1006
 #define K_CTRL_R      18
 #define K_CTRL_L      12
 #define K_CTRL_F      6
+#define K_ENTER       13
 
 FUNCTION Plug_hbp_Init( oEdit )
 
    LOCAL bEdit := {|o|
+      LOCAL y1 := o:aRect[1]
       SetColor( "N/N" )
-      Scroll( o:y1, o:x1, o:y1, o:x2 )
+      Scroll( y1, o:x1, y1, o:x2 )
       SetColor( o:cColorPane )
-      DevPos( o:y1, o:x1 )
+      DevPos( y1, o:x1 )
       DevOut( PAdr( hb_fnameName( o:cFileName ), 19 ) )
-      DevPos( o:y1, o:x1 + 20 )
+      DevPos( y1, o:x1 + 20 )
       DevOut( "Ctrl-F Files" )
-      DevPos( o:y1, o:x1 + 34 )
+      DevPos( y1, o:x1 + 34 )
       DevOut( "Ctrl-L Build" )
-      o:y1 ++
+      SetColor( o:cColor )
+   }
+   LOCAL bEndEdit := {|o|
+      LOCAL y1 := o:aRect[1]
+      SetColor( o:cColorPane )
+      Scroll( y1, o:x1, y1, o:x2 )
    }
 
    oEdit:lTopPane := .F.
-   oEdit:bEdit := bEdit
+   oEdit:y1 := oEdit:aRect[1] + 1
+   oEdit:bStartEdit := bEdit
+   oEdit:bEndEdit := bEndEdit
    oEdit:bOnKey := {|o,n| _hbp_Init_OnKey(o,n) }
 
    RETURN Nil
@@ -29,6 +39,9 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol, nRow
 
+   IF oEdit:lUpdated .AND. oEdit:cargo != Nil
+      oEdit:cargo := Nil
+   ENDIF
    IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
       IF nKey == K_CTRL_F
          _hbp_Init_Files( oEdit )
@@ -57,25 +70,10 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _hbp_Init_Files( oEdit )
 
-   LOCAL i, j, s, cPathBase := hb_fnameDir( oEdit:cFileName )
-   LOCAL cPath, cName, aDir, aFiles := {}
+   LOCAL i, cPathBase := hb_fnameDir( oEdit:cFileName )
+   LOCAL cName, aFiles
 
-   FOR i := 1 TO Len( oEdit:aText )
-      s := Iif( Asc( oEdit:aText[i] ) == 32, Ltrim(oEdit:aText[i]), oEdit:aText[i] )
-      IF !Empty( s ) .AND. !( Left( s,1 ) $ "#-{" )
-         s := Trim( s )
-         cPath := hb_fnameDir( s )
-         cName := hb_fnameNameExt( s )
-         IF '*' $ cName
-            aDir := Directory( cPathBase+cPath+cName, "HS" )
-            FOR j := 1 TO Len( aDir )
-               Aadd( aFiles, cPath + aDir[j,1] )
-            NEXT
-         ELSE
-            Aadd( aFiles, cPath + cName )
-         ENDIF
-      ENDIF
-   NEXT
+   aFiles := _hbp_Get_Files( oEdit )
    IF !Empty( aFiles )
       IF ( i := FMenu( oEdit, aFiles ) ) > 0
          cName := cPathBase + aFiles[i]
@@ -86,6 +84,36 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
 
    RETURN Nil
 
+STATIC FUNCTION _hbp_Get_Files( oEdit )
+
+   LOCAL i, j, s, cPathBase := hb_fnameDir( oEdit:cFileName )
+   LOCAL cPath, cName, aDir, aFiles
+
+   IF Empty( oEdit:cargo )
+      aFiles := {}
+      FOR i := 1 TO Len( oEdit:aText )
+         s := Iif( Asc( oEdit:aText[i] ) == 32, Ltrim(oEdit:aText[i]), oEdit:aText[i] )
+         IF !Empty( s ) .AND. !( Left( s,1 ) $ "#-{" )
+            s := Trim( s )
+            cPath := hb_fnameDir( s )
+            cName := hb_fnameNameExt( s )
+            IF '*' $ cName
+               aDir := Directory( cPathBase+cPath+cName, "HS" )
+               FOR j := 1 TO Len( aDir )
+                  Aadd( aFiles, cPath + aDir[j,1] )
+               NEXT
+            ELSE
+               Aadd( aFiles, cPath + cName )
+            ENDIF
+         ENDIF
+      NEXT
+      oEdit:cargo := aFiles
+   ELSE
+      aFiles := oEdit:cargo
+   ENDIF
+
+   RETURN aFiles
+
 STATIC FUNCTION _hbp_Init_Build( oEdit )
 
    LOCAL cBuff, oNew
@@ -94,18 +122,46 @@ STATIC FUNCTION _hbp_Init_Build( oEdit )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, "hb_compile_err.out" )
    cBuff := MemoRead( "hb_compile_err.out" )
+   SetColor( oEdit:cColor )
    IF Empty( cBuff )
       edi_Alert( "Done" )
    ELSE
-      /*
-      oEdit:y2 -= 6
-      oNew := TEdit():New( cBuff, "hb_compile_err.out", oEdit:y2+1, oEdit:x1, oEdit:y2+6, oEdit:x2 )
+      oNew := edi_AddWindow( oEdit, cBuff, "$hb_compile_err", 2, 9 )
       oNew:lReadOnly := .T.
-      oNew:Edit()
-      */
-      edi_Alert( "Done" )
+      oNew:bOnKey := {|o,n| _hbp_ErrWin_OnKey(o,n) }
    ENDIF
-   SetColor( oEdit:cColor )
    oEdit:TextOut()
 
    RETURN Nil
+
+FUNCTION _hbp_ErrWin_OnKey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), nRow, s, nPos, nLine, aFiles, oNew
+
+   IF nKey == K_ENTER .OR. nKey == K_LDBLCLK
+      IF nKey == K_LDBLCLK
+         nRow := MRow()
+         IF nRow < oEdit:y1 .OR. nRow > oEdit:y2
+            RETURN 0
+         ENDIF
+      ELSE
+         nRow := Row()
+      ENDIF
+      s := Lower( oEdit:aText[ oEdit:RowToLine( nRow ) ] )
+      IF ( nPos := At( " error ", s ) ) > 0 .OR. ( nPos := At( " warning ", s ) ) > 0
+         s := AllTrim( Left( s, nPos ) )
+         IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
+            nLine := Val( Substr( s,nPos+1 ) )
+            s := hb_fnameNameExt( Trim( Left( s, nPos-1 ) ) )
+            aFiles := _hbp_Get_Files( oEdit )
+            IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==s} ) ) > 0
+               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:cFileName ) + aFiles[i] )
+               IF oNew != Nil
+                  oNew:GoTo( nLine, 1,, .T. )
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDIF
+   ENDIF
+
+   RETURN 0

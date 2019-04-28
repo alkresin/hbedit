@@ -347,7 +347,7 @@ FUNCTION cmd_Run( oEdit, acmd )
       ENDIF
       Inkey(0)
       SetColor( oEdit:cColor )
-      oEdit:WriteTopPane( .T. )
+      oEdit:WriteTopPane()
       lEnd := .T.
 
    ELSE

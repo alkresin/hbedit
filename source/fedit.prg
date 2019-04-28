@@ -46,7 +46,6 @@ STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_E
 STATIC cKeysMove := "hjklwWeEbBG0$^"
 
 STATIC aLangExten := {}
-STATIC cHelpName := "Help"
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aLangs
@@ -119,23 +118,24 @@ CLASS TEdit
    DATA   lBom        INIT .F.
 
    DATA   funSave
-   DATA   bEdit
+   DATA   bStartEdit, bEndEdit
    DATA   bOnKey
    DATA   oHili
    DATA   hBookMarks
    DATA   npy1, npx1, npy2, npx2
+   DATA   cargo
 
-   METHOD New( cText, cFileName, y1, x1, y2, x2, cColor )
+   METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane )
    METHOD SetText( cText, cFileName )
-   METHOD Edit( bStart )
+   METHOD Edit()
    METHOD TextOut( n1, n2 )
    METHOD LineOut( nLine )
    METHOD onKey( nKeyExt )
-   METHOD WriteTopPane( lFull )
+   METHOD WriteTopPane( lClear )
    METHOD RowToLine( nRow )   INLINE ( Iif(nRow==Nil,::nRow,nRow) - ::y1 + ::nyFirst )
    METHOD ColToPos( nCol )    INLINE ( Iif(nCol==Nil,::nCol,nCol) - ::x1 + ::nxFirst )
    METHOD Search( cSea, lCase, lNext, ny, nx )
-   METHOD GoTo( ny, nx, nSele )
+   METHOD GoTo( ny, nx, nSele, lNoGo )
    METHOD ToString( cEol )
    METHOD Save( cFileName )
    METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo )
@@ -146,7 +146,7 @@ CLASS TEdit
 
 ENDCLASS
 
-METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
+METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
    LOCAL i, cExt
 
@@ -165,9 +165,17 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor ) CLASS TEdit
    ::y2 := ::aRect[3] := Iif( y2==Nil, ::aRectFull[3], y2 )
    ::x2 := ::aRect[4] := Iif( x2==Nil, ::aRectFull[4], x2 )
    ::cColor := Iif( Empty(cColor), ::cColor, cColor )
-   ::nxFirst := ::nyFirst := ::nRow := 1
-   ::nCol := 0
+   ::nxFirst := ::nyFirst := 1
    ::npy1 := ::npx1 := ::npy2 := ::npx2 := 0
+   IF Valtype( lTopPane ) == "L" .AND. !lTopPane
+      ::lTopPane := .F.
+   ENDIF
+
+   IF ::lTopPane
+      ::nTopName := Max( ::x2 - ::x1 - 44, 0 )
+      ::y1 ++
+   ENDIF
+   ::nRow := ::y1; ::nCol := ::x1
 
    ::nMode := ::nDefMode
    ::cp := ::cpInit
@@ -193,7 +201,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )
-      IF cFileName == cHelpName
+      IF Left( cFileName,1 ) == "$"
          ::cFileName := cFileName
       ELSE
          IF Empty( hb_fnameDir( cFileName ) )
@@ -214,13 +222,13 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
                ::nyFirst := arr[3] - 4
                ::nRow := 4
             ELSE
-               ::nRow := arr[3]
+               ::nRow := arr[3] + ::y1 - 1
             ENDIF
             IF arr[4] > ::x2 -::x1 - 1
                ::nxFirst := arr[4] + ::x1 - ::x2 + 3
                ::nCol := arr[4] - ::nxFirst + 1
             ELSE
-               ::nCol := arr[4] - 1
+               ::nCol := arr[4] + ::x1 - 1
             ENDIF
          ELSE
             hb_AIns( TEdit():aEditHis, 1, {cFile_utf8,,,}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
@@ -255,9 +263,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          ENDIF
       NEXT
    ENDIF
-   IF Len( ::aText ) < ::nyFirst + ::nRow - 1
-      ::nyFirst := ::nRow := 1
-   ENDIF
+
    ::aUndo := {}
    ::nUndo := 0
 
@@ -286,9 +292,8 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
 
    RETURN Nil
 
-METHOD Edit( bStart ) CLASS TEdit
+METHOD Edit() CLASS TEdit
 
-   LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
    LOCAL i, nKeyExt, cFile_utf8
 
    hb_cdpSelect( ::cp )
@@ -296,24 +301,29 @@ METHOD Edit( bStart ) CLASS TEdit
 
    SetCursor( SC_NONE )
    SetColor( ::cColor )
-   ::y1 := ::aRect[1]; ::x1 := ::aRect[2]; ::y2 := ::aRect[3]; ::x2 := ::aRect[4]
-   ::nTopName := Max( ::x2 - ::x1 - 44, 0 )
-   IF ::lTopPane
-      ::y1 ++
-      DevPos( ::y1, ::x1 )
-      ::WriteTopPane( .T. )
-   ENDIF
    Scroll( ::y1, ::x1, ::y2, ::x2 )
 
-   IF !Empty( ::bEdit )
-      Eval( ::bEdit, Self )
+   IF ( Len( ::aText ) < ::nyFirst + ::nRow - 1 ) .OR. ::nyFirst < 1 .OR. ::nRow < ::y1
+      ::nyFirst := 1
+      ::nRow := ::y1; ::nCol := ::x1
    ENDIF
+
+   ::WriteTopPane()
+
+   IF !Empty( ::bStartEdit )
+      Eval( ::bStartEdit, Self )
+   ENDIF
+
+   FOR i := Len( ::aWindows ) TO 1 STEP -1
+      // Draw the child window, if found.
+      IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
+         ::aWindows[i]:WriteTopPane( .T. )
+         ::aWindows[i]:TextOut()
+      ENDIF
+   NEXT
 
    ::TextOut()
    DevPos( ::nRow, ::nCol )
-   IF bStart != Nil
-      Eval( bStart, Self )
-   ENDIF
 
    ::nPosBack := ::ColToPos()
    ::nLineBack := ::RowToLine()
@@ -335,15 +345,24 @@ METHOD Edit( bStart ) CLASS TEdit
       ENDIF
    ENDIF
 
-   Restscreen( 0, 0, 24, 79, cScBuf )
-
+   ::WriteTopPane( .T. )
+   IF !Empty( ::bEndEdit )
+      Eval( ::bEndEdit, Self )
+   ENDIF
    IF ::lClose
       i := Ascan( ::aWindows, {|o|o==Self} )
       hb_ADel( ::aWindows, i, .T. )
       IF !Empty( ::oParent )
+         // Restore the size of a parent window, if exists
+         IF ::y1 > ::oParent:y2
+            ::oParent:y2 := ::y2
+         ENDIF
       ELSE
-         FOR i := 1 TO Len( ::aWindows )
+         FOR i := Len( ::aWindows ) TO 1 STEP -1
             IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
+               // Close a child window, if found
+               ::aWindows[i]:oParent := Nil
+               hb_ADel( ::aWindows, i, .T. )
             ENDIF
          NEXT
       ENDIF
@@ -953,14 +972,18 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         nRow := Len(::aText) - ::nyFirst + ::y1
                      ENDIF
                      DevPos( nRow, nCol )
-                  ELSEIF nRow >= ::aRextFull[1] .AND. nRow <= ::aRextFull[3] .AND. nCol >= ::aRextFull[2] .AND. nCol <= ::aRextFull[4]
+                  ELSEIF nRow >= ::aRectFull[1] .AND. nRow <= ::aRectFull[3] .AND. nCol >= ::aRectFull[2] .AND. nCol <= ::aRectFull[4]
                      IF !Empty( x := ::oParent ) .AND. nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
+                        ::lShow := .F.
+                        ::nCurr := Ascan( ::aWindows, {|o|o == ::oParent} )
+                        x:nRow := nRow; x:nCol := nCol
                      ELSE
                         FOR i := 1 TO Len( ::aWindows )
                            IF !Empty( ::aWindows[i]:oParent ) .AND. (x := ::aWindows[i]):oParent == Self .AND. ;
                               nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
                               ::lShow := .F.
                               ::nCurr := i
+                              x:nRow := nRow; x:nCol := nCol
                            ENDIF
                         NEXT
                      ENDIF
@@ -1074,7 +1097,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
    RETURN Nil
 
-METHOD WriteTopPane( lFull ) CLASS TEdit
+METHOD WriteTopPane( lClear ) CLASS TEdit
 
    LOCAL y := ::y1 - 1, nCol := ::nCol, nRow := ::nRow
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
@@ -1082,28 +1105,24 @@ METHOD WriteTopPane( lFull ) CLASS TEdit
    IF ::lTopPane
       DispBegin()
       SetColor( ::cColorPane )
-      Scroll( y, ::x1, y, ::x1 + 7 )
-      DevPos( y, ::x1 )
-      DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
-      IF !Empty( lFull )
-         Scroll( y, ::x1 + 8 , y, ::x2 )
-         DevPos( y, ::x1 + 8 )
+      Scroll( y, ::x1, y, ::x2 )
+      IF Empty( lClear )
+         DevPos( y, ::x1 )
+         DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu " ) )
          DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
-      ELSE
-         Scroll( y, ::x1 + 8 + ::nTopName, y, ::x2 )
-      ENDIF
-      DevPos( y, ::x1 + 8 + ::nTopName + 2 )
-      DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
-      DevPos( y, ::x1 + 8 + ::nTopName + 12 )
-      DevOut( PAdl(Ltrim(Str(::RowToLine(nRow))),nchars) + "/" + cLen )
-      DevPos( y, ::x1 + 8 + ::nTopName + 12 + nchars*2 + 3 )
-      DevOut( "[" + Ltrim(Str(nCol-::x1+::nxFirst)) + "]" )
-      SetColor( "W+/N" )
-      DevPos( y, ::x2-3 )
-      IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
-         DevOut( "Sele" )
-      ELSE
-         DevOut( Iif( ::nMode == 0, "Edit", Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
+         DevPos( y, ::x1 + 8 + ::nTopName + 2 )
+         DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
+         DevPos( y, ::x1 + 8 + ::nTopName + 12 )
+         DevOut( PAdl(Ltrim(Str(::RowToLine(nRow))),nchars) + "/" + cLen )
+         DevPos( y, ::x1 + 8 + ::nTopName + 12 + nchars*2 + 3 )
+         DevOut( "[" + Ltrim(Str(nCol-::x1+::nxFirst)) + "]" )
+         SetColor( "W+/N" )
+         DevPos( y, ::x2-3 )
+         IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
+            DevOut( "Sele" )
+         ELSE
+            DevOut( Iif( ::nMode == 0, "Edit", Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
+         ENDIF
       ENDIF
       SetColor( ::cColor )
       DevPos( nRow, nCol )
@@ -1147,7 +1166,7 @@ METHOD Search( cSea, lCase, lNext, ny, nx ) CLASS TEdit
 
    RETURN lRes
 
-METHOD GoTo( ny, nx, nSele ) CLASS TEdit
+METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
 
    LOCAL lTextOut := .F., nRowOld
 
@@ -1157,8 +1176,10 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
       RETURN Nil
    ENDIF
 
-   ::nPosBack := ::ColToPos()
-   ::nLineBack := ::RowToLine()
+   IF Empty( lNoGo )
+      ::nPosBack := ::ColToPos()
+      ::nLineBack := ::RowToLine()
+   ENDIF
    IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
       ::nyFirst := Max( ny-3, 1 )
       lTextOut := .T.
@@ -1172,17 +1193,22 @@ METHOD GoTo( ny, nx, nSele ) CLASS TEdit
       ::nby1 := ::nby2 := ny; ::nbx1 := nx; ::nbx2 := nx + nSele
    ENDIF
 
-   SetColor( ::cColor )
-   IF lTextOut
-      ::TextOut()
-   ELSE
-      IF nSele != Nil .AND. nSele > 0 .AND. ( nRowOld := (::nRow - ::y1 + 1) ) > 0
-         ::LineOut( nRowOld )
+   IF Empty( lNoGo )
+      SetColor( ::cColor )
+      IF lTextOut
+         ::TextOut()
+      ELSE
+         IF nSele != Nil .AND. nSele > 0 .AND. ( nRowOld := (::nRow - ::y1 + 1) ) > 0
+            ::LineOut( nRowOld )
+         ENDIF
+         ::LineOut( ny - ::nyFirst + 1 )
       ENDIF
-      ::LineOut( ny - ::nyFirst + 1 )
+      ::WriteTopPane()
+      DevPos( ::nRow := (ny - ::nyFirst + ::y1), ::nCol := (nx - ::nxFirst + ::x1) )
+   ELSE
+      ::nRow := (ny - ::nyFirst + ::y1)
+      ::nCol := (nx - ::nxFirst + ::x1)
    ENDIF
-   ::WriteTopPane()
-   DevPos( ::nRow := (ny - ::nyFirst + ::y1), ::nCol := (nx - ::nxFirst + ::x1) )
 
    RETURN Nil
 
@@ -1840,7 +1866,7 @@ FUNCTION edi_ReadIni( xIni )
 
 FUNCTION mnu_Help( oEdit )
 
-   LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), cHelpName, ;
+   LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
    oHelp:lReadOnly := .T.
@@ -2008,7 +2034,7 @@ FUNCTION mnu_NewWin( oEdit, cFileName )
       IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
          oEdit:lShow := .F.
          oEdit:nCurr := j
-         RETURN Nil
+         RETURN oEdit:aWindows[j]
       ENDIF
       IF File( cFileName )
          cText := Memoread( cFileName )
@@ -2026,13 +2052,14 @@ FUNCTION mnu_NewWin( oEdit, cFileName )
       hb_cdpSelect( oEdit:cp )
       oEdit:lShow := .F.
       oEdit:nCurr := Len( oEdit:aWindows )
+      RETURN oEdit:aWindows[oEdit:nCurr]
    ELSE
       oEdit:SetText( cText, cFileName )
-      oEdit:WriteTopPane( .T. )
+      oEdit:WriteTopPane( 1 )
       DevPos( oEdit:nRow, oEdit:nCol )
    ENDIF
 
-   RETURN Nil
+   RETURN oEdit
 
 FUNCTION mnu_OpenFile( oEdit )
 
@@ -2363,14 +2390,14 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
 
    IF !Empty( lBack )
       oEdit:nMode := 0
-      oEdit:WriteTopPane( .T. )
+      oEdit:WriteTopPane( 1 )
    ELSE
       IF oEdit:nMode == 0
          oEdit:nMode := 1
-         oEdit:WriteTopPane( .T. )
+         oEdit:WriteTopPane( 1 )
       ELSEIF oEdit:nMode == 1
          oEdit:nMode := 2
-         oEdit:WriteTopPane( .T. )
+         oEdit:WriteTopPane( 1 )
          mnu_CmdLine( oEdit )
       ENDIF
    ENDIF
@@ -2841,6 +2868,38 @@ STATIC FUNCTION edi_InQuo( oEdit, nLine, nPos )
    ENDDO
 
    RETURN nPosQuo
+
+/*
+ * edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
+ * Adds new edit window, truncates the current edit window
+ * oEdit - current window
+ * cText, cFilename - the data of a new window
+ * nPlace: 0 - top, 1 - left, 2 - bottom, 3 - right
+ * nSpace - the number of rows or columns of a new window
+ */
+FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
+
+   LOCAL oNew, y1 := oEdit:y1, x1 := oEdit:x1, y2 := oEdit:y2, x2 := oEdit:x2
+
+   IF nPlace == 0
+      y2 := y1 + nSpace - 1
+      oEdit:y1 := y2 + 1
+   ELSEIF nPlace == 1
+      x2 := x1 + nSpace - 1
+      oEdit:x1 := x2 + 1
+   ELSEIF nPlace == 2
+      y1 := y2 - nSpace
+      oEdit:y2 := y1-1
+   ELSEIF nPlace == 3
+      x1 := x2 - nSpace
+      oEdit:x2 := x1-1
+   ENDIF
+   oNew := TEdit():New( cText, cFileName, y1, x1, y2, x2 )
+   oNew:oParent := oEdit
+   oEdit:lShow := .F.
+   TEdit():nCurr := Len( TEdit():aWindows )
+
+   RETURN oNew
 
 FUNCTION edi_CurrPath()
 

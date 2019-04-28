@@ -16,7 +16,7 @@ FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
-   LOCAL ypos, xpos, nStartLine, bStart
+   LOCAL ypos, xpos, nStartLine
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) $ "-/"
@@ -125,7 +125,7 @@ FUNCTION Main( ... )
 
    IF nStartLine != Nil
       IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
-      bStart := {|o|o:Goto(nStartLine)}
+      TEdit():aWindows[1]:Goto( nStartLine,,, .T. )
    ENDIF
 
    TEdit():nCurr := 1
@@ -135,8 +135,7 @@ FUNCTION Main( ... )
       ELSEIF TEdit():nCurr <= 0
          TEdit():nCurr := Len(TEdit():aWindows)
       ENDIF
-      TEdit():aWindows[TEdit():nCurr]:Edit( bStart )
-      bStart := Nil
+      TEdit():aWindows[TEdit():nCurr]:Edit()
    ENDDO
    TEdit():onExit()
 
