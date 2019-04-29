@@ -116,17 +116,23 @@ STATIC FUNCTION _hbp_Get_Files( oEdit )
 
 STATIC FUNCTION _hbp_Init_Build( oEdit )
 
-   LOCAL cBuff, oNew
+   LOCAL cBuff, oNew, i, cFile := "hb_compile_err.out"
 
    SetColor( "W+/R" )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
-   cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, "hb_compile_err.out" )
-   cBuff := MemoRead( "hb_compile_err.out" )
+   cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, cFile )
+   cBuff := MemoRead( cFile )
+   cFile := "$" + cFile
    SetColor( oEdit:cColor )
    IF Empty( cBuff )
       edi_Alert( "Done" )
+   ELSEIF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cFile} ) ) > 0
+      oNew := TEdit():aWindows[i]
+      oNew:SetText( cBuff, cFile )
+      oEdit:lShow := .F.
+      oEdit:nCurr := i
    ELSE
-      oNew := edi_AddWindow( oEdit, cBuff, "$hb_compile_err", 2, 9 )
+      oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 9 )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _hbp_ErrWin_OnKey(o,n) }
    ENDIF
@@ -153,9 +159,9 @@ FUNCTION _hbp_ErrWin_OnKey( oEdit, nKeyExt )
          IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
             nLine := Val( Substr( s,nPos+1 ) )
             s := hb_fnameNameExt( Trim( Left( s, nPos-1 ) ) )
-            aFiles := _hbp_Get_Files( oEdit )
+            aFiles := _hbp_Get_Files( oEdit:oParent )
             IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==s} ) ) > 0
-               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:cFileName ) + aFiles[i] )
+               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:cFileName ) + aFiles[nPos] )
                IF oNew != Nil
                   oNew:GoTo( nLine, 1,, .T. )
                ENDIF
