@@ -4,9 +4,9 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
    LOCAL aMenu := edi_Directory( cPath ), i, nPos
 
    DO WHILE .T.
-      i := FMenu( oEdit, aMenu, y1, x1, y2, x2 )
+      i := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T. )
 
-      IF i > 0 
+      IF i > 0
          IF Empty(aMenu[i,4])
             RETURN cPath + aMenu[i,1]
          ELSE
@@ -80,7 +80,7 @@ FUNCTION edi_IniRead( cFileName )
    aText := hb_aTokens( cText, Chr(10) )
    hIni := hb_Hash()
 
-   FOR i := 1 TO Len( aText )     
+   FOR i := 1 TO Len( aText )
       s := Iif( Left( aText[i],1 ) == ' ', Ltrim( aText[i] ), aText[i] )
       IF Left( s, 1 ) $ ";#"
          LOOP

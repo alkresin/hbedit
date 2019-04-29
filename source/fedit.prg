@@ -2071,8 +2071,6 @@ FUNCTION mnu_OpenFile( oEdit )
 
    hb_cdpSelect( "RU866" )
    @ 09, 10, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
-   //@ 12, 10 SAY "Ã"
-   //@ 12, 72 SAY "´"
    @ 12, 11 TO 12, 71
    hb_cdpSelect( oEdit:cp )
    @ 10,22 SAY "Open file"
