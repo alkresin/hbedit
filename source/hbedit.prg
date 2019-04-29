@@ -16,7 +16,7 @@ FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
-   LOCAL ypos, xpos, nStartLine
+   LOCAL ypos, xpos, nStartLine, lRO := .F.
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) $ "-/"
@@ -33,6 +33,9 @@ FUNCTION Main( ... )
 
          ELSEIF c == "g"
             nStartLine := Val( Substr( aParams[i],3 ) )
+
+         ELSEIF c == "r" .AND. Substr( aParams[i],3,1 ) == "o"
+            lRO := .T.
 
          ELSEIF c == "s" .AND. Substr( aParams[i],3,4 ) == "ize="
             arr := hb_ATokens( Substr( aParams[i],7 ), "," )
@@ -117,10 +120,16 @@ FUNCTION Main( ... )
 
    FOR i := 1 TO Len( aFiles )
       TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
+      IF lRO
+         ATail(TEdit():aWindows):lReadOnly := .T.
+      ENDIF
    NEXT
 
    IF Empty( TEdit():aWindows )
       TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
+      IF lRO
+         ATail(TEdit():aWindows):lReadOnly := .T.
+      ENDIF
    ENDIF
 
    IF nStartLine != Nil

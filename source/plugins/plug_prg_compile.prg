@@ -1,11 +1,17 @@
+#define K_ENTER       13
+#define K_LDBLCLK     1006
+
 Function plug_prg_compile( oEdit )
 
-   LOCAL acmd := Array( 4 ), cHrb, i, cName := "", cTemp, nPos
-   
+   LOCAL acmd := Array( 5 ), cHrb, i, cName := "", cTemp, nPos, cFile := "$hb_compile_err", oNew
+
+   edi_CloseWindow( cFile )
+
    acmd[1] := oEdit:ToString()
    acmd[2] := "harbour"
    acmd[3] := "-n2"
    acmd[4] := "-q"
+   acmd[5] := "-w"
 
    cedi_rediron( 2, "hb_compile_err.out" )
    cHrb := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
@@ -26,19 +32,15 @@ Function plug_prg_compile( oEdit )
       ENDIF
    NEXT
 
-   IF !Empty( cHrb )
-      SaveHrb( oEdit, cHrb, cName )
+   cTemp := Memoread( "hb_compile_err.out" )
+   IF Empty( cHrb ) .OR. ( !Empty( cTemp ) .AND. " Warning " $ cTemp .AND. ;
+         edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
+
+      oNew := edi_AddWindow( oEdit, cTemp, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+      oNew:bOnKey := {|o,n| _prg_Err_OnKey(o,n) }
    ELSE
-      arr := hb_ATokens( Memoread( "hb_compile_err.out" ), Chr(10) )
-      DevPos( 0,0 )
-      DevOut( "Compile error." )
-      FOR i := 1 TO Min( Len(arr), oEdit:y2-oEdit:y1 )
-         DevPos( i,0 )
-         DevOut( arr[i] )
-      NEXT
-      DevPos( oEdit:y2+1,10 )
-      DevOut( "Press any key" )
-      Inkey(0)
+      SaveHrb( oEdit, cHrb, cName )
    ENDIF
 
    SetColor( oEdit:cColor )
@@ -95,3 +97,30 @@ STATIC FUNCTION SaveHrb( oEdit, cHrb, cName )
    ENDIF
 
    RETURN Nil
+
+FUNCTION _prg_Err_OnKey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), nRow, s, nPos, nLine
+
+   IF nKey == K_ENTER .OR. nKey == K_LDBLCLK
+      IF nKey == K_LDBLCLK
+         nRow := MRow()
+         IF nRow < oEdit:y1 .OR. nRow > oEdit:y2
+            RETURN 0
+         ENDIF
+      ELSE
+         nRow := Row()
+      ENDIF
+      s := Lower( oEdit:aText[ oEdit:RowToLine( nRow ) ] )
+      IF ( nPos := At( " error ", s ) ) > 0 .OR. ( nPos := At( " warning ", s ) ) > 0
+         s := AllTrim( Left( s, nPos ) )
+         IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
+            nLine := Val( Substr( s,nPos+1 ) )
+            oEdit:oParent:GoTo( nLine, 1,, .T. )
+            oEdit:lShow := .F.
+            oEdit:nCurr := Ascan( oEdit:aWindows, {|o|o==oEdit:oParent} )
+         ENDIF
+      ENDIF
+   ENDIF
+
+   RETURN 0

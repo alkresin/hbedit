@@ -260,6 +260,8 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          ENDIF
          IF Right( ::aText[i],1 ) == Chr(13)
             ::aText[i] := Left( ::aText[i], Len( ::aText[i])-1 )
+         ELSEIF Left( ::aText[i],1 ) == Chr(13)
+            ::aText[i] := Substr( ::aText[i], 2 )
          ENDIF
       NEXT
    ENDIF
@@ -350,13 +352,8 @@ METHOD Edit() CLASS TEdit
       Eval( ::bEndEdit, Self )
    ENDIF
    IF ::lClose
-      i := Ascan( ::aWindows, {|o|o==Self} )
-      hb_ADel( ::aWindows, i, .T. )
       IF !Empty( ::oParent )
-         // Restore the size of a parent window, if exists
-         IF ::y1 > ::oParent:y2
-            ::oParent:y2 := ::y2
-         ENDIF
+         edi_CloseWindow( Self )
       ELSE
          FOR i := Len( ::aWindows ) TO 1 STEP -1
             IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
@@ -365,6 +362,8 @@ METHOD Edit() CLASS TEdit
                hb_ADel( ::aWindows, i, .T. )
             ENDIF
          NEXT
+         i := Ascan( ::aWindows, {|o|o==Self} )
+         hb_ADel( ::aWindows, i, .T. )
       ENDIF
    ENDIF
 
@@ -1121,7 +1120,8 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
             DevOut( "Sele" )
          ELSE
-            DevOut( Iif( ::nMode == 0, "Edit", Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
+            DevOut( Iif( ::nMode == 0, Iif( ::lReadOnly, "View", "Edit" ), ;
+               Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
          ENDIF
       ENDIF
       SetColor( ::cColor )
@@ -2900,6 +2900,40 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
    TEdit():nCurr := Len( TEdit():aWindows )
 
    RETURN oNew
+
+FUNCTION edi_CloseWindow( xEdit )
+
+   LOCAL oEdit
+
+   IF Valtype( xEdit ) == "C"
+      xEdit := Ascan( TEdit():aWindows, {|o|o:cFileName == xEdit} )
+   ENDIF
+   IF Valtype( xEdit ) == "N"
+      oEdit := Iif( xEdit > 0 .AND. xEdit <= Len(TEdit():aWindows), TEdit():aWindows[xEdit], Nil )
+   ELSEIF Valtype( xEdit ) == "O"
+      oEdit := xEdit
+      xEdit := Ascan( TEdit():aWindows, {|o|o == oEdit} )
+   ENDIF
+
+   IF Valtype( oEdit ) == "O"
+      IF !Empty( oEdit:oParent )
+         // Restore the size of a parent window, if exists
+         IF oEdit:y1 > oEdit:oParent:y2
+            oEdit:oParent:y2 := oEdit:y2
+         ELSEIF oEdit:y2 < oEdit:oParent:y1
+            oEdit:oParent:y1 := oEdit:y1
+         ENDIF
+         IF oEdit:x1 > oEdit:oParent:x2
+            oEdit:oParent:x2 := oEdit:x2
+         ELSEIF oEdit:x2 < oEdit:oParent:x1
+            oEdit:oParent:x1 := oEdit:x1
+         ENDIF
+      ENDIF
+      TEdit():aWindows[xEdit]:oParent := Nil
+      hb_ADel( TEdit():aWindows, xEdit, .T. )
+   ENDIF
+
+   RETURN Nil
 
 FUNCTION edi_CurrPath()
 

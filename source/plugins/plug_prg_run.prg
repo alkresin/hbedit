@@ -3,7 +3,9 @@
 
 Function plug_prg_run( oEdit )
 
-   LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile, bOldError, i, oNew
+   LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, oNew
+
+   edi_CloseWindow( cFile )
 
    acmd[1] := oEdit:ToString()
    acmd[2] := "harbour"
@@ -18,17 +20,10 @@ Function plug_prg_run( oEdit )
    cBuff := Memoread( "hb_compile_err.out" )
    IF Empty( cHrb ) .OR. ( !Empty( cBuff ) .AND. " Warning " $ cBuff .AND. ;
          edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
-      cFile := "$hb_compile_err"
-      IF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cFile} ) ) > 0
-         oNew := TEdit():aWindows[i]
-         oNew:SetText( cBuff, cFile )
-         oEdit:lShow := .F.
-         oEdit:nCurr := i
-      ELSE
-         oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 9 )
-         oNew:lReadOnly := .T.
-         oNew:bOnKey := {|o,n| _prg_ErrWin_OnKey(o,n) }
-      ENDIF
+      
+      oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+      oNew:bOnKey := {|o,n| _prg_ErrWin_OnKey(o,n) }
    ELSE
       CLEAR SCREEN
       bOldError := Errorblock( {|e| MacroError( e ) } )

@@ -20,18 +20,31 @@ FUNCTION Plug_hbp_Init( oEdit )
       DevPos( y1, o:x1 + 34 )
       DevOut( "Ctrl-L Build" )
       SetColor( o:cColor )
+      RETURN Nil
    }
    LOCAL bEndEdit := {|o|
       LOCAL y1 := o:aRect[1]
       SetColor( o:cColorPane )
       Scroll( y1, o:x1, y1, o:x2 )
+      RETURN Nil
+   }
+   LOCAL bOnKeyOrig
+   LOCAL bOnKey := {|o,n|
+      LOCAL nRes := _hbp_Init_OnKey(o,n)
+      IF bOnKeyOrig != Nil .AND. nRes >= 0
+         nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
+      ENDIF
+      RETURN nRes
    }
 
    oEdit:lTopPane := .F.
    oEdit:y1 := oEdit:aRect[1] + 1
    oEdit:bStartEdit := bEdit
    oEdit:bEndEdit := bEndEdit
-   oEdit:bOnKey := {|o,n| _hbp_Init_OnKey(o,n) }
+   IF !Empty( oEdit:bOnKey )
+      bOnKeyOrig := oEdit:bOnKey
+   ENDIF
+   oEdit:bOnKey := bOnKey
 
    RETURN Nil
 
@@ -118,6 +131,8 @@ STATIC FUNCTION _hbp_Init_Build( oEdit )
 
    LOCAL cBuff, oNew, i, cFile := "hb_compile_err.out"
 
+   edi_CloseWindow( "$"+cFile )
+
    SetColor( "W+/R" )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, cFile )
@@ -126,11 +141,6 @@ STATIC FUNCTION _hbp_Init_Build( oEdit )
    SetColor( oEdit:cColor )
    IF Empty( cBuff )
       edi_Alert( "Done" )
-   ELSEIF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cFile} ) ) > 0
-      oNew := TEdit():aWindows[i]
-      oNew:SetText( cBuff, cFile )
-      oEdit:lShow := .F.
-      oEdit:nCurr := i
    ELSE
       oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 9 )
       oNew:lReadOnly := .T.
