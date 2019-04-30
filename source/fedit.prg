@@ -2150,7 +2150,7 @@ FUNCTION mnu_Sea_goto( oEdit, aXY )
 
 FUNCTION mnu_Search( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,N/W,,,N/W" ), nRes, i
+   LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {12,23,1,.F.,1}, {12,43,1,.F.,1}, ;
@@ -2171,6 +2171,7 @@ FUNCTION mnu_Search( oEdit )
    @ 12, 42 SAY "[ ] Backward"
 
    IF !Empty( TEdit():aSeaHis )
+      aGets[1,4] := TEdit():aSeaHis[1]
       aGets[3,4] := lCase_Sea
    ENDIF
 
@@ -2236,7 +2237,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 
 FUNCTION mnu_SeaAndRepl( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,N/W,,,N/W" ), nRes, i
+   LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {13,22,0,"",33,"W+/BG","W+/BG"}, ;
@@ -2259,7 +2260,11 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    @ 14, 42 SAY "[ ] Backward"
 
    IF !Empty( TEdit():aSeaHis )
+      aGets[1,4] := TEdit():aSeaHis[1]
       aGets[4,4] := lCase_Sea
+   ENDIF
+   IF !Empty( TEdit():aReplHis )
+      aGets[3,4] := TEdit():aReplHis[1]
    ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)

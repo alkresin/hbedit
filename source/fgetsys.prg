@@ -32,13 +32,18 @@ FUNCTION edi_READ( aGets )
 
    LOCAL nCurr := 1, i, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
+   LOCAL aOpt := Array( Len( aGets ) )
 
+   AFill( aOpt, .T. )
    aClrdef := hb_aTokens( clrdef, ',' )
+   IF aClrdef[4] == "N/N"
+      aClrdef[4] := ""
+   ENDIF
    FOR i := 1 TO Len( aGets )
       ShowGetItem( aGets[i], .F., lUtf8 )
    NEXT
 
-   ShowGetItem( aGets[1], .T., lUtf8 )
+   ShowGetItem( aGets[1], .T., lUtf8, .T. )
 
    DO WHILE .T.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
@@ -49,9 +54,16 @@ FUNCTION edi_READ( aGets )
 
       IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            IF aOpt[nCurr]
+               nx := aGets[nCurr,G_X]
+               x := 1
+               aGets[nCurr,G_VALUE] := ""
+               aOpt[nCurr] := .F.
+            ENDIF
             IF x < aGets[nCurr,G_WIDTH] .AND. cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) < aGets[nCurr,G_WIDTH]
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
                      cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
+               Scroll( y, aGets[nCurr,G_X], y, aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1 )
                DevPos( y, aGets[nCurr,G_X] )
                DevOut( aGets[nCurr,G_VALUE] )
                DevPos( y, ++nx )
@@ -73,6 +85,7 @@ FUNCTION edi_READ( aGets )
 
       ELSEIF nKey == K_DEL
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            aOpt[nCurr] := .F.
             IF x <= cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-1 ) + ;
                   cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x+1 )
@@ -84,6 +97,7 @@ FUNCTION edi_READ( aGets )
       ELSEIF nKey == K_BS
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF x > 1
+               aOpt[nCurr] := .F.
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-2 ) + ;
                   cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x )
                ShowGetItem( aGets[nCurr], .T., lUtf8 )
@@ -94,6 +108,10 @@ FUNCTION edi_READ( aGets )
       ELSEIF nKey == K_LEFT
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF nx > aGets[nCurr,G_X]
+               IF aOpt[nCurr]
+                  aOpt[nCurr] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ENDIF
                DevPos( Row(), --nx )
             ENDIF
          ELSE
@@ -103,6 +121,10 @@ FUNCTION edi_READ( aGets )
       ELSEIF nKey == K_RIGHT
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF x < aGets[nCurr,G_WIDTH] .AND. x < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
+               IF aOpt[nCurr]
+                  aOpt[nCurr] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ENDIF
                DevPos( Row(), ++nx )
             ENDIF
          ELSE
@@ -113,29 +135,39 @@ FUNCTION edi_READ( aGets )
          IF nCurr > 1
             ShowGetItem( aGets[nCurr], .F., lUtf8 )
             nCurr --
-            ShowGetItem( aGets[nCurr], .T., lUtf8 )
+            ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
          ENDIF
 
       ELSEIF nKey == K_DOWN .OR. nKey == K_TAB
          IF nCurr < Len( aGets )
             ShowGetItem( aGets[nCurr], .F., lUtf8 )
             nCurr ++
-            ShowGetItem( aGets[nCurr], .T., lUtf8 )
+            ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
          ENDIF
 
       ELSEIF nKey == K_HOME
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            DevPos( y, nx := aGets[nCurr,G_X] )
+               IF aOpt[nCurr]
+                  aOpt[nCurr] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ENDIF
+               DevPos( y, nx := aGets[nCurr,G_X] )
          ENDIF
 
       ELSEIF nKey == K_END
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            IF aOpt[nCurr]
+               aOpt[nCurr] := .F.
+               ShowGetItem( aGets[nCurr], .T., lUtf8 )
+            ENDIF
             DevPos( y, nx := ( aGets[nCurr,G_X] + cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) ) )
+            aOpt[nCurr] := .F.
          ENDIF
 
       ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
          ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            aOpt[nCurr] := .F.
             s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
                   s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
@@ -161,7 +193,7 @@ FUNCTION edi_READ( aGets )
             IF aGets[i,G_Y] == nRow .AND. aGets[i,G_X] <= nCol .AND. aGets[i,G_X]+aGets[i,G_WIDTH] > nCol
                ShowGetItem( aGets[nCurr], .F., lUtf8 )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
                IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK
                   aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
                   DevPos( nRow, aGets[nCurr,G_X] )
@@ -183,6 +215,7 @@ FUNCTION edi_READ( aGets )
          EXIT
 
       ENDIF
+
    ENDDO
 
    SetColor( clrdef )
@@ -190,11 +223,18 @@ FUNCTION edi_READ( aGets )
 
    RETURN nRes
 
-FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
+FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
 
    LOCAL x
+
+   IF lFirst == Nil; lFirst := .F.; ENDIF
    IF lSele
-      SetColor( Iif( Len(aGet) < G_CLRSEL .OR.Empty(aGet[G_CLRSEL]), aClrdef[2], aGet[G_CLRSEL] ) )
+      IF lFirst .AND. aGet[G_TYPE] == G_TYPE_STRING .AND. ;
+            !Empty( aClrdef[4] ) .AND. !Empty( aGet[G_VALUE] )
+         SetColor( aClrdef[4] )
+      ELSE
+         SetColor( Iif( Len(aGet) < G_CLRSEL .OR.Empty(aGet[G_CLRSEL]), aClrdef[2], aGet[G_CLRSEL] ) )
+      ENDIF
    ELSE
       SetColor( Iif( Len(aGet) < G_CLR .OR.Empty(aGet[G_CLR]), aClrdef[5], aGet[G_CLR] ) )
    ENDIF
@@ -217,6 +257,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8 )
    IF lSele
       DevPos( aGet[G_Y], aGet[G_X] )
       SetCursor( Iif( aGet[G_TYPE] == G_TYPE_BUTTON, SC_NONE, SC_NORMAL ) )
+      SetColor( Iif( Len(aGet) < G_CLRSEL .OR.Empty(aGet[G_CLRSEL]), aClrdef[2], aGet[G_CLRSEL] ) )
    ENDIF
 
    RETURN Nil
