@@ -508,6 +508,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                edi_Move( Self, nKey, Val( cDopMode ) )
                nKey := K_RIGHT
                ::nDopMode := 0
+            ELSEIF nKey == 120    // x
+               FOR i := Val( cDopMode ) TO 1 STEP -1
+                  ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
+               NEXT
             ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
                ::nDopMode := 0
             ENDIF
@@ -823,6 +827,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::nDopMode := 100
                      cDopMode := Chr( nKey )
                      EXIT
+                  CASE 120   // x - delete a char
+                     ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
+                     EXIT
                   CASE 103   // g
                      ::nDopMode := 103
                      cDopMode := Chr( nKey )
@@ -1107,7 +1114,8 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
       Scroll( y, ::x1, y, ::x2 )
       IF Empty( lClear )
          DevPos( y, ::x1 )
-         DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu " ) )
+         DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
+         DevPos( y, ::x1+8 )
          DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
          DevPos( y, ::x1 + 8 + ::nTopName + 2 )
          DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
@@ -2044,22 +2052,21 @@ FUNCTION mnu_NewWin( oEdit, cFileName )
       ENDIF
    ENDIF
 
+   hb_cdpSelect( oEdit:cpInit )
+   oNew := TEdit():New( cText, cFileName, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
+   oNew:funSave := oEdit:funSave
+   hb_cdpSelect( oEdit:cp )
+   oEdit:lShow := .F.
+
    IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
          .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
-      hb_cdpSelect( oEdit:cpInit )
-      oNew := TEdit():New( cText, cFileName, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
-      oNew:funSave := oEdit:funSave
-      hb_cdpSelect( oEdit:cp )
-      oEdit:lShow := .F.
       oEdit:nCurr := Len( oEdit:aWindows )
-      RETURN oEdit:aWindows[oEdit:nCurr]
    ELSE
-      oEdit:SetText( cText, cFileName )
-      oEdit:WriteTopPane( 1 )
-      DevPos( oEdit:nRow, oEdit:nCol )
+      oEdit:lClose := .T.
+      oEdit:nCurr := Len( oEdit:aWindows ) - 1
    ENDIF
 
-   RETURN oEdit
+   RETURN oNew
 
 FUNCTION mnu_OpenFile( oEdit )
 

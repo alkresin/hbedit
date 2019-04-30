@@ -1,0 +1,109 @@
+Hbedit is a full-screen console text editor.
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+
+   Hbedit - multi-mode editor, the current mode is displayed in the right
+corner of a status bar. The default mode is "Edit", in this mode you work
+as in a common text editor, using arrows, Home / End, Page Up / Page Down
+to move through the text, with the mouse to set the cursor in desired position.
+   The editor's menu is invoked in this mode by pressing the F9 key or
+clicking the mouse on "F9-menu" in the status bar. The menu shows hotkeys for
+relevant functions, so you can use it as a reference.
+   Here is a list of these keys:
+
+   F10, Esc            Exit
+   F1                  help screen;
+   F2                  save file;
+   Shift-F2            save file as;
+   F3                  block selection;
+   F7                  search;
+   Shift-F7            search for the next entry;
+   Alt-F7              search for the previous entry;
+   Ctrl-F7             search / replace;
+   F8                  enable / disable syntax highlighting;
+   Shift-F8            select code page;
+   Alt-F8              go to the specified position (line,position);
+   F11                 plugins list;
+   F12                 list of open files;
+   Ctrl-Q              change current mode;
+   Ctrl-Z, Alt-BS      undo;
+
+   Alt-m [a ... z]     set a bookmark;
+   Alt - '[a ... z]    go to the bookmark;
+   Alt- '.             go to the last edit position;
+   Ctrl-b              go to the pair bracket.
+   Alt-b               Return to the previous position (after search, goto, ...)
+
+   There are a total of 4 modes in Hbedit: Edit (Edit), Select (Sele),
+Vim-like (Vim) and command (Cmd).
+
+   The selection mode is activated at the beginning of the text selection. You may
+highlight text:
+1) as usual, the arrow keys with the Shift key pressed;
+2) as in Midnight Commander, pressing F3 and then continue the selection using
+   cursor movements keys and keys used in Vim (h, j, k, l, w, W, e, E, b, B, G, 0, ^, $);
+3) Ctrl-A selects all text.
+
+   Selecting the desired text, you can use the following hotkeys:
+
+   Ctrl-C, Ctrl-Ins, y put text into the system buffer;
+   F3                put text into one of 10 internal buffers (0th is system);
+   Del, d            delete the text;
+   Shift-Del,Ctrl-X  put in the system buffer and delete;
+   u, U              convert, respectively, to lower or upper case;
+   >, <              increase / decrease indent.
+
+   After pressing y, F3, Del, d, Shift-Del you return to
+editing. You can paste text from the buffer, as usual, with the keys Ctrl-V, Shift-Ins.
+At the same time, if you saved something in buffers from 1 to 9, a list of buffers will appear,
+to choose from which to insert. If only the system was used, everything will be as usual.
+
+   Vim-like mode is activated with Ctrl-Q, return to edit mode - by ESC.
+This mode is similar to what in Vim is called the normal mode, although much less
+functional. The following keys are currently supported:
+
+   h, j, k, l        cursor left, down, up, right;
+   w, w              the next word (big word);
+   e, E              end of the word (big word);
+   b, b              the beginning of the word (big word);
+   0                 beginning of line;
+   ^                 the beginning of the first word in the line;
+   $                 end of line;
+   gi                go to the last edit position;
+   gg                go to the beginning of the file;
+   [1 ... 9]gg       go to the specified line;
+   [1 ... 9]G        go to the specified line;
+   G                 go to the end of the file;
+   H                 go to the first line on the screen;
+   M                 go to the middle of the screen;
+   L                 go to the last line on the screen;
+   %                 Go to the matched bracket;
+
+   v                 switch to selection mode;
+   p, P              insert text from the buffer;
+   y                 copy text to clipboard;
+
+   i                 switch to edit mode at the current position;
+   a                 switch to edit mode after the current position;
+   I                 switch to edit mode from the first word of the line;
+   A                 switch to edit mode from the end of the line;
+   cc                delete the current line and go into edit mode;
+   cw                delete before the beginning of the next word and go into edit mode;
+   ce                delete the end of the word and go into edit mode;
+   cb                delete the word before the start and go into edit mode;
+   o                 insert a line after the current one and switch to editing mode;
+
+   dd                delete the current line;
+   dw                delete before the next word;
+   de                delete to the end of the word;
+   db                delete a word before the start;
+   diw               delete the word;
+   x                 delete a char;
+
+   m[a ... z]        set bookmark;
+   '[a ... z]        go to the bookmark;
+   '.                go to the last edit position;
+
+   u                 undo;
+
+  The number entered before the move command (h, j, k, l, w, w, e, E, b, B)
+  forces this movement to be done a specified number of times.
