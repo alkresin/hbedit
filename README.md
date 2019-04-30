@@ -10,7 +10,9 @@ A fullscreen console multiplatform text editor.
                         functions to provide a possibility to use them in plugins.
   + bld_plugins.bat     - command file to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
-  + hbedit.help         - Hbedit help file.
+  + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
+  + hbedit.help         - Hbedit help file (Russian).
+  + hbedit_en.help      - Hbedit help file (English).
   + hbedit.ini          - Hbedit ini file.
 
   + source/
@@ -29,11 +31,15 @@ A fullscreen console multiplatform text editor.
     + errorsys.prg
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
-  + source/plugins/
-    + plug_go_spis.prg
-    + plug_prg_compile.prg
-    + plug_prg_run.prg
-    + plug_prg_spis.prg - plugins source files
+  + source/plugins/     - plugins source files
+    + plug_c_spis.prg       - C functions list
+    + plug_go_fmt.prg       - Golang formatting
+    + plug_go_run.prg       - Golang run code
+    + plug_go_spis.prg      - Golang functions list
+    + plug_hbp_init.prg     - a start plugin for .hbp files
+    + plug_prg_compile.prg  - Harbour compiling
+    + plug_prg_run.prg      - Harbour run
+    + plug_prg_spis.prg     - Harbour functions list
 
 ### Usage
 

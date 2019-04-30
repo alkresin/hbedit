@@ -76,7 +76,10 @@ functional. The following keys are currently supported:
    H                 go to the first line on the screen;
    M                 go to the middle of the screen;
    L                 go to the last line on the screen;
-   %                 Go to the matched bracket;
+   %                 go to the matched bracket;
+   f[x]              find next char x;
+   F[x]              find previous char x;
+   *                 find a word under cursor;
 
    v                 switch to selection mode;
    p, P              insert text from the buffer;

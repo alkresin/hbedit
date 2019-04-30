@@ -500,6 +500,18 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
             ::nDopMode := 0
             EXIT
+         CASE 102 // f
+            IF ( i := cp_At( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n], ::ColToPos(nCol)+1 ) ) > 0
+               ::GoTo( n, i )
+            ENDIF
+            ::nDopMode := 0
+            EXIT
+         CASE 70  // F
+            IF ( i := cp_Rat( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n],,::ColToPos(nCol)-1 ) ) > 0
+               ::GoTo( n, i )
+            ENDIF
+            ::nDopMode := 0
+            EXIT
          CASE 49  // 1
             cDopMode += Chr( nKey )
             IF nKey == 103    // g
@@ -512,6 +524,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                FOR i := Val( cDopMode ) TO 1 STEP -1
                   ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
                NEXT
+               ::nDopMode := 0
             ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
                ::nDopMode := 0
             ENDIF
@@ -814,8 +827,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F., .T. )
                      mnu_ChgMode( Self, .T. )
                      EXIT
-                  CASE 109
-                  CASE 39  // m - set bookmark, ' - goto bookmark
+                  CASE 102 // f - find next char
+                  CASE 70  // F - find previous char
+                  CASE 109 // m - set bookmark
+                  CASE 39  // ' - goto bookmark
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
@@ -848,6 +863,15 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 76   // L
                      DevPos( ::nRow := ::y2, ::nCol := ::x1 )
                      edi_Move( Self, 94 )
+                     EXIT
+                  CASE 42   // *
+                     i := edi_PrevWord( Self, .F., .F.,, ::ColToPos()+1 )
+                     x := edi_NextWord( Self, .F., .T., .F.,, ::ColToPos()-1 )
+                     s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
+                     i := ::ColToPos()
+                     IF ::Search( s, .T., .T., @n, @i )
+                        ::GoTo( n, i, 0 )
+                     ENDIF
                      EXIT
                   END
                ENDIF
@@ -2589,12 +2613,16 @@ STATIC FUNCTION edi_AlphaNum( nch )
    RETURN (nch >= 48 .AND. nch <= 57) .OR. (nch >= 65 .AND. nch <= 90) .OR. ;
       (nch >= 97 .AND. nch <= 122) .OR. nch == 95 .OR. nch >= 128
 
-STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
-   LOCAL ny, nx, nRow := Row(), nCol := Col(), nLen, lUtf8 := oEdit:lUtf8, ch, nch
+STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
+   LOCAL nInitPos := nx, nLen, lUtf8 := oEdit:lUtf8, ch, nch
    LOCAL lOk := .F., lAlphaNum
 
-   ny := oEdit:RowToLine(nRow)
-   nx := oEdit:ColToPos( nCol )
+   IF ny == Nil
+      ny := oEdit:RowToLine()
+   ENDIF
+   IF nx == Nil
+      nInitPos := nx := oEdit:ColToPos()
+   ENDIF
    nLen := cp_Len( lUtf8, oEdit:aText[ny] )
 
    IF nx > nLen
@@ -2613,7 +2641,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
          ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
          IF ( ch == " " ) .OR. ( !lBigW .AND. ;
                lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) )
-            IF !Empty( lEndWord ) .AND. nx - (nCol - oEdit:x1 + oEdit:nxFirst) > 1
+            IF !Empty( lEndWord ) .AND. nx - nInitPos > 1
                nx --
                EXIT
             ENDIF
@@ -2630,20 +2658,27 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord )
          nx --
       ENDIF
    ENDIF
-   IF nx - oEdit:nxFirst + oEdit:x1 >= oEdit:x2
-      oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 + 3
-      oEdit:lTextOut := .T.
+
+   IF lChgPos == Nil .OR. lChgPos
+      IF nx - oEdit:nxFirst + oEdit:x1 >= oEdit:x2
+         oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 + 3
+         oEdit:lTextOut := .T.
+      ENDIF
+      DevPos( Row(), oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
    ENDIF
-   DevPos( nRow, oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
 
-   RETURN Nil
+   RETURN nx
 
-STATIC FUNCTION edi_PrevWord( oEdit, lBigW )
-   LOCAL ny, nx, nRow := Row(), nCol := Col(), lUtf8 := oEdit:lUtf8
+STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
+   LOCAL lUtf8 := oEdit:lUtf8
    LOCAL ch, lAlphaNum
 
-   ny := oEdit:RowToLine(nRow)
-   nx := oEdit:ColToPos( nCol )
+   IF ny == Nil
+      ny := oEdit:RowToLine()
+   ENDIF
+   IF nx == Nil
+      nx := oEdit:ColToPos()
+   ENDIF
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
    IF ch == " "
@@ -2659,13 +2694,16 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW )
       ENDIF
    ENDDO
    nx := Max( nx, 1 )
-   IF nx < oEdit:nxFirst
-      oEdit:nxFirst := Max( nx + oEdit:x1 - oEdit:x2 + 3, 1 )
-      oEdit:lTextOut := .T.
-   ENDIF
-   DevPos( nRow, oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
 
-   RETURN Nil
+   IF lChgPos == Nil .OR. lChgPos
+      IF nx < oEdit:nxFirst
+         oEdit:nxFirst := Max( nx + oEdit:x1 - oEdit:x2 + 3, 1 )
+         oEdit:lTextOut := .T.
+      ENDIF
+      DevPos( Row(), oEdit:nCol := ( nx - oEdit:nxFirst + oEdit:x1 ) )
+   ENDIF
+
+   RETURN nx
 
 STATIC FUNCTION edi_FileName( oEdit )
 
