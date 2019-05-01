@@ -137,6 +137,7 @@ FUNCTION Main( ... )
       TEdit():aWindows[1]:Goto( nStartLine,,, .T. )
    ENDIF
 
+   SetCancel( .F. )
    TEdit():nCurr := 1
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)

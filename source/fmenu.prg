@@ -6,7 +6,7 @@ STATIC lSea, cSea, aSea
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch )
 
    //LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
-   LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0
+   LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
    LOCAL i, j, nKey, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
    LOCAL nFirst := 1, nHeight
@@ -147,7 +147,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
             LOOP
          ENDIF
 
-      ELSEIF nKey == K_DOWN
+      ELSEIF nKey == K_DOWN .OR. ( nKey == K_MWBACKWARD .AND. ;
+         (mRow := MRow()) >= y1 .AND. mRow <= y2 .AND. (mCol := MCol()) >= x1 .AND. mCol <= x2 )
          IF i < nHeight
             i ++
          ELSEIF i + nFirst - 1 < nLen
@@ -155,7 +156,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
             MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
          ENDIF
 
-      ELSEIF nKey == K_UP
+      ELSEIF nKey == K_UP .OR. ( nKey == K_MWFORWARD .AND. ;
+         (mRow := MRow()) >= y1 .AND. mRow <= y2 .AND. (mCol := MCol()) >= x1 .AND. mCol <= x2 )
          IF i > 1
             i --
          ELSEIF nFirst > 1

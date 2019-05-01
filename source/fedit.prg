@@ -51,6 +51,8 @@ STATIC aMenu_CB
 STATIC aLangs
 STATIC lCase_Sea := .F.
 STATIC cDopMode := ""
+STATIC cLastDir := ""
+STATIC aMacro
 
 CLASS TEdit
 
@@ -75,6 +77,7 @@ CLASS TEdit
    CLASS VAR cColorBra  SHARED  INIT "R+/B"
    CLASS VAR aRectFull  SHARED
    CLASS VAR bNew       SHARED
+   CLASS VAR hMacros    SHARED
 
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
@@ -482,7 +485,37 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ENDIF
    ENDIF
 
-   IF ::nDopMode > 0
+   IF ::nDopMode == 113  // q - macro recording
+      IF Len( cDopMode ) == 1
+         IF (nKey >= 48 .AND. nKey <= 57) .OR. (nKey >= 97 .AND. nKey <= 122)
+            cDopMode := "Rec " + Chr( nKey )
+            aMacro := {}
+         ELSE
+            ::nDopMode := 0
+            cDopMode := ""
+         ENDIF
+         lSkip := .T.
+      ELSE
+         IF nKey == 113
+            ::hMacros[Asc(Right(cDopMode,1))] := aMacro
+            ::nDopMode := 0
+            cDopMode := ""
+            lSkip := .T.
+         ELSE
+            Aadd( aMacro, nKeyExt )
+         ENDIF
+      ENDIF
+   ELSEIF ::nDopMode == 64
+         ::nDopMode := 0
+         cDopMode := ""
+         lSkip := .T.
+         IF hb_hHaskey( ::hMacros, nKey )
+            x := ::hMacros[nKey]
+            FOR i := 1 TO Len( x )
+               ::onKey( x[i] )
+            NEXT
+         ENDIF
+   ELSEIF ::nDopMode > 0
       IF nKey == K_ESC
          ::nDopMode := 0
       ELSE
@@ -820,56 +853,58 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      mnu_ChgMode( Self, .T. )
                      EXIT
                   CASE 65    // A - to edit mode
-                     edi_GoEnd( Self ); edi_GoRight( Self )
                      mnu_ChgMode( Self, .T. )
+                     edi_GoEnd( Self )
                      EXIT
                   CASE 111   // o Insert line after current
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F., .T. )
                      mnu_ChgMode( Self, .T. )
                      EXIT
-                  CASE 102 // f - find next char
-                  CASE 70  // F - find previous char
-                  CASE 109 // m - set bookmark
-                  CASE 39  // ' - goto bookmark
-                     ::nDopMode := nKey
-                     cDopMode := Chr( nKey )
-                     EXIT
+                  CASE 102   // f - find next char
+                  CASE 70    // F - find previous char
+                  CASE 109   // m - set bookmark
+                  CASE 39    // ' - goto bookmark
                   CASE 99    // c - delete and edit
-                     ::nDopMode := 99
-                     cDopMode := Chr( nKey )
-                     EXIT
                   CASE 100   // d - delete
-                     ::nDopMode := 100
+                  CASE 103   // g
+                  CASE 113   // q - record macro
+                  CASE 64    // w - play macro
+                     ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
                   CASE 120   // x - delete a char
                      ::DelText( n, ::nCol-::x1+::nxFirst, n, ::nCol-::x1+::nxFirst )
                      EXIT
-                  CASE 103   // g
-                     ::nDopMode := 103
-                     cDopMode := Chr( nKey )
-                     EXIT
-                  CASE 37   // %  Go to matching parentheses
+                  CASE 37    // %  Go to matching parentheses
                      edi_Bracket( Self )
                      EXIT
-                  CASE 72   // H
+                  CASE 72    // H
                      DevPos( ::nRow := ::y1, ::nCol := ::x1 )
                      edi_Move( Self, 94 )
                      EXIT
-                  CASE 77   // M
+                  CASE 77    // M
                      DevPos( ::nRow := ::y1 + Int((::y2-::y1)/2), ::nCol := ::x1 )
                      edi_Move( Self, 94 )
                      EXIT
-                  CASE 76   // L
+                  CASE 76    // L
                      DevPos( ::nRow := ::y2, ::nCol := ::x1 )
                      edi_Move( Self, 94 )
                      EXIT
-                  CASE 42   // *
+                  CASE 42    // *
                      i := edi_PrevWord( Self, .F., .F.,, ::ColToPos()+1 )
                      x := edi_NextWord( Self, .F., .T., .F.,, ::ColToPos()-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i := ::ColToPos()
                      IF ::Search( s, .T., .T., @n, @i )
+                        ::GoTo( n, i, 0 )
+                     ENDIF
+                     EXIT
+                  CASE 35    // #
+                     i := edi_PrevWord( Self, .F., .F.,, ::ColToPos()+1 )
+                     x := edi_NextWord( Self, .F., .T., .F.,, ::ColToPos()-1 )
+                     s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
+                     i --
+                     IF ::Search( s, .T., .F., @n, @i )
                         ::GoTo( n, i, 0 )
                      ENDIF
                      EXIT
@@ -1847,6 +1882,7 @@ FUNCTION edi_ReadIni( xIni )
    FOR i := 1 TO MAX_CBOARDS
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
+   TEdit():hMacros := hb_Hash()
 
    IF nSaveHis > 0
       hIni := edi_iniRead( Iif( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his" )
@@ -1920,6 +1956,8 @@ FUNCTION mnu_Exit( oEdit )
       ENDIF
       oEdit:lShow := .F.
       oEdit:lClose := .T.
+   ELSE
+      DevPos( oEdit:nRow, oEdit:nCol )
    ENDIF
    RETURN Nil
 
@@ -2119,7 +2157,7 @@ FUNCTION mnu_OpenFile( oEdit )
 
 FUNCTION mnu_FileList( oEdit, aGet )
 
-   LOCAL cPrefix, cFileName
+   LOCAL cPrefix, cFileName, cDir
    LOCAL cScBuf := Savescreen( 12, 12, 22, 67 )
 
 #ifdef __PLATFORM__UNIX
@@ -2128,10 +2166,12 @@ FUNCTION mnu_FileList( oEdit, aGet )
    cPrefix := hb_curDrive() + ':\'
 #endif
 
-   cFileName := edi_SeleFile( oEdit, cPrefix + CurDir() + hb_ps(), 12, 12, 22, 67 )
+   cDir := Iif( Empty(cLastDir), cPrefix + CurDir() + hb_ps(), cLastDir )
+   cFileName := edi_SeleFile( oEdit, cDir, 12, 12, 22, 67 )
    Restscreen( 12, 12, 22, 67, cScBuf )
 
    IF !Empty( cFileName )
+      cLastDir := hb_fnameDir( cFileName )
       aGet[4] := cFileName
       ShowGetItem( aGet, .F., oEdit:lUtf8 )
    ENDIF
