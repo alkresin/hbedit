@@ -44,6 +44,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
+STATIC hKeyMap
 
 STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
@@ -70,7 +71,7 @@ CLASS TEdit
    CLASS VAR aCBoards   SHARED                   // An array for clipboard buffers
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
-   CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( 0 - Edit, 1- Vim )
+   CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
    CLASS VAR cColor     SHARED  INIT "BG+/B"
    CLASS VAR cColorSel  SHARED  INIT "N/W"
    CLASS VAR cColorPane SHARED  INIT "N/BG"
@@ -180,7 +181,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    ENDIF
    ::nRow := ::y1; ::nCol := ::x1
 
-   ::nMode := ::nDefMode
+   ::nMode := Iif( ::nDefMode<0, 0, ::nDefMode )
    ::cp := ::cpInit
 
    ::SetText( cText, cFileName )
@@ -336,6 +337,9 @@ METHOD Edit() CLASS TEdit
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
+      IF !Empty( hKeyMap ) .AND. ( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) ) != 0
+         nKeyExt := i
+      ENDIF
       SetCursor( SC_NONE )
       ::onKey( nKeyExt )
    ENDDO
@@ -718,7 +722,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             cbDele( Self )
             EXIT
          CASE K_CTRL_Q
-            IF hb_keyVal( nKeyExt ) == 81
+            IF hb_keyVal( nKeyExt ) == 81 .AND. ::nDefMode >= 0
                mnu_ChgMode( Self )
             ENDIF
             EXIT
@@ -1719,7 +1723,7 @@ STATIC FUNCTION cbDele( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp
+   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp, nTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
@@ -1738,7 +1742,7 @@ FUNCTION edi_ReadIni( xIni )
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTemp := "defmode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  TEdit():nDefMode := Iif( (n := Val(cTemp)) < 2 .AND. n >= 0, n, 0 )
+                  TEdit():nDefMode := Iif( (n := Val(cTemp)) < 2 .AND. n >= -1, n, 0 )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "incsearch" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lIncSea := ( Lower(cTemp) == "on" )
@@ -1792,6 +1796,17 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "colorbra" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():cColorbra := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "keymap" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  arr := hb_aTokens( cTemp, ",", .T. )
+                  hKeyMap := hb_Hash()
+                  FOR i := 1 TO Len( arr )
+                     IF ( nPos := At( "=>", arr[i] ) ) > 0 .AND. ;
+                        ( nTemp := edi_KeyCToN(Left(arr[i],nPos-1)) ) != Nil .AND. ;
+                        ( nPos := edi_KeyCToN(Substr(arr[i],nPos+2)) ) != Nil
+                        hKeyMap[nTemp] := nPos
+                     ENDIF
+                  NEXT
                ENDIF
             ENDIF
 
