@@ -85,27 +85,32 @@ STATIC hKeysMap2 := { "Ctrl-Q"=>0x41020051, "Ctrl-W"=>0x41020057, "Ctrl-E"=>0x41
 
 FUNCTION edi_KeyNToC( nKeyExt )
 
-   LOCAL nKey := hb_keyStd(nKeyExt)
+   LOCAL nKey, cKey
 
-   IF nKey >= K_SPACE .AND. nKey <= 255
+   IF ( nKey := hb_keyStd(nKeyExt) ) >= K_SPACE .AND. nKey <= 126
       RETURN Chr( nKey )
 
-   ELSEIF nKey > 3000
-      RETURN hb_utf8Chr( nKey )
-
-   ELSE
-      RETURN hb_hGetDef( hKeysMap1, nKey, Nil )
+   ELSEIF ( cKey := hb_hGetDef( hKeysMap1, nKeyExt, Nil ) ) != Nil
+      RETURN cKey
 
    ENDIF
-   RETURN Nil
+
+   RETURN hb_NumToHex( nKeyExt, 8 )
 
 FUNCTION edi_KeyCToN( cKey )
 
-   IF Len( cKey ) == 1
-      RETURN Asc( cKey )
+   LOCAL nKey
 
-   ELSEIF Len( cKey ) <= 3 .AND. Lower(Left(cKey,1)) != "f"
-      RETURN hb_utf8Asc( cKey )
+   IF Len( cKey ) == 1
+      nKey := Asc( cKey )
+      IF (nKey >= 48 .AND. nKey <= 57) .OR. (nKey >= 96 .AND. nKey <= 122) .OR. cKey $ ";/-=[],.\"
+         RETURN 0x42000000 + nKey
+      ELSE
+         RETURN 0x42010000 + nKey
+      ENDIF
+
+   ELSEIF IsDigit( cKey )
+      RETURN hb_HexToNum( cKey )
 
    ELSE
       hb_hCaseMatch( hKeysMap2, .F. )
@@ -113,3 +118,4 @@ FUNCTION edi_KeyCToN( cKey )
 
    ENDIF
    RETURN Nil
+   

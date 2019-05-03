@@ -1580,7 +1580,7 @@ METHOD Highlighter( oHili ) CLASS TEdit
 METHOD OnExit() CLASS TEdit
 
    LOCAL i, s := "", nSaveHis := TEdit():options["savehis"]
-
+   LOCAL aMacros, arr, sLine
 
    IF nSaveHis > 0
       IF !Empty( TEdit():aSeaHis )
@@ -1591,7 +1591,7 @@ METHOD OnExit() CLASS TEdit
       ENDIF
 
       IF !Empty( TEdit():aReplHis )
-         s += "[REPLACE]" + Chr(13) + Chr(10)
+         s += Chr(13) + Chr(10) + "[REPLACE]" + Chr(13) + Chr(10)
          FOR i := 1 TO Len( TEdit():aReplHis )
             s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aReplHis[i] + Chr(13) + Chr(10)
          NEXT
@@ -1601,6 +1601,19 @@ METHOD OnExit() CLASS TEdit
          s += Chr(13) + Chr(10) + "[COMMANDS]" + Chr(13) + Chr(10)
          FOR i := 1 TO Len( TEdit():aCmdHis )
             s += "h" + PAdl(Ltrim(Str(i)),3,'0') + "=" + TEdit():aCmdHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+
+      IF !Empty( aMacros := ASort( hb_hKeys( ::hMacros ) ) )
+         s += Chr(13) + Chr(10) + "[MACRO]" + Chr(13) + Chr(10)
+         FOR i := 1 TO Len( aMacros )
+            arr := ::hMacros[aMacros[i]]
+            sLine := Chr( aMacros[i] ) + "="
+            FOR j := 1 TO Len( arr )             
+               sLine += edi_KeyNToC( arr[j] ) + ","
+            NEXT
+            sLine += Chr(13) + Chr(10)
+            s += sLine
          NEXT
       ENDIF
 
@@ -1899,28 +1912,46 @@ FUNCTION edi_ReadIni( xIni )
       hIni := edi_iniRead( Iif( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his" )
       IF !Empty( hIni )
          hb_hCaseMatch( hIni, .F. )
-         IF hb_hHaskey( hIni, "SEARCH" ) .AND. !Empty( aSect := hIni[ "SEARCH" ] )
+         IF hb_hHaskey( hIni, cTemp := "SEARCH" ) .AND. !Empty( aSect := hIni[ cTemp ] )
             arr := ASort( hb_hKeys( aSect ) )
             TEdit():aSeaHis := Array( Len(arr) )
             FOR i := 1 TO Len(arr)
                TEdit():aSeaHis[i] := aSect[ arr[i] ]
             NEXT
          ENDIF
-         IF hb_hHaskey( hIni, "REPLACE" ) .AND. !Empty( aSect := hIni[ "REPLACE" ] )
+         IF hb_hHaskey( hIni, cTemp := "REPLACE" ) .AND. !Empty( aSect := hIni[ cTemp ] )
             arr := ASort( hb_hKeys( aSect ) )
             TEdit():aReplHis := Array( Len(arr) )
             FOR i := 1 TO Len(arr)
                TEdit():aReplHis[i] := aSect[ arr[i] ]
             NEXT
          ENDIF
-         IF hb_hHaskey( hIni, "COMMANDS" ) .AND. !Empty( aSect := hIni[ "COMMANDS" ] )
+         IF hb_hHaskey( hIni, cTemp := "COMMANDS" ) .AND. !Empty( aSect := hIni[ cTemp ] )
             arr := ASort( hb_hKeys( aSect ) )
             TEdit():aCmdHis := Array( Len(arr) )
             FOR i := 1 TO Len(arr)
                TEdit():aCmdHis[i] := aSect[ arr[i] ]
             NEXT
          ENDIF
-         IF hb_hHaskey( hIni, "EDIT" ) .AND. !Empty( aSect := hIni[ "EDIT" ] )
+         IF hb_hHaskey( hIni, cTemp := "MACRO" ) .AND. !Empty( aSect := hIni[ cTemp ] )
+            arr := ASort( hb_hKeys( aSect ) )
+            FOR i := 1 TO Len(arr)
+               arr1 := {}
+               s := aSect[ arr[i] ]
+               nPos := 1
+               DO WHILE ( n := hb_At( ",", s, nPos ) ) > 0
+                  IF n-nPos == 0
+                     AAdd( arr1, edi_KeyCToN( "," ) )
+                  ELSE
+                     cTemp := Substr( s, nPos, n-nPos )
+                     AAdd( arr1, edi_KeyCToN( cTemp ) )
+                  ENDIF
+                  nPos := n + 1
+               ENDDO
+               TEdit():hMacros[Asc(arr[i])] := arr1
+            NEXT
+         ENDIF
+         IF hb_hHaskey( hIni, cTemp := "EDIT" ) .AND. !Empty( aSect := hIni[ cTemp ] )
             arr := ASort( hb_hKeys( aSect ) )
             TEdit():aEditHis := Array( Len(arr) )
             FOR i := 1 TO Len(arr)
@@ -2444,7 +2475,7 @@ FUNCTION mnu_GoTo( oEdit )
 
 FUNCTION mnu_Plugins( oEdit )
 
-   LOCAL aMenu := {}, i, cPlugin, cFullPath
+   LOCAL aMenu := {}, i
 
    FOR i := 1 TO Len( TEdit():aPlugins )
       IF Empty( TEdit():aPlugins[i,3] ) .OR. TEdit():aPlugins[i,3] == oEdit:cSyntaxType
@@ -2454,15 +2485,7 @@ FUNCTION mnu_Plugins( oEdit )
    IF !Empty( aMenu )
       IF ( i := FMenu( oEdit, aMenu, 2, 6 ) ) > 0
          i := aMenu[i,3]
-         IF Empty( TEdit():aPlugins[i,4] )
-            cPlugin := TEdit():aPlugins[i,1]
-            IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
-               TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
-            ENDIF
-         ENDIF
-         IF !Empty( TEdit():aPlugins[i,4] )
-            hb_hrbDo( TEdit():aPlugins[i,4], oEdit )
-         ENDIF
+         edi_RunPlugin( oEdit, i )
       ENDIF
    ENDIF
 
@@ -2486,6 +2509,29 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
          oEdit:nMode := 2
          oEdit:WriteTopPane( 1 )
          mnu_CmdLine( oEdit )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION edi_RunPlugin( oEdit, xPlugin )
+
+   LOCAL i, cPlugin, cFullPath
+
+   IF Valtype( xPlugin ) == "N"
+      i := xPlugin
+   ELSEIF Valtype( xPlugin ) == "C"
+      i := Ascan( TEdit():aPlugins, {|a|a[1]==xPlugin} )
+   ENDIF
+   IF i > 0
+      IF Empty( TEdit():aPlugins[i,4] )
+         cPlugin := TEdit():aPlugins[i,1]
+         IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
+            TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
+         ENDIF
+      ENDIF
+      IF !Empty( TEdit():aPlugins[i,4] )
+         hb_hrbDo( TEdit():aPlugins[i,4], oEdit )
       ENDIF
    ENDIF
 
