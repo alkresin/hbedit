@@ -155,7 +155,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    LOCAL i, cExt
 
    IF !::lReadIni
-      edi_ReadIni( hb_DirBase() + "hbedit.ini" )
+      edi_ReadIni( edi_FindPath( "hbedit.ini" ) )
    ENDIF
    IF Empty( ::aRectFull )
       ::aRectFull := { 0, 0, MaxRow(), MaxCol() }
@@ -201,7 +201,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cBom := e"\xef\xbb\xbf"
+   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
 
    IF !Empty( cFileName )
@@ -279,12 +279,9 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
             IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
-               IF Valtype( xPlugin ) == "C"
-                  IF File( edi_CurrPath() + "plugins" + hb_ps() + xPlugin )
-                     xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( edi_CurrPath() + "plugins" + hb_ps() + xPlugin )
-                  ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + xPlugin )
-                     xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( hb_DirBase() + "plugins" + hb_ps() + xPlugin )
-                  ENDIF
+               IF Valtype( xPlugin ) == "C" .AND. ;
+                  !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
+                  xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( cFullPath )
                   IF Empty( xPlugin )
                      EXIT
                   ENDIF
@@ -1829,8 +1826,7 @@ FUNCTION edi_ReadIni( xIni )
                   s := aSect[ arr[i] ]
                   IF ( n := At( ",", s ) ) > 0
                      cTemp := AllTrim( Left( s,n-1 ) )
-                     IF File( edi_CurrPath() + "plugins" + hb_ps() + cTemp ) .OR. ;
-                           File( hb_DirBase() + "plugins" + hb_ps() + cTemp )
+                     IF !Empty( edi_FindPath( "plugins" + hb_ps() + cTemp ) )
                         s := Substr( s, n+1 )
                         IF ( n := At( ",", s ) ) > 0
                            Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil } )
@@ -1949,12 +1945,16 @@ FUNCTION edi_ReadIni( xIni )
 
 FUNCTION mnu_Help( oEdit )
 
-   LOCAL oHelp := TEdit():New( MemoRead(hb_DirBase() + "hbedit.help"), "$Help", ;
+   LOCAL cFullPath := edi_FindPath( "hbedit.help" ), oHelp
+
+   IF !Empty( cFullPath )
+      oHelp := TEdit():New( MemoRead( cFullPath ), "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
-   oHelp:lReadOnly := .T.
-   oHelp:lCtrlTab  := .F.
-   oHelp:Edit()
+      oHelp:lReadOnly := .T.
+      oHelp:lCtrlTab  := .F.
+      oHelp:Edit()
+   ENDIF
 
    RETURN Nil
 
@@ -2456,9 +2456,7 @@ FUNCTION mnu_Plugins( oEdit )
          i := aMenu[i,3]
          IF Empty( TEdit():aPlugins[i,4] )
             cPlugin := TEdit():aPlugins[i,1]
-            IF File( cFullPath := ( edi_CurrPath() + "plugins" + hb_ps() + cPlugin ) )
-               TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
-            ELSEIF File( cFullPath := ( hb_DirBase() + "plugins" + hb_ps() + cPlugin ) )
+            IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
                TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
             ENDIF
          ENDIF
@@ -3037,18 +3035,6 @@ FUNCTION edi_CloseWindow( xEdit )
    ENDIF
 
    RETURN Nil
-
-FUNCTION edi_CurrPath()
-
-   LOCAL cPrefix
-
-#ifdef __PLATFORM__UNIX
-   cPrefix := '/'
-#else
-   cPrefix := hb_curDrive() + ':\'
-#endif
-
-   RETURN cPrefix + CurDir() + hb_ps()
 
 STATIC FUNCTION edi_MapKey( oEdit, nKey )
 

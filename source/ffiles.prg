@@ -101,3 +101,31 @@ FUNCTION edi_IniRead( cFileName )
 
    RETURN hIni
 
+FUNCTION edi_CurrPath()
+
+   LOCAL cPrefix
+
+#ifdef __PLATFORM__UNIX
+   cPrefix := '/'
+#else
+   cPrefix := hb_curDrive() + ':\'
+#endif
+
+   RETURN cPrefix + CurDir() + hb_ps()
+
+FUNCTION edi_FindPath( cFile )
+
+   LOCAL cFullPath
+
+#ifdef __PLATFORM__UNIX
+   IF File( cFullPath := ( edi_CurrPath() + cFile ) ) .OR. ;
+      File( cFullPath := ( getenv("HOME") + "/hbedit/" + cFile ) ) .OR. ;
+      File( cFullPath := ( hb_DirBase() + cFile ) )
+#else
+   IF File( cFullPath := ( edi_CurrPath() + cFile ) ) .OR. ;
+      File( cFullPath := ( hb_DirBase() + cFile ) )
+#endif
+      RETURN cFullPath
+   ENDIF
+
+   RETURN Nil

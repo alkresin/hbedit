@@ -54,10 +54,7 @@ FUNCTION Main( ... )
    NEXT
 
    IF Empty( cIniName ) .OR. !File( cIniName )
-      cIniName := cCurrPath + "hbedit.ini"
-      IF !File( cIniName )
-         cIniName := hb_DirBase() + "hbedit.ini"
-      ENDIF
+      cIniName := edi_FindPath( "hbedit.ini" )
    ENDIF
    ReadIni( cIniName )
 
@@ -110,12 +107,9 @@ FUNCTION Main( ... )
    ENDIF
 #endif
 
-   IF !Empty( cStartPlugin )
-      IF File( cCurrPath + "plugins" + hb_ps() + cStartPlugin )
-         hb_hrbRun( cCurrPath + "plugins" + hb_ps() + cStartPlugin )
-      ELSEIF File( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
-         hb_hrbRun( hb_DirBase() + "plugins" + hb_ps() + cStartPlugin )
-      ENDIF
+   IF !Empty( cStartPlugin ) .AND. ;
+      !Empty( cStartPlugin := edi_FindPath( "plugins" + hb_ps() + cStartPlugin ) )
+      hb_hrbRun( cStartPlugin )
    ENDIF
 
    FOR i := 1 TO Len( aFiles )
@@ -156,6 +150,9 @@ STATIC FUNCTION ReadIni( cIniName )
    LOCAL hIni := edi_iniRead( cIniName ), aSect, cTmp, arr, i
    LOCAL cp
 
+   IF !Empty( cIniName )
+      hIni := edi_iniRead( cIniName )
+   ENDIF
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, cTmp := "SCREEN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
