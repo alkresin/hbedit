@@ -179,7 +179,7 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
 
 STATIC FUNCTION DoSea( oEdit, s, lNext, lInc )
 
-   LOCAL ny := oEdit:nRow - oEdit:y1 + oEdit:nyFirst, nx := oEdit:nCol - oEdit:x1 + oEdit:nxFirst
+   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
    LOCAL lRes
 
    IF !lInc
