@@ -384,7 +384,8 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
    LOCAL n := nLine + ::nyFirst - 1, y := ::y1 + nLine - 1, nWidth := ::x2 - ::x1 + 1, s, nLen
    LOCAL lSel := .F., nby1, nby2, nbx1, nbx2, nx1, nx2, lTabs := .F., nf := ::nxFirst, nf1
-   LOCAL aStru, i, aClrs, nxPosFirst := 1
+   LOCAL aStru, i, aClrs
+   LOCAL nxPosFirst := 1, nxPosLast := nf + nWidth
 
    IF n <= Len( ::aText )
 
@@ -407,9 +408,8 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
       ENDIF
       DispBegin()
       IF nLen > 0
-         //IF ( ::nxFirst > 1 .AND. cTab $ cp_Left(::lUtf8,::aText[n],::nxFirst-1) )
-         IF ::nxFirst > 1 .AND. (nf := edi_ExpandTabs( Self, ;
-               cp_Left(::lUtf8,::aText[n],nxPosFirst-1), 1, .T. )) > ::nxFirst
+         IF ::nxFirst > 1 .AND. nxPosFirst < ::nxFirst
+            nf := edi_ExpandTabs( Self, cp_Left(::lUtf8,::aText[n],nxPosFirst), 1, .T. )
             lTabs := .T.
             DevPos( y, ::x1 + nf - ::nxFirst )
          ENDIF
@@ -419,6 +419,9 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          ELSE
             DevOut( s )
          ENDIF
+         IF lTabs
+            nxPosLast := edi_Col2Pos( Self, n, nf + nWidth )
+         ENDIF
          nLen := Col() - ::x1
 
          IF !Empty( ::oHili ) .AND. hb_hGetDef( TEdit():options, "syntax", .F. )
@@ -427,20 +430,22 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
             IF ::oHili:nItems > 0
                aClrs := ::oHili:hHili["colors"]
                FOR i := 1 TO ::oHili:nItems
-                  IF aStru[i,2] >= ::nxFirst .AND. aStru[i,3] > 0 .AND. aStru[i,1] < ::nxFirst + nWidth
-                     nx1 := Max( ::nxFirst, aStru[i,1] )
-                     nx2 := Min( aStru[i,2], ::nxFirst + nWidth - 1 )
-                     SetColor( Iif( !Empty(aClrs[aStru[i,3]]), aClrs[aStru[i,3]], ::aHiliAttrs[aStru[i,3]] ) )
-                     IF lTabs
-                        IF nx1 > ::nxFirst
-                           nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nx1 - ::nxFirst ), nf, .T. )
+                  IF aStru[i,1] < nxPosLast
+                     IF aStru[i,2] >= nxPosFirst .AND. aStru[i,3] > 0
+                        nx1 := Max( nxPosFirst, aStru[i,1] )
+                        nx2 := Min( aStru[i,2], nxPosLast - 1 )
+                        SetColor( Iif( !Empty(aClrs[aStru[i,3]]), aClrs[aStru[i,3]], ::aHiliAttrs[aStru[i,3]] ) )
+                        IF lTabs
+                           nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nx1 - nxPosFirst ), nf, .T. )
                            DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
-                           DevOut( cp_Substr( ::lUtf8, s, nx1-::nxFirst+1, nx2-nx1+1 ) )
+                           DevOut( cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ) )
+                        ELSE
+                           DevPos( y, nx1 - nf + ::x1 )
+                           DevOut( cp_Substr( ::lUtf8, s, nx1-nf+1, nx2-nx1+1 ) )
                         ENDIF
-                     ELSE
-                        DevPos( y, nx1 -::nxFirst )
-                        DevOut( cp_Substr( ::lUtf8, s, nx1-::nxFirst+1, nx2-nx1+1 ) )
                      ENDIF
+                  ELSE
+                     EXIT
                   ENDIF
                NEXT
             ENDIF
@@ -449,20 +454,18 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          IF lSel
             nbx1 := Iif( n > nby1, 1, nbx1 )
             nbx2 := Iif( n < nby2, cp_Len(::lUtf8,::aText[n])+1, nbx2 )
-            IF nbx1 < (::nxFirst+nWidth) .AND. nbx2 > ::nxFirst
-               nbx1 := Max( nbx1, ::nxFirst )
-               nbx2 := Min( nbx2, ::nxFirst + nWidth - 1 )
+            IF nbx1 < nxPosLast .AND. nbx2 > nxPosFirst
+               nbx1 := Max( nbx1, nxPosFirst )
+               nbx2 := Min( nbx2, nxPosLast - 1 )
                SetColor( ::cColorSel )
                IF lTabs
-                  IF nbx1 > ::nxFirst
-                     nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nbx1 - ::nxFirst ), nf, .T. )
-                     DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
-                     DevOut( edi_ExpandTabs( Self, ;
-                        cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1 ), nf + nf1 ) )
-                  ENDIF
+                  nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nbx1 - nxPosFirst ), nf, .T. )
+                  DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
+                  DevOut( edi_ExpandTabs( Self, ;
+                     cp_Substr( ::lUtf8, s, nbx1-nxPosFirst+1, nbx2-nbx1 ), nf + nf1 ) )
                ELSE
-                  DevPos( y, nbx1 -::nxFirst + ::x1 )
-                  DevOut( cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1 ) )
+                  DevPos( y, nbx1 - nf + ::x1 )
+                  DevOut( cp_Substr( ::lUtf8, s, nbx1-nf+1, nbx2-nbx1 ) )
                ENDIF
             ENDIF
             SetColor( Iif( n < nby2, ::cColorSel, ::cColor ) )
@@ -998,7 +1001,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
                EXIT
             CASE K_TAB
-               IF !::lReadOnly .AND. !::lIns
+               IF !::lReadOnly .AND. ::lIns
                   IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )
                      ::InsText( n, ::nPos, cTabStr, .F., .T. )
                   ELSE
@@ -1793,7 +1796,7 @@ STATIC FUNCTION cbDele( oEdit )
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp, nTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lTab2Spaces := .T.
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lTab2Spaces := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
    LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","quotes","scomm","startline","mcomm","block" }
@@ -2533,7 +2536,7 @@ FUNCTION mnu_GoTo( oEdit )
          IF nx >= cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
             nx := 1
          ENDIF
-         oEdit:GoTo( ny, nx, 0 )
+         oEdit:GoTo( ny, edi_Col2Pos( oEdit, ny, nx ), 0 )
       ENDIF
    ENDIF
 
@@ -2739,14 +2742,14 @@ STATIC FUNCTION edi_GoLeft( oEdit )
 
 STATIC FUNCTION edi_GoEnd( oEdit )
 
-   LOCAL n := oEdit:nLine
-   LOCAL nPos := cp_Len( oEdit:lUtf8, oEdit:aText[n] ) + Iif( oEdit:nMode==1, 0, 1 )
+   LOCAL n := oEdit:nLine, nPos
+   LOCAL nCol := edi_ExpandTabs( oEdit, oEdit:aText[n], 1, .T. ) + Iif( oEdit:nMode==1, 0, 1 )
 
-   IF nPos < oEdit:nxFirst .OR. nPos - oEdit:nxFirst > oEdit:x2 - oEdit:x1
-      oEdit:nxFirst := Max( 1, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - ( oEdit:x2 - oEdit:x1 ) + 1 )
+   IF nCol < oEdit:nxFirst .OR. nCol - oEdit:nxFirst > oEdit:x2 - oEdit:x1
+      oEdit:nxFirst := Max( 1, nCol - ( oEdit:x2 - oEdit:x1 ) + 1 )
       oEdit:lTextOut := .T.
    ENDIF
-   edi_SetPos( oEdit, n, nPos )
+   edi_SetPos( oEdit, n, oEdit:ColToPos( oEdit:LineToRow(n), nCol - oEdit:nxFirst + oEdit:x1) )
 
    RETURN Nil
 
@@ -3093,15 +3096,11 @@ FUNCTION edi_Col2Pos( oEdit, nLine, nCol )
       IF nPos2 - nPos1 > 0
          IF oEdit:lUtf8
             nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1, nPos2-nPos1 ) )
-            IF nLenNew > nCol
-               RETURN nCol - nAdd
-            ENDIF
          ELSE
             nLenNew += ( nPos2-nPos1 )
-            IF nLenNew > nCol
-               //RETURN nPos2 - (nLenNew - nCol)
-               RETURN nCol - nAdd
-            ENDIF
+         ENDIF
+         IF nLenNew > nCol
+            RETURN nCol - nAdd
          ENDIF
       ENDIF
       IF ( nLen1 := ( nTabLen - Iif( (nLen1:=((1+nLenNew) % nTabLen))==0,nTabLen,nLen1 ) + 1 ) ) > 0
@@ -3113,20 +3112,7 @@ FUNCTION edi_Col2Pos( oEdit, nLine, nCol )
       ENDIF
       nPos1 := nPos2 + 1
    ENDDO
-   /*
-   IF oEdit:lUtf8
-      nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1 ) )
-      IF nLenNew > nCol
-         RETURN nCol - nAdd
-      ENDIF
-   ELSE
-      nLenNew += ( Len(s)-nPos1+1 )
-      IF nLenNew > nCol
-         //RETURN Len(s) - (nLenNew - nCol)
-         RETURN nCol - nAdd
-      ENDIF
-   ENDIF
-   */
+
    RETURN nCol - nAdd
 
 FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
