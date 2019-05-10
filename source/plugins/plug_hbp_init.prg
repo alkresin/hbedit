@@ -58,11 +58,11 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
    IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
       IF nKey == K_CTRL_F
          _hbp_Init_Files( oEdit )
-         DevPos( oEdit:nRow, oEdit:nCol )
+         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
       ELSEIF nKey == K_CTRL_L
          _hbp_Init_Build( oEdit )
-         DevPos( oEdit:nRow, oEdit:nCol )
+         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
       ENDIF
    ELSEIF nKey == K_LBUTTONDOWN
@@ -70,11 +70,11 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
       nRow := MRow()
       IF nRow == oEdit:y1-1 .AND. nCol >= 20 .AND. nCol <= 31
          _hbp_Init_Files( oEdit )
-         DevPos( oEdit:nRow, oEdit:nCol )
+         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
       ELSEIF nRow == oEdit:y1-1 .AND. nCol >= 34 .AND. nCol <= 45
          _hbp_Init_Build( oEdit )
-         DevPos( oEdit:nRow, oEdit:nCol )
+         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
       ENDIF
    ENDIF

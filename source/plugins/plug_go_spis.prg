@@ -12,7 +12,7 @@ Function plug_go_Spis( oEdit )
    NEXT
    IF !Empty( arrfnc )
       oEdit:TextOut()
-      n := oEdit:nRow - oEdit:y1 + oEdit:nyFirst
+      n := oEdit:nLine
       FOR i := 1 TO Len( arrfnc )
          IF arrfnc[i,3] > n
             n := i - 1
@@ -20,7 +20,7 @@ Function plug_go_Spis( oEdit )
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n ) ) > 0
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>36) ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF

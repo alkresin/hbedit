@@ -109,7 +109,7 @@ CLASS TEdit
 
    DATA   lTabs       INIT .F.
 
-   DATA   nCol, nRow
+   DATA   nPos, nLine
    DATA   nPosBack, nLineBack
    DATA   lF3         INIT .F.
    DATA   nby1        INIT -1
@@ -137,10 +137,10 @@ CLASS TEdit
    METHOD LineOut( nLine )
    METHOD onKey( nKeyExt )
    METHOD WriteTopPane( lClear )
-   METHOD RowToLine( nRow )   INLINE ( Iif(nRow==Nil,::nRow,nRow) - ::y1 + ::nyFirst )
-   METHOD ColToPos( nCol )    INLINE ( Iif(nCol==Nil,::nCol,nCol) - ::x1 + ::nxFirst )
-   METHOD LineToRow( nLine )  INLINE ( nLine + ::y1 - ::nyFirst )
-   METHOD PosToCol( nPos )    INLINE ( nPos + ::x1 - ::nxFirst )
+   METHOD RowToLine( nRow )   INLINE ( nRow - ::y1 + ::nyFirst )
+   METHOD ColToPos( nRow, nCol )
+   METHOD LineToRow( nLine )  INLINE ( Iif( nLine==Nil, ::nLine, nLine ) + ::y1 - ::nyFirst )
+   METHOD PosToCol( nLine, nPos )
    METHOD Search( cSea, lCase, lNext, ny, nx )
    METHOD GoTo( ny, nx, nSele, lNoGo )
    METHOD ToString( cEol )
@@ -182,7 +182,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
       ::nTopName := Max( ::x2 - ::x1 - 44, 0 )
       ::y1 ++
    ENDIF
-   ::nRow := ::y1; ::nCol := ::x1
+   ::nLine := ::nPos := 1
 
    ::nMode := Iif( ::nDefMode<0, 0, ::nDefMode )
    ::cp := ::cpInit
@@ -206,6 +206,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
 
    LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
+   LOCAL lT2Sp := hb_hGetDef( TEdit():options,"tabtospaces", .F. )
 
    IF !Empty( cFileName )
       IF Left( cFileName,1 ) == "$"
@@ -225,18 +226,8 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
             ADel( TEdit():aEditHis, i )
             hb_AIns( TEdit():aEditHis, 1, arr, .F. )
             hb_cdpSelect( ::cp := arr[2] )
-            IF arr[3] >= ::y2 -::y1 - 1
-               ::nyFirst := arr[3] - 4
-               ::nRow := 4
-            ELSE
-               ::nRow := arr[3] + ::y1 - 1
-            ENDIF
-            IF arr[4] > ::x2 -::x1 - 1
-               ::nxFirst := arr[4] + ::x1 - ::x2 + 3
-               ::nCol := arr[4] - ::nxFirst + 1
-            ELSE
-               ::nCol := arr[4] + ::x1 - 1
-            ENDIF
+            ::nLine := arr[3]
+            ::nPos  := arr[4]
          ELSE
             hb_AIns( TEdit():aEditHis, 1, {cFile_utf8,,,}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
          ENDIF
@@ -261,7 +252,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          ::lBom := .T.
       ENDIF
       FOR i := 1 TO Len( ::aText )
-         IF cTab $ ::aText[i]
+         IF lT2Sp .AND. cTab $ ::aText[i]
             ::aText[i] := Strtran( ::aText[i], cTab, cTabStr )
             ::lTabs := .T.
          ENDIF
@@ -309,9 +300,8 @@ METHOD Edit() CLASS TEdit
    SetColor( ::cColor )
    Scroll( ::y1, ::x1, ::y2, ::x2 )
 
-   IF ( Len( ::aText ) < ::nyFirst + ::nRow - 1 ) .OR. ::nyFirst < 1 .OR. ::nRow < ::y1
-      ::nyFirst := 1
-      ::nRow := ::y1; ::nCol := ::x1
+   IF ::nLine < 1 .OR. ::nLine > Len( ::aText )
+      ::nyFirst := ::nxFirst := ::nLine := ::nPos := 1
    ENDIF
 
    ::WriteTopPane()
@@ -328,11 +318,11 @@ METHOD Edit() CLASS TEdit
       ENDIF
    NEXT
 
+   ::GoTo( ::nLine, ::nPos )
    ::TextOut()
-   edi_DevPos( Self, ::nRow, ::nCol )
 
-   ::nPosBack := ::ColToPos()
-   ::nLineBack := ::RowToLine()
+   ::nPosBack := ::nPos
+   ::nLineBack := ::nLine
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
@@ -349,8 +339,8 @@ METHOD Edit() CLASS TEdit
       cFile_utf8 := hb_Translate( ::cFileName,, "UTF8" )
       IF ( i := Ascan( TEdit():aEditHis, {|a|a[1]==cFile_utf8} ) ) > 0
          TEdit():aEditHis[i,2] := ::cp
-         TEdit():aEditHis[i,3] := ::RowToLine()
-         TEdit():aEditHis[i,4] := ::ColToPos()
+         TEdit():aEditHis[i,3] := ::nLine
+         TEdit():aEditHis[i,4] := ::nPos
       ENDIF
    ENDIF
 
@@ -378,37 +368,59 @@ METHOD Edit() CLASS TEdit
 
 METHOD TextOut( n1, n2 ) CLASS TEdit
 
-   LOCAL i, nKol := ::y2 -::y1 + 1, x := Col(), y := Row()
+   LOCAL i, nCol := Col(), nRow := Row()
 
    IF n1 == Nil; n1 := 1; ENDIF
-   IF n2 == Nil; n2 := nKol; ENDIF
+   IF n2 == Nil; n2 := ::y2 -::y1 + 1; ENDIF
 
    FOR i := n1 TO n2
       ::LineOut( i )
    NEXT
-   DevPos( y, x )
+   DevPos( nRow, nCol )
 
    RETURN Nil
 
 METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
-   LOCAL n := nLine + ::nyFirst - 1, nWidth := ::x2 - ::x1 + 1, s, nLen
-   LOCAL lSel := .F., nby1, nby2, nbx1, nbx2, xs1, xs2
-   LOCAL aStru, i, aClrs
+   LOCAL n := nLine + ::nyFirst - 1, y := ::y1 + nLine - 1, nWidth := ::x2 - ::x1 + 1, s, nLen
+   LOCAL lSel := .F., nby1, nby2, nbx1, nbx2, nx1, nx2, lTabs := .F., nf := ::nxFirst, nf1
+   LOCAL aStru, i, aClrs, nxPosFirst := 1
 
    IF n <= Len( ::aText )
 
-      DevPos( ::y1 + nLine - 1, ::x1 )
-      nLen := Max( 0, Min( nWidth, cp_Len( ::lUtf8,::aText[n])-::nxFirst+1 ) )
+      IF ::nby1 >= 0 .AND. ::nby2 >= 0
+         IF ::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 )
+            nby1 := ::nby1; nbx1 := ::nbx1; nby2 := ::nby2; nbx2 := ::nbx2
+         ELSE
+            nby1 := ::nby2; nbx1 := ::nbx2; nby2 := ::nby1; nbx2 := ::nbx1
+         ENDIF
+         lSel := ( n >= nby1 .AND. n <= nby2 ) .AND. !( nby1 == nby2 .AND. nbx1 == nbx2 )
+      ENDIF
+
+      DevPos( y, ::x1 )
+      IF nf == 1 .AND. !::lUtf8 .AND. ( nLen := Len(::aText[n]) ) < nWidth
+         s := ::aText[n]
+      ELSE
+         nxPosFirst := edi_Col2Pos( Self, n, nf )
+         s := cp_Substr( ::lUtf8, ::aText[n], nxPosFirst, nWidth )
+         nLen := cp_Len( ::lUtf8, s )
+      ENDIF
       DispBegin()
       IF nLen > 0
-         IF ::nxFirst == 1 .AND. nLen < nWidth
-            s := ::aText[n]
-         ELSE
-            s := cp_Substr( ::lUtf8, ::aText[n], ::nxFirst, nLen )
+         //IF ( ::nxFirst > 1 .AND. cTab $ cp_Left(::lUtf8,::aText[n],::nxFirst-1) )
+         IF ::nxFirst > 1 .AND. (nf := edi_ExpandTabs( Self, ;
+               cp_Left(::lUtf8,::aText[n],nxPosFirst-1), 1, .T. )) > ::nxFirst
+            lTabs := .T.
+            DevPos( y, ::x1 + nf - ::nxFirst )
          ENDIF
+         IF cTab $ s
+            lTabs := .T.
+            DevOut( edi_ExpandTabs( Self, s, nf ) )
+         ELSE
+            DevOut( s )
+         ENDIF
+         nLen := Col() - ::x1
 
-         DevOut( s )
          IF !Empty( ::oHili ) .AND. hb_hGetDef( TEdit():options, "syntax", .F. )
             ::oHili:Do( n )
             aStru := ::oHili:aLineStru
@@ -416,22 +428,22 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
                aClrs := ::oHili:hHili["colors"]
                FOR i := 1 TO ::oHili:nItems
                   IF aStru[i,2] >= ::nxFirst .AND. aStru[i,3] > 0 .AND. aStru[i,1] < ::nxFirst + nWidth
-                     nbx1 := Max( ::nxFirst, aStru[i,1] )
-                     nbx2 := Min( aStru[i,2], ::nxFirst + nWidth - 1 )
-                     DevPos( ::y1 + nLine - 1, nbx1 -::nxFirst )
+                     nx1 := Max( ::nxFirst, aStru[i,1] )
+                     nx2 := Min( aStru[i,2], ::nxFirst + nWidth - 1 )
                      SetColor( Iif( !Empty(aClrs[aStru[i,3]]), aClrs[aStru[i,3]], ::aHiliAttrs[aStru[i,3]] ) )
-                     DevOut( cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1+1 ) )
+                     IF lTabs
+                        IF nx1 > ::nxFirst
+                           nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nx1 - ::nxFirst ), nf, .T. )
+                           DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
+                           DevOut( cp_Substr( ::lUtf8, s, nx1-::nxFirst+1, nx2-nx1+1 ) )
+                        ENDIF
+                     ELSE
+                        DevPos( y, nx1 -::nxFirst )
+                        DevOut( cp_Substr( ::lUtf8, s, nx1-::nxFirst+1, nx2-nx1+1 ) )
+                     ENDIF
                   ENDIF
                NEXT
             ENDIF
-         ENDIF
-         IF ::nby1 >= 0 .AND. ::nby2 >= 0
-            IF ::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 )
-               nby1 := ::nby1; nbx1 := ::nbx1; nby2 := ::nby2; nbx2 := ::nbx2
-            ELSE
-               nby1 := ::nby2; nbx1 := ::nbx2; nby2 := ::nby1; nbx2 := ::nbx1
-            ENDIF
-            lSel := ( n >= nby1 .AND. n <= nby2 ) .AND. !( nby1 == nby2 .AND. nbx1 == nbx2 )
          ENDIF
          SetColor( ::cColor )
          IF lSel
@@ -440,20 +452,31 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
             IF nbx1 < (::nxFirst+nWidth) .AND. nbx2 > ::nxFirst
                nbx1 := Max( nbx1, ::nxFirst )
                nbx2 := Min( nbx2, ::nxFirst + nWidth - 1 )
-               DevPos( ::y1 + nLine - 1, nbx1 -::nxFirst + ::x1 )
                SetColor( ::cColorSel )
-               DevOut( cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1 ) )
+               IF lTabs
+                  IF nbx1 > ::nxFirst
+                     nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nbx1 - ::nxFirst ), nf, .T. )
+                     DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
+                     DevOut( edi_ExpandTabs( Self, ;
+                        cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1 ), nf + nf1 ) )
+                  ENDIF
+               ELSE
+                  DevPos( y, nbx1 -::nxFirst + ::x1 )
+                  DevOut( cp_Substr( ::lUtf8, s, nbx1-::nxFirst+1, nbx2-nbx1 ) )
+               ENDIF
             ENDIF
             SetColor( Iif( n < nby2, ::cColorSel, ::cColor ) )
          ENDIF
+      ELSEIF lSel .AND. n < nby2
+         SetColor( ::cColorSel )
       ENDIF
       IF nLen < nWidth
-         Scroll( ::y1 + nLine - 1, ::x1 + nLen, ::y1 + nLine - 1, ::x2 )
+         Scroll( y, ::x1 + nLen, y, ::x2 )
       ENDIF
       SetColor( ::cColor )
       DispEnd()
    ELSE
-      Scroll( ::y1 + nLine - 1, ::x1, ::y1 + nLine - 1, ::x2 )
+      Scroll( y, ::x1, y, ::x2 )
    ENDIF
    RETURN Nil
 
@@ -462,20 +485,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    LOCAL nKey := hb_keyStd(nKeyExt), i, n, nCol := Col(), nRow := Row()
    LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F., x
 
-   ::nCol := nCol; ::nRow := nRow
-   n := ::RowToLine( nRow )
+   n := ::nLine
    ::lTextOut := .F.
 
    IF ::npy1 > 0
       // drop highlighting of matched parenthesis
-      DevPos( ::LineToRow( ::npy1 ), ::PosToCol( ::npx1 ) )
+      DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
       DevOut( cp_Substr( ::lUtf8, ::aText[::npy1], ::npx1, 1 ) )
       IF ::npy2 >= ::nyFirst .AND. ::npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
             ::npx2 >= ::nxFirst .AND. ::npx2 < ::nxFirst + ::x2 - ::x1
-         DevPos( ::LineToRow( ::npy1 ), ::PosToCol( ::npx1 ) )
+         DevPos( ::LineToRow(::npy2), ::PosToCol(::npy1,::npx2) )
          DevOut( cp_Substr( ::lUtf8, ::aText[::npy2], ::npx2, 1 ) )
       ENDIF
-      DevPos( ::nRow, ::nCol )
+      DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
       ::npy1 := ::npx1 := ::npy2 := ::npx2 := 0
    ENDIF
 
@@ -538,13 +560,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nDopMode := 0
             EXIT
          CASE 102 // f
-            IF ( i := cp_At( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n], ::ColToPos(nCol)+1 ) ) > 0
+            IF ( i := cp_At( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n], ::nPos+1 ) ) > 0
                ::GoTo( n, i )
             ENDIF
             ::nDopMode := 0
             EXIT
          CASE 70  // F
-            IF ( i := cp_Rat( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n],,::ColToPos(nCol)-1 ) ) > 0
+            IF ( i := cp_Rat( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n],,::nPos-1 ) ) > 0
                ::GoTo( n, i )
             ENDIF
             ::nDopMode := 0
@@ -559,7 +581,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
             ELSEIF nKey == 120    // x
                FOR i := Val( cDopMode ) TO 1 STEP -1
-                  ::DelText( n, ::ColToPos(), n, ::ColToPos() )
+                  ::DelText( n, ::nPos, n, ::nPos )
                NEXT
                ::nDopMode := 0
             ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
@@ -590,8 +612,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF cDopMode $ "cd"
                   mnu_F3( Self )
                   edi_PrevWord( Self, .F. )
-                  ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := ::ColToPos( Col() )
+                  ::nby2 := ::nLine
+                  ::nbx2 := ::nPos
                   cbDele( Self )
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
@@ -604,8 +626,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_F3( Self )
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
-                  ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := ::ColToPos( Col() )
+                  ::nby2 := ::nLine
+                  ::nbx2 := ::nPos
                   cbDele( Self )
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
@@ -617,8 +639,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF cDopMode $ "cd"
                   mnu_F3( Self )
                   edi_NextWord( Self, .F. )
-                  ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := ::ColToPos( Col() )
+                  ::nby2 := ::nLine
+                  ::nbx2 := ::nPos
                   cbDele( Self )
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
@@ -628,8 +650,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_F3( Self )
                   edi_NextWord( Self, .F., .T. )
                   edi_GoRight( Self )
-                  ::nby2 := ::RowToLine( Row() )
-                  ::nbx2 := ::ColToPos( Col() )
+                  ::nby2 := ::nLine
+                  ::nbx2 := ::nPos
                   cbDele( Self )
                ENDIF
                ::nDopMode := 0
@@ -665,8 +687,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       lShift := ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. Ascan( aKeysMove, nkey ) != 0 )
       IF lShift
          IF !::lShiftKey
-            ::nby1 := ::RowToLine()
-            ::nbx1 := ::ColToPos()
+            ::nby1 := ::nLine
+            ::nbx1 := ::nPos
             ::lShiftKey := .T.
          ENDIF
       ELSE
@@ -748,11 +770,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE K_CTRL_PGUP
          CASE K_CTRL_HOME
-            ::nPosBack := ::ColToPos()
-            ::nLineBack := ::RowToLine()
+            ::nPosBack := ::nPos
+            ::nLineBack := ::nLine
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
             ::nxFirst := ::nyFirst := 1
-            DevPos( ::y1, ::x1 )
+            edi_SetPos( Self, 1, 1 )
             EXIT
          CASE K_CTRL_PGDN
          CASE K_CTRL_END
@@ -836,7 +858,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 112   // p Insert clipboard after current coloumn
                      IF !::lReadOnly
-                        edi_DevPos( Self, ::nRow, ++::nCol )
+                        edi_SetPos( Self, ::nLine, ++::nPos )
                         cb2Text( Self, .T. )
                      ENDIF
                      EXIT
@@ -877,35 +899,35 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cDopMode := Chr( nKey )
                      EXIT
                   CASE 120   // x - delete a char
-                     ::DelText( n, ::ColToPos(), n, ::ColToPos() )
+                     ::DelText( n, ::nPos, n, ::nPos )
                      EXIT
                   CASE 37    // %  Go to matching parentheses
                      edi_Bracket( Self )
                      EXIT
                   CASE 72    // H
-                     DevPos( ::nRow := ::y1, ::nCol := ::x1 )
+                     edi_SetPos( Self, ::nyFirst, ::nxFirst )
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 77    // M
-                     DevPos( ::nRow := ::y1 + Int((::y2-::y1)/2), ::nCol := ::x1 )
+                     edi_SetPos( Self, ::nyFirst + Int((::y2-::y1)/2), ::nxFirst )
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 76    // L
-                     DevPos( ::nRow := ::y2, ::nCol := ::x1 )
+                     edi_SetPos( Self, ::nyFirst + ::y2-::y1, ::nxFirst )
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 42    // *
-                     i := edi_PrevWord( Self, .F., .F.,, ::ColToPos()+1 )
-                     x := edi_NextWord( Self, .F., .T., .F.,, ::ColToPos()-1 )
+                     i := edi_PrevWord( Self, .F., .F.,, ::nPos+1 )
+                     x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
-                     i := ::ColToPos()
+                     i := ::nPos
                      IF ::Search( s, .T., .T., @n, @i )
                         ::GoTo( n, i, 0 )
                      ENDIF
                      EXIT
                   CASE 35    // #
-                     i := edi_PrevWord( Self, .F., .F.,, ::ColToPos()+1 )
-                     x := edi_NextWord( Self, .F., .T., .F.,, ::ColToPos()-1 )
+                     i := edi_PrevWord( Self, .F., .F.,, ::nPos+1 )
+                     x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i --
                      IF ::Search( s, .T., .F., @n, @i )
@@ -915,11 +937,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   END
                ENDIF
             ELSE
-               IF ( i := (::ColToPos() - cp_Len(::lUtf8,::aText[n])) ) > 0
-                  ::nCol -= (i-1)
+               IF ( i := (::nPos - cp_Len(::lUtf8,::aText[n])) ) > 0
+                  ::nPos -= (i-1)
                   ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                ELSE
-                  ::InsText( n, ::ColToPos(), cp_Chr(::lUtf8,nKey), !::lIns, .T. )
+                  ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
                ENDIF
             ENDIF
 
@@ -927,19 +949,18 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             SWITCH nKey
             CASE K_ENTER
                IF !::lReadOnly .AND. ::nMode == 0
-                  nCol := ::ColToPos( nCol )
                   s := ""
                   IF hb_hGetDef( TEdit():options, "autoindent", .F. )
                      i := 0
                      DO WHILE cp_Substr( ::lUtf8, ::aText[n], i+1, 1 ) == " "; i++; ENDDO
                      IF i > 0
-                        IF nCol <= i
-                           i := nCol - 1
+                        IF ::nPos <= i
+                           i := ::nPos - 1
                         ENDIF
                         s := Space( i )
                      ENDIF
                   ENDIF
-                  ::InsText( n, nCol, Chr(10) + s, .F., .T. )
+                  ::InsText( n, ::nPos, Chr(10) + s, .F., .T. )
                ENDIF
                EXIT
             CASE K_DEL
@@ -951,7 +972,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      cbDele( Self )
                   ELSE
-                     ::DelText( n, ::ColToPos(), n, ::ColToPos() )
+                     ::DelText( n, ::nPos, n, ::nPos )
                   ENDIF
                ENDIF
                EXIT
@@ -964,20 +985,25 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      cbDele( Self )
                   ELSE
-                     IF ::nCol == ::x1
+                     IF ::PosToCol() == ::x1
                         IF n > 1
                            edi_GoUp( Self )
                            edi_GoEnd( Self )
-                           ::DelText( n-1, ::ColToPos(Col()), n-1, ::ColToPos(Col()) )
+                           ::DelText( n-1, ::nPos, n-1, ::nPos )
                         ENDIF
                      ELSE
-                        ::DelText( n, ::ColToPos()-1, n, ::ColToPos()-1 )
+                        ::DelText( n, ::nPos-1, n, ::nPos-1 )
                      ENDIF
                   ENDIF
                ENDIF
                EXIT
             CASE K_TAB
-               IF !::lReadOnly
+               IF !::lReadOnly .AND. !::lIns
+                  IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )
+                     ::InsText( n, ::nPos, cTabStr, .F., .T. )
+                  ELSE
+                     ::InsText( n, ::nPos, cTab, .F., .T. )
+                  ENDIF
                ENDIF
                EXIT
             CASE K_INS
@@ -989,11 +1015,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::lIns := !::lIns
                ENDIF
                EXIT
+            CASE K_MWFORWARD
             CASE K_UP
-               edi_GoUp( Self )
+               IF nKey == K_UP .OR. ( (nRow := MRow()) >= ::y1 .AND. ;
+                  nRow <= ::y2 .AND. (nCol := MCol()) >= ::x1 .AND. nCol <= ::x2 )
+                  edi_GoUp( Self )
+               ENDIF
                EXIT
+            CASE K_MWBACKWARD
             CASE K_DOWN
-               edi_GoDown( Self )
+               IF nKey == K_DOWN .OR. ( (nRow := MRow()) >= ::y1 .AND. ;
+                  nRow <= ::y2 .AND. (nCol := MCol()) >= ::x1 .AND. nCol <= ::x2 )
+                  edi_GoDown( Self )
+               ENDIF
                EXIT
             CASE K_LEFT
                edi_GoLeft( Self )
@@ -1011,22 +1045,23 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF ::nyFirst > (::y2-::y1)
                   ::nyFirst -= (::y2-::y1)
                   ::lTextOut := .T.
+                  edi_SetPos( Self, ::nLine-(::y2-::y1), ::nPos )
                ELSEIF ::nyFirst > 1
+                  x := ::nyFirst - 1
                   ::nyFirst := 1
                   ::lTextOut := .T.
+                  edi_SetPos( Self, ::nLine-x, ::nPos )
                ELSE
-                  edi_Devpos( Self, 1, ::nCol )
+                  edi_Setpos( Self, 1, ::nPos )
                ENDIF
                EXIT
             CASE K_PGDN
                IF ::nyFirst + (::y2-::y1) <= Len( ::aText )
                   ::nyFirst += (::y2-::y1)
-                  IF ::nyFirst + ::nRow - ::y1 >= Len( ::aText )
-                     edi_DevPos( Self, Len(::aText)-::nyFirst+2-::y1, ::x1 )
-                  ENDIF
                   ::lTextOut := .T.
+                  edi_SetPos( Self, Min( ::nLine+(::y2-::y1),Len(::aText) ), ::nPos )
                ELSE
-                  edi_DevPos( Self, Len(::aText)-::nyFirst+2-::y1, ::nCol )
+                  edi_SetPos( Self, Len(::aText), ::nPos )
                ENDIF
                EXIT
             CASE K_LBUTTONDOWN
@@ -1040,19 +1075,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      IF ::RowToLine(nRow) > Len(::aText)
                         nRow := Len(::aText) - ::nyFirst + ::y1
                      ENDIF
-                     edi_DevPos( Self, nRow, nCol )
+                     edi_SetPos( Self, ::RowToLine(nRow), ::ColToPos(nRow,nCol) )
                   ELSEIF nRow >= ::aRectFull[1] .AND. nRow <= ::aRectFull[3] .AND. nCol >= ::aRectFull[2] .AND. nCol <= ::aRectFull[4]
                      IF !Empty( x := ::oParent ) .AND. nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
                         ::lShow := .F.
                         ::nCurr := Ascan( ::aWindows, {|o|o == ::oParent} )
-                        x:nRow := nRow; x:nCol := nCol
+                        x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
                      ELSE
                         FOR i := 1 TO Len( ::aWindows )
                            IF !Empty( ::aWindows[i]:oParent ) .AND. (x := ::aWindows[i]):oParent == Self .AND. ;
                               nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
                               ::lShow := .F.
                               ::nCurr := i
-                              x:nRow := nRow; x:nCol := nCol
+                              x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
                            ENDIF
                         NEXT
                      ENDIF
@@ -1064,7 +1099,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_F1
                mnu_Help( Self )
                ::lTextOut := .T.
-               DevPos( ::nRow, ::nCol )
+               edi_SetPos( Self )
                EXIT
             CASE K_F2
                ::Save()
@@ -1096,7 +1131,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_F9
                FMenu( Self, aMenuMain, 2, 6 )
                ::lTextOut := .T.
-               edi_DevPos( Self, ::nRow, ::nCol )
+               edi_SetPos( Self )
                EXIT
             CASE K_F10
             CASE K_ESC
@@ -1130,8 +1165,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ENDIF
       IF (::lF3 .OR. lShift)
          IF !( lCtrl .AND. nKey == K_CTRL_A)
-            ::nby2 := ::RowToLine( Row() )
-            ::nbx2 := ::ColToPos( Col() )
+            ::nby2 := ::nLine
+            ::nbx2 := ::nPos
          ENDIF
       ELSEIF !lNoDeselect
          IF ::nby1 >= 0 .AND. ::nby2 >= 0
@@ -1144,22 +1179,20 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ::TextOut()
    ENDIF
 
-   ::nCol := Col(); ::nRow := Row()
-
    IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
       // highlighting matched parenthesis
-      ::npy1 := ::RowToLine(); ::npx1 := ::ColToPos()
+      ::npy1 := ::nLine; ::npx1 := ::nPos
       ::npy2 := Iif( Valtype(x)=="A",x[1], ::npy1 ); ::npx2 := Iif( Valtype(x)=="A",x[2], x )
       SetColor( ::cColorBra )
-      DevPos( ::LineToRow( ::npy1 ), ::PosToCol( ::npx1 ) )
+      DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
       DevOut( cp_Substr( ::lUtf8, ::aText[::npy1], ::npx1, 1 ) )
       IF ::npy2 >= ::nyFirst .AND. ::npy2 < ::nyFirst + ::y2 - ::y1 .AND. ;
             ::npx2 >= ::nxFirst .AND. ::npx2 < ::nxFirst + ::x2 - ::x1
-         DevPos( ::LineToRow( ::npy1 ), ::PosToCol( ::npx1 ) )
+         DevPos( ::LineToRow(::npy2), ::PosToCol(::npy2,::npx2) )
          DevOut( cp_Substr( ::lUtf8, ::aText[::npy2], ::npx2, 1 ) )
       ENDIF
       SetColor( ::cColor )
-      edi_DevPos( Self, ::nRow, ::nCol )
+      DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
    ENDIF
 
    ::WriteTopPane()
@@ -1168,17 +1201,17 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
 METHOD WriteTopPane( lClear ) CLASS TEdit
 
-   LOCAL y := ::y1 - 1, nCol := ::nCol, nRow := ::nRow
+   LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row()
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
-   IF ::lTopPane
-      DispBegin()
-      SetColor( ::cColorPane )
-      Scroll( y, ::x1, y, ::x2 )
-      IF Empty( lClear )
-         IF ::bWriteTopPane != Nil
-            Eval( ::bWriteTopPane, Self, y )
-         ELSE
+   IF ::bWriteTopPane != Nil
+      Eval( ::bWriteTopPane, Self, lClear, y )
+   ELSE
+      IF ::lTopPane
+         DispBegin()
+         SetColor( ::cColorPane )
+         Scroll( y, ::x1, y, ::x2 )
+         IF Empty( lClear )
             DevPos( y, ::x1 )
             DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
             DevPos( y, ::x1+8 )
@@ -1186,9 +1219,9 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
             DevPos( y, ::x1 + 8 + ::nTopName + 2 )
             DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
             DevPos( y, ::x1 + 8 + ::nTopName + 12 )
-            DevOut( PAdl(Ltrim(Str(::RowToLine(nRow))),nchars) + "/" + cLen )
+            DevOut( PAdl(Ltrim(Str(::nLine)),nchars) + "/" + cLen )
             DevPos( y, ::x1 + 8 + ::nTopName + 12 + nchars*2 + 3 )
-            DevOut( "[" + Ltrim(Str(::ColToPos(nCol))) + "]" )
+            DevOut( "[" + Ltrim(Str(::PosToCol()-::x1+::nxFirst)) + "]" )
             SetColor( "W+/N" )
             DevPos( y, ::x2-3 )
             IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
@@ -1198,13 +1231,32 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
                   Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
             ENDIF
          ENDIF
+         SetColor( ::cColor )
+         DevPos( nRow, nCol )
+         DispEnd()
       ENDIF
-      SetColor( ::cColor )
-      DevPos( nRow, nCol )
-      DispEnd()
    ENDIF
 
    RETURN Nil
+
+METHOD ColToPos( nRow, nCol ) CLASS TEdit
+
+   nCol := nCol - ::x1 + ::nxFirst
+   RETURN edi_Col2Pos( Self, ::RowToLine(nRow), nCol )
+   //nCol := edi_Col2Pos( Self, ::RowToLine(nRow), nCol )
+   //RETURN nCol - ::x1 + ::nxFirst
+
+METHOD PosToCol( nLine, nPos ) CLASS TEdit
+
+   LOCAL nAdd := 0
+   IF nPos == Nil; nPos := ::nPos; ENDIF
+   IF nLine == Nil; nLine := ::nLine; ENDIF
+
+   IF nPos > 1
+      edi_ExpandTabs( Self, cp_Left(::lUtf8,::aText[nLine],nPos-1), 1, .T., @nAdd )
+   ENDIF
+   nPos += nAdd
+   RETURN nPos + ::x1 - ::nxFirst
 
 METHOD Search( cSea, lCase, lNext, ny, nx ) CLASS TEdit
 
@@ -1245,15 +1297,15 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
 
    LOCAL lTextOut := .F., nRowOld
 
-   IF ny == Nil; ny := ::RowToLine(); ENDIF
+   IF ny == Nil; ny := ::nLine; ENDIF
    IF nx == Nil; nx := 1; ENDIF
    IF ny > Len(::aText)
       RETURN Nil
    ENDIF
 
    IF Empty( lNoGo )
-      ::nPosBack := ::ColToPos()
-      ::nLineBack := ::RowToLine()
+      ::nPosBack := ::nPos
+      ::nLineBack := ::nLine
    ENDIF
    IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
       ::nyFirst := Max( ny-3, 1 )
@@ -1273,16 +1325,16 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
       IF lTextOut
          ::TextOut()
       ELSE
-         IF nSele != Nil .AND. nSele > 0 .AND. ( nRowOld := (::nRow - ::y1 + 1) ) > 0
+         IF nSele != Nil .AND. nSele > 0 .AND. ( nRowOld := (::nLine - ::nyFirst + 1) ) > 0
             ::LineOut( nRowOld )
          ENDIF
          ::LineOut( ny - ::nyFirst + 1 )
       ENDIF
       ::WriteTopPane()
-      edi_DevPos( Self, ::LineToRow(ny), ::PosToCol(nx) )
+      edi_SetPos( Self, ny, nx )
    ELSE
-      ::nRow := ::LineToRow(ny)
-      ::nCol := ::PosToCol(nx)
+      ::nLine := ny
+      ::nPos := nx
    ENDIF
 
    RETURN Nil
@@ -1337,7 +1389,7 @@ METHOD Save( cFileName ) CLASS TEdit
 
 METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
-   LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew
+   LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew, nCol
 
    IF ::lReadOnly
       RETURN Nil
@@ -1381,7 +1433,7 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
          ELSEIF nPosNew < ::nxFirst
             nPosNew := 1
          ENDIF
-         edi_DevPos( Self, ::LineToRow(nLineNew), ::PosToCol(nPosNew) )
+         edi_SetPos( Self, nLineNew, nPosNew )
       ENDIF
    ELSE
       i := cp_Len( ::lUtf8, cText )
@@ -1392,19 +1444,19 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
          cp_Substr( ::lUtf8, ::aText[nLine], nPos + Iif(lOver,i,0) )
       nPos2 := nPos + cp_Len( ::lUtf8, cText ) - 1
       IF lChgPos
-         ::nCol += i
+         ::nPos += i
       ENDIF
-      IF ::nCol > ::x2
+      IF ( nCol := ::PosToCol() ) > ::x2
          IF lChgPos
-            i := ::nCol - ::x2
+            i := nCol - ::x2
             ::nxFirst += i
-            ::nCol := ::x2
+            ::nPos := ::ColToPos( ::LineToRow(),::x2 )
          ENDIF
          ::lTextOut := .T.
       ELSE
-         ::LineOut( ::nRow - ::y1 + 1 )
+         ::LineOut( ::nLine - ::nyFirst + 1 )
          IF lChgPos
-            edi_DevPos( Self, ::nRow, ::nCol )
+            edi_SetPos( Self )
          ENDIF
       ENDIF
    ENDIF
@@ -1440,7 +1492,7 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
          ::aText[nLine1] := cp_Left( ::lUtf8, ::aText[nLine1], nPos1-1 ) + ;
             cp_Substr( ::lUtf8, ::aText[nLine1], nPos2+1 )
          ::LineOut( nLine1 -::nyFirst + 1 )
-         edi_DevPos( Self, ::nRow, nPos1-::nxFirst )
+         edi_SetPos( Self, ::nLine, nPos1 )
       ENDIF
    ELSE
       IF nPos1 > 1
@@ -1467,11 +1519,11 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
       ncou ++
 
       ::aText := ASize( ::aText, Len(::aText) - ncou )
-      IF ( i := nLine1 - ::nyFirst + 1 ) > 0 .AND. i < (::y2-::y1+1)
-         edi_DevPos( Self, ::LineToRow(nLine1)+2, ::PosToCol(nPos1)+1 )
+      IF ( i := (nLine1 - ::nyFirst + 1) ) > 0 .AND. i < (::y2-::y1+1)
+         edi_SetPos( Self, nLine1, nPos1 )
       ELSE
          ::nyFirst := nLine1
-         edi_DevPos( Self, 1, nPos1 )
+         edi_SetPos( Self, nLine1, nPos1 )
       ENDIF
       ::lTextOut := .T.
    ENDIF
@@ -1586,7 +1638,7 @@ METHOD Highlighter( oHili ) CLASS TEdit
 
 METHOD OnExit() CLASS TEdit
 
-   LOCAL i, s := "", nSaveHis := TEdit():options["savehis"]
+   LOCAL i, j, s := "", nSaveHis := TEdit():options["savehis"]
    LOCAL aMacros, arr, sLine
 
    IF nSaveHis > 0
@@ -1718,7 +1770,7 @@ FUNCTION cb2Text( oEdit, lToText )
          s := Strtran( s, Chr(13), "" )
       ENDIF
 
-      oEdit:InsText( oEdit:RowToLine(), oEdit:ColToPos(), s, .F., .T. )
+      oEdit:InsText( oEdit:nLine, oEdit:nPos, s, .F., .T. )
    ENDIF
 
    RETURN Nil
@@ -1741,7 +1793,7 @@ STATIC FUNCTION cbDele( oEdit )
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp, nTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lTab2Spaces := .T.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
    LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","quotes","scomm","startline","mcomm","block" }
@@ -1828,6 +1880,9 @@ FUNCTION edi_ReadIni( xIni )
                IF hb_hHaskey( aSect, cTemp := "tablen" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():nTabLen := Val( cTemp )
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "tabtospaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lTab2Spaces := ( Lower(cTemp) == "on" )
+               ENDIF
             ENDIF
 
          ELSEIF Upper(aIni[nSect]) == "CODEPAGES"
@@ -1905,6 +1960,7 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["seahismax"]  := nseahis
    TEdit():options["eol"]        := nEol
    TEdit():options["trimspaces"] := lTrimSpaces
+   TEdit():options["tabtospaces"] := lTab2Spaces
    TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
@@ -2014,7 +2070,7 @@ FUNCTION mnu_Exit( oEdit )
       oEdit:lShow := .F.
       oEdit:lClose := .T.
    ELSE
-      edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+      edi_SetPos( oEdit )
    ENDIF
    RETURN Nil
 
@@ -2100,8 +2156,8 @@ FUNCTION mnu_F3( oEdit )
       oEdit:lF3 := .T.
    ENDIF
    IF !oEdit:lF3
-      oEdit:nby1 := oEdit:RowToLine()
-      oEdit:nbx1 := oEdit:ColToPos()
+      oEdit:nby1 := oEdit:nLine
+      oEdit:nbx1 := oEdit:nPos
       oEdit:nby2 := oEdit:nbx2 := -1
    ENDIF
    oEdit:lF3 := !oEdit:lF3
@@ -2208,7 +2264,7 @@ FUNCTION mnu_OpenFile( oEdit )
    ENDIF
 
    SetColor( oldc )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    RETURN Nil
 
@@ -2254,7 +2310,7 @@ FUNCTION mnu_Search( oEdit )
       {14,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
       {14,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F., cs_utf8
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 15, 60 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -2292,13 +2348,14 @@ FUNCTION mnu_Search( oEdit )
    ENDIF
 
    SetColor( oldc )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    RETURN Nil
 
 FUNCTION mnu_SeaHist( oEdit, aGet )
 
    LOCAL aMenu, i, bufc
+
    IF !Empty( TEdit():aSeaHis )
       aMenu := Array( Len(TEdit():aSeaHis) )
       FOR i := 1 TO Len(aMenu)
@@ -2317,7 +2374,7 @@ FUNCTION mnu_SeaHist( oEdit, aGet )
 
 FUNCTION mnu_SeaNext( oEdit, lNext )
 
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL ny := oEdit:nLine, nx := oEdit:nPos
    LOCAL cSearch
 
    IF !Empty( TEdit():aSeaHis )
@@ -2327,6 +2384,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
       ELSE
          edi_Alert( "String is not found:;" + cSearch )
          oEdit:lTextOut := .T.
+         edi_SetPos( oEdit )
       ENDIF
    ENDIF
 
@@ -2342,7 +2400,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       {16,25,2,"[Replace]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
       {16,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, cRepl, lCase, lBack := .F., cs_utf8, cr_utf8, nSeaLen
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 17, 60 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -2389,7 +2447,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
          IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, @ny, @nx )
             oEdit:GoTo( ny, nx, nSeaLen )
             oEdit:TextOut()
-            edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+            edi_SetPos( oEdit )
             IF nRes != 2
                nRes := mnu_ReplNext( oEdit )
             ENDIF
@@ -2410,7 +2468,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    ENDIF
 
    SetColor( oldc )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    RETURN Nil
 
@@ -2433,8 +2491,8 @@ FUNCTION mnu_ReplNext( oEdit )
       @ y1+3, x1+1 TO y1+3, x1+39
       hb_cdpSelect( oEdit:cp )
 
-      ny := oEdit:RowToLine()
-      nx := oEdit:ColToPos()
+      ny := oEdit:nLine
+      nx := oEdit:nPos
       cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
       nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
       cSearch := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, nSeaLen )
@@ -2444,7 +2502,7 @@ FUNCTION mnu_ReplNext( oEdit )
 
       nRes := edi_Read( aGets )
       SetColor( oldc )
-      edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+      edi_SetPos( oEdit )
    ENDIF
 
    RETURN nRes
@@ -2480,7 +2538,7 @@ FUNCTION mnu_GoTo( oEdit )
    ENDIF
 
    SetColor( oldc )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    RETURN Nil
 
@@ -2507,7 +2565,7 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
    SetColor( "N/W+" )
    Scroll( oEdit:y1-1, oEdit:x1, oEdit:y1-1, oEdit:x2 )
    Inkey( 0.1 )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    IF !Empty( lBack )
       oEdit:nMode := 0
@@ -2548,26 +2606,12 @@ FUNCTION edi_RunPlugin( oEdit, xPlugin )
 
    RETURN Nil
 
-FUNCTION edi_DevPos( oEdit, nRow, nCol, lRight )
+FUNCTION edi_SetPos( oEdit, nLine, nPos )
 
-   LOCAL n, nPos
+   IF nLine != Nil; oEdit:nLine := nLine; ENDIF
+   IF nPos != Nil; oEdit:nPos := nPos; ENDIF
 
-   /*
-   IF oEdit:lTabs
-      nPos := oEdit:ColToPos( nCol )
-      IF ( n := (nPos % oEdit:nTabLen) ) != 1
-         IF Substr( oEdit:aText[oEdit:RowToLine(nRow)], nPos, 1 ) == cTab
-            IF !Empty( lRight )
-               nPos += Iif( n == 0, 1, oEdit:nTabLen-n+1 )
-            ELSE
-               nPos -= Iif( n == 0, oEdit:nTabLen-1, n-1 )
-            ENDIF
-            RETURN DevPos( oEdit:nRow := nRow, oEdit:nCol := (nPos-oEdit:nxFirst+oEdit:x1) )
-         ENDIF
-      ENDIF
-   ENDIF
-   */
-   RETURN DevPos( oEdit:nRow := nRow, oEdit:nCol := nCol )
+   RETURN DevPos( oEdit:LineToRow(nLine), oEdit:PosToCol(nLine,nPos) )
 
 STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
@@ -2576,15 +2620,15 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
    IF nRepeat == Nil; nRepeat := 1; ENDIF
    IF nKey == 71 // G
       IF nRepeat == 1
-         oEdit:nPosBack := oEdit:ColToPos()
-         oEdit:nLineBack := oEdit:RowToLine()
+         oEdit:nPosBack := oEdit:nPos
+         oEdit:nLineBack := oEdit:nLine
          IF Len( oEdit:aText ) > oEdit:y2-oEdit:y1+1
             oEdit:nxFirst := 1
             oEdit:nyFirst := Len( oEdit:aText ) - (oEdit:y2-oEdit:y1)
             oEdit:lTextOut := .T.
-            edi_DevPos( oEdit, oEdit:y2, Min( oEdit:nCol,Iif(nKey==K_CTRL_END,1,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+            edi_SetPos( oEdit, oEdit:nyFirst + oEdit:y2 - oEdit:y1, Min( oEdit:nPos,Iif(nKey==K_CTRL_END,1,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
          ELSE
-            edi_DevPos( oEdit, Len(oEdit:aText)+oEdit:y1-1, Iif(nKey==K_CTRL_END,1,Min(oEdit:nCol,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+            edi_SetPos( oEdit, Len(oEdit:aText)+oEdit:y1-1, Iif(nKey==K_CTRL_END,1,Min(oEdit:nPos,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
          ENDIF
       ELSE
          oEdit:GoTo( nRepeat )
@@ -2595,7 +2639,7 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
          oEdit:nxFirst := 1
          oEdit:lTextOut := .T.
       ENDIF
-      edi_DevPos( oEdit, Row(), oEdit:x1 )
+      edi_SetPos( oEdit, oEdit:nLine, oEdit:nxFirst )
       RETURN Nil
    ELSEIF nKey == 94  // ^
       edi_Move( oEdit, 48 )
@@ -2644,75 +2688,65 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
 STATIC FUNCTION edi_GoUp( oEdit )
 
-   LOCAL nRow := Row()
-
-   IF nRow == oEdit:y1
+   IF oEdit:nLine == oEdit:nyFirst
       IF oEdit:nyFirst > 1
          oEdit:nyFirst --
          oEdit:lTextOut := .T.
-         edi_DevPos( oEdit, nRow, oEdit:nCol )
+         edi_SetPos( oEdit, oEdit:nyFirst, oEdit:nPos )
       ENDIF
    ELSE
-      edi_DevPos( oEdit, nRow-1, oEdit:nCol )
+      edi_SetPos( oEdit, oEdit:nLine-1, oEdit:nPos )
    ENDIF
    RETURN Nil
 
 STATIC FUNCTION edi_GoDown( oEdit )
 
-   LOCAL nRow := Row()
-
-   IF nRow - oEdit:y1 + oEdit:nyFirst < Len(oEdit:aText)
-      IF nRow < oEdit:y2
-         edi_DevPos( oEdit, nRow+1, Col() )
-      ELSE
+   IF oEdit:nLine < Len(oEdit:aText)
+      IF oEdit:LineToRow() == oEdit:y2
          oEdit:nyFirst ++
          oEdit:lTextOut := .T.
-         edi_DevPos( oEdit, nRow, Col() )
       ENDIF
+      edi_SetPos( oEdit, oEdit:nLine+1, oEdit:nPos )
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION edi_GoRight( oEdit )
 
-   LOCAL nCol := Col()
-
-   IF nCol == oEdit:x2
+   IF oEdit:PosToCol() == oEdit:x2
       oEdit:nxFirst ++
       oEdit:lTextOut := .T.
-   ELSE
-      edi_DevPos( oEdit, Row(), nCol+1, .T. )
    ENDIF
+   edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos+1 )
 
    RETURN Nil
 
 STATIC FUNCTION edi_GoLeft( oEdit )
 
-   LOCAL nCol := Col()
-
-   IF nCol == oEdit:x1
-      IF oEdit:nxFirst > 1
-         oEdit:nxFirst --
-         oEdit:lTextOut := .T.
+   IF oEdit:nPos > 1
+      IF oEdit:PosToCol() == oEdit:x1
+         IF oEdit:nxFirst > 1
+            oEdit:nxFirst --
+            oEdit:lTextOut := .T.
+         ELSE
+            RETURN Nil
+         ENDIF
       ENDIF
-   ELSE
-      edi_DevPos( oEdit, Row(), nCol-1 )
+      edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos-1 )
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION edi_GoEnd( oEdit )
 
-   LOCAL n := oEdit:RowToLine()
-   LOCAL nCol := cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - oEdit:nxFirst + Iif( oEdit:nMode==1, 0, 1 )
+   LOCAL n := oEdit:nLine
+   LOCAL nPos := cp_Len( oEdit:lUtf8, oEdit:aText[n] ) + Iif( oEdit:nMode==1, 0, 1 )
 
-   IF nCol <= 0 .OR. nCol > oEdit:x2 - oEdit:x1
+   IF nPos < oEdit:nxFirst .OR. nPos - oEdit:nxFirst > oEdit:x2 - oEdit:x1
       oEdit:nxFirst := Max( 1, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - ( oEdit:x2 - oEdit:x1 ) + 1 )
       oEdit:lTextOut := .T.
-      edi_DevPos( oEdit, Row(), oEdit:nCol := (Iif( nCol <= 0, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) - oEdit:nxFirst + 1, oEdit:x2 )) )
-   ELSE
-      edi_DevPos( oEdit, Row(), oEdit:nCol := nCol )
    ENDIF
+   edi_SetPos( oEdit, n, nPos )
 
    RETURN Nil
 
@@ -2756,10 +2790,10 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    LOCAL lOk := .F., lAlphaNum
 
    IF ny == Nil
-      ny := oEdit:RowToLine()
+      ny := oEdit:nLine
    ENDIF
    IF nx == Nil
-      nInitPos := nx := oEdit:ColToPos()
+      nInitPos := nx := oEdit:nPos
    ENDIF
    nLen := cp_Len( lUtf8, oEdit:aText[ny] )
 
@@ -2798,11 +2832,11 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    ENDIF
 
    IF lChgPos == Nil .OR. lChgPos
-      IF oEdit:PosToCol(nx) >= oEdit:x2
+      IF oEdit:PosToCol(ny,nx) >= oEdit:x2
          oEdit:nxFirst := nx + oEdit:x1 - oEdit:x2 + 3
          oEdit:lTextOut := .T.
       ENDIF
-      edi_DevPos( oEdit, Row(), oEdit:PosToCol(nx) )
+      edi_SetPos( oEdit, oEdit:nLine, nx )
    ENDIF
 
    RETURN nx
@@ -2812,10 +2846,10 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
    LOCAL ch, lAlphaNum
 
    IF ny == Nil
-      ny := oEdit:RowToLine()
+      ny := oEdit:nLine
    ENDIF
    IF nx == Nil
-      nx := oEdit:ColToPos()
+      nx := oEdit:nPos
    ENDIF
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
@@ -2838,7 +2872,7 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
          oEdit:nxFirst := Max( nx + oEdit:x1 - oEdit:x2 + 3, 1 )
          oEdit:lTextOut := .T.
       ENDIF
-      edi_DevPos( oEdit, Row(), oEdit:PosToCol(nx) )
+      edi_SetPos( oEdit, oEdit:nLine, nx )
    ENDIF
 
    RETURN nx
@@ -2860,7 +2894,7 @@ STATIC FUNCTION edi_FileName( oEdit )
    ENDIF
 
    SetColor( oldc )
-   edi_DevPos( oEdit, oEdit:nRow, oEdit:nCol )
+   edi_SetPos( oEdit )
 
    RETURN cName
 
@@ -2902,7 +2936,7 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    IF nKey >= 97 .AND. nKey <= 122
       IF lSet
-         oEdit:hBookMarks[nKey] := { oEdit:RowToLine(), oEdit:ColToPos() }
+         oEdit:hBookMarks[nKey] := { oEdit:nLine, oEdit:nPos }
       ELSE
          IF hb_hHaskey( oEdit:hBookMarks, nKey )
             arr := oEdit:hBookMarks[nKey]
@@ -2915,7 +2949,7 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
 STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly )
 
-   LOCAL nyInit, ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL nyInit, ny := oEdit:nLine, nx := oEdit:nPos
    LOCAL c, nPos := 0
    LOCAL b1 := "([{", b2 := ")]}", i, np := 0
 
@@ -3049,6 +3083,95 @@ STATIC FUNCTION edi_InQuo( oEdit, nLine, nPos )
    ENDDO
 
    RETURN nPosQuo
+
+FUNCTION edi_Col2Pos( oEdit, nLine, nCol )
+
+   LOCAL nPos, s := oEdit:aText[nLine], nPos1 := 1, nPos2, nLenNew := 0, nAdd := 0, nLen1
+   LOCAL nTabLen := oEdit:nTabLen
+
+   DO WHILE ( nPos2 := hb_At( cTab, s, nPos1 ) ) > 0
+      IF nPos2 - nPos1 > 0
+         IF oEdit:lUtf8
+            nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1, nPos2-nPos1 ) )
+            IF nLenNew > nCol
+               RETURN nCol - nAdd
+            ENDIF
+         ELSE
+            nLenNew += ( nPos2-nPos1 )
+            IF nLenNew > nCol
+               //RETURN nPos2 - (nLenNew - nCol)
+               RETURN nCol - nAdd
+            ENDIF
+         ENDIF
+      ENDIF
+      IF ( nLen1 := ( nTabLen - Iif( (nLen1:=((1+nLenNew) % nTabLen))==0,nTabLen,nLen1 ) + 1 ) ) > 0
+         nLenNew += nLen1
+         nAdd += Int(nLen1 - 0.99)
+         IF nLenNew > nCol
+            RETURN nPos2
+         ENDIF
+      ENDIF
+      nPos1 := nPos2 + 1
+   ENDDO
+   /*
+   IF oEdit:lUtf8
+      nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1 ) )
+      IF nLenNew > nCol
+         RETURN nCol - nAdd
+      ENDIF
+   ELSE
+      nLenNew += ( Len(s)-nPos1+1 )
+      IF nLenNew > nCol
+         //RETURN Len(s) - (nLenNew - nCol)
+         RETURN nCol - nAdd
+      ENDIF
+   ENDIF
+   */
+   RETURN nCol - nAdd
+
+FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
+
+   LOCAL sNew := "", nLenNew := 0, s1, nPos1 := 1, nPos2, nLen1
+   LOCAL nTabLen := oEdit:nTabLen
+
+   IF lCalcOnly == Nil; lCalcOnly := .F.; ENDIF
+   nAdd := 0
+   DO WHILE ( nPos2 := hb_At( cTab, s, nPos1 ) ) > 0
+      IF nPos2 - nPos1 > 0
+         IF lCalcOnly
+            IF oEdit:lUtf8
+               nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1, nPos2-nPos1 ) )
+            ELSE
+               nLenNew += ( nPos2-nPos1 )
+            ENDIF
+         ELSE
+            s1 := Substr( s, nPos1, nPos2-nPos1 )
+            sNew += s1
+            nLenNew += cp_Len( oEdit:lUtf8, s1 )
+         ENDIF
+      ENDIF
+      IF ( nLen1 := ( nTabLen - Iif( (nLen1:=((nFirst+nLenNew) % nTabLen))==0,nTabLen,nLen1 ) + 1 ) ) > 0
+         IF !lCalcOnly
+            sNew += Space( nLen1 )
+         ENDIF
+         nLenNew += nLen1
+         nAdd += Int(nLen1 - 0.99)
+      ENDIF
+      nPos1 := nPos2 + 1
+   ENDDO
+   IF lCalcOnly
+      IF oEdit:lUtf8
+         nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1 ) )
+      ELSE
+         nLenNew += ( Len(s)-nPos1+1 )
+      ENDIF
+   ELSE
+      s1 := Substr( s, nPos1 )
+      sNew += s1
+      nLenNew += cp_Len( oEdit:lUtf8, s1 )
+   ENDIF
+
+   RETURN Iif( lCalcOnly, Int(nLenNew), sNew )
 
 /*
  * edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )

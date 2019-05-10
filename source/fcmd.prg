@@ -46,11 +46,11 @@ FUNCTION mnu_CmdLine( oEdit )
       IF lModeSea
          IF nKey == Asc( "n" )
             IF !DoSea( oEdit, Substr( s, 2 ), .T., .F. )
-               DevPos( oEdit:nRow, oEdit:nCol )
+               edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
             ENDIF
          ELSEIF nKey == Asc( "N" )
             IF !DoSea( oEdit, Substr( s, 2 ), .F., .F. )
-               DevPos( oEdit:nRow, oEdit:nCol )
+               edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
             ENDIF
          ELSEIF nKey == K_ENTER
             EXIT
@@ -179,7 +179,7 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
 
 STATIC FUNCTION DoSea( oEdit, s, lNext, lInc )
 
-   LOCAL ny := oEdit:RowToLine(), nx := oEdit:ColToPos()
+   LOCAL ny := oEdit:nLine, nx := oEdit:nPos
    LOCAL lRes
 
    IF !lInc
@@ -199,7 +199,7 @@ STATIC FUNCTION DoSea( oEdit, s, lNext, lInc )
    ELSEIF !lInc
       DevPos( oEdit:y2+1, oEdit:x2-8 )
       DevOut( "Not found" )
-      DevPos( oEdit:nRow, oEdit:nCol )
+      edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
    ENDIF
 
    RETURN lRes

@@ -7,6 +7,10 @@
 
 #include <stdio.h>
 #include "hbapi.h"
+#include "hbapiitm.h"
+#include "hbapicdp.h"
+
+static HB_SIZE nLastX, nLastPos;
 
 /*
 #include "hbapifs.h"
@@ -44,6 +48,155 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
    }
 }
 */
+
+static HB_WCHAR hb_UTF8StringPeek( const char * pSrc, HB_SIZE nLen, HB_SIZE nPos )
+{
+   nLastX = 0;
+
+   if( nLen )
+   {
+      HB_SIZE ul;
+      HB_WCHAR wc = 0;
+      int n = 0;
+
+      for( ul = 0; ul < nLen && nPos; )
+      {
+         if( hb_cdpUTF8ToU16NextChar( ( HB_UCHAR ) pSrc[ ul ], &n, &wc ) )
+            ++ul;
+         if( n == 0 )
+            --nPos;
+      }
+
+      if( ul < nLen )
+      {
+         n = 0;
+         nLastX = ul;
+         do
+         {
+            if( hb_cdpUTF8ToU16NextChar( ( HB_UCHAR ) pSrc[ ul ], &n, &wc ) )
+               ++ul;
+            if( n == 0 )
+            {
+               return wc;
+            }
+         }
+         while( ul < nLen );
+      }
+   }
+
+   return 0;
+}
+
+HB_FUNC( CEDI_PEEK )
+{
+   int bUtf8 = hb_parl( 1 );
+   const char * szString = hb_parc( 2 );
+   HB_SIZE nLen = hb_parclen( 2 );
+   HB_SIZE nPos = hb_parns( 3 );
+
+   if( bUtf8 )
+   {
+      HB_SIZE nStart = HB_ISNIL(4)? 0 : hb_parns( 4 ) - 1;
+      HB_SIZE nStartPos = HB_ISNIL(5)? 1 : hb_parns( 5 );
+
+      nLastPos = nPos;
+      if( nStartPos > nPos )
+      {
+         nStart = 0; nStartPos = 1;
+      }
+      szString += nStart;
+      if( nLen > nStart && nPos >= nStartPos )
+      {
+         nLen -= nStart;
+         nPos -= nStartPos;
+         if( nPos <= nLen )
+         {
+            char utf8Char[ HB_MAX_CHAR_LEN ];
+            int iLen = hb_cdpU16CharToUTF8( utf8Char, hb_UTF8StringPeek( szString, nLen, nPos ) );
+            nLastX += nStart;
+            hb_stornl( nLastX+1, 4 );
+            hb_stornl( nLastPos, 5 );
+            hb_retclen( utf8Char, iLen );
+            //hb_retnint( hb_UTF8StringPeek( szString, nLen, nPos - 1 ) );
+         }
+         else
+            hb_retc( 0 );
+      }
+      else
+         hb_retc( 0 );
+   }
+   else
+   {
+      if( nPos > 0 && nPos <= nLen )
+         hb_retclen( szString+nPos-1, 1 );
+      else
+         hb_retc( 0 );
+   }
+}
+
+HB_FUNC( CEDI_GETLASTPOS )
+{
+   hb_retnl( nLastX + 1 );
+}
+
+HB_FUNC( CEDI_SUBSTR )
+{
+   int bUtf8 = hb_parl( 1 );
+   const char * szString = hb_parc( 2 );
+   HB_SIZE nLen = hb_parclen( 2 );
+   HB_SIZE nFrom = hb_parns( 3 );
+   int iPCount = hb_pcount();
+   HB_SIZE nCount = (iPCount<4 ||HB_ISNIL(4))? ( HB_ISIZ ) nLen : hb_parns( 4 );
+
+   if( bUtf8 )
+   {
+      HB_SIZE nStart = HB_ISNIL(5)? 0 : hb_parns( 5 ) - 1;
+      HB_SIZE nStartPos = HB_ISNIL(6)? 1 : hb_parns( 6 );
+      char * szDest = NULL;
+      HB_SIZE nDest = 0;
+
+      if( nStartPos > nFrom )
+      {
+         nStart = 0; nStartPos = 1;
+      }
+      szString += nStart;
+      nLen -= nStart;
+      nFrom -= nStartPos;
+
+      //if( nFrom )
+      //   --nFrom;
+
+      if( nLen > ( HB_SIZE ) nFrom && nCount > 0 )
+         szDest = hb_cdpUTF8StringSubstr( szString, nLen, nFrom, nCount, &nDest );
+      if( szDest )
+         hb_retclen_buffer( szDest, nDest );
+      else
+         hb_retc_null();
+   }
+   else
+   {
+      if( nFrom > 0 )
+      {
+         if( --nFrom > nLen )
+            nCount = 0;
+      }
+      if( nCount > 0 )
+      {
+         nLen -= nFrom;
+         if( nCount > nLen )
+            nCount = nLen;
+      }
+      if( nCount > 0 )
+      {
+         if( nFrom == 0 && nCount == nLen )
+            hb_retclen( szString, nCount );
+         else
+            hb_retclen( szString + nFrom, nCount );
+      }
+      else
+         hb_retc_null();
+   }
+}
 
 HB_FUNC( CEDI_REDIRON )
 {
@@ -119,7 +272,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    sa.bInheritHandle = TRUE;
    sa.lpSecurityDescriptor = NULL;
 
-   // Create a pipe for the child process's STDOUT. 
+   // Create a pipe for the child process's STDOUT.
    if( !CreatePipe( &g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &sa, 0 ) )
    {
       hb_retni( 1 );
@@ -133,10 +286,10 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       return;
    }
 
-   // Set up members of the PROCESS_INFORMATION structure. 
+   // Set up members of the PROCESS_INFORMATION structure.
    ZeroMemory( &pi, sizeof( PROCESS_INFORMATION ) );
 
-   // Set up members of the STARTUPINFO structure. 
+   // Set up members of the STARTUPINFO structure.
    // This structure specifies the STDIN and STDOUT handles for redirection.
    ZeroMemory( &si, sizeof( si ) );
    si.cb = sizeof( si );

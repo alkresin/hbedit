@@ -4,6 +4,7 @@
 Function plug_prg_run( oEdit )
 
    LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, oNew
+   LOCAL nRow, nCol
 
    edi_CloseWindow( cFile )
 
@@ -25,6 +26,7 @@ Function plug_prg_run( oEdit )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _prg_ErrWin_OnKey(o,n) }
    ELSE
+      nRow := Row(); nCol := Col()
       CLEAR SCREEN
       bOldError := Errorblock( {|e| MacroError( e ) } )
       BEGIN SEQUENCE
@@ -32,6 +34,7 @@ Function plug_prg_run( oEdit )
       END SEQUENCE
       Errorblock( bOldError )
       Inkey(0)
+      DevPos( nRow, nCol )
    ENDIF
    SetColor( oEdit:cColor )
    oEdit:WriteTopPane()

@@ -19,7 +19,7 @@
 
 #define MAX_ITEMS    1024
 
-STATIC cSpaces := e" \t", cQuotes := e"\"\'"
+STATIC cSpaces := e" \t\x9", cQuotes := e"\"\'"
 
 CLASS HiliBase
 
@@ -150,7 +150,7 @@ METHOD SET( oEdit ) CLASS Hili
 METHOD DO( nLine, lCheck ) CLASS Hili
    LOCAL aText, cLine, nLen, nLenS, nLenM, i, lComm, lUtf8 := ::oEdit:lUtf8
    LOCAL cs, cm, cf
-   LOCAL nPos, nPos1, nPrev, cWord, c, lFirst := .T.
+   LOCAL nPos, nPos1, nPrev, cWord, c, lFirst := .T., nStartOffs := 1, nStartPos := 1
 
    ::nItems := 0
    ::lMultiComm := .F.
@@ -216,37 +216,42 @@ METHOD DO( nLine, lCheck ) CLASS Hili
    ENDIF
 
    DO WHILE nPos <= nLen
-      DO WHILE nPos <= nLen .AND. cp_Substr( lUtf8, cLine, nPos, 1 ) $ cSpaces; nPos ++ ; ENDDO
+      //DO WHILE nPos <= nLen .AND. cp_Substr( lUtf8, cLine, nPos, 1 ) $ cSpaces; nPos ++ ; ENDDO
+      DO WHILE nPos <= nLen .AND. cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) $ cSpaces; nPos ++ ; ENDDO
       DO WHILE nPos <= nLen
-         IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
+         //IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
+         IF ( c := cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) ) == ""
+            RETURN Nil
+
+         ELSEIF c $ cQuotes
             nPos1 := nPos
             IF ( nPos := cp_At( lUtf8, c, cLine, nPos1 + 1 ) ) == 0
-               nPos := cp_Len( lUtf8, cLine )
+               nPos := nLen
             ENDIF
             IF !lCheck; ::AddItem( nPos1, nPos, HILIGHT_QUOTE ); ENDIF
 
-         ELSEIF c == cs .AND. cp_Substr( lUtf8, cLine, nPos, nLenS ) == ::cScomm
+         ELSEIF c == cs .AND. cedi_Substr( lUtf8, cLine, nPos, nLenS, nStartOffs, nStartPos ) == ::cScomm
             IF !lCheck; ::AddItem( nPos, cp_Len( lUtf8, cLine ), HILIGHT_SCOMM ); ENDIF
-            nPos := cp_Len( lUtf8, cLine ) + 1
+            nPos := nLen + 1
             EXIT
 
-         ELSEIF c == cm .AND. cp_Substr( lUtf8, cLine, nPos, nLenM ) == ::cMcomm1
+         ELSEIF c == cm .AND. cedi_Substr( lUtf8, cLine, nPos, nLenM, nStartOffs, nStartPos ) == ::cMcomm1
             nPos1 := nPos
             IF ( nPos := cp_At( lUtf8, ::cMcomm2, cLine, nPos1 + 1 ) ) == 0
-               nPos := cp_Len( lUtf8, cLine )
+               nPos := nLen
                ::lMultiComm := .T.
                ::aDop[nLine] := 1
             ENDIF
             IF !lCheck; ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM ); ENDIF
             nPos += nLenM - 1
 
-         ELSEIF lFirst .AND. c == cf .AND. cp_Substr( lUtf8, cLine, nPos, Len( ::cSleft ) ) == ::cSleft
+         ELSEIF lFirst .AND. c == cf .AND. cedi_Substr( lUtf8, cLine, nPos, Len(::cSleft), nStartOffs, nStartPos ) == ::cSleft
             nPos1 := nPos
             IF ( !Empty(::cScomm) .AND. ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 ) .OR. ;
                ( !Empty(::cMcomm1) .AND. ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0 )
                nPos --
             ELSE
-               nPos := cp_Len( lUtf8, cLine )
+               nPos := nLen
             ENDIF
             ::AddItem( nPos1, nPos, HILIGHT_SLEFT )
 
@@ -254,11 +259,11 @@ METHOD DO( nLine, lCheck ) CLASS Hili
             nPos1 := nPos
             nPrev := nPos
             nPos := cp_NextPos( lUtf8, cLine, nPos )
-            DO WHILE IsLetter( cp_Substr( lUtf8, cLine,nPos,1 ) )
+            DO WHILE IsLetter( c := cedi_Substr( lUtf8, cLine,nPos,1, nStartOffs, nStartPos ) ) .OR. IsDigit( c )
                nPrev := nPos
                nPos := cp_NextPos( lUtf8, cLine, nPos )
             ENDDO
-            cWord := " " + iif( ::lCase, cp_Substr( lUtf8, cLine, nPos1, nPos - nPos1 ), ;
+            cWord := " " + iif( ::lCase, cedi_Substr( lUtf8, cLine, nPos1, nPos - nPos1, nStartOffs, nStartPos ), ;
                Lower( cp_Substr( lUtf8, cLine, nPos1, nPos - nPos1 ) ) ) + " "
             nPos := nPrev
             IF !Empty( ::cKeywords1 ) .AND. cWord $ ::cKeywords1
@@ -271,7 +276,6 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::AddItem( nPos1, nPos, HILIGHT_KEYW4 )
             ENDIF
          ENDIF
-         //nPos := cp_NextPos( lUtf8, cLine, nPos )
          nPos ++
          lFirst := .F.
       ENDDO
