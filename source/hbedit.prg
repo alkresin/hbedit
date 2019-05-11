@@ -19,7 +19,7 @@ FUNCTION Main( ... )
    LOCAL ypos, xpos, nStartLine, lRO := .F.
 
    FOR i := 1 TO Len( aParams )
-      IF Left( aParams[i],1 ) $ "-/"
+      IF Left( aParams[i],1 ) == "-"
          IF ( c := Substr( aParams[i],2,1 ) ) == "f"
             IF Len( aParams[i] ) == 2
                i ++
