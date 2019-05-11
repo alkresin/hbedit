@@ -167,7 +167,12 @@ FUNCTION edi_READ( aGets )
       ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
          ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            aOpt[nCurr] := .F.
+            IF aOpt[nCurr]
+               nx := aGets[nCurr,G_X]
+               x := 1
+               aGets[nCurr,G_VALUE] := ""
+               aOpt[nCurr] := .F.
+            ENDIF
             s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
                   s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )

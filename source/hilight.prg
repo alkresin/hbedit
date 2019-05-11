@@ -178,7 +178,9 @@ METHOD DO( nLine, lCheck ) CLASS Hili
       NEXT
    ENDIF
    lComm := iif( nLine == 1, .F. , !Empty( ::aDop[nLine - 1] ) )
-   ::nDopChecked := nLine
+   IF ::nDopChecked < nLine
+      ::nDopChecked := nLine
+   ENDIF
    ::aDop[nLine] := 0
 
    IF Empty( ::cMcomm1 )
