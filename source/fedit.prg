@@ -955,12 +955,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   s := ""
                   IF hb_hGetDef( TEdit():options, "autoindent", .F. )
                      i := 0
-                     DO WHILE cp_Substr( ::lUtf8, ::aText[n], i+1, 1 ) == " "; i++; ENDDO
-                     IF i > 0
-                        IF ::nPos <= i
-                           i := ::nPos - 1
-                        ENDIF
-                        s := Space( i )
+                     DO WHILE ( x := cp_Substr( ::lUtf8, ::aText[n], ++i, 1 )  ) == " " .OR. x == cTab
+                        s += x
+                     ENDDO
+                     IF s != "" .AND. ::nPos <= Len( s )
+                        s := Left( s, ::nPos - 1 )
                      ENDIF
                   ENDIF
                   ::InsText( n, ::nPos, Chr(10) + s, .F., .T. )
@@ -1574,7 +1573,8 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
                IF alast[UNDO_TEXT] > 0
                   ::aText[i] := Substr( ::aText[i], alast[UNDO_TEXT]+1 )
                ELSEIF alast[UNDO_TEXT] < 0
-                  ::aText[i] := Space(Abs(alast[UNDO_TEXT])) + ::aText[i]
+                  ::aText[i] := Iif( Left(::aText[i],1) == cTab, ;
+                     Replicate(cTab,Abs(alast[UNDO_TEXT])), Space(Abs(alast[UNDO_TEXT])) ) + ::aText[i]
                ENDIF
             NEXT
             ::GoTo( alast[UNDO_LINE2], 1 )
@@ -2903,7 +2903,7 @@ STATIC FUNCTION edi_FileName( oEdit )
 
 STATIC FUNCTION edi_Indent( oEdit, lRight )
 
-   LOCAL i, n, nby1, nby2, nbx2
+   LOCAL i, n, nby1, nby2, nbx2, l := .F.
 
    IF oEdit:lReadOnly .OR. oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
       RETURN Nil
@@ -2919,17 +2919,21 @@ STATIC FUNCTION edi_Indent( oEdit, lRight )
          EXIT
       ENDIF
       IF lRight
-         oEdit:aText[i] := " " + oEdit:aText[i]
-      ELSEIF Left( oEdit:aText[i],1 ) == " "
+         oEdit:aText[i] := Iif( Left( oEdit:aText[i],1 ) == cTab, cTab, " " ) + oEdit:aText[i]
+         l := .T.
+      ELSEIF Left( oEdit:aText[i],1 ) == " " .OR. Left( oEdit:aText[i],2 ) == cTab + cTab
          oEdit:aText[i] := Substr( oEdit:aText[i], 2 )
+         l := .T.
       ENDIF
       n := i - oEdit:nyFirst + 1
       IF n > 0 .AND. n < oEdit:y2-oEdit:y1
          oEdit:LineOut( n )
       ENDIF
    NEXT
-   oEdit:Undo( nby1, 0, nby2, 0, UNDO_OP_SHIFT, Iif(lRight,1,-1) )
-   oEdit:lUpdated := .T.
+   IF l
+      oEdit:Undo( nby1, 0, nby2, 0, UNDO_OP_SHIFT, Iif(lRight,1,-1) )
+      oEdit:lUpdated := .T.
+   ENDIF
 
    RETURN Nil
 

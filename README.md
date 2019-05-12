@@ -9,6 +9,7 @@ A fullscreen console multiplatform text editor.
                         its only difference is that the full version requests most of Harbour
                         functions to provide a possibility to use them in plugins.
   + bld_plugins.bat     - command file to build plugins.
+  + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
   + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
   + hbedit.help         - Hbedit help file (Russian).
