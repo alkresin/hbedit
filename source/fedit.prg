@@ -987,14 +987,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      cbDele( Self )
                   ELSE
-                     IF ::PosToCol() == ::x1
+                     IF ::nPos == 1
                         IF n > 1
                            edi_GoUp( Self )
                            edi_GoEnd( Self )
                            ::DelText( n-1, ::nPos, n-1, ::nPos )
                         ENDIF
-                     ELSE
+                     ELSEIF ::nPos <= cp_Len( ::lUtf8, ::aText[n] ) + 1
                         ::DelText( n, ::nPos-1, n, ::nPos-1 )
+                     ELSE
+                        edi_GoLeft( Self )
                      ENDIF
                   ENDIF
                ENDIF
