@@ -55,6 +55,7 @@ STATIC cDopMode := ""
 STATIC cLastDir := ""
 STATIC aMacro
 STATIC cTab := e"\x9", cTabStr
+STATIC nLastMacro
 
 CLASS TEdit
 
@@ -485,7 +486,7 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
 METHOD onKey( nKeyExt ) CLASS TEdit
 
-   LOCAL nKey := hb_keyStd(nKeyExt), i, n, nCol := Col(), nRow := Row()
+   LOCAL nKey := hb_keyStd(nKeyExt), i, j, n, nCol := Col(), nRow := Row()
    LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F., x
 
    n := ::nLine
@@ -534,16 +535,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             Aadd( aMacro, nKeyExt )
          ENDIF
       ENDIF
-   ELSEIF ::nDopMode == 64
-         ::nDopMode := 0
-         cDopMode := ""
-         lSkip := .T.
-         IF hb_hHaskey( ::hMacros, nKey )
-            x := ::hMacros[nKey]
-            FOR i := 1 TO Len( x )
-               ::onKey( x[i] )
-            NEXT
-         ENDIF
    ELSEIF ::nDopMode > 0
       IF nKey == K_ESC
          ::nDopMode := 0
@@ -578,11 +569,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             cDopMode += Chr( nKey )
             IF nKey == 103    // g
                ::nDopMode := 103
+            ELSEIF nKey == 64    // @
+               ::nDopMode := 64
             ELSEIF Chr(nKey) $ cKeysMove
                edi_Move( Self, nKey, Val( cDopMode ) )
                nKey := K_RIGHT
                ::nDopMode := 0
-            ELSEIF nKey == 120    // x
+            ELSEIF nKey == 120   // x
                FOR i := Val( cDopMode ) TO 1 STEP -1
                   ::DelText( n, ::nPos, n, ::nPos )
                NEXT
@@ -677,6 +670,24 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
             ENDIF
             ::nDopMode := 0
+            EXIT
+         CASE 64   // @ - Macro playing
+            ::nDopMode := 0
+            IF ( n := Val( cDopMode ) ) == 0
+               n := 1
+            ENDIF
+            IF nKey == 64 .AND. !Empty( nLastMacro )
+               nKey := nLastMacro
+            ENDIF
+            IF hb_hHaskey( ::hMacros, nKey )
+               nLastMacro := nKey
+               x := ::hMacros[nKey]
+               FOR j := 1 TO n
+                  FOR i := 1 TO Len( x )
+                     ::onKey( x[i] )
+                  NEXT
+               NEXT
+            ENDIF
             EXIT
          END
       ENDIF
@@ -1672,12 +1683,14 @@ METHOD OnExit() CLASS TEdit
          s += Chr(13) + Chr(10) + "[MACRO]" + Chr(13) + Chr(10)
          FOR i := 1 TO Len( aMacros )
             arr := ::hMacros[aMacros[i]]
-            sLine := Chr( aMacros[i] ) + "="
-            FOR j := 1 TO Len( arr )
-               sLine += edi_KeyNToC( arr[j] ) + ","
-            NEXT
-            sLine += Chr(13) + Chr(10)
-            s += sLine
+            IF !Empty( arr )
+               sLine := Chr( aMacros[i] ) + "="
+               FOR j := 1 TO Len( arr )
+                  sLine += edi_KeyNToC( arr[j] ) + ","
+               NEXT
+               sLine += Chr(13) + Chr(10)
+               s += sLine
+            ENDIF
          NEXT
       ENDIF
 
@@ -1807,6 +1820,7 @@ FUNCTION edi_ReadIni( xIni )
    hIni := Iif( Valtype( xIni ) == "C", edi_iniRead( xIni ), xIni )
 
    SetBlink( .F. )
+   hb_gtInfo( HB_GTI_COMPATBUFFER, .F. )
    aLangs := hb_Hash()
 
    IF !Empty( hIni )

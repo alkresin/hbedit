@@ -111,6 +111,8 @@ functional. The following keys are currently supported:
 
    q[0...9,a...z]    recording macro;
    @[0...9,a...z]    playing macro;
+   @@                playing last used macro;
+   [0...9]@[0...9,a...z] playing macro specified number of times;
 
   The number entered before the move command (h, j, k, l, w, w, e, E, b, B)
   forces this movement to be done a specified number of times.
