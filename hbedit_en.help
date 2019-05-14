@@ -81,6 +81,7 @@ functional. The following keys are currently supported:
    F[x]              find previous char x;
    *                 find a word under cursor;
    #                 find a word under cursor (backward);
+   /                 search from the command line;
 
    v                 switch to selection mode;
    p, P              insert text from the buffer;

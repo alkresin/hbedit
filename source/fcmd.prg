@@ -187,7 +187,7 @@ STATIC FUNCTION DoSea( oEdit, s, lNext, lInc )
       DevOut( "[press n-Next,N-previous]" )
    ENDIF
 
-   IF ( lRes := oEdit:Search( s, .T., lNext, @ny, @nx ) )
+   IF ( lRes := oEdit:Search( s, .T., lNext, .F., .F., @ny, @nx, lInc ) )
       IF !lInc
          DevPos( oEdit:y2+1, oEdit:x2-8 )
          DevOut( "    Found" )

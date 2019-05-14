@@ -50,7 +50,7 @@ STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aLangs
-STATIC lCase_Sea := .F.
+STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
 STATIC cDopMode := ""
 STATIC cLastDir := ""
 STATIC aMacro
@@ -142,7 +142,7 @@ CLASS TEdit
    METHOD ColToPos( nRow, nCol )
    METHOD LineToRow( nLine )  INLINE ( Iif( nLine==Nil, ::nLine, nLine ) + ::y1 - ::nyFirst )
    METHOD PosToCol( nLine, nPos )
-   METHOD Search( cSea, lCase, lNext, ny, nx )
+   METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc )
    METHOD GoTo( ny, nx, nSele, lNoGo )
    METHOD ToString( cEol )
    METHOD Save( cFileName )
@@ -936,7 +936,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i := ::nPos
-                     IF ::Search( s, .T., .T., @n, @i )
+                     IF ::Search( s, .T., .T., .F., .F., @n, @i )
                         ::GoTo( n, i, 0 )
                      ENDIF
                      EXIT
@@ -945,8 +945,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i --
-                     IF ::Search( s, .T., .F., @n, @i )
+                     IF ::Search( s, .T., .F., .F., .F., @n, @i )
                         ::GoTo( n, i, 0 )
+                     ENDIF
+                     EXIT
+                  CASE 47    // /
+                     ::nMode := 2
+                     ::WriteTopPane( 1 )
+                     __KeyBoard( "/" )
+                     mnu_CmdLine( Self )
+                     EXIT
+                  CASE 58    // :
+                     IF ::nDefMode >= 0
+                        mnu_ChgMode( Self )
                      ENDIF
                      EXIT
                   END
@@ -1274,33 +1285,70 @@ METHOD PosToCol( nLine, nPos ) CLASS TEdit
    nPos += nAdd
    RETURN nPos + ::x1 - ::nxFirst
 
-METHOD Search( cSea, lCase, lNext, ny, nx ) CLASS TEdit
+METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc ) CLASS TEdit
 
-   LOCAL lRes := .F., i, nLen := Len( ::aText ), nPos, s
+   LOCAL lRes := .F., i, nLen := Len( ::aText ), nLenSea := cp_Len(::lUtf8,cSea), nPos, s
 
    IF !lCase
       cSea := cp_Lower( ::lUtf8, cSea )
    ENDIF
    IF lNext
-      s := cp_Substr( ::lUtf8, ::aText[ny], nx, cp_Len(::lUtf8,cSea) )
-      IF cSea == Iif( lCase, s, cp_Lower( ::lUtf8,s ) )
+      s := cp_Substr( ::lUtf8, ::aText[ny], nx, nLenSea )
+      IF Empty( lInc ) .AND. cSea == Iif( lCase, s, cp_Lower( ::lUtf8,s ) )
          nx ++
       ENDIF
       FOR i := ny TO nLen
          s := Iif( lCase, ::aText[i], cp_Lower( ::lUtf8, ::aText[i] ) )
-         IF ( nPos := cp_At( ::lUtf8, cSea, s, Iif( i == ny, nx, 1 ) ) ) > 0
+         IF i > ny
+            nx := 1
+         ENDIF
+         DO WHILE .T.
+            nPos := nx
+            IF !lRegex .AND. ( nPos := cp_At( ::lUtf8, cSea, s, nx ) ) == 0
+               EXIT
+            ELSEIF lRegex .AND. hb_Atx( cSea, s, lCase, @nPos ) == Nil
+               nPos := 0
+               EXIT
+            ENDIF
+            IF lWord .AND. !lRegex
+               IF ( nPos == 1 .OR. !edi_AlphaNum( cp_Asc( ::lUtf8, cedi_Peek(::lUtf8,s,nPos-1) ) ) ) ;
+                  .AND. ( nPos+nLenSea > cp_Len( ::lUtf8, s ) .OR. !edi_AlphaNum( cp_Asc( ::lUtf8, cedi_Peek(::lUtf8,s,nPos+nLenSea) ) ) )
+                  EXIT
+               ELSE
+                  nx ++
+               ENDIF
+            ELSE
+               EXIT
+            ENDIF
+         ENDDO
+         IF nPos > 0
             lRes := .T.; ny := i; nx := nPos
             EXIT
          ENDIF
       NEXT
    ELSE
-      s := cp_Substr( ::lUtf8, ::aText[ny], nx, cp_Len(::lUtf8,cSea) )
+      s := cp_Substr( ::lUtf8, ::aText[ny], nx, nLenSea )
       IF cSea == Iif( lCase, s, cp_Lower( ::lUtf8,s ) )
          nx --
       ENDIF
       FOR i := ny TO 1 STEP -1
          s := Iif( lCase, ::aText[i], cp_Lower( ::lUtf8, ::aText[i] ) )
-         IF ( nPos := cp_RAt( ::lUtf8, cSea, s, 1, Iif( i == ny, nx, cp_Len(::lUtf8,::aText[i]) ) ) ) > 0
+         IF i < ny
+            nx := cp_Len( ::lUtf8,::aText[i] )
+         ENDIF
+         DO WHILE ( nPos := cp_RAt( ::lUtf8, cSea, s, 1, nx ) ) > 0
+            IF lWord
+               IF ( nPos == 1 .OR. !edi_AlphaNum( cp_Asc( ::lUtf8, cedi_Peek(::lUtf8,s,nPos-1) ) ) ) ;
+                  .AND. ( nPos+nLenSea > cp_Len( ::lUtf8, s ) .OR. !edi_AlphaNum( cp_Asc( ::lUtf8, cedi_Peek(::lUtf8,s,nPos+nLenSea) ) ) )
+                  EXIT
+               ELSE
+                  nx --
+               ENDIF
+            ELSE
+               EXIT
+            ENDIF
+         ENDDO
+         IF nPos > 0
             lRes := .T.; ny := i; nx := nPos
             EXIT
          ENDIF
@@ -2326,32 +2374,37 @@ FUNCTION mnu_Search( oEdit )
    LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
-      {12,23,1,.F.,1}, {12,43,1,.F.,1}, ;
-      {14,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {14,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lBack := .F., cs_utf8
+      {12,23,1,.F.,1}, {12,43,1,.F.,1}, {13,23,1,.F.,1}, {13,43,1,.F.,1}, ;
+      {15,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL cSearch, lCase, lBack := .F., lWord, lRegex, cs_utf8
    LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 15, 60 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 13, 20 SAY "Ã"
-   @ 13, 60 SAY "´"
-   @ 13, 21 TO 13, 59
+   @ 09, 20, 16, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 14, 20 SAY "Ã"
+   @ 14, 60 SAY "´"
+   @ 14, 21 TO 14, 59
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Search for"
    @ 12, 22 SAY "[ ] Case sensitive"
    @ 12, 42 SAY "[ ] Backward"
+   @ 13, 22 SAY "[ ] Whole word"
+   @ 13, 42 SAY "[ ] Regular expr."
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := TEdit():aSeaHis[1]
       aGets[3,4] := lCase_Sea
+      aGets[6,4] := lRegex_Sea
    ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       cSearch := Trim( aGets[1,4] )
       lCase := aGets[3,4]
       lBack := aGets[4,4]
+      lWord := aGets[5,4]
+      lRegex := aGets[6,4]
       cs_utf8 := hb_Translate( cSearch,, "UTF8" )
       IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
          ADel( TEdit():aSeaHis, i )
@@ -2359,7 +2412,7 @@ FUNCTION mnu_Search( oEdit )
       ELSE
          hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
       ENDIF
-      IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, @ny, @nx )
+      IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord_Sea := lWord, lRegexSea := lRegex, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
          edi_Alert( "String is not found:;" + cSearch )
@@ -2399,7 +2452,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 
    IF !Empty( TEdit():aSeaHis )
       cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
-      IF oEdit:Search( cSearch, lCase_Sea, lNext, @ny, @nx )
+      IF oEdit:Search( cSearch, lCase_Sea, lNext, lWord_Sea, .F., @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
          edi_Alert( "String is not found:;" + cSearch )
@@ -2464,7 +2517,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       ENDIF
       nRes := 0
       DO WHILE .T.
-         IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, @ny, @nx )
+         IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, .F., .F., @ny, @nx )
             oEdit:GoTo( ny, nx, nSeaLen )
             oEdit:TextOut()
             edi_SetPos( oEdit )
@@ -2588,7 +2641,7 @@ FUNCTION mnu_ChgMode( oEdit, lBack )
    edi_SetPos( oEdit )
 
    IF !Empty( lBack )
-      oEdit:nMode := 0
+      oEdit:nMode := Iif( oEdit:nMode==2, 1, 0 )
       oEdit:WriteTopPane( 1 )
    ELSE
       IF oEdit:nMode == 0
