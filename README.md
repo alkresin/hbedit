@@ -26,6 +26,7 @@ A fullscreen console multiplatform text editor.
     + ffiles.prg
     + fkeymaps.prg
     + fgetsys.prg
+    + falert.prg
     + fmenu.prg
     + hilight.prg       - editor source files, which implements the TEdit class.
                         To include the TEdit in your application you need to link them all.

@@ -267,36 +267,6 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
 
    RETURN Nil
 
-FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
-
-   LOCAL aText := hb_aTokens( cText, ";" ), i
-   LOCAL aGets := { {,,2," Ok ",4,"W+/R","W+/B",{||__KeyBoard(Chr(K_ENTER))}} }
-   LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc, bufsc
-
-   FOR i := 1 TO Len( aText )
-      nLen := Max( nLen, Len( aText[i] ) )
-   NEXT
-   nLen += 4
-   IF cAns1 != Nil
-      nBtnsLen := Max( nBtnsLen, Len(cAns1) + 4 )
-      aGets[1,4] := " " + cAns1 + " "
-   ENDIF
-   nBtnsLen := nBtnsLen + Iif( cAns2==Nil,0,Len(cAns2)+4 ) + ;
-      Iif( cAns3==Nil,0,Len(cAns3)+2 )
-   nLen := Max( nLen, nBtnsLen+4 )
-
-   aGets[1,1] := y1+Len(aText)+2
-   aGets[1,2] := Int( (MaxCol()-nBtnsLen)/2 ) + 1
-   aGets[1,5] := Len(aGets[1,4])
-
-   IF cAns2 != Nil
-      Aadd( aGets, { aGets[1,1], aGets[1,2] + aGets[1,5] + 2, 2, " " + cAns2 + " ", ;
-         Len(" " + cAns2 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
-   ENDIF
-   IF cAns3 != Nil
-      Aadd( aGets, { aGets[1,1], aGets[2,2] + aGets[2,5] + 2, 2, " " + cAns3 + " ", ;
-         Len(" " + cAns3 + " "), "W+/R","W+/B", {||__KeyBoard(Chr(K_ENTER))} } )
-   ENDIF
 
    x1 := Int( (MaxCol()-nLen)/2 )
 

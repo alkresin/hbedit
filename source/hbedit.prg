@@ -5,7 +5,6 @@
  * www - http://www.kresin.ru
  */
 
-STATIC xKoef := 1, yKoef := 1
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH, nScreenW
@@ -83,12 +82,12 @@ FUNCTION Main( ... )
       hb_gtinfo( HB_GTI_FONTNAME, cFontName )
    ENDIF
    IF Empty( nFontHeight )
-      hb_gtinfo( HB_GTI_FONTSIZE, Int( ( ( hb_gtinfo( HB_GTI_DESKTOPHEIGHT ) - 64 ) / nScreenW ) / yKoef ) )
+      hb_gtinfo( HB_GTI_FONTSIZE, Int( ( ( hb_gtinfo( HB_GTI_DESKTOPHEIGHT ) - 64 ) / nScreenW ) ) )
    ELSE
       hb_gtinfo( HB_GTI_FONTSIZE, nFontHeight )
    ENDIF
    IF Empty( nFontWidth )
-      hb_gtinfo( HB_GTI_FONTWIDTH, Int( ( hb_gtinfo( HB_GTI_DESKTOPWIDTH ) / nScreenH ) / xKoef ) )
+      hb_gtinfo( HB_GTI_FONTWIDTH, Int( ( hb_gtinfo( HB_GTI_DESKTOPWIDTH ) / nScreenH ) ) )
    ELSE
       hb_gtinfo( HB_GTI_FONTWIDTH, nFontWidth )
    ENDIF
@@ -157,12 +156,6 @@ STATIC FUNCTION ReadIni( cIniName )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, cTmp := "SCREEN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
-         IF hb_hHaskey( aSect, cTmp := "xkoef" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            xKoef := Val(cTmp)
-         ENDIF
-         IF hb_hHaskey( aSect, cTmp := "ykoef" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            yKoef := Val(cTmp)
-         ENDIF
          IF hb_hHaskey( aSect, cTmp := "fontname" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cFontName := cTmp
          ENDIF

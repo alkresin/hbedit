@@ -517,6 +517,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
    IF ::nDopMode == 113  // q - macro recording
       IF Len( cDopMode ) == 1
+         nKey := edi_MapKey( Self, nKey )
          IF (nKey >= 48 .AND. nKey <= 57) .OR. (nKey >= 97 .AND. nKey <= 122)
             cDopMode := "Rec " + Chr( nKey )
             aMacro := {}
