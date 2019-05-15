@@ -2412,7 +2412,7 @@ FUNCTION mnu_Search( oEdit )
       ELSE
          hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
       ENDIF
-      IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord_Sea := lWord, lRegexSea := lRegex, @ny, @nx )
+      IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord_Sea := lWord, lRegex_Sea := lRegex, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
          edi_Alert( "String is not found:;" + cSearch )
@@ -2452,7 +2452,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 
    IF !Empty( TEdit():aSeaHis )
       cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
-      IF oEdit:Search( cSearch, lCase_Sea, lNext, lWord_Sea, .F., @ny, @nx )
+      IF oEdit:Search( cSearch, lCase_Sea, lNext, lWord_Sea, lRegex_Sea, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
          edi_Alert( "String is not found:;" + cSearch )
