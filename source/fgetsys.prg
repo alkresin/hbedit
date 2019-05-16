@@ -266,22 +266,3 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
    ENDIF
 
    RETURN Nil
-
-
-   x1 := Int( (MaxCol()-nLen)/2 )
-
-   bufsc := Savescreen( y1, x1, y1+Len(aText)+3, x1+nLen )
-
-   oldc := SetColor( "W+/R" )
-   cp := hb_cdpSelect( "RU866" )
-   @ y1, x1, y1+Len(aText)+3, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
-   hb_cdpSelect( cp )
-   FOR i := 1 TO Len( aText )
-      @ y1+i, x1 + 2 SAY aText[i]
-   NEXT
-   SetColor( oldc )
-
-   i := edi_Read( aGets )
-   Restscreen( y1, x1, y1+Len(aText)+3, x1+nLen, bufsc )
-
-   RETURN i

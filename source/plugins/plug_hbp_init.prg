@@ -171,7 +171,7 @@ FUNCTION _hbp_ErrWin_OnKey( oEdit, nKeyExt )
             s := hb_fnameNameExt( Trim( Left( s, nPos-1 ) ) )
             aFiles := _hbp_Get_Files( oEdit:oParent )
             IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==s} ) ) > 0
-               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:cFileName ) + aFiles[nPos] )
+               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + aFiles[nPos] )
                IF oNew != Nil
                   oNew:GoTo( nLine, 1,, .T. )
                ENDIF
