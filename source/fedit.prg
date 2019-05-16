@@ -1429,7 +1429,7 @@ METHOD Save( cFileName ) CLASS TEdit
       cFileName := ::cFileName
    ENDIF
    IF Empty( cFileName )
-      cFileName := edi_FileName( Self )
+      cFileName := edi_SaveDlg( Self )
       ::lTextOut := .T.
    ENDIF
 
@@ -2204,7 +2204,7 @@ FUNCTION mnu_Save( oEdit, lAs )
    LOCAL cFileName, cPath
 
    IF !Empty( lAs )
-      cFileName := edi_FileName( oEdit )
+      cFileName := edi_SaveDlg( oEdit )
       oEdit:lTextOut := .T.
       IF !Empty( cFileName ) .AND. Empty( hb_fnameDir(cFileName) ) ;
             .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
@@ -2950,16 +2950,23 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
 
    RETURN nx
 
-STATIC FUNCTION edi_FileName( oEdit )
+STATIC FUNCTION edi_SaveDlg( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,W+/BG" )
-   LOCAL aGets := { {11,22,0,"",36} }, cName
+   LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), cName
+   LOCAL aGets := { {11,22,0,"",48,"W+/BG","W+/BG"}, ;
+      {12,29,3,.T.,1}, {12,47,3,.F.,1}, {12,63,3,.F.,1}, ;
+      {15,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 13, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 09, 20, 16, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 14, 20 SAY "Ã"
+   @ 14, 72 SAY "´"
+   @ 14, 21 TO 14, 72
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Save file as"
+   @ 12, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
    SetColor( "W+/BG" )
 
    IF edi_READ( aGets ) > 0

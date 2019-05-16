@@ -21,6 +21,7 @@
 #define G_TYPE_STRING  0
 #define G_TYPE_CHECK   1
 #define G_TYPE_BUTTON  2
+#define G_TYPE_RADIO   3
 
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
@@ -68,12 +69,25 @@ FUNCTION edi_READ( aGets )
                DevOut( aGets[nCurr,G_VALUE] )
                DevPos( y, ++nx )
             ENDIF
-         ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_CHECK
+         ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. aGets[nCurr,G_TYPE] == G_TYPE_RADIO
             IF nKey == K_SPACE
-               aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
-               DevPos( y, aGets[nCurr,G_X] )
-               DevOut( Iif( aGets[nCurr,G_VALUE], "x"," " ) )
-               DevPos( y, aGets[nCurr,G_X] )
+               IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. ;
+                  ( aGets[nCurr,G_TYPE] == G_TYPE_RADIO .AND. !aGets[nCurr,G_VALUE] )
+                  aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
+                  DevPos( y, aGets[nCurr,G_X] )
+                  DevOut( Iif( aGets[nCurr,G_VALUE], "x"," " ) )
+                  IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
+                     FOR i := 1 TO Len( aGets )
+                        IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
+                              aGets[i,G_Y] == y
+                           aGets[i,G_VALUE] := .F.
+                           DevPos( y, aGets[i,G_X] )
+                           DevOut( " " )
+                        ENDIF
+                     NEXT
+                  ENDIF
+                  DevPos( y, aGets[nCurr,G_X] )
+               ENDIF
             ENDIF
          ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
             IF nKey == K_SPACE
@@ -199,10 +213,21 @@ FUNCTION edi_READ( aGets )
                ShowGetItem( aGets[nCurr], .F., lUtf8 )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
-               IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK
+               IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. ;
+                  ( aGets[nCurr,G_TYPE] == G_TYPE_RADIO .AND. !aGets[nCurr,G_VALUE] )
                   aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
                   DevPos( nRow, aGets[nCurr,G_X] )
                   DevOut( Iif( aGets[nCurr,G_VALUE], "x"," " ) )
+                  IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
+                     FOR i := 1 TO Len( aGets )
+                        IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
+                           aGets[i,G_Y] == y
+                           aGets[i,G_VALUE] := .F.
+                           DevPos( y, aGets[i,G_X] )
+                           DevOut( " " )
+                        ENDIF
+                     NEXT
+                  ENDIF
                   DevPos( nRow, aGets[nCurr,G_X] )
                ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
                   IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
@@ -250,7 +275,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
       @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
          aGet[G_VALUE], cp_Left( lUtf8, aGet[G_VALUE], aGet[G_WIDTH] ) )
 
-   ELSEIF aGet[G_TYPE] == G_TYPE_CHECK
+   ELSEIF aGet[G_TYPE] == G_TYPE_CHECK .OR. aGet[G_TYPE] == G_TYPE_RADIO
       @ aGet[G_Y], aGet[G_X] SAY Iif(aGet[G_VALUE],"x"," ")
 
    ELSEIF aGet[G_TYPE] == G_TYPE_BUTTON
