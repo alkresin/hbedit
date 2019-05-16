@@ -2204,8 +2204,10 @@ FUNCTION mnu_Save( oEdit, lAs )
    LOCAL cFileName, cPath
 
    IF !Empty( lAs )
-      cFileName := edi_SaveDlg( oEdit )
       oEdit:lTextOut := .T.
+      IF Empty( cFileName := edi_SaveDlg( oEdit ) )
+         RETURN Nil
+      ENDIF
       IF !Empty( cFileName ) .AND. Empty( hb_fnameDir(cFileName) ) ;
             .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
          cFileName := cPath + cFileName
@@ -2955,22 +2957,34 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
    LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), cName
    LOCAL aGets := { {11,22,0,"",48,"W+/BG","W+/BG"}, ;
       {12,29,3,.T.,1}, {12,47,3,.F.,1}, {12,63,3,.F.,1}, ;
-      {15,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+      {15,25,2,"[Save]",8,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,58,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 16, 72 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 14, 20 SAY "Ã"
    @ 14, 72 SAY "´"
-   @ 14, 21 TO 14, 72
+   @ 14, 21 TO 14, 71
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Save file as"
    @ 12, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
+   IF oEdit:lUtf8
+      hb_AIns( aGets, 5, {13,23,1,oEdit:lBom,1}, .T. )
+      @ 12, 22 SAY "[ ] Add BOM"
+   ENDIF
    SetColor( "W+/BG" )
 
    IF edi_READ( aGets ) > 0
       cName := aGets[1,4]
+      IF aGets[3,4]
+         oEdit:cEol := Chr(13) + Chr(10)
+      ELSEIF aGets[4,4]
+         oEdit:cEol := Chr(10)
+      ENDIF
+      IF oEdit:lUtf8
+         oEdit:lBom := aGets[5,4]
+      ENDIF
    ENDIF
 
    SetColor( oldc )

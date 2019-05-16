@@ -17,6 +17,7 @@
 #define G_CLR    6
 #define G_CLRSEL 7
 #define G_CB     8
+#define G_GROUP  9
 
 #define G_TYPE_STRING  0
 #define G_TYPE_CHECK   1
@@ -79,7 +80,7 @@ FUNCTION edi_READ( aGets )
                   IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
                      FOR i := 1 TO Len( aGets )
                         IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
-                              aGets[i,G_Y] == y
+                              (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCUrr,G_GROUP])
                            aGets[i,G_VALUE] := .F.
                            DevPos( y, aGets[i,G_X] )
                            DevOut( " " )
@@ -221,9 +222,9 @@ FUNCTION edi_READ( aGets )
                   IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
                      FOR i := 1 TO Len( aGets )
                         IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
-                           aGets[i,G_Y] == y
+                           (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCUrr,G_GROUP])
                            aGets[i,G_VALUE] := .F.
-                           DevPos( y, aGets[i,G_X] )
+                           DevPos( aGets[i,G_Y], aGets[i,G_X] )
                            DevOut( " " )
                         ENDIF
                      NEXT
