@@ -914,6 +914,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .T.
                      EXIT
+                  CASE 126   // ~ Invert case
+                     x := cedi_Peek( ::lUtf8, ::aText[n], ::nPos )
+                     IF ( s := cp_Upper( ::lUtf8, x ) ) != x .OR. ;
+                           ( s := cp_Lower( ::lUtf8, x ) ) != x
+                        ::InsText( n, ::nPos, s, .T., .T. )
+                     ENDIF
+                     EXIT
                   CASE 102   // f - find next char
                   CASE 70    // F - find previous char
                   CASE 109   // m - set bookmark

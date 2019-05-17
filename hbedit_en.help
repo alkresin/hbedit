@@ -98,6 +98,7 @@ functional. The following keys are currently supported:
    o                 insert a line after the current one and switch to editing mode;
    r                 replace one character;
    R                 replace few characters;
+   ~                 invert character case;
 
    dd                delete the current line;
    dw                delete before the next word;
