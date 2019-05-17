@@ -2471,6 +2471,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {13,22,0,"",33,"W+/BG","W+/BG"}, ;
+      {13,55,2,"[^]",3,"N/W","W+/RB",{||mnu_ReplHist(oEdit,aGets[3])}}, ;
       {14,23,1,.F.,1}, {14,43,1,.F.,1}, ;
       {16,25,2,"[Replace]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
       {16,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
@@ -2491,7 +2492,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := TEdit():aSeaHis[1]
-      aGets[4,4] := lCase_Sea
+      aGets[5,4] := lCase_Sea
    ENDIF
    IF !Empty( TEdit():aReplHis )
       aGets[3,4] := TEdit():aReplHis[1]
@@ -2501,8 +2502,8 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       cSearch := Trim( aGets[1,4] )
       nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
       cRepl := Trim( aGets[3,4] )
-      lCase := aGets[4,4]
-      lBack := aGets[5,4]
+      lCase := aGets[5,4]
+      lBack := aGets[6,4]
       cs_utf8 := hb_Translate( cSearch,, "UTF8" )
       cr_utf8 := hb_Translate( cRepl,, "UTF8" )
       IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
@@ -2544,6 +2545,26 @@ FUNCTION mnu_SeaAndRepl( oEdit )
 
    SetColor( oldc )
    edi_SetPos( oEdit )
+
+   RETURN Nil
+
+FUNCTION mnu_ReplHist( oEdit, aGet )
+
+   LOCAL aMenu, i, bufc
+
+   IF !Empty( TEdit():aReplHis )
+      aMenu := Array( Len(TEdit():aReplHis) )
+      FOR i := 1 TO Len(aMenu)
+         aMenu[i] := { hb_Translate( TEdit():aReplHis[i], "UTF8" ), Nil, i }
+      NEXT
+      bufc := SaveScreen( 14, 22, 14 + Min(6,Len(aMenu)+1), 55 )
+      IF !Empty( i := FMenu( oEdit, aMenu, 14, 22, 14 + Min(6,Len(aMenu)+1), 55 ) )
+         aGet[4] := aMenu[i,1]
+         ShowGetItem( aGet, .F., oEdit:lUtf8 )
+      ENDIF
+      RestScreen( 14, 22, 14 + Min(6,Len(aMenu)+1), 55, bufc )
+      __KeyBoard(Chr(K_UP))
+   ENDIF
 
    RETURN Nil
 
