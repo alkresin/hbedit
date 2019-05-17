@@ -1434,7 +1434,7 @@ METHOD Save( cFileName ) CLASS TEdit
    ENDIF
 
    IF Empty( cFileName )
-      RETURN Nil
+      RETURN .F.
    ELSE
       IF Empty( hb_fnameDir( cFileName ) )
          cFileName := edi_CurrPath() + cFileName
@@ -1449,7 +1449,7 @@ METHOD Save( cFileName ) CLASS TEdit
    ENDIF
    ::lUpdated := .F.
 
-   RETURN Nil
+   RETURN .T.
 
 METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
@@ -2133,7 +2133,9 @@ FUNCTION mnu_Exit( oEdit )
    ENDIF
    IF nRes == 1 .OR. nRes == 2
       IF nRes == 1
-         oEdit:Save()
+         IF !oEdit:Save()
+            RETURN Nil
+         ENDIF
       ENDIF
       oEdit:lShow := .F.
       oEdit:lClose := .T.
@@ -2991,8 +2993,8 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
    @ 10,22 SAY "Save file as"
    @ 12, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
    IF oEdit:lUtf8
-      hb_AIns( aGets, 5, {13,23,1,oEdit:lBom,1}, .T. )
-      @ 12, 22 SAY "[ ] Add BOM"
+      hb_AIns( aGets, 5, {13,24,1,oEdit:lBom,1}, .T. )
+      @ 13, 23 SAY "[ ] Add BOM"
    ENDIF
    SetColor( "W+/BG" )
 

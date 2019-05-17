@@ -32,7 +32,7 @@ STATIC iChoic
 
 FUNCTION edi_READ( aGets )
 
-   LOCAL nCurr := 1, i, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
+   LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
    LOCAL aOpt := Array( Len( aGets ) )
 
@@ -220,11 +220,11 @@ FUNCTION edi_READ( aGets )
                   DevPos( nRow, aGets[nCurr,G_X] )
                   DevOut( Iif( aGets[nCurr,G_VALUE], "x"," " ) )
                   IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
-                     FOR i := 1 TO Len( aGets )
-                        IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
-                           (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCUrr,G_GROUP])
-                           aGets[i,G_VALUE] := .F.
-                           DevPos( aGets[i,G_Y], aGets[i,G_X] )
+                     FOR j := 1 TO Len( aGets )
+                        IF j != nCurr .AND. aGets[j,G_TYPE] == G_TYPE_RADIO .AND. ;
+                           (Len(aGets[j]) < G_GROUP .OR. aGets[j,G_GROUP] == aGets[nCurr,G_GROUP])
+                           aGets[j,G_VALUE] := .F.
+                           DevPos( aGets[j,G_Y], aGets[j,G_X] )
                            DevOut( " " )
                         ENDIF
                      NEXT
