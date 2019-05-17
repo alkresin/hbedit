@@ -96,6 +96,8 @@ functional. The following keys are currently supported:
    ce                delete the end of the word and go into edit mode;
    cb                delete the word before the start and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
+   r                 replace one character;
+   R                 replace few characters;
 
    dd                delete the current line;
    dw                delete before the next word;

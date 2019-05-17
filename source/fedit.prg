@@ -657,6 +657,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
             ENDIF
             EXIT
+         CASE 114  // r
+            ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), .T., .T. )
+            ::nDopMode := 0
+            EXIT
          CASE 103  // g
             IF nKey == 103    // g
                IF Val( cDopMode ) > 0
@@ -884,22 +888,31 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
+                     ::lIns := .T.
                      EXIT
                   CASE 73    // I - to edit mode
                      edi_Move( Self, 94 )
                      mnu_ChgMode( Self, .T. )
+                     ::lIns := .T.
                      EXIT
                   CASE 97    // a - to edit mode
                      edi_GoRight( Self )
                      mnu_ChgMode( Self, .T. )
+                     ::lIns := .T.
                      EXIT
                   CASE 65    // A - to edit mode
                      mnu_ChgMode( Self, .T. )
                      edi_GoEnd( Self )
+                     ::lIns := .T.
+                     EXIT
+                  CASE 82    // R - to edit mode
+                     mnu_ChgMode( Self, .T. )
+                     ::lIns := .F.
                      EXIT
                   CASE 111   // o Insert line after current
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F., .T. )
                      mnu_ChgMode( Self, .T. )
+                     ::lIns := .T.
                      EXIT
                   CASE 102   // f - find next char
                   CASE 70    // F - find previous char
@@ -910,6 +923,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 103   // g
                   CASE 113   // q - record macro
                   CASE 64    // w - play macro
+                  CASE 114   // r - replace one char under cursor
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
