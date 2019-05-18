@@ -601,9 +601,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
 
             ELSEIF nKey == 105    // i
-               IF cDopMode == "d"
+               //IF cDopMode == "d"
                   cDopMode += Chr( nKey )
-               ENDIF
+               //ENDIF
 
             ELSEIF nKey == 98     // b
                IF cDopMode $ "cd"
@@ -639,10 +639,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::nby2 := ::nLine
                   ::nbx2 := ::nPos
                   cbDele( Self )
+                  ::lF3 := .F.
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
                   ENDIF
-               ELSEIF cDopMode == "di"
+               ELSEIF cDopMode $ "di;ci"
                   edi_PrevWord( Self, .F. )
                   mnu_F3( Self )
                   edi_NextWord( Self, .F., .T. )
@@ -650,9 +651,31 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::nby2 := ::nLine
                   ::nbx2 := ::nPos
                   cbDele( Self )
+                  ::lF3 := .F.
+                  IF ::nDopMode == 99
+                     mnu_ChgMode( Self, .T. )
+                  ENDIF
                ENDIF
                ::nDopMode := 0
 
+            ELSEIF nKey == 34  // "
+               IF cDopMode $ "di;ci"
+                  IF ( i := edi_InQuo( Self, n, ::nPos ) ) > 0
+                     x := cedi_Peek( ::lUtf8, ::aText[n], i )
+                     IF ( j := cp_At( ::lUtf8, x, ::aText[n], i+1 ) ) > 0
+                        ::nPos := i + 1
+                        mnu_F3( Self )
+                        ::nby2 := ::nLine
+                        ::nbx2 := j
+                        cbDele( Self )
+                        ::lF3 := .F.
+                        IF ::nDopMode == 99
+                           mnu_ChgMode( Self, .T. )
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               ENDIF
+               ::nDopMode := 0
             ELSE
                ::nDopMode := 0
             ENDIF

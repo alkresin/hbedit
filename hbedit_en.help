@@ -94,7 +94,9 @@ functional. The following keys are currently supported:
    cc                delete the current line and go into edit mode;
    cw                delete before the beginning of the next word and go into edit mode;
    ce                delete the end of the word and go into edit mode;
-   cb                delete the word before the start and go into edit mode;
+   cb                delete a word before the start and go into edit mode;
+   ñiw               delete a word and go into edit mode;
+   ñi"               delete a text between quotes and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
    r                 replace one character;
    R                 replace few characters;
@@ -104,7 +106,8 @@ functional. The following keys are currently supported:
    dw                delete before the next word;
    de                delete to the end of the word;
    db                delete a word before the start;
-   diw               delete the word;
+   diw               delete a word;
+   di"               delete a text between quotes;
    x                 delete a char;
 
    m[a ... z]        set bookmark;
