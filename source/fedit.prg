@@ -824,7 +824,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE K_CTRL_RIGHT
             IF hb_keyVal( nKeyExt ) == 66 // Ctrl-B
-               edi_Bracket( Self )
+               IF ::nMode == 1
+                  edi_Move( Self, K_CTRL_B )
+               ELSE
+                  edi_Bracket( Self )
+               ENDIF
             ELSEIF hb_keyVal( nKeyExt ) == 16
                edi_NextWord( Self, .F. )
             ENDIF
@@ -834,6 +838,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::Undo()
             ELSEIF hb_keyVal( nKeyExt ) == 15
                edi_PrevWord( Self, .F. )
+            ENDIF
+            EXIT
+         CASE K_CTRL_F
+            IF ::nMode == 1
+               edi_Move( Self, K_CTRL_F )
             ENDIF
             EXIT
          CASE K_CTRL_F4
@@ -1113,27 +1122,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                edi_GoEnd( Self )
                EXIT
             CASE K_PGUP
-               IF ::nyFirst > (::y2-::y1)
-                  ::nyFirst -= (::y2-::y1)
-                  ::lTextOut := .T.
-                  edi_SetPos( Self, ::nLine-(::y2-::y1), ::nPos )
-               ELSEIF ::nyFirst > 1
-                  x := ::nyFirst - 1
-                  ::nyFirst := 1
-                  ::lTextOut := .T.
-                  edi_SetPos( Self, ::nLine-x, ::nPos )
-               ELSE
-                  edi_Setpos( Self, 1, ::nPos )
-               ENDIF
+               edi_Move( Self, K_CTRL_B )
                EXIT
             CASE K_PGDN
-               IF ::nyFirst + (::y2-::y1) <= Len( ::aText )
-                  ::nyFirst += (::y2-::y1)
-                  ::lTextOut := .T.
-                  edi_SetPos( Self, Min( ::nLine+(::y2-::y1),Len(::aText) ), ::nPos )
-               ELSE
-                  edi_SetPos( Self, Len(::aText), ::nPos )
-               ENDIF
+               edi_Move( Self, K_CTRL_F )
                EXIT
             CASE K_LBUTTONDOWN
                IF ::nDopMode == 0
@@ -2757,7 +2749,7 @@ FUNCTION edi_SetPos( oEdit, nLine, nPos )
 
 STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
-   LOCAL i
+   LOCAL i, x
 
    IF nRepeat == Nil; nRepeat := 1; ENDIF
    IF nKey == 71 // G
@@ -2822,6 +2814,29 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
          EXIT
       CASE 66    // B Move to the previous big word
          edi_PrevWord( oEdit, .T. )
+         EXIT
+      CASE K_CTRL_F   // Ctrl-F PgDn
+         IF oEdit:nyFirst + (oEdit:y2-oEdit:y1) <= Len( oEdit:aText )
+            oEdit:nyFirst += (oEdit:y2-oEdit:y1)
+            oEdit:lTextOut := .T.
+            edi_SetPos( oEdit, Min( oEdit:nLine+(oEdit:y2-oEdit:y1),Len(oEdit:aText) ), oEdit:nPos )
+         ELSE
+            edi_SetPos( oEdit, Len(oEdit:aText), oEdit:nPos )
+         ENDIF
+         EXIT
+      CASE K_CTRL_B   // Ctrl-B PgUp
+         IF oEdit:nyFirst > (oEdit:y2-oEdit:y1)
+            oEdit:nyFirst -= (oEdit:y2-oEdit:y1)
+            oEdit:lTextOut := .T.
+            edi_SetPos( oEdit, oEdit:nLine-(oEdit:y2-oEdit:y1), oEdit:nPos )
+         ELSEIF oEdit:nyFirst > 1
+            x := oEdit:nyFirst - 1
+            oEdit:nyFirst := 1
+            oEdit:lTextOut := .T.
+            edi_SetPos( oEdit, oEdit:nLine-x, oEdit:nPos )
+         ELSE
+            edi_Setpos( oEdit, 1, oEdit:nPos )
+         ENDIF
          EXIT
       END
    NEXT
