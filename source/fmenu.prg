@@ -237,17 +237,22 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
    LOCAL i, j, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
-   LOCAL cs, nDop, l
+   LOCAL cs, nDop, l, cLine
 
+   IF bSea != Nil
+      IF ( cSearch := Eval( bSea, 0, cSearch ) ) == Nil
+         RETURN Nil
+      ENDIF
+   ENDIF
    IF lSea .AND. !Empty( cSearch )
       IF Empty( aSea )
          aSea := Array( Len( aMenu) )
       ENDIF
       cs := cp_Lower( lUtf8, cSearch )
       FOR i := 1 TO nLen
-         IF lSingle .AND. cp_At( lUtf8, cs, cp_Lower( lUtf8, aMenu[i] ) ) > 0
-            nLenArr ++
-         ELSEIF !lSingle .AND. cp_At( lUtf8, cs, cp_Lower( lUtf8, aMenu[i,1] ) ) > 0
+         cLine := Iif( lSingle, aMenu[i], aMenu[i,1] )
+         IF cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 .AND. ;
+            (bSea == Nil .OR. Eval( bSea, 1, cLine, cSearch ))
             nLenArr ++
          ENDIF
       NEXT
@@ -262,17 +267,19 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
    j := 1
    FOR i := 1 TO nLen
       l := .F.
-      IF lSingle .AND. ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, aMenu[i] ) ) > 0 )
-         arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", ;
-            Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + aMenu[i], nSize )
-         j ++
-         l := .T.
-      ELSEIF !lSingle .AND. ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, aMenu[i,1] ) ) > 0 )
-         IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4]), 0 ) ) > 0
-            nDop := nSize - nDop - Len(aMenu[i,1]) - 3
+      cLine := Iif( lSingle, aMenu[i], aMenu[i,1] )
+      IF !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 .AND. ;
+         (bSea == Nil .OR. Eval( bSea, 1, cLine, cSearch ))
+         IF lSingle
+            arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", ;
+               Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + aMenu[i], nSize )
+         ELSE
+            IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4]), 0 ) ) > 0
+               nDop := nSize - nDop - Len(aMenu[i,1]) - 3
+            ENDIF
+            arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + ;
+               aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
          ENDIF
-         arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + ;
-            aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
          j ++
          l := .T.
       ENDIF
