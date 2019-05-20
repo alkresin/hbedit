@@ -30,8 +30,12 @@ relevant functions, so you can use it as a reference.
    Alt-m [a ... z]     set a bookmark;
    Alt - '[a ... z]    go to the bookmark;
    Alt- '.             go to the last edit position;
-   Ctrl-b              go to the pair bracket.
-   Alt-b               Return to the previous position (after search, goto, ...)
+   Ctrl-b              go to the pair bracket;
+   Alt-b               Return to the previous position (after search, goto, ...);
+
+   Ctrl-w,s            split window horizontally and open the same file in readonly mode;
+   Ctrl-w,v            split window vertically and open the same file in readonly mode;
+   Ctrl-w,w            switch window.
 
    There are a total of 4 modes in Hbedit: Edit (Edit), Select (Sele),
 Vim-like (Vim) and command (Cmd).

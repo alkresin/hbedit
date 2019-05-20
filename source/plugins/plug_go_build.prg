@@ -52,7 +52,7 @@ FUNCTION _hbp_ErrWin_OnKey( oEdit, nKeyExt )
       IF ( nPos1 := At( ":", s ) ) > 0 .AND. ( nPos2 := hb_At( ":", s, nPos1+1 ) ) > 0 ;
             .AND. ( nPos3 := hb_At( ":", s, nPos2+1 ) ) > 0
          cFile := hb_fnameNameExt( AllTrim( Left( s, nPos1-1 ) ) )
-         oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + cFile )
+         oNew := mnu_NewBuf( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + cFile )
          IF oNew != Nil
             oNew:GoTo( Val(Substr(s,nPos1+1,nPos2-nPos1)), Val(Substr(s,nPos2+1,nPos3-nPos2)),, .T. )
          ENDIF

@@ -90,7 +90,7 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
    IF !Empty( aFiles )
       IF ( i := FMenu( oEdit, aFiles ) ) > 0
          cName := cPathBase + aFiles[i]
-         mnu_NewWin( oEdit, cName )
+         mnu_NewBuf( oEdit, cName )
       ENDIF
       oEdit:TextOut()
    ENDIF
@@ -171,7 +171,7 @@ FUNCTION _hbp_ErrWin_OnKey( oEdit, nKeyExt )
             s := hb_fnameNameExt( Trim( Left( s, nPos-1 ) ) )
             aFiles := _hbp_Get_Files( oEdit:oParent )
             IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==s} ) ) > 0
-               oNew := mnu_NewWin( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + aFiles[nPos] )
+               oNew := mnu_NewBuf( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + aFiles[nPos] )
                IF oNew != Nil
                   oNew:GoTo( nLine, 1,, .T. )
                ENDIF

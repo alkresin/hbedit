@@ -40,7 +40,8 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
    {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Q"}, ;
    {"Codepage",@mnu_CPages(),{11,16},">"}, {"Syntax",@mnu_Syntax(),{12,16},"F8 >"}, ;
-   {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{13,16},"F12 >"} }
+   {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{13,16}}, ;
+   {"Buffers",@mnu_Buffers(),{14,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
@@ -180,7 +181,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    ENDIF
 
    IF ::lTopPane
-      ::nTopName := Max( ::x2 - ::x1 - 44, 0 )
+      ::nTopName := Max( ::x2 - ::x1 - Iif(::x2-::x1>54,44,37), 0 )
       ::y1 ++
    ENDIF
    ::nLine := ::nPos := 1
@@ -717,6 +718,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                NEXT
             ENDIF
             EXIT
+         CASE K_CTRL_W
+            IF nKey == 119   // w
+               mnu_Windows( Self,, 1 )
+            ELSEIF nKey == 115   // s  split window horizontally
+               mnu_Windows( Self,, 2 )
+            ELSEIF nKey == 118   // v  split window vertically
+               mnu_Windows( Self,, 3 )
+            ENDIF
+            ::nDopMode := 0
+            EXIT
          END
       ENDIF
       IF ::nDopMode == 0
@@ -820,7 +831,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE K_CTRL_PGDN
          CASE K_CTRL_END
-            edi_Move( Self, 71 )
+            IF hb_keyVal( nKeyExt ) == 87  // Ctrl-W
+               ::nDopMode := nKey
+               cDopMode := Chr( nKey )
+            ELSE
+               edi_Move( Self, 71 )
+            ENDIF
             EXIT
          CASE K_CTRL_RIGHT
             IF hb_keyVal( nKeyExt ) == 66 // Ctrl-B
@@ -834,7 +850,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
             EXIT
          CASE K_CTRL_LEFT
-            IF hb_keyVal( nKeyExt ) == 90// Ctrl-Z
+            IF hb_keyVal( nKeyExt ) == 90  // Ctrl-Z
                ::Undo()
             ELSEIF hb_keyVal( nKeyExt ) == 15
                edi_PrevWord( Self, .F. )
@@ -1141,15 +1157,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_SetPos( Self, ::RowToLine(nRow), ::ColToPos(nRow,nCol) )
                   ELSEIF nRow >= ::aRectFull[1] .AND. nRow <= ::aRectFull[3] .AND. nCol >= ::aRectFull[2] .AND. nCol <= ::aRectFull[4]
                      IF !Empty( x := ::oParent ) .AND. nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
-                        ::lShow := .F.
-                        ::nCurr := Ascan( ::aWindows, {|o|o == ::oParent} )
+                        mnu_ToBuf( Self, Ascan( ::aWindows, {|o|o==::oParent} ) )
                         x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
                      ELSE
                         FOR i := 1 TO Len( ::aWindows )
                            IF !Empty( ::aWindows[i]:oParent ) .AND. (x := ::aWindows[i]):oParent == Self .AND. ;
                               nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
-                              ::lShow := .F.
-                              ::nCurr := i
+                              mnu_ToBuf( Self, i )
                               x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
                            ENDIF
                         NEXT
@@ -1180,7 +1194,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::lTextOut := .T.
                EXIT
             CASE K_SH_F4
-               mnu_NewWin( Self )
+               mnu_NewBuf( Self )
                ::lTextOut := .T.
                EXIT
             CASE K_F7
@@ -1209,7 +1223,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::lTextOut := .T.
                EXIT
             CASE K_F12
-               mnu_Windows( Self, {2, 6} )
+               mnu_Buffers( Self, {2, 6} )
                ::lTextOut := .T.
                EXIT
             CASE K_SH_F7
@@ -1264,7 +1278,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
 METHOD WriteTopPane( lClear ) CLASS TEdit
 
-   LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row()
+   LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row(), nF9 := 8
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
    IF ::bWriteTopPane != Nil
@@ -1276,14 +1290,17 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          Scroll( y, ::x1, y, ::x2 )
          IF Empty( lClear )
             DevPos( y, ::x1 )
-            DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
-            DevPos( y, ::x1+8 )
+            IF ::x2 - ::x1 > 54
+               DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
+               DevPos( y, ::x1+8 )
+               nF9 := 8
+            ENDIF
             DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
-            DevPos( y, ::x1 + 8 + ::nTopName + 2 )
+            DevPos( y, ::x1 + nF9 + ::nTopName + 2 )
             DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
-            DevPos( y, ::x1 + 8 + ::nTopName + 12 )
+            DevPos( y, ::x1 + nF9 + ::nTopName + 12 )
             DevOut( PAdl(Ltrim(Str(::nLine)),nchars) + "/" + cLen )
-            DevPos( y, ::x1 + 8 + ::nTopName + 12 + nchars*2 + 3 )
+            DevPos( y, ::x1 + nF9 + ::nTopName + 12 + nchars*2 + 3 )
             DevOut( "[" + Ltrim(Str(::PosToCol()-::x1+::nxFirst)) + "]" )
             SetColor( "W+/N" )
             DevPos( y, ::x2-3 )
@@ -2212,7 +2229,38 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
    RETURN Nil
 
-FUNCTION mnu_Windows( oEdit, aXY )
+FUNCTION mnu_Windows( oEdit, aXY, n )
+
+   LOCAL aMenu := { {"Switch window",Nil,Nil,"Ctrl-w,w"}, ;
+      {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
+      {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
+   LOCAL i, o
+
+   IF n == Nil
+      n := FMenu( oEdit, aMenu, aXY[1], aXY[2] )
+   ENDIF
+   IF n == 1
+      IF oEdit:oParent != Nil
+         mnu_ToBuf( oEdit, Ascan( oEdit:aWindows, {|o|o==oEdit:oParent} ) )
+      ELSE
+         FOR i := Len( oEdit:aWindows ) TO 1 STEP -1
+            IF !Empty( oEdit:aWindows[i]:oParent ) .AND. oEdit:aWindows[i]:oParent == oEdit
+               mnu_ToBuf( oEdit, i )
+               EXIT
+            ENDIF
+         NEXT
+      ENDIF
+   ELSEIF n == 2
+      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
+      o:lReadOnly := .T.
+   ELSEIF n == 3
+      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
+      o:lReadOnly := .T.
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION mnu_Buffers( oEdit, aXY )
 
    LOCAL aMenu := { }, i, nCurr := 1
 
@@ -2220,17 +2268,17 @@ FUNCTION mnu_Windows( oEdit, aXY )
       IF oEdit:aWindows[i] == oEdit
          nCurr := i
       ENDIF
-      AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_ToWin(),i} )
+      AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_ToBuf(),i} )
    NEXT
    IF !Empty( oEdit:cLauncher )
-      AAdd( aMenu, {oEdit:cLauncher,@mnu_ToWin(),0} )
+      AAdd( aMenu, {oEdit:cLauncher,@mnu_ToBuf(),0} )
    ENDIF
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,, nCurr )
 
    RETURN Nil
 
-FUNCTION mnu_ToWin( oEdit, n )
+FUNCTION mnu_ToBuf( oEdit, n )
 
    oEdit:lShow := .F.
    oEdit:nCurr := n
@@ -2299,7 +2347,7 @@ FUNCTION mnu_F3( oEdit )
 
 FUNCTION mnu_F4( oEdit, aXY )
 
-   LOCAL aMenu := { {"New file",@mnu_NewWin(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
+   LOCAL aMenu := { {"New file",@mnu_NewBuf(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
 
    FOR i := 1 TO Len( oEdit:aEditHis )
       AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 36,'~'), ;
@@ -2314,17 +2362,16 @@ FUNCTION mnu_OpenRecent( oEdit, n )
 
    LOCAL cFileName := hb_Translate( oEdit:aEditHis[n,1], "UTF8", oEdit:cpInit )
 
-   RETURN mnu_NewWin( oEdit, cFileName )
+   RETURN mnu_NewBuf( oEdit, cFileName )
 
-FUNCTION mnu_NewWin( oEdit, cFileName )
+FUNCTION mnu_NewBuf( oEdit, cFileName )
 
    LOCAL oNew, s, j, cText
 
    IF !Empty( cFileName )
       s := Lower( cFileName )
       IF ( j := Ascan( oEdit:aWindows, {|o|Lower(o:cFileName)==s} ) ) > 0
-         oEdit:lShow := .F.
-         oEdit:nCurr := j
+         mnu_ToBuf( oEdit, j )
          RETURN oEdit:aWindows[j]
       ENDIF
       IF File( cFileName )
@@ -2368,7 +2415,7 @@ FUNCTION mnu_OpenFile( oEdit )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       cName := aGets[1,4]
-      mnu_NewWin( oEdit, cName )
+      mnu_NewBuf( oEdit, cName )
    ENDIF
 
    SetColor( oldc )
@@ -2403,11 +2450,14 @@ FUNCTION mnu_Sea_goto( oEdit, aXY )
 
    LOCAL aMenu := { {"Search",@mnu_Search(),Nil,"F7"}, {"Next",@mnu_SeaNext(),.T.,"Shift-F7"}, ;
       {"Previous",@mnu_SeaNext(),.F.,"Alt-F7"}, {"Replace",@mnu_SeaAndRepl(),Nil,"Ctrl-F7"}, ;
-      {"Go to",@mnu_GoTo(),Nil,"Alt-F8"} }
+      {"Go to",@mnu_GoTo(),Nil,"Alt-F8"}, {"Back",@mnu_Back(),Nil,"Alt-B"} }
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2] )
 
    RETURN Nil
+
+FUNCTION mnu_Back( oEdit )
+   RETURN oEdit:GoTo( oEdit:nLineBack, oEdit:nPosBack )
 
 FUNCTION mnu_Search( oEdit )
 
@@ -3346,7 +3396,7 @@ FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
  */
 FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
 
-   LOCAL oNew, y1 := oEdit:y1, x1 := oEdit:x1, y2 := oEdit:y2, x2 := oEdit:x2
+   LOCAL oNew, y1 := oEdit:y1, x1 := oEdit:x1, y2 := oEdit:y2, x2 := oEdit:x2, lv := .F.
 
    IF nPlace == 0
       y2 := y1 + nSpace - 1
@@ -3354,17 +3404,25 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
    ELSEIF nPlace == 1
       x2 := x1 + nSpace - 1
       oEdit:x1 := x2 + 1
+      lv := .T.
    ELSEIF nPlace == 2
       y1 := y2 - nSpace
       oEdit:y2 := y1-1
    ELSEIF nPlace == 3
       x1 := x2 - nSpace
       oEdit:x2 := x1-1
+      lv := .T.
+      SetColor( oEdit:cColorPane )
+      Scroll( y1, x1, y2, x1 )
+      x1 ++
+   ENDIF
+   IF lv .AND. oEdit:lTopPane
+      oEdit:nTopName := Max( oEdit:x2 - oEdit:x1 - 37, 0 )
+      y1 --
    ENDIF
    oNew := TEdit():New( cText, cFileName, y1, x1, y2, x2 )
    oNew:oParent := oEdit
-   oEdit:lShow := .F.
-   TEdit():nCurr := Len( TEdit():aWindows )
+   mnu_ToBuf( oEdit, Len( TEdit():aWindows ) )
 
    RETURN oNew
 
@@ -3394,6 +3452,9 @@ FUNCTION edi_CloseWindow( xEdit )
             oEdit:oParent:x2 := oEdit:x2
          ELSEIF oEdit:x2 < oEdit:oParent:x1
             oEdit:oParent:x1 := oEdit:x1
+         ENDIF
+         IF oEdit:oParent:lTopPane
+            oEdit:oParent:nTopName := Max( oEdit:oParent:x2 - oEdit:oParent:x1 - 44, 0 )
          ENDIF
       ENDIF
       TEdit():aWindows[xEdit]:oParent := Nil
