@@ -2187,7 +2187,7 @@ FUNCTION mnu_Exit( oEdit )
    IF nRes == 1 .OR. nRes == 2
       IF nRes == 1
          IF !oEdit:Save()
-            RETURN Nil
+            RETURN .F.
          ENDIF
       ENDIF
       oEdit:lShow := .F.
@@ -2195,7 +2195,7 @@ FUNCTION mnu_Exit( oEdit )
    ELSE
       edi_SetPos( oEdit )
    ENDIF
-   RETURN Nil
+   RETURN .T.
 
 FUNCTION mnu_CPages( oEdit, aXY )
 
@@ -2400,22 +2400,44 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
-   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes
+   LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes, oNew
    LOCAL aGets := { {11,12,0,"",56}, ;
       {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
-      {13,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {13,46,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+      {12,13,1,.F.,1}, {12,31,1,.F.,1}, ;
+      {14,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {14,46,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
 
    hb_cdpSelect( "RU866" )
-   @ 09, 10, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 12, 11 TO 12, 71
+   @ 09, 10, 15, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 13, 20 SAY "Ã"
+   @ 13, 60 SAY "´"
+   @ 13, 11 TO 13, 71
    hb_cdpSelect( oEdit:cp )
-   @ 10,22 SAY "Open file"
+   @ 10, 12 SAY "Open file"
+   @ 12, 12 SAY "[ ] ReadOnly"
+   @ 12, 30 SAY "[ ] In a current window"
    SetColor( "W+/BG" )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
-      cName := aGets[1,4]
-      mnu_NewBuf( oEdit, cName )
+      IF !Empty( cName := aGets[1,4] ) .AND. File( cName )
+         IF aGets[4,4]
+            IF oEdit:lUpdated
+               IF mnu_Exit( oEdit )
+                  oEdit:lShow := .T.
+                  oEdit:lClose := .F.
+               ELSE
+                  SetColor( oldc )
+                  edi_SetPos( oEdit )
+                  RETURN Nil
+               ENDIF
+            ENDIF
+            oEdit:SetText( MemoRead( cName ), cName )
+            oEdit:lReadOnly := aGets[3,4]
+         ELSE
+            oNew := mnu_NewBuf( oEdit, cName )
+            oNew:lReadOnly := aGets[3,4]
+         ENDIF
+      ENDIF
    ENDIF
 
    SetColor( oldc )
@@ -2425,8 +2447,8 @@ FUNCTION mnu_OpenFile( oEdit )
 
 FUNCTION mnu_FileList( oEdit, aGet )
 
-   LOCAL cPrefix, cFileName, cDir
-   LOCAL cScBuf := Savescreen( 12, 12, 22, 67 )
+   LOCAL cPrefix, xFileName, i, cDir, ny2 := oEdit:aRectFull[3]-2
+   LOCAL cScBuf := Savescreen( 12, 12, ny2, 67 )
 
 #ifdef __PLATFORM__UNIX
    cPrefix := '/'
@@ -2435,12 +2457,24 @@ FUNCTION mnu_FileList( oEdit, aGet )
 #endif
 
    cDir := Iif( Empty(cLastDir), cPrefix + CurDir() + hb_ps(), cLastDir )
-   cFileName := edi_SeleFile( oEdit, cDir, 12, 12, 22, 67 )
-   Restscreen( 12, 12, 22, 67, cScBuf )
+   xFileName := edi_SeleFile( oEdit, cDir, 12, 12, ny2, 67 )
+   Restscreen( 12, 12, ny2, 67, cScBuf )
 
-   IF !Empty( cFileName )
-      cLastDir := hb_fnameDir( cFileName )
-      aGet[4] := cFileName
+   IF !Empty( xFileName )
+      IF Valtype( xFileName ) == "A"
+         IF Len( xFileName ) == 1
+            xFileName := xFileName[1]
+         ELSE
+            FOR i := 1 TO Len( xFileName )
+               mnu_NewBuf( oEdit, xFileName[i] )
+            NEXT
+            __KeyBoard( Chr(K_ESC) )
+            RETURN Nil
+         ENDIF
+      ENDIF
+
+      cLastDir := hb_fnameDir( xFileName )
+      aGet[4] := xFileName
       ShowGetItem( aGet, .F., oEdit:lUtf8 )
    ENDIF
 

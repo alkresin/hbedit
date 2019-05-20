@@ -3,7 +3,7 @@
 
 STATIC lSea, cSea, aSea
 
-FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch )
+FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti )
 
    //LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
@@ -11,6 +11,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
    LOCAL nLen, arr, tmparr
    LOCAL nFirst := 1, nHeight
 
+   IF lMulti == Nil; lMulti := .F.; ENDIF
    IF lSearch == Nil; lSearch := .F.; ENDIF
    lSea := lSearch; cSea := ""
 
@@ -80,7 +81,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
       IF ( lSea .AND. ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) ;
             .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 47 + nLen) ;
-            .OR. (nKey >= 97 .AND. nKey <= 86 + nLen) ) ) .OR. nKey == K_LBUTTONDOWN .OR. nKey == K_ENTER
+            .OR. (nKey >= 97 .AND. nKey <= 86 + nLen) ) ) ;
+            .OR. nKey == K_LBUTTONDOWN .OR. nKey == K_ENTER .OR. ( lMulti .AND. nKey == K_SPACE )
 
          IF nKey == K_LBUTTONDOWN
             nc := MCol()
@@ -91,6 +93,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
                EXIT
             ENDIF
          ELSEIF nKey == K_ENTER
+         ELSEIF lMulti .AND. nKey == K_SPACE
+            arr[i+nFirst-1] := Iif(Asc(arr[i+nFirst-1])==32,"x"," ") + cp_Substr( lUtf8, arr[i+nFirst-1], 2 )
+            LOOP
          ELSE
             IF lSea
                IF !Empty( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey) ) )
@@ -124,13 +129,25 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch 
             Inkey( 0.3 )
          ENDIF
 
-         IF !Empty( aSea ) .AND. nLen < Len( aMenu )
-            i := Ascan( aSea, i )
-         ENDIF
-         IF lSingle .OR. Empty(aMenu[i,2])
-            xRes := i + nFirst - 1
+         IF lMulti
+            xRes := {}
+            FOR j := 1 TO Len( arr )
+               IF Asc( arr[j] ) != 32
+                  Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) + nFirst - 1 )
+               ENDIF
+            NEXT
+            IF Empty( xRes )
+               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) + nFirst - 1 }
+            ENDIF
          ELSE
-            xRes := aMenu[i,2]:exec( obj,aMenu[i+nFirst-1,3] )
+            IF !Empty( aSea ) .AND. nLen < Len( aMenu )
+               i := Ascan( aSea, i )
+            ENDIF
+            IF lSingle .OR. Empty(aMenu[i,2])
+               xRes := i + nFirst - 1
+            ELSE
+               xRes := aMenu[i,2]:exec( obj,aMenu[i+nFirst-1,3] )
+            ENDIF
          ENDIF
          lDo := .F.
 
