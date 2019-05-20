@@ -4,12 +4,11 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
    LOCAL aMenu := edi_Directory( cPath ), i, nPos, arr
 
    DO WHILE .T.
-      //arr := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T., .T. )
-      i := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T. )
+      arr := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T., .T. )
+      //i := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T. )
 
-      //IF !Empty( arr )
-      IF i > 0
-         /*
+      IF !Empty( arr )
+      //IF i > 0
          IF Len( arr ) > 1 .OR. Empty( aMenu[arr[1],4] )
             FOR i := Len( arr ) TO 1 STEP -1
                IF Empty( aMenu[arr[i],4] )
@@ -19,12 +18,12 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
                ENDIF
             NEXT
             RETURN arr
-         */
+         /*
          IF Empty( aMenu[i,4] )
             RETURN cPath + aMenu[i,1]
-         
+         */
          ELSE
-            //i := arr[1]
+            i := arr[1]
             IF aMenu[i,1] == ".."
                IF ( nPos := hb_Rat( hb_ps(), cPath,, Len(cPath)-1 ) ) > 0
                   cPath := Left( cPath, nPos )

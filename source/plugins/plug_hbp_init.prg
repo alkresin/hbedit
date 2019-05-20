@@ -83,14 +83,16 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _hbp_Init_Files( oEdit )
 
-   LOCAL i, cPathBase := hb_fnameDir( oEdit:cFileName )
+   LOCAL arr, i, cPathBase := hb_fnameDir( oEdit:cFileName )
    LOCAL cName, aFiles
 
    aFiles := _hbp_Get_Files( oEdit )
    IF !Empty( aFiles )
-      IF ( i := FMenu( oEdit, aFiles ) ) > 0
-         cName := cPathBase + aFiles[i]
-         mnu_NewBuf( oEdit, cName )
+      IF !Empty( arr := FMenu( oEdit, aFiles,,,,,,,, .T., .T. ) )
+         FOR i := 1 TO Len( arr )
+            cName := cPathBase + aFiles[arr[i]]
+            mnu_NewBuf( oEdit, cName )
+         NEXT
       ENDIF
       oEdit:TextOut()
    ENDIF

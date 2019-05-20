@@ -3,7 +3,7 @@
 
 STATIC lSea, cSea, aSea
 
-FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti )
+FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
    //LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
@@ -98,7 +98,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             LOOP
          ELSE
             IF lSea
-               IF !Empty( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey) ) )
+               IF !Empty( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey), bSea ) )
                   cSea += cp_Chr( lUtf8, nKey )
                   arr := tmparr
                   nLen := Len( arr )
@@ -133,11 +133,11 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             xRes := {}
             FOR j := 1 TO Len( arr )
                IF Asc( arr[j] ) != 32
-                  Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) + nFirst - 1 )
+                  Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) )
                ENDIF
             NEXT
             IF Empty( xRes )
-               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) + nFirst - 1 }
+               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), i) + nFirst - 1 }
             ENDIF
          ELSE
             IF !Empty( aSea ) .AND. nLen < Len( aMenu )
@@ -234,7 +234,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    RETURN xRes
 
-STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch )
+STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
    LOCAL i, j, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
    LOCAL cs, nDop, l
