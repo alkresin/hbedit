@@ -2,13 +2,41 @@
 FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
 
    LOCAL aMenu := edi_Directory( cPath ), i, nPos, arr
+   LOCAL bSea := {|nop,cSea,cLine|
+      LOCAL cBuff, n1, n2, n3, lCase
+      IF nop == 0
+         IF ( n1 := At( '/', cSea ) ) > 0
+            IF Len( cSea ) > n1 .AND. Right( cSea,1 ) == '/'
+               RETURN Left( cSea, n1-1 )
+            ELSE
+               RETURN Nil
+            ENDIF
+         ELSE
+            RETURN cSea
+         ENDIF
+      ELSE
+         IF ( n1 := At( '/', cSea ) ) > 0 .AND. ( n2 := hb_At( '/', cSea, n1+1 ) ) > 0 ;
+            .AND. ( n3 := hb_At( '/', cSea, n2+1 ) ) > 0
+            lCase := ! ( n3-n2 > 1 .AND. Substr( cSea,n2+1,1 ) == "c" )
+            cSea := Substr( cSea, n1+1, n2-n1-1 )
+            IF lCase
+               cBuff := Memoread( cLine )
+            ELSE
+               cSea := cp_Lower( oEdit:lUtf8, cSea )
+               cBuff := cp_Lower( oEdit:lUtf8, Memoread( cLine ) )
+            ENDIF
+            IF !( cSea $ cBuff )
+               RETURN .F.
+            ENDIF
+         ENDIF
+      ENDIF
+      RETURN .T.
+   }
 
    DO WHILE .T.
-      arr := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T., .T. )
-      //i := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T. )
+      arr := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T., .T., bSea )
 
       IF !Empty( arr )
-      //IF i > 0
          IF Len( arr ) > 1 .OR. Empty( aMenu[arr[1],4] )
             FOR i := Len( arr ) TO 1 STEP -1
                IF Empty( aMenu[arr[i],4] )
@@ -18,10 +46,6 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
                ENDIF
             NEXT
             RETURN arr
-         /*
-         IF Empty( aMenu[i,4] )
-            RETURN cPath + aMenu[i,1]
-         */
          ELSE
             i := arr[1]
             IF aMenu[i,1] == ".."

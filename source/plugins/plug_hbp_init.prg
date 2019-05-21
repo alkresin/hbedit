@@ -85,10 +85,40 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
 
    LOCAL arr, i, cPathBase := hb_fnameDir( oEdit:cFileName )
    LOCAL cName, aFiles
+   LOCAL bSea := {|nop,cSea,cLine|
+      LOCAL cBuff, n1, n2, n3, lCase
+      IF nop == 0
+         IF ( n1 := At( '/', cSea ) ) > 0
+            IF Len( cSea ) > n1 .AND. Right( cSea,1 ) == '/'
+               RETURN Left( cSea, n1-1 )
+            ELSE
+               RETURN Nil
+            ENDIF
+         ELSE
+            RETURN cSea
+         ENDIF
+      ELSE
+         IF ( n1 := At( '/', cSea ) ) > 0 .AND. ( n2 := hb_At( '/', cSea, n1+1 ) ) > 0 ;
+            .AND. ( n3 := hb_At( '/', cSea, n2+1 ) ) > 0
+            lCase := ! ( n3-n2 > 1 .AND. Substr( cSea,n2+1,1 ) == "c" )
+            cSea := Substr( cSea, n1+1, n2-n1-1 )
+            IF lCase
+               cBuff := Memoread( cLine )
+            ELSE
+               cSea := cp_Lower( oEdit:lUtf8, cSea )
+               cBuff := cp_Lower( oEdit:lUtf8, Memoread( cLine ) )
+            ENDIF
+            IF !( cSea $ cBuff )
+               RETURN .F.
+            ENDIF
+         ENDIF
+      ENDIF
+      RETURN .T.
+   }
 
    aFiles := _hbp_Get_Files( oEdit )
    IF !Empty( aFiles )
-      IF !Empty( arr := FMenu( oEdit, aFiles,,,,,,,, .T., .T. ) )
+      IF !Empty( arr := FMenu( oEdit, aFiles,,,,,,,, .T., .T., bSea ) )
          FOR i := 1 TO Len( arr )
             cName := cPathBase + aFiles[arr[i]]
             mnu_NewBuf( oEdit, cName )

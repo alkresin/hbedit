@@ -98,13 +98,19 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             LOOP
          ELSE
             IF lSea
-               IF !Empty( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey), bSea ) )
+               Scroll( y2, x1+3, y2, x2-4 )
+               DevPos( y2, x1+3 )
+               DevOut( "Wait..." )
+               tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey), bSea )
+               IF !( tmparr == Nil )
                   cSea += cp_Chr( lUtf8, nKey )
-                  arr := tmparr
-                  nLen := Len( arr )
-                  i := nFirst := 1
-                  nHeight := Min( y2 -y1 -1, nLen )
-                  MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
+                  IF Valtype( tmparr ) == "A"
+                     arr := tmparr
+                     nLen := Len( arr )
+                     i := nFirst := 1
+                     nHeight := Min( y2 -y1 -1, nLen )
+                     MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
+                  ENDIF
                ENDIF
                LOOP
             ELSE
@@ -137,7 +143,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                ENDIF
             NEXT
             IF Empty( xRes )
-               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), i) + nFirst - 1 }
+               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,i), i) + nFirst - 1 }
             ENDIF
          ELSE
             IF !Empty( aSea ) .AND. nLen < Len( aMenu )
@@ -154,7 +160,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       ELSEIF nKey == K_BS
          IF lSea .AND. !Empty( cSea )
             cSea := cp_Left( lUtf8, cSea, cp_Len(lUtf8,cSea)-1 )
-            IF !Empty( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea ) )
+            IF Valtype( tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea, bSea ) ) == "A"
                arr := tmparr
                nLen := Len( arr )
                i := nFirst := 1
@@ -236,57 +242,52 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
 STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
-   LOCAL i, j, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
+   LOCAL i, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
    LOCAL cs, nDop, l, cLine
 
-   IF bSea != Nil
-      IF ( cSearch := Eval( bSea, 0, cSearch ) ) == Nil
-         RETURN Nil
-      ENDIF
-   ENDIF
    IF lSea .AND. !Empty( cSearch )
       IF Empty( aSea )
          aSea := Array( Len( aMenu) )
       ENDIF
-      cs := cp_Lower( lUtf8, cSearch )
-      FOR i := 1 TO nLen
-         cLine := Iif( lSingle, aMenu[i], aMenu[i,1] )
-         IF cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 .AND. ;
-            (bSea == Nil .OR. Eval( bSea, 1, cLine, cSearch ))
-            nLenArr ++
-         ENDIF
-      NEXT
-      IF nLenArr == 0
-         RETURN Nil
+      IF bSea == Nil
+         cs := cSearch
       ELSE
-         arr := Array( nLenArr )
+         cs := Eval( bSea, 0, cSearch )
+         IF cs == Nil
+            RETURN .F.
+         ENDIF
       ENDIF
-   ELSE
-      arr := Array( nLen )
+      cs := cp_Lower( lUtf8, cs )
    ENDIF
-   j := 1
+   arr := Array( nLen )
+
    FOR i := 1 TO nLen
       l := .F.
       cLine := Iif( lSingle, aMenu[i], aMenu[i,1] )
-      IF !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 .AND. ;
-         (bSea == Nil .OR. Eval( bSea, 1, cLine, cSearch ))
+      IF ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 ) .AND. ;
+         ( bSea == Nil .OR. Eval( bSea, 1, cSearch, cLine ) )
+         nLenArr ++
          IF lSingle
-            arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", ;
+            arr[nLenArr] := PAdr( Iif( i>36.OR.lSea, "   ", ;
                Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + aMenu[i], nSize )
          ELSE
             IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4]), 0 ) ) > 0
                nDop := nSize - nDop - Len(aMenu[i,1]) - 3
             ENDIF
-            arr[j] := PAdr( Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + ;
+            arr[nLenArr] := PAdr( Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + ;
                aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
          ENDIF
-         j ++
          l := .T.
       ENDIF
       IF !Empty( aSea )
-         aSea[i] := Iif( l, j-1, 0 )
+         aSea[i] := Iif( l, nLenArr, 0 )
       ENDIF
    NEXT
+   IF nLenArr == 0
+      RETURN Nil
+   ELSEIF nLenArr < nLen
+      arr := ASize( arr, nLenArr )
+   ENDIF
 
    RETURN arr
 
