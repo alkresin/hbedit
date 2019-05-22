@@ -1278,7 +1278,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
 METHOD WriteTopPane( lClear ) CLASS TEdit
 
-   LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row(), nF9 := 8
+   LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row(), nF9 := 0
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
    IF ::bWriteTopPane != Nil
@@ -2400,6 +2400,7 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
 
 FUNCTION mnu_OpenFile( oEdit )
 
+   LOCAL cScBuf := Savescreen( 09, 10, 15, 72 )
    LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes, oNew
    LOCAL aGets := { {11,12,0,"",56}, ;
       {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
@@ -2440,6 +2441,7 @@ FUNCTION mnu_OpenFile( oEdit )
       ENDIF
    ENDIF
 
+   Restscreen( 09, 10, 15, 72, cScBuf )
    SetColor( oldc )
    edi_SetPos( oEdit )
 
@@ -2495,6 +2497,7 @@ FUNCTION mnu_Back( oEdit )
 
 FUNCTION mnu_Search( oEdit )
 
+   LOCAL cScBuf := Savescreen( 09, 20, 16, 60 )
    LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
@@ -2544,6 +2547,7 @@ FUNCTION mnu_Search( oEdit )
       ENDIF
    ENDIF
 
+   Restscreen( 09, 20, 15, 60, cScBuf )
    SetColor( oldc )
    edi_SetPos( oEdit )
 
@@ -2589,6 +2593,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
 
 FUNCTION mnu_SeaAndRepl( oEdit )
 
+   LOCAL cScBuf := Savescreen( 09, 20, 17, 60 )
    LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
    LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
       {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
@@ -2665,6 +2670,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       ENDDO
    ENDIF
 
+   Restscreen( 09, 20, 17, 60, cScBuf )
    SetColor( oldc )
    edi_SetPos( oEdit )
 

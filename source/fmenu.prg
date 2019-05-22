@@ -5,7 +5,7 @@ STATIC lSea, cSea, aSea
 
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
-   //LOCAL cScBuf := Savescreen( 0, 0, 24, 79 )
+   LOCAL cScBuf
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
    LOCAL i, j, nKey, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
@@ -45,6 +45,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       y2 := Min( MaxRow()-2, nLen + y1 + 1 )
    ENDIF
 
+   cScBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
    IF lSea
       @ y2, x1+2 SAY "[" + Replicate( " ",x2-x1-6 ) + "]" COLOR clrMenuSel
@@ -229,7 +230,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    ENDDO
 
    SetColor( oldc )
-   //Restscreen( 0, 0, 24, 79, cScBuf )
+   Restscreen( y1, x1, y2, x2, cScBuf )
    IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LINS" )
       SetCursor( Iif( obj:lIns, SC_NORMAL, SC_SPECIAL1 ) )
    ELSE
@@ -243,12 +244,10 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
    LOCAL i, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
-   LOCAL cs, nDop, l, cLine
+   LOCAL cs, nDop, l, cLine, aSeaTmp
 
    IF lSea .AND. !Empty( cSearch )
-      IF Empty( aSea )
-         aSea := Array( Len( aMenu) )
-      ENDIF
+      aSeaTmp := Array( Len( aMenu) )
       IF bSea == Nil
          cs := cSearch
       ELSE
@@ -279,8 +278,8 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
          ENDIF
          l := .T.
       ENDIF
-      IF !Empty( aSea )
-         aSea[i] := Iif( l, nLenArr, 0 )
+      IF !Empty( aSeaTmp )
+         aSeaTmp[i] := Iif( l, nLenArr, 0 )
       ENDIF
    NEXT
    IF nLenArr == 0
@@ -288,6 +287,7 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
    ELSEIF nLenArr < nLen
       arr := ASize( arr, nLenArr )
    ENDIF
+   aSea := aSeaTmp
 
    RETURN arr
 
