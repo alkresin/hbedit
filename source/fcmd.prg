@@ -25,6 +25,7 @@ STATIC aCommands := { ;
 STATIC s4auto, lModeSea
 STATIC aKeysOpt
 STATIC lEnd
+STATIC cFileAdd
 
 FUNCTION mnu_CmdLine( oEdit )
 
@@ -145,6 +146,17 @@ FUNCTION mnu_CmdLine( oEdit )
    SetColor( oEdit:cColor )
    oEdit:TextOut()
    mnu_ChgMode( oEdit, .T. )
+   IF !Empty( cFileAdd )
+      IF !Empty( cTemp := MemoRead( cFileAdd ) )
+         IF ( x := Ascan( oEdit:aWindows, {|o|o:cFileName=="$Console"} ) ) > 0
+            oEdit:aWindows[x]:SetText( cTemp, "$Console" )
+            mnu_ToBuf( oEdit, x )
+         ELSE
+            edi_AddWindow( oEdit, cTemp, "$Console", 2, Int((oEdit:y2-oEdit:y1)/2) )
+         ENDIF
+      ENDIF
+      cFileAdd := ""
+   ENDIF
 
    RETURN Nil
 
@@ -156,10 +168,21 @@ STATIC FUNCTION fSea( oEdit, s )
 
 STATIC FUNCTION cmdExec( oEdit, sCmd )
 
-   LOCAL acmd, arr, fnc
+   LOCAL acmd, arr, fnc, nPos, cFileOut := "hbedit_cons.out", cBuff
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
+   ELSEIF Left( sCmd, 1 ) == '!'
+      IF ( nPos := At( '%', sCmd ) ) > 0
+         sCmd := Left( sCmd,nPos-1 ) + oEdit:cFileName + Substr( sCmd,nPos+1 )
+      ENDIF
+      FErase( cFileOut )
+      Scroll( oEdit:y2 + 1, oEdit:x1, oEdit:y2 + 1, oEdit:x2 )
+      DevPos( oEdit:y2 + 1, oEdit:x1 )
+      DevOut( "Wait..." )
+      cedi_RunConsoleApp( Substr( sCmd,2 ), cFileOut )
+      cFileAdd := cFileOut
+      lEnd := .T.
    ELSE
       acmd := hb_aTokens( sCmd )
       FOR EACH arr IN aCommands
