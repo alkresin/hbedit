@@ -150,7 +150,8 @@ FUNCTION mnu_CmdLine( oEdit )
       IF !Empty( cTemp := MemoRead( cFileAdd ) )
          cTemp := ">" + cCmdLine + Chr(10) + cTemp
          IF ( x := Ascan( oEdit:aWindows, {|o|o:cFileName=="$Console"} ) ) > 0
-            oEdit:aWindows[x]:InsText( Len(oEdit:aWindows[x]:aText)+1, 1, Chr(10)+cTemp )
+            oEdit:aWindows[x]:InsText( Len(oEdit:aWindows[x]:aText)+1, 1, Chr(10)+cTemp,,, .T. )
+            oEdit:aWindows[x]:lUpdated := .F.
             mnu_ToBuf( oEdit, x )
          ELSE
             edi_AddWindow( oEdit, cTemp, "$Console", 2, Int((oEdit:y2-oEdit:y1)/2) )

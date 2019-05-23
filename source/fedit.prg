@@ -725,6 +725,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_Windows( Self,, 2 )
             ELSEIF nKey == 118   // v  split window vertically
                mnu_Windows( Self,, 3 )
+            ELSEIF nKey == 43    // +
+            ELSEIF nKey == 45    // -
+            ELSEIF nKey == 60    // <
+            ELSEIF nKey == 62    // >
             ENDIF
             ::nDopMode := 0
             EXIT
@@ -833,7 +837,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE K_CTRL_END
             IF hb_keyVal( nKeyExt ) == 87  // Ctrl-W
                ::nDopMode := nKey
-               cDopMode := Chr( nKey )
+               cDopMode := "W"
             ELSE
                edi_Move( Self, 71 )
             ENDIF
