@@ -7,7 +7,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    LOCAL cScBuf
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
-   LOCAL i, j, nKey, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
+   LOCAL i, j, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
    LOCAL nFirst := 1, nHeight
 
@@ -80,9 +80,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       SetColor( clrMenu )
       nKey := Inkey( 0, INKEY_ALL )
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
-      IF ( lSea .AND. ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) ;
+      IF ( lSea .AND. ( ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) );
             .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 47 + nLen) ;
-            .OR. (nKey >= 97 .AND. nKey <= 86 + nLen) ) ) ;
+            .OR. ( (nKeyMapped := edi_MapKey(obj,nKey))>= 97 .AND. nKeyMapped <= 86 + nLen) ) ) ;
             .OR. nKey == K_LBUTTONDOWN .OR. nKey == K_ENTER .OR. ( lMulti .AND. nKey == K_SPACE )
 
          IF nKey == K_LBUTTONDOWN
@@ -118,7 +118,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                IF nkey <= 57
                   i := nKey - 47
                ELSE
-                  i := nKey - 86
+                  i := nKeyMapped - 86
                ENDIF
                IF i > (y2-y1-1)
                   IF i - nFirst + 1 > nHeight

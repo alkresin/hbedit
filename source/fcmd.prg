@@ -25,7 +25,7 @@ STATIC aCommands := { ;
 STATIC s4auto, lModeSea
 STATIC aKeysOpt
 STATIC lEnd
-STATIC cFileAdd
+STATIC cFileAdd, cCmdLine
 
 FUNCTION mnu_CmdLine( oEdit )
 
@@ -148,8 +148,9 @@ FUNCTION mnu_CmdLine( oEdit )
    mnu_ChgMode( oEdit, .T. )
    IF !Empty( cFileAdd )
       IF !Empty( cTemp := MemoRead( cFileAdd ) )
+         cTemp := ">" + cCmdLine + Chr(10) + cTemp
          IF ( x := Ascan( oEdit:aWindows, {|o|o:cFileName=="$Console"} ) ) > 0
-            oEdit:aWindows[x]:SetText( cTemp, "$Console" )
+            oEdit:aWindows[x]:InsText( Len(oEdit:aWindows[x]:aText)+1, 1, Chr(10)+cTemp )
             mnu_ToBuf( oEdit, x )
          ELSE
             edi_AddWindow( oEdit, cTemp, "$Console", 2, Int((oEdit:y2-oEdit:y1)/2) )
@@ -180,7 +181,7 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
       Scroll( oEdit:y2 + 1, oEdit:x1, oEdit:y2 + 1, oEdit:x2 )
       DevPos( oEdit:y2 + 1, oEdit:x1 )
       DevOut( "Wait..." )
-      cedi_RunConsoleApp( Substr( sCmd,2 ), cFileOut )
+      cedi_RunConsoleApp( cCmdLine := Substr( sCmd,2 ), cFileOut )
       cFileAdd := cFileOut
       lEnd := .T.
    ELSE

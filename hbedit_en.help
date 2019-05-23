@@ -61,7 +61,8 @@ editing. You can paste text from the buffer, as usual, with the keys Ctrl-V, Shi
 At the same time, if you saved something in buffers from 1 to 9, a list of buffers will appear,
 to choose from which to insert. If only the system was used, everything will be as usual.
 
-   Vim-like mode is activated with Ctrl-Q, return to edit mode - by ESC.
+   Vim-like mode is activated with Ctrl-Q, switching from Vim to edit mode - by appropriate
+Vim keys (i, a, ...).
 This mode is similar to what in Vim is called the normal mode, although much less
 functional. The following keys are currently supported:
 

@@ -231,7 +231,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
             ::nLine := arr[3]
             ::nPos  := arr[4]
          ELSE
-            hb_AIns( TEdit():aEditHis, 1, {cFile_utf8,,,}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
+            hb_AIns( TEdit():aEditHis, 1, {cFile_utf8,::cp,1,1}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
          ENDIF
       ENDIF
    ENDIF
@@ -1212,11 +1212,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_F10
             CASE K_ESC
-               IF ::nMode == 1 .AND. nKey == K_ESC
-                  mnu_ChgMode( Self, .T. )
-               ELSE
-                  mnu_Exit( Self )
-               ENDIF
+               mnu_Exit( Self )
                EXIT
             CASE K_F11
                mnu_Plugins( Self )
@@ -1506,13 +1502,19 @@ METHOD Save( cFileName ) CLASS TEdit
 
 METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
 
-   LOCAL arr, i, nLine2 := nLine, nPos2, cTemp, cTextOld, nLineNew, nPosNew, nCol
+   LOCAL arr, i, nLine2, nPos2, cTemp, cTextOld, nLineNew, nPosNew, nCol
 
    IF ::lReadOnly
       RETURN Nil
    ENDIF
    IF lOver == Nil; lOver := .F.; ENDIF
    IF lChgPos == Nil; lChgPos := .T.; ENDIF
+   IF nLine > Len( ::aText )
+      Aadd( ::aText, "" )
+      nLine := Len( ::aText )
+      nPos := 1
+   ENDIF
+   nLine2 := nLine
    IF Chr(10) $ cText
       arr := hb_ATokens( cText, Chr(10) )
       IF lOver
@@ -2235,6 +2237,7 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
       {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
       {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
    LOCAL i, o
+   STATIC cForbid := "Forbidden for a child window"
 
    IF n == Nil
       n := FMenu( oEdit, aMenu, aXY[1], aXY[2] )
@@ -2251,11 +2254,21 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
          NEXT
       ENDIF
    ELSEIF n == 2
-      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
-      o:lReadOnly := .T.
+      IF !Empty( oEdit:oParent )
+         edi_Alert( cForbid )
+         oEdit:GoTo( ,1 )
+      ELSE
+         o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
+         o:lReadOnly := .T.
+      ENDIF
    ELSEIF n == 3
-      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
-      o:lReadOnly := .T.
+      IF !Empty( oEdit:oParent )
+         edi_Alert( cForbid )
+         oEdit:GoTo( ,1 )
+      ELSE
+         o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
+         o:lReadOnly := .T.
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -3457,7 +3470,7 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
       x1 ++
    ENDIF
    IF lv .AND. oEdit:lTopPane
-      oEdit:nTopName := Max( oEdit:x2 - oEdit:x1 - 37, 0 )
+      oEdit:nTopName := Max( oEdit:x2 - oEdit:x1 - Iif(oEdit:x2-oEdit:x1>54,44,37), 0 )
       y1 --
    ENDIF
    oNew := TEdit():New( cText, cFileName, y1, x1, y2, x2 )
@@ -3494,7 +3507,7 @@ FUNCTION edi_CloseWindow( xEdit )
             oEdit:oParent:x1 := oEdit:x1
          ENDIF
          IF oEdit:oParent:lTopPane
-            oEdit:oParent:nTopName := Max( oEdit:oParent:x2 - oEdit:oParent:x1 - 44, 0 )
+            oEdit:oParent:nTopName := Max( oEdit:oParent:x2 - oEdit:oParent:x1 - Iif(oEdit:x2-oEdit:x1>54,44,37), 0 )
          ENDIF
       ENDIF
       TEdit():aWindows[xEdit]:oParent := Nil
@@ -3503,15 +3516,16 @@ FUNCTION edi_CloseWindow( xEdit )
 
    RETURN Nil
 
-STATIC FUNCTION edi_MapKey( oEdit, nKey )
+FUNCTION edi_MapKey( oEdit, nKey )
 
-   LOCAl c, nPos
+   LOCAl c, nPos, lUtf8
 
    IF nKey >= 127 .AND. !Empty(cLangMapCP) .AND. !Empty(aLangMapUpper) .AND. !Empty(aLangMapLower)
+      lUtf8 := (Lower(cLangMapCP) == "utf8")
       c := hb_Translate( cp_Chr( oEdit:lUtf8, nKey ), oEdit:cp, cLangMapCP )
-      IF ( nPos := cp_At( oEdit:lUtf8, c, aLangMapUpper[1] ) ) > 0
+      IF ( nPos := cp_At( lUtf8, c, aLangMapUpper[1] ) ) > 0
          RETURN cp_Asc( oEdit:lUtf8, hb_Translate( cp_Substr(oEdit:lUtf8,aLangMapUpper[2],nPos,1), cLangMapCP, oEdit:cp ) )
-      ELSEIF ( nPos := cp_At( oEdit:lUtf8, c, aLangMapLower[1] ) ) > 0
+      ELSEIF ( nPos := cp_At( lUtf8, c, aLangMapLower[1] ) ) > 0
          RETURN cp_Asc( oEdit:lUtf8, hb_Translate( cp_Substr(oEdit:lUtf8,aLangMapLower[2],nPos,1), cLangMapCP, oEdit:cp ) )
       ENDIF
    ENDIF
