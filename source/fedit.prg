@@ -1301,11 +1301,15 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          IF Empty( lClear )
             DevPos( y, ::x1 )
             IF ::x2 - ::x1 > 54
-               DevOut( Iif( !Empty(cDopMode), cDopMode, "F9-menu" ) )
+               DevOut( "F9-menu" )
                DevPos( y, ::x1+8 )
                nF9 := 8
             ENDIF
             DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
+            IF !Empty( cDopMode )
+               DevPos( y, ::x1 )
+               DevOut( Padr( cDopMode, 8 ) )
+            ENDIF
             DevPos( y, ::x1 + nF9 + ::nTopName + 2 )
             DevOut( Iif( ::lUpdated, "* ", "  " ) + Lower( ::cp ) )
             DevPos( y, ::x1 + nF9 + ::nTopName + 12 )
@@ -3490,7 +3494,7 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
 
 FUNCTION edi_CloseWindow( xEdit )
 
-   LOCAL oEdit, i, o
+   LOCAL oEdit, i, o, lUpd
 
    IF Valtype( xEdit ) == "C"
       xEdit := Ascan( TEdit():aWindows, {|o|o:cFileName == xEdit} )
@@ -3510,33 +3514,38 @@ FUNCTION edi_CloseWindow( xEdit )
          ENDIF
       NEXT
 
-      //IF !Empty( oEdit:oParent )
-         // Restore the size of a parent window, if exists
       o := oEdit
       DO WHILE !( ( o := edi_FindWindow( o, .T. ) ) == oEdit )
+         lUpd := .F.
          IF oEdit:aRect[1] == o:y2 + 1
-            IF o:x1 <= oEdit:x1 .AND. o:x2 <= oEdit:x2
+            IF o:x1 >= oEdit:x1 .AND. o:x2 <= oEdit:x2
                o:y2 := oEdit:y2
+               lUpd := .T.
             ENDIF
          ELSEIF oEdit:y2 == o:aRect[1] - 1
-            IF o:x1 <= oEdit:x1 .AND. o:x2 <= oEdit:x2
+            IF o:x1 >= oEdit:x1 .AND. o:x2 <= oEdit:x2
                o:y1 := oEdit:y1
+               lUpd := .T.
             ENDIF
          ENDIF
          IF oEdit:x1 == o:x2 + 2
-            IF o:y1 <= oEdit:y1 .AND. o:y2 <= oEdit:y2
+            IF o:y1 >= oEdit:y1 .AND. o:y2 <= oEdit:y2
                o:x2 := oEdit:x2
+               lUpd := .T.
             ENDIF
          ELSEIF oEdit:x2 == o:x1 - 2
-            IF o:y1 <= oEdit:y1 .AND. o:y2 <= oEdit:y2
+            IF o:y1 >= oEdit:y1 .AND. o:y2 <= oEdit:y2
                o:x1 := oEdit:x1
+               lUpd := .T.
             ENDIF
          ENDIF
-         IF o:lTopPane
-            o:nTopName := Max( o:x2 - o:x1 - Iif(o:x2-o:x1>54,44,37), 0 )
+         IF lUpd
+            IF o:lTopPane
+               o:nTopName := Max( o:x2 - o:x1 - Iif(o:x2-o:x1>54,44,37), 0 )
+            ENDIF
+            o:TextOut()
          ENDIF
       ENDDO
-      //ENDIF
       TEdit():aWindows[xEdit]:oParent := Nil
       hb_ADel( TEdit():aWindows, xEdit, .T. )
    ENDIF
