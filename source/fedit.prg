@@ -293,7 +293,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
 
 METHOD Edit() CLASS TEdit
 
-   LOCAL i, nKeyExt, cFile_utf8
+   LOCAL i, nKeyExt, cFile_utf8, n
 
    hb_cdpSelect( ::cp )
    ::nCurr := Ascan( ::aWindows, {|o|o==Self} )
@@ -351,19 +351,33 @@ METHOD Edit() CLASS TEdit
       Eval( ::bEndEdit, Self )
    ENDIF
    IF ::lClose
+      IF Ascan( ::aWindows, {|o|o:oParent==Self} ) == 0 .OR. ;
+         edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) == 1
+         edi_CloseWindow( Self )
+      ELSE
+         ::lClose := .F.
+      ENDIF
+      /*
       IF !Empty( ::oParent )
          edi_CloseWindow( Self )
       ELSE
-         FOR i := Len( ::aWindows ) TO 1 STEP -1
-            IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
-               // Close a child window, if found
-               ::aWindows[i]:oParent := Nil
-               hb_ADel( ::aWindows, i, .T. )
-            ENDIF
-         NEXT
-         i := Ascan( ::aWindows, {|o|o==Self} )
-         hb_ADel( ::aWindows, i, .T. )
+         n := 1
+         IF !(edi_FindWindow( Self, .T. ) == Self) .AND. ;
+            ( n := edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) ) == 1
+            FOR i := Len( ::aWindows ) TO 1 STEP -1
+               IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
+                  // Close a child window, if found
+                  ::aWindows[i]:oParent := Nil
+                  hb_ADel( ::aWindows, i, .T. )
+               ENDIF
+            NEXT
+         ENDIF
+         IF n == 1
+            i := Ascan( ::aWindows, {|o|o==Self} )
+            hb_ADel( ::aWindows, i, .T. )
+         ENDIF
       ENDIF
+      */
    ENDIF
 
    RETURN Nil
@@ -1160,17 +1174,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      edi_SetPos( Self, ::RowToLine(nRow), ::ColToPos(nRow,nCol) )
                   ELSEIF nRow >= ::aRectFull[1] .AND. nRow <= ::aRectFull[3] .AND. nCol >= ::aRectFull[2] .AND. nCol <= ::aRectFull[4]
-                     IF !Empty( x := ::oParent ) .AND. nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
-                        mnu_ToBuf( Self, Ascan( ::aWindows, {|o|o==::oParent} ) )
-                        x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
-                     ELSE
-                        FOR i := 1 TO Len( ::aWindows )
-                           IF !Empty( ::aWindows[i]:oParent ) .AND. (x := ::aWindows[i]):oParent == Self .AND. ;
-                              nRow >= x:y1 .AND. nRow <= x:y2 .AND. nCol >= x:x1 .AND. nCol <= x:x2
-                              mnu_ToBuf( Self, i )
-                              x:nLine := x:RowToLine(nRow); x:nPos := x:ColToPos(nRow,nCol)
-                           ENDIF
-                        NEXT
+                     IF ( x := edi_FindWindow( Self,, nRow, nCol ) ) != Nil
+                        mnu_ToBuf( Self, x )
+                        x:nLine := x:RowToLine(nRow)
+                        IF x:nLine > Len( x:aText )
+                           x:nLine := Len( x:aText )
+                        ENDIF
+                        x:nPos := x:ColToPos(x:LineToRow(x:nLine),nCol)
                      ENDIF
                   ELSE
                      RETURN Nil
@@ -2241,38 +2251,29 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
       {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
       {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
    LOCAL i, o
-   STATIC cForbid := "Forbidden for a child window"
+   //STATIC cForbid := "Forbidden for a child window"
 
    IF n == Nil
       n := FMenu( oEdit, aMenu, aXY[1], aXY[2] )
    ENDIF
    IF n == 1
-      IF oEdit:oParent != Nil
-         mnu_ToBuf( oEdit, Ascan( oEdit:aWindows, {|o|o==oEdit:oParent} ) )
-      ELSE
-         FOR i := Len( oEdit:aWindows ) TO 1 STEP -1
-            IF !Empty( oEdit:aWindows[i]:oParent ) .AND. oEdit:aWindows[i]:oParent == oEdit
-               mnu_ToBuf( oEdit, i )
-               EXIT
-            ENDIF
-         NEXT
-      ENDIF
+      mnu_ToBuf( oEdit, edi_FindWindow( oEdit, .T. ) )
    ELSEIF n == 2
-      IF !Empty( oEdit:oParent )
-         edi_Alert( cForbid )
-         oEdit:GoTo( ,1 )
-      ELSE
+      //IF !Empty( oEdit:oParent )
+      //   edi_Alert( cForbid )
+      //   oEdit:GoTo( ,1 )
+      //ELSE
          o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
          o:lReadOnly := .T.
-      ENDIF
+      //ENDIF
    ELSEIF n == 3
-      IF !Empty( oEdit:oParent )
-         edi_Alert( cForbid )
-         oEdit:GoTo( ,1 )
-      ELSE
+      //IF !Empty( oEdit:oParent )
+      //   edi_Alert( cForbid )
+      //   oEdit:GoTo( ,1 )
+      //ELSE
          o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
          o:lReadOnly := .T.
-      ENDIF
+      //ENDIF
    ENDIF
 
    RETURN Nil
@@ -2295,10 +2296,14 @@ FUNCTION mnu_Buffers( oEdit, aXY )
 
    RETURN Nil
 
-FUNCTION mnu_ToBuf( oEdit, n )
+FUNCTION mnu_ToBuf( oEdit, x )
 
    oEdit:lShow := .F.
-   oEdit:nCurr := n
+   IF Valtype( x ) == "O"
+      oEdit:nCurr := Ascan( oEdit:aWindows, {|o|o==x} )
+   ELSEIF Valtype( x ) == "N"
+      oEdit:nCurr := x
+   ENDIF
 
    RETURN Nil
 
@@ -3485,7 +3490,7 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
 
 FUNCTION edi_CloseWindow( xEdit )
 
-   LOCAL oEdit
+   LOCAL oEdit, i, o
 
    IF Valtype( xEdit ) == "C"
       xEdit := Ascan( TEdit():aWindows, {|o|o:cFileName == xEdit} )
@@ -3498,24 +3503,70 @@ FUNCTION edi_CloseWindow( xEdit )
    ENDIF
 
    IF Valtype( oEdit ) == "O"
-      IF !Empty( oEdit:oParent )
+
+      FOR i := Len( oEdit:aWindows ) TO 1 STEP -1
+         IF oEdit:aWindows[i]:oParent == oEdit
+            edi_CloseWindow( oEdit:aWindows[i] )
+         ENDIF
+      NEXT
+
+      //IF !Empty( oEdit:oParent )
          // Restore the size of a parent window, if exists
-         IF oEdit:y1 > oEdit:oParent:y2
-            oEdit:oParent:y2 := oEdit:y2
-         ELSEIF oEdit:y2 < oEdit:oParent:y1
-            oEdit:oParent:y1 := oEdit:y1
+      o := oEdit
+      DO WHILE !( ( o := edi_FindWindow( o, .T. ) ) == oEdit )
+         IF oEdit:aRect[1] == o:y2 + 1
+            IF o:x1 <= oEdit:x1 .AND. o:x2 <= oEdit:x2
+               o:y2 := oEdit:y2
+            ENDIF
+         ELSEIF oEdit:y2 == o:aRect[1] - 1
+            IF o:x1 <= oEdit:x1 .AND. o:x2 <= oEdit:x2
+               o:y1 := oEdit:y1
+            ENDIF
          ENDIF
-         IF oEdit:x1 > oEdit:oParent:x2
-            oEdit:oParent:x2 := oEdit:x2
-         ELSEIF oEdit:x2 < oEdit:oParent:x1
-            oEdit:oParent:x1 := oEdit:x1
+         IF oEdit:x1 == o:x2 + 2
+            IF o:y1 <= oEdit:y1 .AND. o:y2 <= oEdit:y2
+               o:x2 := oEdit:x2
+            ENDIF
+         ELSEIF oEdit:x2 == o:x1 - 2
+            IF o:y1 <= oEdit:y1 .AND. o:y2 <= oEdit:y2
+               o:x1 := oEdit:x1
+            ENDIF
          ENDIF
-         IF oEdit:oParent:lTopPane
-            oEdit:oParent:nTopName := Max( oEdit:oParent:x2 - oEdit:oParent:x1 - Iif(oEdit:x2-oEdit:x1>54,44,37), 0 )
+         IF o:lTopPane
+            o:nTopName := Max( o:x2 - o:x1 - Iif(o:x2-o:x1>54,44,37), 0 )
          ENDIF
-      ENDIF
+      ENDDO
+      //ENDIF
       TEdit():aWindows[xEdit]:oParent := Nil
       hb_ADel( TEdit():aWindows, xEdit, .T. )
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION edi_FindWindow( oEdit, lNext, nRow, nCol )
+
+   LOCAL oParent := oEdit, i, iCurr, o, op
+
+   DO WHILE oParent:oParent != Nil; oParent := oParent:oParent; ENDDO
+   iCurr := Ascan( oEdit:aWindows, {|o|o == oEdit} )
+
+   FOR i := 1 TO Len( oEdit:aWindows )
+      op := o := oEdit:aWindows[i]
+      IF !( o == oEdit )
+         DO WHILE op:oParent != Nil; op := op:oParent; ENDDO
+         IF op == oParent
+            IF Valtype( lNext ) == "L"
+               IF lNext .AND. i > iCurr
+                  RETURN o
+               ENDIF
+            ELSEIF nRow >= o:y1 .AND. nRow <= o:y2 .AND. nCol >= o:x1 .AND. nCol <= o:x2
+               RETURN o
+            ENDIF
+         ENDIF
+      ENDIF
+   NEXT
+   IF Valtype( lNext ) == "L"
+      RETURN oParent
    ENDIF
 
    RETURN Nil
