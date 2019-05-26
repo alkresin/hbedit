@@ -351,33 +351,22 @@ METHOD Edit() CLASS TEdit
       Eval( ::bEndEdit, Self )
    ENDIF
    IF ::lClose
-      IF Ascan( ::aWindows, {|o|o:oParent==Self} ) == 0 .OR. ;
-         edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) == 1
+      IF Ascan( ::aWindows, {|o|o:oParent==Self} ) == 0
+         edi_CloseWindow( Self )
+      ELSEIF edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) == 1
+         IF ( n := edi_WindowUpdated( Self ) ) > 0
+            IF ( i := edi_Alert( "Some files are updated.", "Cancel", "GoTo", "Close anyway" ) ) <= 1
+               ::lClose := .F.
+               RETURN Nil
+            ELSEIF i == 2
+               ::nCurr := i
+               RETURN Nil
+            ENDIF
+         ENDIF
          edi_CloseWindow( Self )
       ELSE
          ::lClose := .F.
       ENDIF
-      /*
-      IF !Empty( ::oParent )
-         edi_CloseWindow( Self )
-      ELSE
-         n := 1
-         IF !(edi_FindWindow( Self, .T. ) == Self) .AND. ;
-            ( n := edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) ) == 1
-            FOR i := Len( ::aWindows ) TO 1 STEP -1
-               IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
-                  // Close a child window, if found
-                  ::aWindows[i]:oParent := Nil
-                  hb_ADel( ::aWindows, i, .T. )
-               ENDIF
-            NEXT
-         ENDIF
-         IF n == 1
-            i := Ascan( ::aWindows, {|o|o==Self} )
-            hb_ADel( ::aWindows, i, .T. )
-         ENDIF
-      ENDIF
-      */
    ENDIF
 
    RETURN Nil
@@ -424,14 +413,15 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
       ENDIF
       DispBegin()
       IF nLen > 0
+         i := 1
          IF ::nxFirst > 1 .AND. nxPosFirst < ::nxFirst
             nf := edi_ExpandTabs( Self, cp_Left(::lUtf8,::aText[n],nxPosFirst), 1, .T. )
             lTabs := .T.
-            DevPos( y, ::x1 + nf - ::nxFirst )
+            DevPos( y, i := (::x1 + nf - ::nxFirst) )
          ENDIF
          IF cTab $ s
             lTabs := .T.
-            DevOut( edi_ExpandTabs( Self, s, nf ) )
+            DevOut( cp_Left( ::lUtf8, edi_ExpandTabs( Self, s, nf ), nWidth-i+1 ) )
          ELSE
             DevOut( s )
          ENDIF
@@ -739,6 +729,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_Windows( Self,, 2 )
             ELSEIF nKey == 118   // v  split window vertically
                mnu_Windows( Self,, 3 )
+            ELSEIF nKey == 99    // c
+               IF ::oParent != Nil
+                  mnu_Exit( Self )
+               ENDIF
+            ELSEIF nKey == 111   // o
             ELSEIF nKey == 43    // +
             ELSEIF nKey == 45    // -
             ELSEIF nKey == 60    // <
@@ -3494,7 +3489,7 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
 
 FUNCTION edi_CloseWindow( xEdit )
 
-   LOCAL oEdit, i, o, lUpd
+   LOCAL oEdit, i, o, lUpd, lv := .F., lh := .F.
 
    IF Valtype( xEdit ) == "C"
       xEdit := Ascan( TEdit():aWindows, {|o|o:cFileName == xEdit} )
@@ -3519,24 +3514,36 @@ FUNCTION edi_CloseWindow( xEdit )
          lUpd := .F.
          IF oEdit:aRect[1] == o:y2 + 1
             IF o:x1 >= oEdit:x1 .AND. o:x2 <= oEdit:x2
-               o:y2 := oEdit:y2
-               lUpd := .T.
+               IF !lh
+                  o:y2 := oEdit:y2
+                  lUpd := .T.
+                  lv := .T.
+               ENDIF
             ENDIF
          ELSEIF oEdit:y2 == o:aRect[1] - 1
             IF o:x1 >= oEdit:x1 .AND. o:x2 <= oEdit:x2
-               o:y1 := oEdit:y1
-               lUpd := .T.
+               IF !lh
+                  o:y1 := oEdit:y1
+                  lUpd := .T.
+                  lv := .T.
+               ENDIF
             ENDIF
          ENDIF
          IF oEdit:x1 == o:x2 + 2
             IF o:y1 >= oEdit:y1 .AND. o:y2 <= oEdit:y2
-               o:x2 := oEdit:x2
-               lUpd := .T.
+               IF !lv
+                  o:x2 := oEdit:x2
+                  lUpd := .T.
+                  lh := .T.
+               ENDIF
             ENDIF
          ELSEIF oEdit:x2 == o:x1 - 2
             IF o:y1 >= oEdit:y1 .AND. o:y2 <= oEdit:y2
-               o:x1 := oEdit:x1
-               lUpd := .T.
+               IF !lv
+                  o:x1 := oEdit:x1
+                  lUpd := .T.
+                  lh := .T.
+               ENDIF
             ENDIF
          ENDIF
          IF lUpd
@@ -3549,6 +3556,35 @@ FUNCTION edi_CloseWindow( xEdit )
       TEdit():aWindows[xEdit]:oParent := Nil
       hb_ADel( TEdit():aWindows, xEdit, .T. )
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION edi_WindowUpdated( oEdit )
+
+   LOCAL i, j
+
+   FOR i := Len( oEdit:aWindows ) TO 1 STEP -1
+      IF oEdit:aWindows[i]:oParent == oEdit
+         IF oEdit:aWindows[i]:lUpdated
+            RETURN i
+         ELSEIF ( j := edi_WindowUpdated( oEdit:aWindows[i] ) ) > 0
+            RETURN j
+         ENDIF
+      ENDIF
+   NEXT
+
+   RETURN 0
+
+FUNCTION edi_WindowDo( oEdit, nOp )
+
+   LOCAL o
+
+   DO WHILE !( ( o := edi_FindWindow( o, .T. ) ) == oEdit )
+
+      IF nOp == 1            // Expand
+      ELSEIF nOp == 2        //
+      ENDIF
+   ENDDO
 
    RETURN Nil
 
