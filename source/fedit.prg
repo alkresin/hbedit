@@ -87,6 +87,7 @@ CLASS TEdit
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
    DATA   cFileName   INIT ""
+   DATA   dDateMod, cTimeMod
    DATA   cp
    DATA   nxFirst, nyFirst
    DATA   aText
@@ -114,6 +115,7 @@ CLASS TEdit
    DATA   nPos, nLine
    DATA   nPosBack, nLineBack
    DATA   lF3         INIT .F.
+   DATA   lSeleMode   INIT  0
    DATA   nby1        INIT -1
    DATA   nby2        INIT -1
    DATA   nbx1, nbx2
@@ -157,7 +159,7 @@ ENDCLASS
 
 METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
-   LOCAL i, cExt
+   LOCAL i, cExt, dDateMod, cTimeMod
 
    IF !::lReadIni
       edi_ReadIni( edi_FindPath( "hbedit.ini" ) )
@@ -190,6 +192,11 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    ::cp := ::cpInit
 
    ::SetText( cText, cFileName )
+   IF !Empty( ::cFileName ) .AND. Left( ::cFileName,1 ) != "$" .AND. ;
+      hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod )
+      ::dDateMod := dDateMod
+      ::cTimeMod := cTimeMod
+   ENDIF
 
    ::hBookMarks := hb_Hash()
 
@@ -755,6 +762,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          IF !::lShiftKey
             ::nby1 := ::nLine
             ::nbx1 := ::nPos
+            ::lSeleMode := 0
             ::lShiftKey := .T.
          ENDIF
       ELSE
@@ -824,6 +832,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nby1 := ::nbx1 := 1
                ::nby2 := Len( ::aText )
                ::nbx2 := cp_Len( ::lUtf8, ::aText[Len(::aText)] )
+               ::lSeleMode := 0
                ::lF3 := .T.
             ENDIF
             EXIT
@@ -931,6 +940,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   SWITCH nKey
                   CASE 118   // v Start selection
                      mnu_F3( Self )
+                     nKey := K_RIGHT
+                     EXIT
+                  CASE 86    // V Start selection
+                     mnu_F3( Self, .T. )
                      nKey := K_RIGHT
                      EXIT
                   CASE 117   // u Undo
@@ -1248,7 +1261,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       IF (::lF3 .OR. lShift)
          IF !( lCtrl .AND. nKey == K_CTRL_A)
             ::nby2 := ::nLine
-            ::nbx2 := ::nPos
+            IF ::lSeleMode == 1
+               ::nbx2 := cp_Len( ::lUtf8, ::aText[::nLIne] ) + 1
+            ELSE
+               ::nbx2 := ::nPos
+            ENDIF
          ENDIF
       ELSEIF !lNoDeselect
          IF ::nby1 >= 0 .AND. ::nby2 >= 0
@@ -1487,6 +1504,8 @@ METHOD ToString( cEol ) CLASS TEdit
 
 METHOD Save( cFileName ) CLASS TEdit
 
+   LOCAL dDateMod := ::dDateMod, cTimeMod := ::cTimeMod
+
    IF cFileName == Nil
       cFileName := ::cFileName
    ENDIF
@@ -1504,8 +1523,18 @@ METHOD Save( cFileName ) CLASS TEdit
       ::cFileName := cFileName
    ENDIF
 
+   IF !Empty( ::dDateMod ) .AND. hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod ) .AND. ;
+      ( ::dDateMod != dDateMod .OR. ::cTimeMod != cTimeMod ) .AND. ;
+      edi_Alert( "File was modified by other program!", "Save", "Cancel" ) != 1
+      RETURN .F.
+   ENDIF
+
    IF Empty( ::funSave )
       hb_MemoWrit( cFileName, ::ToString() )
+      IF hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod )
+         ::dDateMod := dDateMod
+         ::cTimeMod := cTimeMod
+      ENDIF
    ELSE
       ::funsave:exec( cFileName, ::ToString() )
    ENDIF
@@ -2325,17 +2354,26 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    RETURN Nil
 
-FUNCTION mnu_F3( oEdit )
+FUNCTION mnu_F3( oEdit, lLines )
 
    LOCAL i
 
    IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       oEdit:lF3 := .T.
    ENDIF
+
+   oEdit:lSeleMode := 0
    IF !oEdit:lF3
       oEdit:nby1 := oEdit:nLine
-      oEdit:nbx1 := oEdit:nPos
-      oEdit:nby2 := oEdit:nbx2 := -1
+      IF !Empty( lLines )
+         oEdit:nbx1 := 1
+         oEdit:nby2 := oEdit:nLine
+         oEdit:nbx2 := cp_Len( oEdit:lUtf8, oEdit:aText[oEdit:nLine] ) + 1
+         oEdit:lSeleMode := 1
+      ELSE
+         oEdit:nbx1 := oEdit:nPos
+         oEdit:nby2 := oEdit:nbx2 := -1
+      ENDIF
    ENDIF
    oEdit:lF3 := !oEdit:lF3
    IF !oEdit:lF3
