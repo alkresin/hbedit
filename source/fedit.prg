@@ -2421,7 +2421,8 @@ FUNCTION mnu_OpenRecent( oEdit, n )
 
    LOCAL cFileName := hb_Translate( oEdit:aEditHis[n,1], "UTF8", oEdit:cpInit )
 
-   RETURN mnu_NewBuf( oEdit, cFileName )
+   //RETURN mnu_NewBuf( oEdit, cFileName )
+   RETURN mnu_OpenFile( oEdit, cFileName )
 
 FUNCTION mnu_NewBuf( oEdit, cFileName )
 
@@ -2457,11 +2458,11 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
 
    RETURN oNew
 
-FUNCTION mnu_OpenFile( oEdit )
+FUNCTION mnu_OpenFile( oEdit, cFile )
 
    LOCAL cScBuf := Savescreen( 09, 10, 15, 72 )
    LOCAL oldc := SetColor( "N/W,W+/BG" ), cName, nRes, oNew
-   LOCAL aGets := { {11,12,0,"",56}, ;
+   LOCAL aGets := { {11,12,0,Iif(Empty(cFile),"",cFile),56}, ;
       {11,68,2,"[^]",3,"N/W","W+/RB",{||mnu_FileList(oEdit,aGets[1])}}, ;
       {12,13,1,.F.,1}, {12,31,1,.F.,1}, ;
       {14,26,2,"[Open]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
