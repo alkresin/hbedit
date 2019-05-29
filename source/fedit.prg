@@ -1234,7 +1234,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_F10
             CASE K_ESC
-               mnu_Exit( Self )
+               IF nKey == K_ESC .AND. ::nMode == 0 .AND. ::nDefMode == 1
+                  mnu_ChgMode( Self )
+               ELSE
+                  mnu_Exit( Self )
+               ENDIF
                EXIT
             CASE K_F11
                mnu_Plugins( Self )
