@@ -4,6 +4,7 @@
 Function plug_prg_compile( oEdit )
 
    LOCAL acmd := Array( 5 ), cHrb, i, cName := "", cTemp, nPos, cFile := "$hb_compile_err", oNew
+   LOCAL nRow := Row(), nCol := Col()
 
    edi_CloseWindow( cFile )
 
@@ -41,6 +42,7 @@ Function plug_prg_compile( oEdit )
       oNew:bOnKey := {|o,n| _prg_Err_OnKey(o,n) }
    ELSE
       SaveHrb( oEdit, cHrb, cName )
+      DevPos( nRow, nCol )
    ENDIF
 
    SetColor( oEdit:cColor )

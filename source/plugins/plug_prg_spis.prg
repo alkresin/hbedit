@@ -22,7 +22,7 @@ Function plug_prg_Spis( oEdit )
          ENDIF
       ELSEIF cfirst == "end" .or. cfirst == "endclass"
          lClassDef := .F.
-      ENDIF 
+      ENDIF
    NEXT
    IF !Empty( arrfnc )
       oEdit:TextOut()
@@ -40,5 +40,3 @@ Function plug_prg_Spis( oEdit )
    ENDIF
 
    RETURN Nil
-
-
