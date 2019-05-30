@@ -3003,10 +3003,10 @@ STATIC FUNCTION edi_GoUp( oEdit )
       IF oEdit:nyFirst > 1
          oEdit:nyFirst --
          oEdit:lTextOut := .T.
-         edi_SetPos( oEdit, oEdit:nyFirst, oEdit:nPos )
+         edi_SetPos( oEdit, oEdit:nyFirst, oEdit:ColToPos( Row(), Col() ) )
       ENDIF
    ELSE
-      edi_SetPos( oEdit, oEdit:nLine-1, oEdit:nPos )
+      edi_SetPos( oEdit, oEdit:nLine-1, oEdit:ColToPos( Row()-1, Col() ) )
    ENDIF
    RETURN Nil
 
@@ -3017,7 +3017,7 @@ STATIC FUNCTION edi_GoDown( oEdit )
          oEdit:nyFirst ++
          oEdit:lTextOut := .T.
       ENDIF
-      edi_SetPos( oEdit, oEdit:nLine+1, oEdit:nPos )
+      edi_SetPos( oEdit, oEdit:nLine+1, oEdit:ColToPos( oEdit:LineToRow(oEdit:nLine+1), Col() ) )
    ENDIF
 
    RETURN Nil
