@@ -1,5 +1,4 @@
 #define K_ESC       27
-#define K_F9        -8
 #define K_F5        -4
 
 FUNCTION plug_Calculator( oEdit )
@@ -11,7 +10,7 @@ FUNCTION plug_Calculator( oEdit )
       Scroll( y, o:x1, y, o:x2 )
       IF Empty( l )
          DevPos( y, o:x1 )
-         DevOut( "Calculator    F9 - Menu  F5 - Calculate" )
+         DevOut( "Calculator    F5 - Calculate" )
       ENDIF
       SetColor( o:cColor )
       DevPos( nRow, nCol )
@@ -27,16 +26,12 @@ FUNCTION plug_Calculator( oEdit )
 FUNCTION _Calcul_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt)
-   LOCAL s, nPos, xRes, bOldError
+   LOCAL s, nPos, xRes, bOldError, cType
 
-   IF nKey == K_F9
-
-      RETURN -1
-
-   ELSEIF nKey == K_F5
+   IF nKey == K_F5
 
       s := oEdit:aText[oEdit:nLine]
-      IF ( nPos := At( "->", s ) ) > 0
+      IF ( nPos := At( " = ", s ) ) > 0
          s := AllTrim( Left( s, nPos-1 ) )
       ENDIF
       SET DECIMALS TO 8
@@ -48,10 +43,14 @@ FUNCTION _Calcul_OnKey( oEdit, nKeyExt )
       END SEQUENCE
       ErrorBlock( bOldError )
 
-      IF Valtype( xRes ) == "N"
-         oEdit:aText[oEdit:nLine] := s + " -> " + Ltrim(Str( xRes ))
-         oEdit:TextOut()
+      IF ( cType := Valtype( xRes ) ) == "N"
+         oEdit:aText[oEdit:nLine] := s + " = " + Ltrim(Str( xRes )) + " (0x" + hb_NumToHex(xRes) + ")"
+      ELSEIF cType == "C"
+         oEdit:aText[oEdit:nLine] := s + " = " + xRes
+      ELSEIF cType == "D"
+         oEdit:aText[oEdit:nLine] := s + " = " + Dtoc(xRes)
       ENDIF
+      oEdit:TextOut()
 
       RETURN -1
 
