@@ -3230,7 +3230,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
 
 STATIC FUNCTION edi_Indent( oEdit, lRight )
 
-   LOCAL i, n, nby1, nby2, nbx2, l := .F.
+   LOCAL i, n, nby1, nby2, nbx2, l := .F., nRow := Row(), nCol := Col()
 
    IF oEdit:lReadOnly .OR. oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
       RETURN Nil
@@ -3261,6 +3261,7 @@ STATIC FUNCTION edi_Indent( oEdit, lRight )
       oEdit:Undo( nby1, 0, nby2, 0, UNDO_OP_SHIFT, Iif(lRight,1,-1) )
       oEdit:lUpdated := .T.
    ENDIF
+   DevPos( nRow, nCol )
 
    RETURN Nil
 
