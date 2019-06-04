@@ -9,12 +9,13 @@
 #include "setcurs.ch"
 
 STATIC aCommands := { ;
-   { "bn", @cmd_BNext() },    ;
-   { "bnext", @cmd_BNext() }, ;
-   { "bp", @cmd_BNext() },    ;
-   { "bprev", @cmd_BNext() }, ;
+   { "bn", @cmd_Buff() },     ;
+   { "bnext", @cmd_Buff() },  ;
+   { "bp", @cmd_Buff() },     ;
+   { "bprev", @cmd_Buff() },  ;
    { "e", @cmd_Edit() },      ;
    { "edit", @cmd_Edit() },   ;
+   { "ls", @cmd_Buff() },     ;
    { "q", @cmd_quit() },      ;
    { "q!", @cmd_quit() },     ;
    { "set", @cmd_Set() },     ;
@@ -307,10 +308,12 @@ FUNCTION cmd_Set( oEdit, acmd )
 
    RETURN Nil
 
-FUNCTION cmd_BNext( oEdit, acmd )
+FUNCTION cmd_Buff( oEdit, acmd )
 
    IF oEdit:lCtrlTab
-      IF Substr( acmd[1],2,1 ) == "n"
+      IF Left( acmd[1],1 ) == "l"
+         mnu_Buffers( oEdit, {2, 6} )
+      ELSEIF Substr( acmd[1],2,1 ) == "n"
          oEdit:lShow := .F.
          oEdit:nCurr ++
       ELSEIF Substr( acmd[1],2,1 ) == "p"

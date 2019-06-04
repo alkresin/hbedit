@@ -729,6 +729,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                NEXT
             ENDIF
             EXIT
+         CASE 90   // Z
+            IF nKey == 90      // Z
+            ELSEIF nKey == 81  // Q
+               FOR i := 1 TO Len( ::aWindows )
+                  ::aWindows[i]:lUpdated := .F.
+                  mnu_Exit( ::aWindows[i] )
+               NEXT
+            ENDIF
+            ::nDopMode := 0
+            EXIT
          CASE K_CTRL_W
             IF nKey == 119   // w
                mnu_Windows( Self,, 1 )
@@ -823,7 +833,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
             EXIT
          CASE K_CTRL_Y
-            IF !::lReadOnly .AND. n > 0 .AND. n <= Len( ::aText )
+            IF !::lReadOnly .AND. ::nMode == 0 .AND. n > 0 .AND. n <= Len( ::aText )
                ::DelText( n, 1, n+1, 1 )
             ENDIF
             EXIT
@@ -1005,6 +1015,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 113   // q - record macro
                   CASE 64    // w - play macro
                   CASE 114   // r - replace one char under cursor
+                  CASE 90    // Z
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
