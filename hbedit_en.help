@@ -124,6 +124,8 @@ functional. The following keys are currently supported:
    '.                go to the last edit position;
 
    u                 undo;
+   ZQ                close all buffers without saving;
+   ZZ                close all buffers, save updated;
 
    q[0...9,a...z]    recording macro;
    @[0...9,a...z]    playing macro;

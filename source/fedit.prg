@@ -115,7 +115,7 @@ CLASS TEdit
    DATA   nPos, nLine
    DATA   nPosBack, nLineBack
    DATA   lF3         INIT .F.
-   DATA   lSeleMode   INIT  0
+   DATA   nSeleMode   INIT  0
    DATA   nby1        INIT -1
    DATA   nby2        INIT -1
    DATA   nbx1, nbx2
@@ -731,11 +731,32 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE 90   // Z
             IF nKey == 90      // Z
-            ELSEIF nKey == 81  // Q
-               FOR i := 1 TO Len( ::aWindows )
-                  ::aWindows[i]:lUpdated := .F.
-                  mnu_Exit( ::aWindows[i] )
+               FOR i := Len( ::aWindows ) TO 1 STEP -1
+                  IF ::aWindows[i]:lUpdated .AND. Empty(::aWindows[i]:cFileName)
+                     edi_Alert( "Set file name" )
+                     ::lShow := .F.
+                     ::nCurr := i
+                     RETURN Nil
+                  ENDIF
                NEXT
+               FOR i := Len( ::aWindows ) TO 1 STEP -1
+                  IF !( ::aWindows[i] == Self )
+                     IF ::aWindows[i]:lUpdated
+                        ::aWindows[i]:Save()
+                     ENDIF
+                     hb_ADel( ::aWindows, i, .T. )
+                  ENDIF
+               NEXT
+               ::Save()
+               mnu_Exit( Self )
+            ELSEIF nKey == 81  // Q
+               FOR i := Len( ::aWindows ) TO 1 STEP -1
+                  IF !( ::aWindows[i] == Self )
+                     hb_ADel( ::aWindows, i, .T. )
+                  ENDIF
+               NEXT
+               ::lUpdated := ::lShow := .F.
+               ::lClose := .T.
             ENDIF
             ::nDopMode := 0
             EXIT
@@ -772,7 +793,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          IF !::lShiftKey
             ::nby1 := ::nLine
             ::nbx1 := ::nPos
-            ::lSeleMode := 0
+            ::nSeleMode := 0
             ::lShiftKey := .T.
          ENDIF
       ELSE
@@ -816,7 +837,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             lNoDeselect := .T.
             EXIT
          CASE 22                          // Ctrl-v
-            IF !::lReadOnly
+            IF ::nMode == 1
+               mnu_F3( Self, 2 )
+            ELSEIF !::lReadOnly
                cb2Text( Self, .T. )
             ENDIF
             EXIT
@@ -842,7 +865,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nby1 := ::nbx1 := 1
                ::nby2 := Len( ::aText )
                ::nbx2 := cp_Len( ::lUtf8, ::aText[Len(::aText)] )
-               ::lSeleMode := 0
+               ::nSeleMode := 0
                ::lF3 := .T.
             ENDIF
             EXIT
@@ -953,7 +976,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      nKey := K_RIGHT
                      EXIT
                   CASE 86    // V Start selection
-                     mnu_F3( Self, .T. )
+                     mnu_F3( Self, 1 )
                      nKey := K_RIGHT
                      EXIT
                   CASE 117   // u Undo
@@ -1276,7 +1299,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       IF (::lF3 .OR. lShift)
          IF !( lCtrl .AND. nKey == K_CTRL_A)
             ::nby2 := ::nLine
-            IF ::lSeleMode == 1
+            IF ::nSeleMode == 1
                ::nbx2 := cp_Len( ::lUtf8, ::aText[::nLIne] ) + 1
             ELSE
                ::nbx2 := ::nPos
@@ -2369,26 +2392,27 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    RETURN Nil
 
-FUNCTION mnu_F3( oEdit, lLines )
+FUNCTION mnu_F3( oEdit, nSeleMode )
 
    LOCAL i
+
+   nSeleMode := Iif( Empty( nSeleMode ), 0, nSeleMode )
 
    IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       oEdit:lF3 := .T.
    ENDIF
 
-   oEdit:lSeleMode := 0
    IF !oEdit:lF3
       oEdit:nby1 := oEdit:nLine
-      IF !Empty( lLines )
+      IF nSeleMode == 1
          oEdit:nbx1 := 1
          oEdit:nby2 := oEdit:nLine
          oEdit:nbx2 := cp_Len( oEdit:lUtf8, oEdit:aText[oEdit:nLine] ) + 1
-         oEdit:lSeleMode := 1
       ELSE
          oEdit:nbx1 := oEdit:nPos
          oEdit:nby2 := oEdit:nbx2 := -1
       ENDIF
+      oEdit:nSeleMode := nSeleMode
    ENDIF
    oEdit:lF3 := !oEdit:lF3
    IF !oEdit:lF3
