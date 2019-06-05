@@ -32,6 +32,8 @@
 #define UNDO_OP_OVER    2
 #define UNDO_OP_DEL     3
 #define UNDO_OP_SHIFT   4
+#define UNDO_OP_START   5
+#define UNDO_OP_END     6
 
 #define UNDO_INC       12
 
@@ -1789,6 +1791,15 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
          ENDIF
          ::aUndo[::nUndo] := Nil
          ::nUndo --
+         IF nOpLast == UNDO_OP_END
+            DO WHILE ::nUndo > 0
+               nOpLast := ::aUndo[::nUndo,UNDO_OPER]
+               ::Undo()
+               IF nOpLast == UNDO_OP_START
+                  EXIT
+               ENDIF
+            ENDDO
+         ENDIF
          IF ::nUndo == 0
             ::lUpdated := .F.
          ENDIF
@@ -1826,6 +1837,8 @@ METHOD Undo( nLine1, nPos1, nLine2, nPos2, nOper, cText ) CLASS TEdit
          arrnew := {nLine1, nPos1, nLine2, nPos2, nOper, cText}
       ENDIF
 
+   ELSEIF nOper == UNDO_OP_START .OR. nOper == UNDO_OP_END
+      arrnew := {nLine1, nPos1, nLine2, nPos2, nOper, cText}
    ENDIF
    IF arrnew != Nil
       IF Len( ::aUndo ) < ++::nUndo
@@ -1951,11 +1964,14 @@ STATIC FUNCTION Text2cb( oEdit )
 FUNCTION cb2Text( oEdit, lToText )
 
    LOCAL arr
-   LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
+   LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA ), lVert
 
-   TEdit():aCBoards[1,1] := s
-   TEdit():aCBoards[1,2] := Nil
-   TEdit():aCBoards[1,3] := Nil
+   IF !( s == TEdit():aCBoards[1,1] )
+      TEdit():aCBoards[1,1] := s
+      TEdit():aCBoards[1,2] := Nil
+      TEdit():aCBoards[1,3] := Nil
+   ENDIF
+   lVert := !Empty( TEdit():aCBoards[1,3] )
    FOR i := 2 TO MAX_CBOARDS
       IF !Empty( TEdit():aCBoards[i,1] )
          lMulti := .T.
@@ -1972,6 +1988,7 @@ FUNCTION cb2Text( oEdit, lToText )
       NEXT
       IF !Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
          s := TEdit():aCBoards[i,1]
+         lVert := !Empty( TEdit():aCBoards[i,3] )
          IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
             s := hb_Translate( s, TEdit():aCBoards[i,2], oEdit:cp )
          ENDIF
@@ -1989,14 +2006,23 @@ FUNCTION cb2Text( oEdit, lToText )
          s := Strtran( s, Chr(13), "" )
       ENDIF
 
-      oEdit:InsText( oEdit:nLine, oEdit:nPos, s, .F., .T. )
+      IF lVert
+         oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_START )
+         arr := hb_ATokens( s, Chr(10) )
+         FOR i := 1 TO Len( arr ) - 1
+            oEdit:InsText( oEdit:nLine+i-1, oEdit:nPos, arr[i], .F., .F. )
+         NEXT
+         oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_END )
+      ELSE
+         oEdit:InsText( oEdit:nLine, oEdit:nPos, s, .F., .T. )
+      ENDIF
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION cbDele( oEdit )
 
-   LOCAL nby1, nby2, nbx1, nbx2
+   LOCAL nby1, nby2, nbx1, nbx2, i
 
    IF !oEdit:lReadOnly .AND. oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
@@ -2005,7 +2031,18 @@ STATIC FUNCTION cbDele( oEdit )
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
       oEdit:nby1 := oEdit:nby2 := -1
-      oEdit:DelText( nby1, nbx1, nby2, Max(nbx2-1,1) )
+      IF oEdit:nSeleMode == 2
+         IF nbx1 > nbx2
+            i := nbx1; nbx1 := nbx2; nbx2 := i
+         ENDIF
+         oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_START )
+         FOR i := nby1 TO nby2
+            oEdit:DelText( i, nbx1, i, nbx2 )
+         NEXT
+         oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_END )
+      ELSE
+         oEdit:DelText( nby1, nbx1, nby2, Max(nbx2-1,1) )
+      ENDIF
    ENDIF
    RETURN Nil
 
