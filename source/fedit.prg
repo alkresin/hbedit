@@ -1924,16 +1924,23 @@ STATIC FUNCTION Text2cb( oEdit )
       ELSE
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
+      IF oEdit:nSeleMode == 2 .AND. nbx1 > nbx2
+         i := nbx1; nbx1 := nbx2; nbx2 := i
+      ENDIF
       IF nby1 == nby2
          s := cp_Substr( oEdit:lUtf8, oEdit:aText[nby1], nbx1, nbx2-nbx1 )
       ELSE
          FOR i := nby1 TO nby2
-            IF i == nby1
-               s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nbx1 ) + Chr(10)
-            ELSEIF i == nby2
-               s += cp_Left( oEdit:lUtf8, oEdit:aText[i], nbx2-1 )
+            IF oEdit:nSeleMode == 2
+               s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nbx1, nbx2-nbx1 ) + Chr(10)
             ELSE
-               s += oEdit:aText[i] + oEdit:cEol
+               IF i == nby1
+                  s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nbx1 ) + Chr(10)
+               ELSEIF i == nby2
+                  s += cp_Left( oEdit:lUtf8, oEdit:aText[i], nbx2-1 )
+               ELSE
+                  s += oEdit:aText[i] + oEdit:cEol
+               ENDIF
             ENDIF
          NEXT
       ENDIF
