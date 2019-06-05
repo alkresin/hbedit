@@ -839,6 +839,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE 22                          // Ctrl-v
             IF ::nMode == 1
                mnu_F3( Self, 2 )
+               nKey := K_RIGHT
             ELSEIF !::lReadOnly
                cb2Text( Self, .T. )
             ENDIF
