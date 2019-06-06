@@ -924,6 +924,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                edi_Move( Self, K_CTRL_F )
             ENDIF
             EXIT
+         CASE K_CTRL_F3
+            mnu_F3( Self, 2 )
+            nKey := K_RIGHT
+            EXIT
          CASE K_CTRL_F4
             mnu_OpenFile( Self )
             ::lTextOut := .T.
@@ -1101,12 +1105,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   END
                ENDIF
             ELSE
-               IF ( i := (::nPos - cp_Len(::lUtf8,::aText[n])) ) > 0
-                  ::nPos -= (i-1)
-                  ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Space( i-1 ) + cp_Chr(::lUtf8,nKey), !::lIns, .T. )
-               ELSE
-                  ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
-               ENDIF
+               ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), !::lIns, .T. )
             ENDIF
 
          ELSE
@@ -1604,6 +1603,12 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
       Aadd( ::aText, "" )
       nLine := Len( ::aText )
       nPos := 1
+   ELSEIF ( i := (nPos - cp_Len(::lUtf8,::aText[nLine])) ) > 0
+      nPos -= (i-1)
+      IF lChgPos
+         ::nPos -= (i-1)
+      ENDIF
+      cText := Space( i-1 ) + cText
    ENDIF
    nLine2 := nLine
    IF Chr(10) $ cText
@@ -1964,7 +1969,7 @@ STATIC FUNCTION Text2cb( oEdit )
 FUNCTION cb2Text( oEdit, lToText )
 
    LOCAL arr
-   LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA ), lVert
+   LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA ), lVert, nPos
 
    IF !( s == TEdit():aCBoards[1,1] )
       TEdit():aCBoards[1,1] := s
@@ -2009,10 +2014,14 @@ FUNCTION cb2Text( oEdit, lToText )
       IF lVert
          oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_START )
          arr := hb_ATokens( s, Chr(10) )
+         nPos := oEdit:nPos
          FOR i := 1 TO Len( arr ) - 1
-            oEdit:InsText( oEdit:nLine+i-1, oEdit:nPos, arr[i], .F., .F. )
+            oEdit:InsText( oEdit:nLine+i-1, nPos, arr[i], .F., .F. )
+            oEdit:nPos := nPos
          NEXT
          oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_END )
+         edi_SetPos( oEdit )
+         oEdit:lTextOut := .T.
       ELSE
          oEdit:InsText( oEdit:nLine, oEdit:nPos, s, .F., .T. )
       ENDIF
@@ -3142,7 +3151,7 @@ STATIC FUNCTION edi_GoLeft( oEdit )
 STATIC FUNCTION edi_GoEnd( oEdit )
 
    LOCAL n := oEdit:nLine, nPos
-   LOCAL nCol := edi_ExpandTabs( oEdit, oEdit:aText[n], 1, .T. ) + Iif( oEdit:nMode==1, 0, 1 )
+   LOCAL nCol := edi_ExpandTabs( oEdit, oEdit:aText[n], 1, .T. ) + 1 //Iif( oEdit:nMode==1, 0, 1 )
 
    IF nCol < oEdit:nxFirst .OR. nCol - oEdit:nxFirst > oEdit:x2 - oEdit:x1
       oEdit:nxFirst := Max( 1, nCol - ( oEdit:x2 - oEdit:x1 ) + 1 )

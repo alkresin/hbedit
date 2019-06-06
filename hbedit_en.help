@@ -15,6 +15,7 @@ relevant functions, so you can use it as a reference.
    F2                  save file;
    Shift-F2            save file as;
    F3                  block selection;
+   Ctrl-F3             vertical block selection;
    F7                  search;
    Shift-F7            search for the next entry;
    Alt-F7              search for the previous entry;
@@ -93,6 +94,7 @@ functional. The following keys are currently supported:
 
    v                 switch to selection mode;
    V                 switch to lines selection mode;
+   Ctrl-v            switch to vertical block selection mode;
    p, P              insert text from the buffer;
    y                 copy text to clipboard;
 
