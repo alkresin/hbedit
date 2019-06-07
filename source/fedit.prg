@@ -409,8 +409,16 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          ELSE
             nby1 := ::nby2; nbx1 := ::nbx2; nby2 := ::nby1; nbx2 := ::nbx1
          ENDIF
-         IF ::nSeleMode == 2 .AND. nbx1 > nbx2
-            i := nbx1; nbx1 := nbx2; nbx2 := i
+         IF ::nSeleMode == 2
+            IF n != nby1
+               nbx1 := ::ColToPos( ::LineToRow(n), ::PosToCol( nby1,nbx1 ) )
+            ENDIF
+            IF n != nby2
+               nbx2 := ::ColToPos( ::LineToRow(n), ::PosToCol( nby2,nbx2 ) )
+            ENDIF
+            IF nbx1 > nbx2
+               i := nbx1; nbx1 := nbx2; nbx2 := i
+            ENDIF
          ENDIF
          lSel := ( n >= nby1 .AND. n <= nby2 ) .AND. !( nby1 == nby2 .AND. nbx1 == nbx2 )
       ENDIF
@@ -509,6 +517,20 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    n := ::nLine
    ::lTextOut := .F.
 
+   IF !Empty( ::bOnKey )
+      i := Eval( ::bOnKey, Self, nKeyExt )
+      IF i == - 1
+         RETURN Nil
+      ELSEIF i > 0
+         nKeyExt := i
+         nKey := hb_keyStd(nKeyExt)
+      ENDIF
+   ENDIF
+
+   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+      RETURN Nil
+   ENDIF
+
    IF ::npy1 > 0
       // drop highlighting of matched parenthesis
       DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
@@ -520,16 +542,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ENDIF
       DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
       ::npy1 := ::npx1 := ::npy2 := ::npx2 := 0
-   ENDIF
-
-   IF !Empty( ::bOnKey )
-      i := Eval( ::bOnKey, Self, nKeyExt )
-      IF i == - 1
-         RETURN Nil
-      ELSEIF i > 0
-         nKeyExt := i
-         nKey := hb_keyStd(nKeyExt)
-      ENDIF
    ENDIF
 
    IF ::nDopMode == 113  // q - macro recording
@@ -1934,7 +1946,7 @@ FUNCTION NameShortcut( cName, nWidth, cIns )
 
 STATIC FUNCTION Text2cb( oEdit )
 
-   LOCAL s := "", i, nby1, nby2, nbx1, nbx2
+   LOCAL s := "", i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2
 
    IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
@@ -1942,15 +1954,22 @@ STATIC FUNCTION Text2cb( oEdit )
       ELSE
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
-      IF oEdit:nSeleMode == 2 .AND. nbx1 > nbx2
-         i := nbx1; nbx1 := nbx2; nbx2 := i
-      ENDIF
       IF nby1 == nby2
          s := cp_Substr( oEdit:lUtf8, oEdit:aText[nby1], nbx1, nbx2-nbx1 )
       ELSE
          FOR i := nby1 TO nby2
             IF oEdit:nSeleMode == 2
-               s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nbx1, nbx2-nbx1 ) + Chr(10)
+               nvx1 := nbx1; nvx2 := nbx2
+               IF i != nby1
+                  nvx1 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby1,nbx1 ) )
+               ENDIF
+               IF i != nby2
+                  nvx2 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby2,nbx2 ) )
+               ENDIF
+               IF nvx1 > nvx2
+                  j := nvx1; nvx1 := nvx2; nvx2 := j
+               ENDIF
+               s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nvx1, nvx2-nvx1 ) + Chr(10)
             ELSE
                IF i == nby1
                   s += cp_Substr( oEdit:lUtf8, oEdit:aText[i], nbx1 ) + Chr(10)
@@ -2016,7 +2035,8 @@ FUNCTION cb2Text( oEdit, lToText )
          arr := hb_ATokens( s, Chr(10) )
          nPos := oEdit:nPos
          FOR i := 1 TO Len( arr ) - 1
-            oEdit:InsText( oEdit:nLine+i-1, nPos, arr[i], .F., .F. )
+            oEdit:InsText( oEdit:nLine+i-1, ;
+               oEdit:ColToPos( oEdit:LineToRow(oEdit:nLine+i-1), oEdit:PosToCol( oEdit:nLine,nPos ) ), arr[i], .F., .F. )
             oEdit:nPos := nPos
          NEXT
          oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_END )
@@ -2031,7 +2051,7 @@ FUNCTION cb2Text( oEdit, lToText )
 
 STATIC FUNCTION cbDele( oEdit )
 
-   LOCAL nby1, nby2, nbx1, nbx2, i
+   LOCAL nby1, nby2, nbx1, nbx2, i, j, nvx1, nvx2
 
    IF !oEdit:lReadOnly .AND. oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
@@ -2041,12 +2061,19 @@ STATIC FUNCTION cbDele( oEdit )
       ENDIF
       oEdit:nby1 := oEdit:nby2 := -1
       IF oEdit:nSeleMode == 2
-         IF nbx1 > nbx2
-            i := nbx1; nbx1 := nbx2; nbx2 := i
-         ENDIF
          oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_START )
          FOR i := nby1 TO nby2
-            oEdit:DelText( i, nbx1, i, nbx2 )
+            nvx1 := nbx1; nvx2 := nbx2
+            IF i != nby1
+               nvx1 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby1,nbx1 ) )
+            ENDIF
+            IF i != nby2
+               nvx2 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby2,nbx2 ) )
+            ENDIF
+            IF nvx1 > nvx2
+               j := nvx1; nvx1 := nvx2; nvx2 := j
+            ENDIF
+            oEdit:DelText( i, nvx1, i, Max(nvx2-1,1) )
          NEXT
          oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_END )
       ELSE
