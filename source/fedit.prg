@@ -1338,7 +1338,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ::TextOut()
    ENDIF
 
-   IF !Empty( ::oHili ) .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
+   IF !Empty( ::oHili ) .AND. ::oHili:hHili["bra"] .AND. !Empty( x := edi_Bracket( Self, .T., .T. ) )
       // highlighting matched parenthesis
       ::npy1 := ::nLine; ::npx1 := ::nPos
       ::npy2 := Iif( Valtype(x)=="A",x[1], ::npy1 ); ::npx2 := Iif( Valtype(x)=="A",x[2], x )
@@ -2222,6 +2222,7 @@ FUNCTION edi_ReadIni( xIni )
                cLang := Lower( Substr(aIni[nSect],6) )
                hHili := aLangs[ cLang ] := hb_hash()
                hHili["colors"] := Array(Len(aHiliOpt))
+               hHili["bra"] := .F.
                arr := hb_hKeys( aSect )
                FOR i := 1 TO Len( arr )
                   IF !Empty( cTemp := aSect[ arr[i] ] )
@@ -2238,6 +2239,8 @@ FUNCTION edi_ReadIni( xIni )
                         hHili[arr[i]] := ( Lower(cTemp) == "on" )
                      ELSEIF arr[i] == "plugin"
                         hHili["plugin"] := cTemp
+                     ELSEIF arr[i] == "brackets"
+                        hHili["bra"] := ( Lower(cTemp) == "on" )
                      ENDIF
                   ENDIF
                NEXT

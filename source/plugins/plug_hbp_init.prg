@@ -132,7 +132,7 @@ STATIC FUNCTION _hbp_Init_Files( oEdit )
 STATIC FUNCTION _hbp_Get_Files( oEdit )
 
    LOCAL i, j, s, cPathBase := hb_fnameDir( oEdit:cFileName )
-   LOCAL cPath, cName, aDir, aFiles
+   LOCAL cPath, cName, aDir, aFiles, cSep := hb_ps(), cSepWrong := Iif( cSep=='/','\','/' )
 
    IF Empty( oEdit:cargo )
       aFiles := {}
@@ -150,6 +150,11 @@ STATIC FUNCTION _hbp_Get_Files( oEdit )
             ELSE
                Aadd( aFiles, cPath + cName )
             ENDIF
+         ENDIF
+      NEXT
+      FOR j := 1 TO Len( aFiles )
+         IF cSepWrong $ aFiles[i]
+            aFiles[j] := StrTran( aFiles[j], cSepWrong, cSep )
          ENDIF
       NEXT
       oEdit:cargo := aFiles
