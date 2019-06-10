@@ -149,7 +149,7 @@ CLASS TEdit
    METHOD PosToCol( nLine, nPos )
    METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc )
    METHOD GoTo( ny, nx, nSele, lNoGo )
-   METHOD ToString( cEol )
+   METHOD ToString( cEol, cp )
    METHOD Save( cFileName )
    METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo )
    METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo )
@@ -599,6 +599,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             cDopMode += Chr( nKey )
             IF nKey == 103    // g
                ::nDopMode := 103
+            ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
+               ::nDopMode := 0
             ELSEIF nKey == 64    // @
                ::nDopMode := 64
             ELSEIF Chr(nKey) $ cKeysMove
@@ -609,8 +611,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                FOR i := Val( cDopMode ) TO 1 STEP -1
                   ::DelText( n, ::nPos, n, ::nPos )
                NEXT
-               ::nDopMode := 0
-            ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
                ::nDopMode := 0
             ENDIF
             EXIT
@@ -1078,11 +1078,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 77    // M
-                     edi_SetPos( Self, ::nyFirst + Int((::y2-::y1)/2), ::nxFirst )
+                     edi_SetPos( Self, Min( Len(::aText), ::nyFirst + Int((::y2-::y1)/2) ), ::nxFirst )
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 76    // L
-                     edi_SetPos( Self, ::nyFirst + ::y2-::y1, ::nxFirst )
+                     edi_SetPos( Self, Min( Len(::aText), ::nyFirst + ::y2-::y1 ), ::nxFirst )
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 42    // *
@@ -1542,7 +1542,7 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
 
    RETURN Nil
 
-METHOD ToString( cEol ) CLASS TEdit
+METHOD ToString( cEol, cp ) CLASS TEdit
 
    LOCAL i, nLen := Len( ::aText ), cBom := e"\xef\xbb\xbf", s := Iif( ::lBom, cBom, "" )
    LOCAL lTrim := hb_hGetDef( TEdit():options,"trimspaces", .F. )
@@ -1557,7 +1557,11 @@ METHOD ToString( cEol ) CLASS TEdit
       IF lTrim .AND. Right( ::aText[i], 1 ) == " "
          ::aText[i] := Trim( ::aText[i] )
       ENDIF
-      s += Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ) + cEol
+      IF cp != Nil .AND. !( cp == ::cp )
+         s += hb_strToUtf8( Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ), ::cp ) + cEol
+      ELSE
+         s += Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ) + cEol
+      ENDIF
    NEXT
 
    RETURN s
