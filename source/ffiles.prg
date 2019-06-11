@@ -20,10 +20,10 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
             lCase := ! ( n3-n2 > 1 .AND. Substr( cSea,n2+1,1 ) == "c" )
             cSea := Substr( cSea, n1+1, n2-n1-1 )
             IF lCase
-               cBuff := Memoread( cLine )
+               cBuff := Memoread( cPath + cLine )
             ELSE
                cSea := cp_Lower( oEdit:lUtf8, cSea )
-               cBuff := cp_Lower( oEdit:lUtf8, Memoread( cLine ) )
+               cBuff := cp_Lower( oEdit:lUtf8, Memoread( cPath + cLine ) )
             ENDIF
             IF !( cSea $ cBuff )
                RETURN .F.
