@@ -56,7 +56,9 @@ highlight text:
    Del, d            delete the text;
    Shift-Del,Ctrl-X  put in the system buffer and delete;
    u, U              convert, respectively, to lower or upper case;
-   >, <              increase / decrease indent.
+   >, <              increase / decrease indent;
+   o                 continue selection from opposite end;
+   ESC               cancel selection.
 
    After pressing y, F3, Del, d, Shift-Del you return to
 editing. You can paste text from the buffer, as usual, with the keys Ctrl-V, Shift-Ins.
@@ -103,9 +105,9 @@ functional. The following keys are currently supported:
    I                 switch to edit mode from the first word of the line;
    A                 switch to edit mode from the end of the line;
    cc                delete the current line and go into edit mode;
-   cw                delete before the beginning of the next word and go into edit mode;
-   ce                delete the end of the word and go into edit mode;
-   cb                delete a word before the start and go into edit mode;
+   c[w,W]            delete before the beginning of the next word and go into edit mode;
+   c[e,E]            delete the end of the word and go into edit mode;
+   c[b,B]            delete a word before the start and go into edit mode;
    ñiw               delete a word and go into edit mode;
    ñi"               delete a text between quotes and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
@@ -114,9 +116,9 @@ functional. The following keys are currently supported:
    ~                 invert character case;
 
    dd                delete the current line;
-   dw                delete before the next word;
-   de                delete to the end of the word;
-   db                delete a word before the start;
+   d[w,W]            delete before the next word;
+   d[e,E]            delete to the end of the word;
+   d[b,B]            delete a word before the start;
    diw               delete a word;
    di"               delete a text between quotes;
    x                 delete a char;
@@ -134,5 +136,6 @@ functional. The following keys are currently supported:
    @@                playing last used macro;
    [0...9]@[0...9,a...z] playing macro specified number of times;
 
-  The number entered before the move command (h, j, k, l, w, w, e, E, b, B)
-  forces this movement to be done a specified number of times.
+  The number entered before the move command (h, j, k, l, w, w, e, E, b, B) or before
+  dd, dw, dW, db, dB, de, dE, cc, cw, cW, cb, cB, ce, cE forces appropriate action
+  to be done a specified number of times.

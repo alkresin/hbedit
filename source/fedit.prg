@@ -599,11 +599,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             cDopMode += Chr( nKey )
             IF nKey == 103    // g
                ::nDopMode := 103
-            ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
-               ::nDopMode := 0
             ELSEIF nKey == 64    // @
                ::nDopMode := 64
-            ELSEIF Chr(nKey) $ cKeysMove
+            ELSEIF Chr(nKey) $ cKeysMove .AND. nKey != 48
                edi_Move( Self, nKey, Val( cDopMode ) )
                nKey := K_RIGHT
                ::nDopMode := 0
@@ -612,19 +610,35 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::DelText( n, ::nPos, n, ::nPos )
                NEXT
                ::nDopMode := 0
+            ELSEIF nKey == 99   // c
+               ::nDopMode := 99
+            ELSEIF nKey == 100   // d
+               ::nDopMode := 100
+            ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
+               ::nDopMode := 0
             ENDIF
             EXIT
          CASE 99   // c
          CASE 100  // d
             IF nKey == 100    // d
-               IF ::nDopMode == 100 .AND. n > 0 .AND. n <= Len( ::aText )
-                  ::DelText( n, 0, n+1, 0 )
+               IF ::nDopMode == 100
+                  x := Iif( IsDigit( cDopMode ), Val( cDopMode ), 1 )
+                  FOR i := 1 TO x
+                     IF n > 0 .AND. n <= Len( ::aText )
+                        ::DelText( n, 0, n+1, 0 )
+                     ENDIF
+                  NEXT
                ENDIF
                ::nDopMode := 0
 
             ELSEIF nKey == 99    // c
-               IF ::nDopMode == 99 .AND. n > 0 .AND. n <= Len( ::aText )
-                  ::DelText( n, 1, n, cp_Len(::lUtf8,::aText[n]) )
+               IF ::nDopMode == 99
+                  x := Iif( IsDigit( cDopMode ), Val( cDopMode ), 1 )
+                  FOR i := 1 TO x
+                     IF n > 0 .AND. n <= Len( ::aText )
+                        ::DelText( n, 1, n, cp_Len(::lUtf8,::aText[n]) )
+                     ENDIF
+                  NEXT
                   mnu_ChgMode( Self, .T. )
                ENDIF
                ::nDopMode := 0
@@ -634,48 +648,75 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   cDopMode += Chr( nKey )
                //ENDIF
 
-            ELSEIF nKey == 98     // b
+            ELSEIF nKey == 98 .OR. nKey == 66    // b, B
+               IF IsDigit( cDopMode )
+                  x := Val( cDopMode )
+                  i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
+                  cDopMode := Substr( cDopMode, i )
+               ELSE
+                  x := 1
+               ENDIF
                IF cDopMode $ "cd"
                   mnu_F3( Self )
-                  edi_PrevWord( Self, .F. )
-                  ::nby2 := ::nLine
-                  ::nbx2 := ::nPos
-                  cbDele( Self )
+                  FOR i := 1 TO x
+                     edi_PrevWord( Self, (nKey == 66) )
+                     ::nby2 := ::nLine
+                     ::nbx2 := ::nPos
+                     cbDele( Self )
+                  NEXT
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
                   ENDIF
                ENDIF
                ::nDopMode := 0
 
-            ELSEIF nKey == 101    // e
+            ELSEIF nKey == 101 .OR. nKey == 69   // e, E
+               IF IsDigit( cDopMode )
+                  x := Val( cDopMode )
+                  i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
+                  cDopMode := Substr( cDopMode, i )
+               ELSE
+                  x := 1
+               ENDIF
                IF cDopMode $ "cd"
                   mnu_F3( Self )
-                  edi_NextWord( Self, .F., .T. )
-                  edi_GoRight( Self )
-                  ::nby2 := ::nLine
-                  ::nbx2 := ::nPos
-                  cbDele( Self )
+                  FOR i := 1 TO x
+                     edi_NextWord( Self, (nKey == 69), .T. )
+                     edi_GoRight( Self )
+                     ::nby2 := ::nLine
+                     ::nbx2 := ::nPos
+                     cbDele( Self )
+                  NEXT
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
                   ENDIF
                ENDIF
                ::nDopMode := 0
 
-            ELSEIF nKey == 119    // w
+            ELSEIF nKey == 119 .OR. nKey == 87   // w, W
+               IF IsDigit( cDopMode )
+                  x := Val( cDopMode )
+                  i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
+                  cDopMode := Substr( cDopMode, i )
+               ELSE
+                  x := 1
+               ENDIF
                IF cDopMode $ "cd"
                   mnu_F3( Self )
-                  edi_NextWord( Self, .F. )
-                  ::nby2 := ::nLine
-                  ::nbx2 := ::nPos
-                  cbDele( Self )
-                  ::lF3 := .F.
+                  FOR i := 1 TO x
+                     edi_NextWord( Self, (nKey == 87) )
+                     ::nby2 := ::nLine
+                     ::nbx2 := ::nPos
+                     cbDele( Self )
+                     ::lF3 := .F.
+                  NEXT
                   IF ::nDopMode == 99
                      mnu_ChgMode( Self, .T. )
                   ENDIF
                ELSEIF cDopMode $ "di;ci"
                   edi_PrevWord( Self, .F. )
                   mnu_F3( Self )
-                  edi_NextWord( Self, .F., .T. )
+                  edi_NextWord( Self, (nKey == 87), .T. )
                   edi_GoRight( Self )
                   ::nby2 := ::nLine
                   ::nbx2 := ::nPos
@@ -984,6 +1025,23 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Indent( Self, .F. )
                      lNoDeselect := .T.
                      EXIT
+                  CASE 111   // o
+                     IF ::nLine == ::nby2 .AND. ::nPos == ::nbx2
+                        ::nLine := ::nby1
+                        ::nPos := ::nbx1
+                     ELSE
+                        ::nLine := ::nby2
+                        ::nPos := ::nbx2
+                     ENDIF
+                     x := ::nby1; ::nby1 := ::nby2; ::nby2 := x
+                     x := ::nbx1; ::nbx1 := ::nbx2; ::nbx2 := x
+                     edi_SetPos( Self )
+                     nKey := K_RIGHT
+                     lNoDeselect := .T.
+                     EXIT
+                  CASE K_ESC
+                     nKey := 0
+                     EXIT
                   END
                ENDIF
             ELSEIF ::nMode == 1
@@ -1290,8 +1348,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_F10
             CASE K_ESC
-               IF nKey == K_ESC .AND. ::nMode == 0 .AND. ::nDefMode == 1
-                  mnu_ChgMode( Self )
+               IF nKey == K_ESC .AND. ::nDefMode == 1
+                  IF ::nMode == 0
+                     mnu_ChgMode( Self )
+                  ENDIF
                ELSE
                   mnu_Exit( Self )
                ENDIF
@@ -1750,12 +1810,10 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
       ncou ++
 
       ::aText := ASize( ::aText, Len(::aText) - ncou )
-      IF ( i := (nLine1 - ::nyFirst + 1) ) > 0 .AND. i < (::y2-::y1+1)
-         edi_SetPos( Self, nLine1, nPos1 )
-      ELSE
+      IF !( ( i := (nLine1 - ::nyFirst + 1) ) > 0 .AND. i < (::y2-::y1+1) )
          ::nyFirst := nLine1
-         edi_SetPos( Self, nLine1, nPos1 )
       ENDIF
+      edi_SetPos( Self, nLine1, Max( nPos1,1 ) )
       ::lTextOut := .T.
    ENDIF
 
