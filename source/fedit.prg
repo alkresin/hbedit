@@ -750,6 +750,20 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
             ENDIF
             EXIT
+         CASE 118  // v
+            IF nKey == 87 .OR. nKey == 119  // w, W
+               edi_PrevWord( Self, (nKey == 87) )
+               ::nby1 := ::nLine
+               ::nbx1 := ::nPos
+               edi_NextWord( Self, (nKey == 87), .T. )
+               edi_GoRight( Self )
+               ::nby2 := ::nLine
+               ::nbx2 := ::nPos
+               nKey := K_RIGHT
+               lNoDeselect := .T.
+            ENDIF
+            ::nDopMode := 0
+            EXIT
          CASE 114  // r
             ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), .T., .T. )
             ::nDopMode := 0
@@ -1023,6 +1037,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 60    // > Shift lines left
                      edi_Indent( Self, .F. )
+                     lNoDeselect := .T.
+                     EXIT
+                  CASE 105   // i
+                     ::nDopMode := 118
+                     cDopMode := "vi"
+                     nKey := K_RIGHT
                      lNoDeselect := .T.
                      EXIT
                   CASE 111   // o
