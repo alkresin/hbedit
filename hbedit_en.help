@@ -55,9 +55,11 @@ highlight text:
    F3                put text into one of 10 internal buffers (0th is system);
    Del, d            delete the text;
    Shift-Del,Ctrl-X  put in the system buffer and delete;
+   c                 delete the text and switching to edit mode;
    u, U              convert, respectively, to lower or upper case;
    >, <              increase / decrease indent;
    o                 continue selection from opposite end;
+   i[w,W]            select a word under the cursor;
    ESC               cancel selection.
 
    After pressing y, F3, Del, d, Shift-Del you return to
@@ -108,7 +110,7 @@ functional. The following keys are currently supported:
    c[w,W]            delete before the beginning of the next word and go into edit mode;
    c[e,E]            delete the end of the word and go into edit mode;
    c[b,B]            delete a word before the start and go into edit mode;
-   ñiw               delete a word and go into edit mode;
+   ñi[w,W]           delete a word and go into edit mode;
    ñi"               delete a text between quotes and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
    r                 replace one character;
@@ -119,7 +121,7 @@ functional. The following keys are currently supported:
    d[w,W]            delete before the next word;
    d[e,E]            delete to the end of the word;
    d[b,B]            delete a word before the start;
-   diw               delete a word;
+   di[w,W]           delete a word;
    di"               delete a text between quotes;
    x                 delete a char;
 

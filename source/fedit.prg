@@ -714,7 +714,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      mnu_ChgMode( Self, .T. )
                   ENDIF
                ELSEIF cDopMode $ "di;ci"
-                  edi_PrevWord( Self, .F. )
+                  edi_PrevWord( Self, .F.,, .T. )
                   mnu_F3( Self )
                   edi_NextWord( Self, (nKey == 87), .T. )
                   edi_GoRight( Self )
@@ -752,7 +752,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE 118  // v
             IF nKey == 87 .OR. nKey == 119  // w, W
-               edi_PrevWord( Self, (nKey == 87) )
+               edi_PrevWord( Self, (nKey == 87),, .T. )
                ::nby1 := ::nLine
                ::nbx1 := ::nPos
                edi_NextWord( Self, (nKey == 87), .T. )
@@ -1021,6 +1021,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_ConvertCase( Self, .F. )
                      lNoDeselect := .T.
                      EXIT
+                  CASE 99    // c Deletes selection and switch to Edit mode
+                     IF ::nMode == 1
+                        cbDele( Self )
+                        mnu_ChgMode( Self, .T. )
+                     ENDIF
+                     EXIT
                   CASE 100   // d Deletes selection
                      cbDele( Self )
                      EXIT
@@ -1164,7 +1170,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 42    // *
-                     i := edi_PrevWord( Self, .F., .F.,, ::nPos+1 )
+                     i := edi_PrevWord( Self, .F., .F.,,, ::nPos+1 )
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i := ::nPos
@@ -1173,7 +1179,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      EXIT
                   CASE 35    // #
-                     i := edi_PrevWord( Self, .F., .F.,, ::nPos+1 )
+                     i := edi_PrevWord( Self, .F., .F.,,, ::nPos+1 )
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i --
@@ -3364,7 +3370,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
 
    RETURN nx
 
-STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
+STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
    LOCAL lUtf8 := oEdit:lUtf8
    LOCAL ch, lAlphaNum
 
@@ -3377,10 +3383,17 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, ny, nx )
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
    IF ch == " "
+      IF !Empty( lIn )
+         RETURN nx
+      ENDIF
       DO WHILE --nx > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
    ENDIF
 
    lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
+   IF !Empty( lIn ) .AND. nx > 1 .AND. ;
+      edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx-1,1) ) ) != lAlphaNum
+      RETURN nx
+   ENDIF
    DO WHILE --nx > 0
       IF ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " .OR. ;
             ( !lBigW .AND. lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) )
