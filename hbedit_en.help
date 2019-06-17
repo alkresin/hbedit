@@ -60,6 +60,10 @@ highlight text:
    >, <              increase / decrease indent;
    o                 continue selection from opposite end;
    i[w,W]            select a word under the cursor;
+   i[",']            select a text between quotes (double or single);
+   i[b,(,)]          select a text in parentheses;
+   i[                select a text in square brackets;
+   i[{,}]            select a text in braces;
    ESC               cancel selection.
 
    After pressing y, F3, Del, d, Shift-Del you return to
@@ -111,7 +115,7 @@ functional. The following keys are currently supported:
    c[e,E]            delete the end of the word and go into edit mode;
    c[b,B]            delete a word before the start and go into edit mode;
    ñi[w,W]           delete a word and go into edit mode;
-   ñi"               delete a text between quotes and go into edit mode;
+   ñi[",']           delete a text between quotes and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
    r                 replace one character;
    R                 replace few characters;
@@ -122,7 +126,7 @@ functional. The following keys are currently supported:
    d[e,E]            delete to the end of the word;
    d[b,B]            delete a word before the start;
    di[w,W]           delete a word;
-   di"               delete a text between quotes;
+   di[",']           delete a text between quotes;
    x                 delete a char;
 
    m[a ... z]        set bookmark;

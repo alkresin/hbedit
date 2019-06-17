@@ -91,8 +91,9 @@ CLASS TEdit
    DATA   cFileName   INIT ""
    DATA   dDateMod, cTimeMod
    DATA   cp
-   DATA   nxFirst, nyFirst
+   DATA   nxFirst, nyFirst, nxOfLine
    DATA   aText
+   DATA   lWrap       INIT .F.
    DATA   nMode                       // Current mode (Edit, Vim, Cmd)
    DATA   nDopMode    INIT 0          // A state in a Vim mode after pressing some keys
                                       // (m, ', 0..9, ...) when other keys are expected
@@ -143,9 +144,9 @@ CLASS TEdit
    METHOD LineOut( nLine )
    METHOD onKey( nKeyExt )
    METHOD WriteTopPane( lClear )
-   METHOD RowToLine( nRow )   INLINE ( nRow - ::y1 + ::nyFirst )
+   METHOD RowToLine( nRow )
    METHOD ColToPos( nRow, nCol )
-   METHOD LineToRow( nLine )  INLINE ( Iif( nLine==Nil, ::nLine, nLine ) + ::y1 - ::nyFirst )
+   METHOD LineToRow( nLine )
    METHOD PosToCol( nLine, nPos )
    METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc )
    METHOD GoTo( ny, nx, nSele, lNoGo )
@@ -728,20 +729,22 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
                ::nDopMode := 0
 
-            ELSEIF nKey == 34  // "
+            ELSEIF nKey == 34 .OR. nKey == 39  // ",'
                IF cDopMode $ "di;ci"
-                  IF ( i := edi_InQuo( Self, n, ::nPos ) ) > 0
-                     x := cedi_Peek( ::lUtf8, ::aText[n], i )
-                     IF ( j := cp_At( ::lUtf8, x, ::aText[n], i+1 ) ) > 0
+                  IF ( j := hb_At( Chr(nKey), ::aText[n], ::nPos+1 ) ) > 0
+                     IF ( i := hb_Rat( Chr(nKey), ::aText[n],, ::nPos ) ) > 0
                         ::nPos := i + 1
-                        mnu_F3( Self )
-                        ::nby2 := ::nLine
-                        ::nbx2 := j
-                        cbDele( Self )
-                        ::lF3 := .F.
-                        IF ::nDopMode == 99
-                           mnu_ChgMode( Self, .T. )
-                        ENDIF
+                        ::DelText( ::nLine, i+1, ::nLine, j-1 )
+                        nKey := K_RIGHT
+                     ELSEIF ( i := hb_At( Chr(nKey), ::aText[n], j+1 ) ) > 0
+                        ::nPos := j + 1
+                        ::DelText( ::nLine, j+1, ::nLine, i-1 )
+                        nKey := K_RIGHT
+                     ENDIF
+                  ENDIF
+                  IF nKey == K_RIGHT
+                     IF ::nDopMode == 99
+                        mnu_ChgMode( Self, .T. )
                      ENDIF
                   ENDIF
                ENDIF
@@ -761,6 +764,49 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nbx2 := ::nPos
                nKey := K_RIGHT
                lNoDeselect := .T.
+            ELSEIF nKey == 34 .OR. nKey == 39 // ",'
+               IF ( j := hb_At( Chr(nKey), ::aText[n], ::nPos+1 ) ) > 0
+                  IF ( i := hb_Rat( Chr(nKey), ::aText[n],, ::nPos ) ) > 0
+                     ::nby1 := ::nby2 := ::nLine
+                     ::nbx1 := i + 1; ::nbx2 := ::nPos := j
+                     nKey := K_RIGHT
+                  ELSEIF ( i := hb_At( Chr(nKey), ::aText[n], j+1 ) ) > 0
+                     ::nby1 := ::nby2 := ::nLine
+                     ::nbx1 := j+1; ::nbx2 := ::nPos := i
+                     nKey := K_RIGHT
+                  ENDIF
+               ENDIF
+               IF nKey == K_RIGHT
+                  edi_SetPos( Self )
+                  lNoDeselect := .T.
+               ENDIF
+            ELSEIF Chr(nKey) $ "b()[]{}"
+               IF !Empty( x := edi_Bracket( Self, .T., .F., ;
+                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
+                  i := ::nLine; j := ::nPos
+                  IF Valtype( x ) == "A"
+                     ::nLine := x[1]; ::nPos := x[2]
+                  ELSE
+                     ::nPos := x
+                  ENDIF
+                  IF !Empty( s := edi_Bracket( Self, .T., .T. ) )
+                     IF Valtype( x ) == "A"
+                        ::nby1 := x[1]; ::nbx1 := x[2] + 1
+                     ELSE
+                        ::nby1 := ::nLine; ::nbx1 := x + 1
+                     ENDIF
+                     IF Valtype( s ) == "A"
+                        ::nby2 := s[1]; ::nbx2 := s[2]
+                     ELSE
+                        ::nby2 := ::nLine; ::nbx2 := s
+                     ENDIF
+                     nKey := K_RIGHT
+                     ::nLine := ::nby2; ::nPos := ::nbx2
+                     lNoDeselect := .T.
+                  ELSE
+                     ::nLine := i; ::nPos := j
+                  ENDIF
+               ENDIF
             ENDIF
             ::nDopMode := 0
             EXIT
@@ -1491,12 +1537,22 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
 
    RETURN Nil
 
+METHOD RowToLine( nRow )  CLASS TEdit
+
+   IF ::lWrap
+   ENDIF
+   RETURN nRow - ::y1 + ::nyFirst
+
 METHOD ColToPos( nRow, nCol ) CLASS TEdit
 
    nCol := nCol - ::x1 + ::nxFirst
    RETURN edi_Col2Pos( Self, ::RowToLine(nRow), nCol )
-   //nCol := edi_Col2Pos( Self, ::RowToLine(nRow), nCol )
-   //RETURN nCol - ::x1 + ::nxFirst
+
+METHOD LineToRow( nLine ) CLASS TEdit
+
+   IF ::lWrap
+   ENDIF
+   RETURN Iif( nLine==Nil, ::nLine, nLine ) + ::y1 - ::nyFirst
 
 METHOD PosToCol( nLine, nPos ) CLASS TEdit
 
@@ -3507,16 +3563,18 @@ STATIC FUNCTION edi_BookMarks( oEdit, nKey, lSet )
 
    RETURN Nil
 
-STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly )
+STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
 
    LOCAL nyInit, ny := oEdit:nLine, nx := oEdit:nPos
-   LOCAL c, nPos := 0
+   LOCAL nPos := 0
    LOCAL b1 := "([{", b2 := ")]}", i, np := 0
 
-   IF ny > Len( oEdit:aText ) .OR. nx > cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
+   IF ny == 0 .OR. ny > Len( oEdit:aText ) .OR. nx > cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
       RETURN 0
    ENDIF
-   c := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 )
+   IF Empty( c )
+      c := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, 1 )
+   ENDIF
    nyInit := ny
    IF ( i := At( c, b1 ) ) > 0
       IF edi_InQuo( oEdit, ny, nx ) == 0
