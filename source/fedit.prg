@@ -318,10 +318,6 @@ METHOD Edit() CLASS TEdit
 
    ::WriteTopPane()
 
-   IF !Empty( ::bStartEdit )
-      Eval( ::bStartEdit, Self )
-   ENDIF
-
    FOR i := Len( ::aWindows ) TO 1 STEP -1
       // Draw the child window, if found.
       IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
@@ -331,7 +327,13 @@ METHOD Edit() CLASS TEdit
    NEXT
 
    ::GoTo( ::nLine, ::nPos )
-   ::TextOut()
+   IF Len( ::aText ) > 1 .OR. !Empty( ::aText[1] )
+      ::TextOut()
+   ENDIF
+
+   IF !Empty( ::bStartEdit )
+      Eval( ::bStartEdit, Self )
+   ENDIF
 
    ::nPosBack := ::nPos
    ::nLineBack := ::nLine
