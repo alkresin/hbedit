@@ -76,7 +76,7 @@ FUNCTION Main( ... )
    ANNOUNCE HB_GTSYS
    REQUEST HB_GT_WVT
    REQUEST HB_GT_WVT_DEFAULT
-#endif   
+#endif
 
    IF Empty( cFontName )
       hb_gtinfo( HB_GTI_FONTNAME, "Lusida console" )
@@ -98,13 +98,14 @@ FUNCTION Main( ... )
    ENDIF
    hb_gtinfo( HB_GTI_CLOSABLE, .F. )
 
+/*
    IF Valtype( arr := hb_gtinfo( HB_GTI_PALETTE ) ) == "A"
       arr[2] := 0x800000
       arr[4] := 0x808000
       arr[8] := 0xC8C8C8
       hb_gtinfo( HB_GTI_PALETTE, arr )
    ENDIF
-
+*/
    IF lMaximize
       hb_gtinfo( HB_GTI_MAXIMIZED, .T. )
    ENDIF

@@ -53,6 +53,7 @@ STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aLangs
+STATIC aPalettes
 STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
 STATIC cDopMode := ""
 STATIC cLastDir := ""
@@ -77,6 +78,7 @@ CLASS TEdit
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
+   CLASS VAR cDefPal    SHARED
    CLASS VAR cColor     SHARED  INIT "BG+/B"
    CLASS VAR cColorSel  SHARED  INIT "N/W"
    CLASS VAR cColorPane SHARED  INIT "N/BG"
@@ -91,6 +93,7 @@ CLASS TEdit
    DATA   cFileName   INIT ""
    DATA   dDateMod, cTimeMod
    DATA   cp
+   DATA   cPalette
    DATA   nxFirst, nyFirst, nxOfLine
    DATA   aText
    DATA   lWrap       INIT .F.
@@ -2253,6 +2256,7 @@ FUNCTION edi_ReadIni( xIni )
    SetBlink( .F. )
    hb_gtInfo( HB_GTI_COMPATBUFFER, .F. )
    aLangs := hb_Hash()
+   aPalettes := hb_Hash()
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )
@@ -2303,6 +2307,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "langmap_lower" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   aLangMapLower := hb_aTokens( cTemp )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "palette" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cDefPal := cTemp
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "colormain" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():cColor := cTemp
@@ -2402,6 +2409,30 @@ FUNCTION edi_ReadIni( xIni )
                   ENDIF
                NEXT
             ENDIF
+         ELSEIF Left( Upper(aIni[nSect]),8 ) == "PALETTE_"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               hHili := hb_hash()
+               arr := hb_hKeys( aSect )
+               cLang := Nil
+               FOR i := 1 TO Len( arr )
+                  IF !Empty( cTemp := aSect[ arr[i] ] )
+                     IF arr[i] == "name"
+                        cLang := cTemp
+                     ELSEIF arr[i] == "colors"
+                        arr1 := hb_ATokens( cTemp, ',' )
+                        FOR n := 1 TO Len( arr1 )
+                           arr1[n] := LTrim( arr1[n] )
+                           arr1[n] := Iif( Asc(arr1[n]) == 35, edi_ColorC2N(arr1[n]), Val(arr1[n]) )
+                        NEXT
+                        hHili[arr[i]] := arr1
+                     ENDIF
+                  ENDIF
+               NEXT
+               IF !Empty( cLang ) .AND. hb_hHaskey( hHili, "colors" ) .AND. Len( hHili["colors"] ) == 16
+                  aPalettes[cLang] := hHili
+               ENDIF
+            ENDIF
          ENDIF
       NEXT
    ENDIF
@@ -2427,6 +2458,13 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
    TEdit():hMacros := hb_Hash()
+   IF !Empty( TEdit():cDefPal )
+      IF hb_hHaskey( aPalettes, TEdit():cDefPal ) .AND. hb_hHaskey( aPalettes[TEdit():cDefPal], "colors" )
+         hb_gtinfo( HB_GTI_PALETTE, aPalettes[TEdit():cDefPal]["colors"] )
+      ELSE
+         TEdit():cDefPal := Nil
+      ENDIF
+   ENDIF
 
    IF nSaveHis > 0
       hIni := edi_iniRead( Iif( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his" )
@@ -3971,6 +4009,48 @@ FUNCTION edi_MapKey( oEdit, nKey )
    ENDIF
 
    RETURN nKey
+
+FUNCTION edi_ColorC2N( cColor )
+
+   LOCAL i, res := 0, n := 1, iValue
+
+   IF Left( cColor,1 ) == "#"
+      cColor := Substr( cColor,2 )
+   ENDIF
+   cColor := Trim( cColor )
+   FOR i := 1 TO Len( cColor )
+      iValue := Asc( SubStr( cColor,i,1 ) )
+      IF iValue < 58 .AND. iValue > 47
+         iValue -= 48
+      ELSEIF iValue >= 65 .AND. iValue <= 70
+         iValue -= 55
+      ELSEIF iValue >= 97 .AND. iValue <= 102
+         iValue -= 87
+      ELSE
+         RETURN 0
+      ENDIF
+      iValue *= n
+      IF i % 2 == 1
+         iValue *= 16
+      ELSE
+         n *= 256
+      ENDIF
+      res += iValue
+   NEXT
+
+   RETURN res
+
+FUNCTION edi_ColorN2C( nColor )
+
+   LOCAL s := "", n1, n2, i
+
+   FOR i := 0 to 2
+      n1 := hb_BitAnd( hb_BitShift( nColor,-i*8-4 ), 15 )
+      n2 := hb_BitAnd( hb_BitShift( nColor,-i*8 ), 15 )
+      s += Chr( Iif(n1<10,n1+48,n1+55) ) + Chr( Iif(n2<10,n2+48,n2+55) )
+   NEXT
+
+   RETURN s
 
 FUNCTION cp_Chr( lUtf8, n )
 
