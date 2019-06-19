@@ -116,6 +116,9 @@ functional. The following keys are currently supported:
    c[b,B]            delete a word before the start and go into edit mode;
    ñi[w,W]           delete a word and go into edit mode;
    ñi[",']           delete a text between quotes and go into edit mode;
+   ci[b,(,)]         delete a text in parentheses and go into edit mode;
+   ci[               delete a text in square brackets and go into edit mode;
+   ci[{,}]           delete a text in braces and go into edit mode;
    o                 insert a line after the current one and switch to editing mode;
    r                 replace one character;
    R                 replace few characters;
@@ -127,6 +130,9 @@ functional. The following keys are currently supported:
    d[b,B]            delete a word before the start;
    di[w,W]           delete a word;
    di[",']           delete a text between quotes;
+   di[b,(,)]         delete a text in parentheses;
+   di[               delete a text in square brackets;
+   di[{,}]           delete a text in braces;
    x                 delete a char;
 
    m[a ... z]        set bookmark;

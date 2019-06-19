@@ -651,7 +651,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   cDopMode += Chr( nKey )
                //ENDIF
 
-            ELSEIF nKey == 98 .OR. nKey == 66    // b, B
+            ELSEIF (nKey == 98 .OR. nKey == 66) .AND. !(cDopMode $ "di;ci")    // b, B
                IF IsDigit( cDopMode )
                   x := Val( cDopMode )
                   i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
@@ -751,6 +751,26 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                ENDIF
                ::nDopMode := 0
+            ELSEIF Chr(nKey) $ "b()[]{}"
+               IF !Empty( x := edi_Bracket( Self, .T., .F., ;
+                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
+                  i := ::nLine; j := ::nPos
+                  ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
+                  ::nPos := Iif( Valtype( x ) == "A", x[2], x )
+                  IF !Empty( s := edi_Bracket( Self, .T., .T. ) )
+                     i := Iif( Valtype( x ) == "A", x[1], ::nLine )
+                     j := Iif( Valtype( x ) == "A", x[2], x ) + 1
+                     x := Iif( Valtype( s ) == "A", s[1], ::nLine )
+                     s := Iif( Valtype( s ) == "A", s[2], s ) - 1
+                     ::DelText( i, j, x, s )
+                     IF ::nDopMode == 99
+                        mnu_ChgMode( Self, .T. )
+                     ENDIF
+                  ELSE
+                     ::nLine := i; ::nPos := j
+                  ENDIF
+               ENDIF
+               ::nDopMode := 0
             ELSE
                ::nDopMode := 0
             ENDIF
@@ -786,22 +806,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF !Empty( x := edi_Bracket( Self, .T., .F., ;
                      Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
                   i := ::nLine; j := ::nPos
-                  IF Valtype( x ) == "A"
-                     ::nLine := x[1]; ::nPos := x[2]
-                  ELSE
-                     ::nPos := x
-                  ENDIF
+                  ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
+                  ::nPos := Iif( Valtype( x ) == "A", x[2], x )
                   IF !Empty( s := edi_Bracket( Self, .T., .T. ) )
-                     IF Valtype( x ) == "A"
-                        ::nby1 := x[1]; ::nbx1 := x[2] + 1
-                     ELSE
-                        ::nby1 := ::nLine; ::nbx1 := x + 1
-                     ENDIF
-                     IF Valtype( s ) == "A"
-                        ::nby2 := s[1]; ::nbx2 := s[2]
-                     ELSE
-                        ::nby2 := ::nLine; ::nbx2 := s
-                     ENDIF
+                     ::nby1 := Iif( Valtype( x ) == "A", x[1], ::nLine )
+                     ::nbx1 := Iif( Valtype( x ) == "A", x[2], x ) + 1
+                     ::nby2 := Iif( Valtype( x ) == "A", s[1], ::nLine )
+                     ::nbx2 := Iif( Valtype( x ) == "A", s[2], s )
                      nKey := K_RIGHT
                      ::nLine := ::nby2; ::nPos := ::nbx2
                      lNoDeselect := .T.
@@ -813,7 +824,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nDopMode := 0
             EXIT
          CASE 114  // r
-            ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), .T., .T. )
+            ::InsText( n, ::nPos, cp_Chr(::lUtf8,hb_keyStd(nKeyExt)), .T., .T. )
             ::nDopMode := 0
             EXIT
          CASE 103  // g
