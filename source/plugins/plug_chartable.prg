@@ -19,7 +19,7 @@
 
 FUNCTION plug_CharTable( oEdit )
 
-   LOCAL bufc := SaveScreen( 02, 06, 15, 41 ), nRow := Row(), nCol := Col(), oldc := SetColor( "N/W" )
+   LOCAL bufc := SaveScreen( 02, 06, 15, 41 ), nRow := Row(), nCol := Col(), oldc := SetColor( oEdit:cColorSel )
    LOCAL nKeyExt, nKey, x1 := 8, y1 := 5, x, y, yf := 0, mCol, mRow
    LOCAL lEnd := .F., c
 

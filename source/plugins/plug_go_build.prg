@@ -12,7 +12,7 @@ FUNCTION Plug_Go_Build( oEdit )
       RETURN Nil
    ENDIF
 
-   @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR "W+/R"
+   @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
 
    IF i == 1
       cedi_RunConsoleApp( "go build " + oEdit:cFileName, cFileOut )

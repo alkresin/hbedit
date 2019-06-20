@@ -10,7 +10,7 @@ FUNCTION Plug_hbp_Init( oEdit )
 
    LOCAL bEdit := {|o|
       LOCAL y1 := o:aRect[1]
-      SetColor( "N/N" )
+      SetColor( oEdit:cColorSel )
       Scroll( y1, o:x1, y1, o:x2 )
       SetColor( o:cColorPane )
       DevPos( y1, o:x1 )
@@ -170,7 +170,7 @@ STATIC FUNCTION _hbp_Init_Build( oEdit )
 
    edi_CloseWindow( "$"+cFile )
 
-   SetColor( "W+/R" )
+   SetColor( oEdit:cColorSel )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, cFile )
    cBuff := MemoRead( cFile )

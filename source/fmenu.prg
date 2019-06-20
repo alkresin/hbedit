@@ -17,8 +17,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    IF y1 == Nil; y1 := 6; ENDIF
    IF x1 == Nil; x1 := 30; ENDIF
-   IF clrMenu == Nil; clrMenu := "W+/BG"; ENDIF
-   IF clrMenuSel == Nil; clrMenuSel := "GR+/RB"; ENDIF
+   IF clrMenu == Nil; clrMenu := TEdit():cColorMenu; ENDIF
+   IF clrMenuSel == Nil; clrMenuSel := TEdit():cColorMenuSel; ENDIF
    oldc := SetColor( clrMenu )
 
    IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LUTF8" )

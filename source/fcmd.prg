@@ -36,7 +36,7 @@ FUNCTION mnu_CmdLine( oEdit )
    lModeSea := .F.
    lEnd := .F.
 
-   SetColor( "W+/N" )
+   SetColor( oEdit:cColorWB )
    Scroll( y, oEdit:x1, y, oEdit:x2 )
    oEdit:y2 --
 
@@ -220,7 +220,7 @@ STATIC FUNCTION DoSea( oEdit, s, lNext, lInc )
          lModeSea := .T.
       ENDIF
       oEdit:GoTo( ny, nx, cp_Len( oEdit:lUtf8,s ) )
-      SetColor( "W+/N" )
+      SetColor( oEdit:cColorWB )
 
    ELSEIF !lInc
       DevPos( oEdit:y2+1, oEdit:x2-8 )

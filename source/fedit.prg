@@ -41,9 +41,9 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
    {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
    {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Q"}, ;
-   {"Codepage",@mnu_CPages(),{11,16},">"}, {"Syntax",@mnu_Syntax(),{12,16},"F8 >"}, ;
-   {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, {"Windows",@mnu_Windows(),{13,16}}, ;
-   {"Buffers",@mnu_Buffers(),{14,16},"F12 >"} }
+   {"Codepage",@mnu_CPages(),{11,16},">"}, {"Palette",@mnu_Palettes(),{12,16},">"}, ;
+   {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
+   {"Windows",@mnu_Windows(),{15,16},">"}, {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
@@ -53,7 +53,7 @@ STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
 STATIC aLangs
-STATIC aPalettes
+STATIC hPalettes
 STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
 STATIC cDopMode := ""
 STATIC cLastDir := ""
@@ -79,10 +79,15 @@ CLASS TEdit
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
    CLASS VAR cDefPal    SHARED
+   CLASS VAR cCurrPal   SHARED
    CLASS VAR cColor     SHARED  INIT "BG+/B"
    CLASS VAR cColorSel  SHARED  INIT "N/W"
    CLASS VAR cColorPane SHARED  INIT "N/BG"
    CLASS VAR cColorBra  SHARED  INIT "R+/B"
+   CLASS VAR cColorMenu SHARED  INIT "W+/BG"
+   CLASS VAR cColorMenuSel SHARED  INIT "GR+/RB"
+   CLASS VAR cColorWB   SHARED  INIT "W+/N"
+   CLASS VAR cColorGet  SHARED  INIT "N+/BG"
    CLASS VAR nTabLen    SHARED  INIT 4
    CLASS VAR aRectFull  SHARED
    CLASS VAR bNew       SHARED
@@ -311,6 +316,9 @@ METHOD Edit() CLASS TEdit
    hb_cdpSelect( ::cp )
    ::nCurr := Ascan( ::aWindows, {|o|o==Self} )
 
+   IF !( ::cPalette == ::cCurrPal )
+      edi_SetPalette( Self, Iif( Empty( ::cPalette ), ::cDefPal, ::cPalette ) )
+   ENDIF
    SetCursor( SC_NONE )
    SetColor( ::cColor )
    Scroll( ::y1, ::x1, ::y2, ::x2 )
@@ -1536,7 +1544,7 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
             DevOut( PAdl(Ltrim(Str(::nLine)),nchars) + "/" + cLen )
             DevPos( y, ::x1 + nF9 + ::nTopName + 12 + nchars*2 + 3 )
             DevOut( "[" + Ltrim(Str(::PosToCol()-::x1+::nxFirst)) + "]" )
-            SetColor( "W+/N" )
+            SetColor( ::cColorWB )
             DevPos( y, ::x2-3 )
             IF ::lF3 .OR. (::nby1 >= 0 .AND. ::nby2 >= 0)
                DevOut( "Sele" )
@@ -2244,7 +2252,7 @@ STATIC FUNCTION cbDele( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, s, n, i, nPos, cTemp, nTemp
+   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lTab2Spaces := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
@@ -2256,7 +2264,10 @@ FUNCTION edi_ReadIni( xIni )
    SetBlink( .F. )
    hb_gtInfo( HB_GTI_COMPATBUFFER, .F. )
    aLangs := hb_Hash()
-   aPalettes := hb_Hash()
+   hPalettes := hb_Hash()
+   hPalettes["default"] := hb_Hash()
+   hPalettes["default"]["colors"] := hb_gtinfo( HB_GTI_PALETTE )
+   TEdit():cDefPal := "default"
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )
@@ -2311,18 +2322,6 @@ FUNCTION edi_ReadIni( xIni )
                IF hb_hHaskey( aSect, cTemp := "palette" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():cDefPal := cTemp
                ENDIF
-               IF hb_hHaskey( aSect, cTemp := "colormain" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  TEdit():cColor := cTemp
-               ENDIF
-               IF hb_hHaskey( aSect, cTemp := "colorsel" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  TEdit():cColorSel := cTemp
-               ENDIF
-               IF hb_hHaskey( aSect, cTemp := "colorpane" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  TEdit():cColorPane := cTemp
-               ENDIF
-               IF hb_hHaskey( aSect, cTemp := "colorbra" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  TEdit():cColorbra := cTemp
-               ENDIF
                IF hb_hHaskey( aSect, cTemp := "keymap" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   arr := hb_aTokens( cTemp, ",", .T. )
                   hKeyMap := hb_Hash()
@@ -2375,12 +2374,82 @@ FUNCTION edi_ReadIni( xIni )
                hb_hCaseMatch( aSect, .F. )
                arr := hb_hKeys( aSect )
                FOR i := 1 TO Len( arr )
-                  IF ( n := Ascan( aHiliOpt, arr[i] ) ) > 0
-                     TEdit():aHiliAttrs[n] := aSect[ arr[i] ]
+                  IF !Empty( cTemp := aSect[ arr[i] ] )
+                     IF ( n := Ascan( aHiliOpt, arr[i] ) ) > 0
+                        TEdit():aHiliAttrs[n] := cTemp
+                     ELSEIF arr[i] == "colormain"
+                        TEdit:cColor := cTemp
+                     ELSEIF arr[i] == "colorsel"
+                        TEdit:cColorSel := cTemp
+                     ELSEIF arr[i] == "colorpane"
+                        TEdit:cColorPane := cTemp
+                     ELSEIF arr[i] == "colorbra"
+                        TEdit:cColorBra := cTemp
+                     ELSEIF arr[i] == "colormenu"
+                        TEdit:cColorMenu := cTemp
+                     ELSEIF arr[i] == "colormenusel"
+                        TEdit:cColorMenuSel := cTemp
+                     ELSEIF arr[i] == "colorwb"
+                        TEdit:cColorWB := cTemp
+                     ELSEIF arr[i] == "colorget"
+                        TEdit:cColorGet := cTemp
+                     ENDIF
                   ENDIF
                NEXT
             ENDIF
-         ELSEIF Left( Upper(aIni[nSect]),5 ) == "LANG_"
+         ENDIF
+      NEXT
+      FOR nSect := 1 TO Len( aIni )
+         IF Left( Upper(aIni[nSect]),8 ) == "PALETTE_"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               hHili := hb_hash()
+               hHili["colormain"] := TEdit():cColor
+               hHili["colorsel"] := TEdit():cColorSel
+               hHili["colorpane"] := TEdit():cColorPane
+               hHili["colorbra"] := TEdit():cColorBra
+               hHili["colormenu"] := TEdit():cColorMenu
+               hHili["colormenusel"] := TEdit():cColorMenuSel
+               hHili["colorwb"] := TEdit():cColorWB
+               hHili["colorget"] := TEdit():cColorGet
+               arr := hb_hKeys( aSect )
+               cLang := Nil
+               arr2 := AClone( TEdit():aHiliAttrs )
+               FOR i := 1 TO Len( arr )
+                  IF !Empty( cTemp := aSect[ arr[i] ] )
+                     IF arr[i] == "name"
+                        cLang := cTemp
+
+                     ELSEIF arr[i] == "colors"
+                        arr1 := hb_ATokens( cTemp, ',' )
+                        FOR n := 1 TO Len( arr1 )
+                           arr1[n] := LTrim( arr1[n] )
+                           arr1[n] := Iif( Asc(arr1[n]) == 35, edi_ColorC2N(arr1[n]), Val(arr1[n]) )
+                        NEXT
+                        hHili[arr[i]] := arr1
+
+                     ELSEIF arr[i] == "colormain" .OR. arr[i] == "colorsel" .OR. ;
+                        arr[i] == "colorpane" .OR. arr[i] == "colorbra" .OR. ;
+                        arr[i] == "colormenu" .OR. arr[i] == "colormenusel" .OR. ;
+                        arr[i] == "colorwb" .OR. arr[i] == "colorget"
+                        hHili[arr[i]] := cTemp
+
+                     ELSEIF ( n := Ascan( aHiliOpt, arr[i] ) ) > 0
+                        arr2[n] := cTemp
+
+                     ENDIF
+                  ENDIF
+               NEXT
+               IF !Empty( cLang ) .AND. hb_hHaskey( hHili, "colors" ) .AND. Len( hHili["colors"] ) == 16
+                  hHili["attrs"] := arr2
+                  hPalettes[cLang] := hHili
+               ENDIF
+            ENDIF
+         ENDIF
+      NEXT
+
+      FOR nSect := 1 TO Len( aIni )
+         IF Left( Upper(aIni[nSect]),5 ) == "LANG_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
                cLang := Lower( Substr(aIni[nSect],6) )
@@ -2409,30 +2478,6 @@ FUNCTION edi_ReadIni( xIni )
                   ENDIF
                NEXT
             ENDIF
-         ELSEIF Left( Upper(aIni[nSect]),8 ) == "PALETTE_"
-            IF !Empty( aSect := hIni[ aIni[nSect] ] )
-               hb_hCaseMatch( aSect, .F. )
-               hHili := hb_hash()
-               arr := hb_hKeys( aSect )
-               cLang := Nil
-               FOR i := 1 TO Len( arr )
-                  IF !Empty( cTemp := aSect[ arr[i] ] )
-                     IF arr[i] == "name"
-                        cLang := cTemp
-                     ELSEIF arr[i] == "colors"
-                        arr1 := hb_ATokens( cTemp, ',' )
-                        FOR n := 1 TO Len( arr1 )
-                           arr1[n] := LTrim( arr1[n] )
-                           arr1[n] := Iif( Asc(arr1[n]) == 35, edi_ColorC2N(arr1[n]), Val(arr1[n]) )
-                        NEXT
-                        hHili[arr[i]] := arr1
-                     ENDIF
-                  ENDIF
-               NEXT
-               IF !Empty( cLang ) .AND. hb_hHaskey( hHili, "colors" ) .AND. Len( hHili["colors"] ) == 16
-                  aPalettes[cLang] := hHili
-               ENDIF
-            ENDIF
          ENDIF
       NEXT
    ENDIF
@@ -2453,14 +2498,28 @@ FUNCTION edi_ReadIni( xIni )
    IF Empty( TEdit():aCPages )
       TEdit():aCPages := { "RU866", "RU1251", "UTF8" }
    ENDIF
+
    TEdit():aCBoards := Array( MAX_CBOARDS,3 )
    FOR i := 1 TO MAX_CBOARDS
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
+
    TEdit():hMacros := hb_Hash()
+
+   hHili := hPalettes["default"]
+   hHili["attrs"] := TEdit():aHiliAttrs
+   hHili["colormain"] := TEdit():cColor
+   hHili["colorsel"] := TEdit():cColorSel
+   hHili["colorpane"] := TEdit():cColorPane
+   hHili["colorbra"] := TEdit():cColorBra
+   hHili["colormenu"] := TEdit():cColorMenu
+   hHili["colormenusel"] := TEdit():cColorMenuSel
+   hHili["colorwb"] := TEdit():cColorWB
+   hHili["colorget"] := TEdit():cColorGet
+
    IF !Empty( TEdit():cDefPal )
-      IF hb_hHaskey( aPalettes, TEdit():cDefPal ) .AND. hb_hHaskey( aPalettes[TEdit():cDefPal], "colors" )
-         hb_gtinfo( HB_GTI_PALETTE, aPalettes[TEdit():cDefPal]["colors"] )
+      IF hb_hHaskey( hPalettes, TEdit():cDefPal ) .AND. hb_hHaskey( hPalettes[TEdit():cDefPal], "colors" )
+         hb_gtinfo( HB_GTI_PALETTE, hPalettes[TEdit():cDefPal]["colors"] )
       ELSE
          TEdit():cDefPal := Nil
       ENDIF
@@ -2575,6 +2634,17 @@ FUNCTION mnu_CPages( oEdit, aXY )
       oEdit:cp := oEdit:aCPages[iRes]
       hb_cdpSelect( oEdit:cp )
       oEdit:lUtf8 := ( Lower(oEdit:cp) == "utf8" )
+      oEdit:TextOut()
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION mnu_Palettes( oEdit, aXY )
+
+   LOCAL iRes, arr := hb_hKeys( hPalettes )
+
+   IF !Empty( iRes := FMenu( oEdit, arr, aXY[1], aXY[2] ) )
+      edi_SetPalette( oEdit, arr[iRes] )
       oEdit:TextOut()
    ENDIF
 
@@ -2749,8 +2819,11 @@ FUNCTION mnu_F4( oEdit, aXY )
 FUNCTION mnu_OpenRecent( oEdit, n )
 
    LOCAL cFileName := hb_Translate( oEdit:aEditHis[n,1], "UTF8", oEdit:cpInit )
+   LOCAL cPath
 
-   //RETURN mnu_NewBuf( oEdit, cFileName )
+   IF Empty( cLastDir ) .AND. !Empty( cPath := hb_fnameDir( cFileName ) )
+      cLastDir := cPath
+   ENDIF
    RETURN mnu_OpenFile( oEdit, cFileName )
 
 FUNCTION mnu_NewBuf( oEdit, cFileName )
@@ -2886,13 +2959,13 @@ FUNCTION mnu_Back( oEdit )
 
 FUNCTION mnu_Search( oEdit )
 
-   LOCAL cScBuf := Savescreen( 09, 20, 16, 60 )
-   LOCAL oldc := SetColor( "N/W,N/W,,N+/BG,N/W" ), nRes, i
-   LOCAL aGets := { {11,22,0,"",33,"W+/BG","W+/BG"}, ;
-      {11,55,2,"[^]",3,"N/W","W+/RB",{||mnu_SeaHist(oEdit,aGets[1])}}, ;
+   LOCAL cScBuf := Savescreen( 09, 20, 16, 60 ), nRes, i
+   LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
+   LOCAL aGets := { {11,22,0,"",33,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+      {11,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {12,23,1,.F.,1}, {12,43,1,.F.,1}, {13,23,1,.F.,1}, {13,43,1,.F.,1}, ;
-      {15,25,2,"[Search]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,40,2,"[Cancel]",10,"N/W","W+/BG",{||__KeyBoard(Chr(K_ESC))}} }
+      {15,25,2,"[Search]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,40,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F., lWord, lRegex, cs_utf8
    LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
@@ -4009,6 +4082,26 @@ FUNCTION edi_MapKey( oEdit, nKey )
    ENDIF
 
    RETURN nKey
+
+FUNCTION edi_SetPalette( oEdit, cPalette )
+
+   LOCAL hHili
+   IF hb_hHaskey( hPalettes, cPalette ) .AND. hb_hHaskey( hPalettes[cPalette], "colors" )
+      hb_gtinfo( HB_GTI_PALETTE, hPalettes[cPalette]["colors"] )
+      oEdit:cCurrPal := oEdit:cPalette := cPalette
+      hHili := hPalettes[cPalette]
+      oEdit:aHiliAttrs := hHili["attrs"]
+      oEdit:cColor     := hHili["colormain"]
+      oEdit:cColorSel  := hHili["colorsel"]
+      oEdit:cColorPane := hHili["colorpane"]
+      oEdit:cColorBra  := hHili["colorbra"]
+      oEdit:cColorMenu := hHili["colormenu"]
+      oEdit:cColorMenuSel := hHili["colormenusel"]
+      oEdit:cColorWB := hHili["colorwb"]
+      oEdit:cColorGet := hHili["colorget"]
+   ENDIF
+
+   RETURN Nil
 
 FUNCTION edi_ColorC2N( cColor )
 
