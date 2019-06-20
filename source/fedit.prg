@@ -316,6 +316,17 @@ METHOD Edit() CLASS TEdit
    hb_cdpSelect( ::cp )
    ::nCurr := Ascan( ::aWindows, {|o|o==Self} )
 
+   FOR i := Len( ::aWindows ) TO 1 STEP -1
+      // Draw the child window, if found.
+      IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
+         IF !( ::aWindows[i]:cPalette == ::cCurrPal )
+            edi_SetPalette( ::aWindows[i], Iif( Empty( ::aWindows[i]:cPalette ), ::cDefPal, ::aWindows[i]:cPalette ) )
+         ENDIF
+         ::aWindows[i]:WriteTopPane( .T. )
+         ::aWindows[i]:TextOut()
+      ENDIF
+   NEXT
+
    IF !( ::cPalette == ::cCurrPal )
       edi_SetPalette( Self, Iif( Empty( ::cPalette ), ::cDefPal, ::cPalette ) )
    ENDIF
@@ -328,14 +339,6 @@ METHOD Edit() CLASS TEdit
    ENDIF
 
    ::WriteTopPane()
-
-   FOR i := Len( ::aWindows ) TO 1 STEP -1
-      // Draw the child window, if found.
-      IF !Empty( ::aWindows[i]:oParent ) .AND. ::aWindows[i]:oParent == Self
-         ::aWindows[i]:WriteTopPane( .T. )
-         ::aWindows[i]:TextOut()
-      ENDIF
-   NEXT
 
    ::GoTo( ::nLine, ::nPos )
    IF Len( ::aText ) > 1 .OR. !Empty( ::aText[1] )
