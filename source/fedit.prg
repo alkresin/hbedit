@@ -333,7 +333,7 @@ METHOD Edit() CLASS TEdit
       ENDIF
    NEXT
 
-   IF !( ::cPalette == ::cCurrPal )
+   IF ::cCurrPal == Nil .OR. !( ::cPalette == ::cCurrPal )
       edi_SetPalette( Self, Iif( Empty( ::cPalette ), ::cDefPal, ::cPalette ) )
    ENDIF
    SetCursor( SC_NONE )

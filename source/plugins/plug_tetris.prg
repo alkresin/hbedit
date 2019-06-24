@@ -70,6 +70,7 @@ FUNCTION plug_Tetris( oEdit )
    ENDIF
 
    oTetr := mnu_NewBuf( oEdit )
+   edi_SetPalette( oTetr, "default" )
    oTetr:cFileName := cName
    oTetr:bWriteTopPane := bWPane
    oTetr:bOnKey := {|o,n| _Tetris_OnKey(o,n) }
