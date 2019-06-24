@@ -225,7 +225,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
+   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf", cPal
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
    LOCAL lT2Sp := hb_hGetDef( TEdit():options,"tabtospaces", .F. )
 
@@ -293,6 +293,10 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       FOR i := 1 TO Len(aLangExten)
          IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
+            IF !Empty( cPal := hb_hGetDef( ::oHili:hHili, "palette", Nil ) ) .AND. ;
+               hb_hHaskey( hPalettes, cPal )
+               ::cPalette := cPal
+            ENDIF
             IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
                IF Valtype( xPlugin ) == "C" .AND. ;
                   !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
@@ -450,6 +454,7 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          nLen := cp_Len( ::lUtf8, s )
       ENDIF
       DispBegin()
+      SetColor( ::cColor )
       IF nLen > 0
          i := 1
          IF ::nxFirst > 1 .AND. nxPosFirst < ::nxFirst
@@ -2491,6 +2496,8 @@ FUNCTION edi_ReadIni( xIni )
                         hHili["plugin"] := cTemp
                      ELSEIF arr[i] == "brackets"
                         hHili["bra"] := ( Lower(cTemp) == "on" )
+                     ELSEIF arr[i] == "palette"
+                        hHili["palette"] := cTemp
                      ENDIF
                   ENDIF
                NEXT
@@ -2989,7 +2996,7 @@ FUNCTION mnu_Search( oEdit )
    @ 13, 42 SAY "[ ] Regular expr."
 
    IF !Empty( TEdit():aSeaHis )
-      aGets[1,4] := TEdit():aSeaHis[1]
+      aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
       aGets[3,4] := lCase_Sea
       aGets[6,4] := lRegex_Sea
    ENDIF
@@ -3086,11 +3093,11 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    @ 14, 42 SAY "[ ] Backward"
 
    IF !Empty( TEdit():aSeaHis )
-      aGets[1,4] := TEdit():aSeaHis[1]
+      aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
       aGets[5,4] := lCase_Sea
    ENDIF
    IF !Empty( TEdit():aReplHis )
-      aGets[3,4] := TEdit():aReplHis[1]
+      aGets[3,4] := hb_Translate( TEdit():aReplHis[1], "UTF8" )
    ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
