@@ -153,7 +153,7 @@ STATIC FUNCTION _hbp_Get_Files( oEdit )
          ENDIF
       NEXT
       FOR j := 1 TO Len( aFiles )
-         IF cSepWrong $ aFiles[i]
+         IF cSepWrong $ aFiles[j]
             aFiles[j] := StrTran( aFiles[j], cSepWrong, cSep )
          ENDIF
       NEXT
