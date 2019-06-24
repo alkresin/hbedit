@@ -45,7 +45,8 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
    {"Windows",@mnu_Windows(),{15,16},">"}, {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
 
-STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PGDN, K_PGUP, K_HOME, K_END, K_CTRL_PGUP, K_CTRL_PGDN }
+STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
+STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
 STATIC hKeyMap
 
@@ -939,12 +940,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ENDIF
 
    IF !lSkip
-      lShift := ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. Ascan( aKeysMove, nkey ) != 0 )
+      lShift := ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. ( ;
+         Ascan( aKeysMove, nkey ) != 0 .OR. Ascan( aAltKeysMove, nkey ) != 0 ) )
       IF lShift
+         IF ( i := Ascan( aAltKeysMove, nkey ) ) > 0
+            nKey := aKeysMove[i]
+         ENDIF
          IF !::lShiftKey
             ::nby1 := ::nLine
             ::nbx1 := ::nPos
-            ::nSeleMode := 0
+            ::nSeleMode := Iif( hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0, 2, 0 )
             ::lShiftKey := .T.
          ENDIF
       ELSE
