@@ -46,7 +46,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Windows",@mnu_Windows(),{15,16},">"}, {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
-STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END }
+STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
 STATIC hKeyMap
 
@@ -94,6 +94,7 @@ CLASS TEdit
    CLASS VAR aRectFull  SHARED
    CLASS VAR bNew       SHARED
    CLASS VAR hMacros    SHARED
+   CLASS VAR hSelePlug  SHARED
 
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
@@ -634,10 +635,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ::DelText( n, ::nPos, n, ::nPos )
                NEXT
                ::nDopMode := 0
-            ELSEIF nKey == 99   // c
-               ::nDopMode := 99
-            ELSEIF nKey == 100   // d
-               ::nDopMode := 100
+            ELSEIF nKey == 99 .OR. nKey == 100 .OR. nKey == 60 .OR. nKey == 62  // c, d, <, >
+               ::nDopMode := nKey
             ELSEIF !( nKey >= 48 .AND. nKey <= 57 )
                ::nDopMode := 0
             ENDIF
@@ -860,6 +859,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF ::nUndo > 0
                   ::GoTo( ::aUndo[::nUndo][UNDO_LINE2], ::aUndo[::nUndo][UNDO_POS2] )
                ENDIF
+            ENDIF
+            ::nDopMode := 0
+            EXIT
+         CASE 60  // <
+         CASE 62  // >
+            IF nKey == ::nDopMode
+               edi_Indent( Self, (nKey==62), Val(cDopMode) )
             ENDIF
             ::nDopMode := 0
             EXIT
@@ -1149,6 +1155,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      nKey := K_RIGHT
                      lNoDeselect := .T.
                      EXIT
+                  CASE 109   // m
+                     mnu_Sele( Self )
+                     lNoDeselect := .T.
+                     EXIT
                   CASE K_ESC
                      nKey := 0
                      EXIT
@@ -1232,6 +1242,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 64    // w - play macro
                   CASE 114   // r - replace one char under cursor
                   CASE 90    // Z
+                  CASE 60    // <
+                  CASE 62    // >
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
@@ -1398,7 +1410,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   nCol := MCol()
                   nRow := MRow()
                   IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
-                     FMenu( Self, aMenuMain, 2, 6 )
+                     IF ::nby1 >= 0 .AND. ::nby2 >= 0
+                        mnu_Sele( Self )
+                        lNoDeselect := .T.
+                     ELSE
+                        FMenu( Self, aMenuMain, 2, 6 )
+                     ENDIF
                      ::lTextOut := .T.
                   ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
                      IF ::RowToLine(nRow) > Len(::aText)
@@ -1452,7 +1469,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::lTextOut := .T.
                EXIT
             CASE K_F9
-               FMenu( Self, aMenuMain, 2, 6 )
+               IF ::nby1 >= 0 .AND. ::nby2 >= 0
+                  mnu_Sele( Self )
+                  lNoDeselect := .T.
+               ELSE
+                  FMenu( Self, aMenuMain, 2, 6 )
+               ENDIF
                ::lTextOut := .T.
                edi_SetPos( Self )
                EXIT
@@ -2352,6 +2374,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "tabtospaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lTab2Spaces := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "sele_plugin" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():hSelePlug := Iif( !Empty( edi_FindPath( "plugins" + hb_ps() + cTemp ) ), cTemp, Nil )
                ENDIF
             ENDIF
 
@@ -3264,6 +3289,95 @@ FUNCTION mnu_Plugins( oEdit )
 
    RETURN Nil
 
+FUNCTION mnu_Sele( oEdit )
+
+   LOCAL aMenu := { {"UPPER CASE",@edi_ConvertCase(),.T.,"U"}, ;
+      {"lower case",@edi_ConvertCase(),.F.,"u"}, ;
+      {"Indent right",@mnu_Indent(),{.T.,5,18},"> "}, ;
+      {"Indent left",@mnu_Indent(),{.F.,6,18},"< "}, ;
+      {"Insert right",@mnu_AddToSele(),{.F.,7,18}}, {"Insert left",@mnu_AddToSele(),{.T.,8,18}} }
+   LOCAL cPlugin
+
+   IF !Empty( oEdit:hSelePlug )
+      IF Valtype( oEdit:hSelePlug ) == "C"
+         IF !Empty( cPlugin := edi_FindPath( "plugins" + hb_ps() + oEdit:hSelePlug ) )
+            TEdit():hSelePlug := hb_hrbLoad( cPlugin )
+         ENDIF
+         IF !Empty( TEdit():hSelePlug )
+            hb_hrbDo( TEdit():hSelePlug, oEdit, aMenu )
+         ENDIF
+      ENDIF
+   ENDIF
+
+   FMenu( oEdit, aMenu, 2, 6 )
+
+   RETURN Nil
+
+FUNCTION mnu_Indent( oEdit, aParams )
+
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := aParams[2], x1 := aParams[3]
+   LOCAL aGets := { {y1+1,x1+11,0,"1",2} }, nRes, nVal, i
+
+   hb_cdpSelect( "RU866" )
+   @ y1, x1, y1+2, x1+15 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+1, x1+2 SAY "Columns:"
+   hb_cdpSelect( oEdit:cp )
+
+   IF ( nRes := edi_READ( aGets ) ) > 0
+      IF ( nVal := Val( aGets[1,4] ) ) == 0
+         nVal := 1
+      ENDIF
+      FOR i := 1 TO nVal
+         edi_Indent( oEdit, aParams[1] )
+      NEXT
+   ENDIF
+
+   SetColor( oldc )
+   edi_SetPos( oEdit )
+
+   RETURN Nil
+
+FUNCTION mnu_AddToSele( oEdit, aParams )
+
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := aParams[2], x1 := aParams[3]
+   LOCAL aGets := { {y1+1,x1+11,0,"",34} }, nRes, i
+   LOCAL nby1, nbx1, nby2, nbx2, nPos
+
+   hb_cdpSelect( "RU866" )
+   @ y1, x1, y1+2, x1+46 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+1, x1+2 SAY "Input:"
+   hb_cdpSelect( oEdit:cp )
+
+   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. !Empty( aGets[1,4] )
+      IF oEdit:nby1 <= oEdit:nby2
+         nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx1 := oEdit:nbx1; nbx2 := oEdit:nbx2
+      ELSE
+         nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx1 := oEdit:nbx2; nbx2 := oEdit:nbx1
+      ENDIF
+      oEdit:Undo( nby1, nbx1,,, UNDO_OP_START )
+      FOR i := nby1 TO nby2
+         IF i == nby2 .AND. nbx2 == 1
+            EXIT
+         ENDIF
+         IF aParams[1]
+            nPos := Iif( oEdit:nSeleMode == 2, ;
+               oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol(nby1,nbx1) ), ;
+               Iif( i==nby1,nbx1,1 ) )
+         ELSE
+            nPos := Iif( oEdit:nSeleMode == 2, ;
+               oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol(nby2,nbx2) ), ;
+               Iif( i==nby2,nbx2,cp_Len(oEdit:lUtf8,oEdit:aText[i])+1 ) )
+         ENDIF
+         oEdit:InsText( i, nPos, aGets[1,4], .F. )
+      NEXT
+      oEdit:Undo( nby2, nbx2,,, UNDO_OP_END )
+   ENDIF
+
+   SetColor( oldc )
+   edi_SetPos( oEdit )
+
+   RETURN Nil
+
 FUNCTION mnu_ChgMode( oEdit, lBack )
 
    SetColor( oEdit:cColorSel )
@@ -3652,17 +3766,23 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
 
    RETURN cName
 
-STATIC FUNCTION edi_Indent( oEdit, lRight )
+STATIC FUNCTION edi_Indent( oEdit, lRight, nLines )
 
    LOCAL i, n, nby1, nby2, nbx2, l := .F., nRow := Row(), nCol := Col()
 
-   IF oEdit:lReadOnly .OR. oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
+   IF oEdit:lReadOnly
       RETURN Nil
    ENDIF
-   IF oEdit:nby1 <= oEdit:nby2
-      nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+   IF oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
+      nby1 := oEdit:nLine
+      nby2 := Iif( Empty(nLines), oEdit:nLine, oEdit:nLine+nLines-1 )
+      nbx2 := 0
    ELSE
-      nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+      IF oEdit:nby1 <= oEdit:nby2
+         nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+      ELSE
+         nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+      ENDIF
    ENDIF
    FOR i := nby1 TO nby2
       IF i == nby2 .AND. nbx2 == 1

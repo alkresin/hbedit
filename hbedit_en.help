@@ -58,6 +58,7 @@ highlight text:
    c                 delete the text and switching to edit mode;
    u, U              convert, respectively, to lower or upper case;
    >, <              increase / decrease indent;
+   m, F9             menu for a selected region;
    o                 continue selection from opposite end;
    i[w,W]            select a word under the cursor;
    i[",']            select a text between quotes (double or single);
@@ -123,6 +124,8 @@ functional. The following keys are currently supported:
    r                 replace one character;
    R                 replace few characters;
    ~                 invert character case;
+   >>                indent the current line right;
+   <<                indent the current line left;
 
    dd                delete the current line;
    d[w,W]            delete before the next word;
@@ -150,4 +153,5 @@ functional. The following keys are currently supported:
 
   The number entered before the move command (h, j, k, l, w, w, e, E, b, B) or before
   dd, dw, dW, db, dB, de, dE, cc, cw, cW, cb, cB, ce, cE forces appropriate action
-  to be done a specified number of times.
+  to be done a specified number of times. For <<, >> commands this number sets the
+  quantity of lines to be indented.
