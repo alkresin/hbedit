@@ -3298,6 +3298,9 @@ FUNCTION mnu_Sele( oEdit )
       {"Insert right",@mnu_AddToSele(),{.F.,7,18}}, {"Insert left",@mnu_AddToSele(),{.T.,8,18}} }
    LOCAL cPlugin
 
+   IF oEdit:nSeleMode == 2
+      Aadd( aMenu, {"Sorting", @mnu_SortSele(),{7,18} } )
+   ENDIF
    IF !Empty( oEdit:hSelePlug )
       IF Valtype( oEdit:hSelePlug ) == "C"
          IF !Empty( cPlugin := edi_FindPath( "plugins" + hb_ps() + oEdit:hSelePlug ) )
@@ -3375,6 +3378,23 @@ FUNCTION mnu_AddToSele( oEdit, aParams )
 
    SetColor( oldc )
    edi_SetPos( oEdit )
+
+   RETURN Nil
+
+FUNCTION mnu_SortSele( oEdit, aParams )
+
+   LOCAL i, j
+   LOCAL nby1, nbx1, nby2, nbx2
+
+   IF ( i := FMenu( oEdit, {"Ascending","Descending"}, aParams[1], aParams[2] ) ) > 0
+      IF oEdit:nby1 <= oEdit:nby2
+         nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx1 := oEdit:nbx1; nbx2 := oEdit:nbx2
+      ELSE
+         nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx1 := oEdit:nbx2; nbx2 := oEdit:nbx1
+      ENDIF
+      FOR j := nby1 TO nby2
+      NEXT
+   ENDIF
 
    RETURN Nil
 
