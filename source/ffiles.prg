@@ -167,3 +167,19 @@ FUNCTION edi_FindPath( cFile )
    ENDIF
 
    RETURN Nil
+
+FUNCTION edi_WriteLog( cText, fname )
+
+   LOCAL nHand
+
+   fname := hb_DirBase() + IIf( fname == Nil, "a.log", fname )
+   IF ! File( fname )
+      nHand := FCreate( fname )
+   ELSE
+      nHand := FOpen( fname, 1 )
+   ENDIF
+   FSeek( nHand, 0, 2 )
+   FWrite( nHand, cText + Chr( 10 ) )
+   FClose( nHand )
+
+   RETURN Nil
