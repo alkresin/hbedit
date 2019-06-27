@@ -11,6 +11,7 @@ harbour plug_prg_compile.prg -n -gh
 harbour plug_prg_run.prg -n -gh
 harbour plug_prg_spis.prg -n -gh
 harbour plug_hbp_init.prg -n -gh
+harbour plug_selection.prg -n -gh
 harbour plug_chartable.prg -n -gh
 harbour plug_calculator.prg -n -gh
 harbour plug_tetris.prg -n -gh

@@ -552,6 +552,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ENDIF
    ENDIF
 
+   //edi_writelog(str(nKey))
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN Nil
    ENDIF
@@ -992,7 +993,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          SWITCH nKey
          CASE K_CTRL_INS
          CASE 3                           // Ctrl-Ins or Ctrl-c
-            IF !Empty( s := Text2cb( Self ) )
+            IF !Empty( s := edi_GetSelected( Self ) )
                hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                TEdit():aCBoards[1,2] := Nil
                TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
@@ -1008,7 +1009,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
             EXIT
          CASE K_CTRL_X
-            IF !Empty( s := Text2cb( Self ) )
+            IF !Empty( s := edi_GetSelected( Self ) )
                hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                TEdit():aCBoards[1,2] := Nil
                TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
@@ -1121,7 +1122,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cbDele( Self )
                      EXIT
                   CASE 121   // y Copy to clipboard
-                     IF !Empty( s := Text2cb( Self ) )
+                     IF !Empty( s := edi_GetSelected( Self ) )
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                         TEdit():aCBoards[1,2] := Nil
                         TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
@@ -1320,7 +1321,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_DEL
                IF !::lReadOnly
                   IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := edi_GetSelected( Self ) )
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                         TEdit():aCBoards[1,2] := Nil
                         TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
@@ -1334,7 +1335,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_BS
                IF !::lReadOnly .AND. ::nMode == 0
                   IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := Text2cb( Self ) )
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := edi_GetSelected( Self ) )
                         hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
                         TEdit():aCBoards[1,2] := Nil
                         TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
@@ -2154,7 +2155,7 @@ FUNCTION NameShortcut( cName, nWidth, cIns )
 
    RETURN cName
 
-STATIC FUNCTION Text2cb( oEdit )
+FUNCTION edi_GetSelected( oEdit )
 
    LOCAL s := "", i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2
 
@@ -2840,7 +2841,7 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
          ENDIF
       NEXT
       IF !Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
-         TEdit():aCBoards[i,1] := Text2cb( oEdit )
+         TEdit():aCBoards[i,1] := edi_GetSelected( oEdit )
          TEdit():aCBoards[i,2] := oEdit:cp
          TEdit():aCBoards[1,3] := Iif( oEdit:nSeleMode==2,.T.,Nil )
          IF i == 1

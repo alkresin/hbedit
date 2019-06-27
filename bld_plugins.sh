@@ -11,6 +11,7 @@ $HB_INS/bin/linux/gcc/harbour plug_prg_compile.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_prg_run.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_prg_spis.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbp_init.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_selection.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_chartable.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_calculator.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_tetris.prg -n -gh
