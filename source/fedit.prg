@@ -173,7 +173,7 @@ ENDCLASS
 
 METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
-   LOCAL i, cExt, dDateMod, cTimeMod
+   LOCAL i, cExt
 
    IF !::lReadIni
       edi_ReadIni( edi_FindPath( "hbedit.ini" ) )
@@ -206,11 +206,6 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    ::cp := ::cpInit
 
    ::SetText( cText, cFileName )
-   IF !Empty( ::cFileName ) .AND. Left( ::cFileName,1 ) != "$" .AND. ;
-      hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod )
-      ::dDateMod := dDateMod
-      ::cTimeMod := cTimeMod
-   ENDIF
 
    ::hBookMarks := hb_Hash()
 
@@ -230,6 +225,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
    LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf", cPal
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
    LOCAL lT2Sp := hb_hGetDef( TEdit():options,"tabtospaces", .F. )
+   LOCAL dDateMod, cTimeMod
 
    IF !Empty( cFileName )
       IF Left( cFileName,1 ) == "$"
@@ -254,6 +250,11 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          ELSE
             hb_AIns( TEdit():aEditHis, 1, {cFile_utf8,::cp,1,1}, Len(TEdit():aEditHis)<hb_hGetDef(TEdit():options,"edithismax",10) )
          ENDIF
+      ENDIF
+      IF !Empty( ::cFileName ) .AND. Left( ::cFileName,1 ) != "$" .AND. ;
+         hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod )
+         ::dDateMod := dDateMod
+         ::cTimeMod := cTimeMod
       ENDIF
    ENDIF
 
@@ -4045,7 +4046,7 @@ FUNCTION edi_Col2Pos( oEdit, nLine, nCol )
          ELSE
             nLenNew += ( nPos2-nPos1 )
          ENDIF
-         IF nLenNew > nCol
+         IF nLenNew >= nCol
             RETURN nCol - nAdd
          ENDIF
       ENDIF
@@ -4112,8 +4113,9 @@ FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
  * cText, cFilename - the data of a new window
  * nPlace: 0 - top, 1 - left, 2 - bottom, 3 - right
  * nSpace - the number of rows or columns of a new window
+ * cp - a codepage
  */
-FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
+FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace, cp )
 
    LOCAL oNew, y1 := oEdit:y1, x1 := oEdit:x1, y2 := oEdit:y2, x2 := oEdit:x2, lv := .F.
 
@@ -4139,7 +4141,11 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
       oEdit:nTopName := Max( oEdit:x2 - oEdit:x1 - Iif(oEdit:x2-oEdit:x1>54,44,37), 0 )
       y1 --
    ENDIF
-   oNew := TEdit():New( cText, cFileName, y1, x1, y2, x2 )
+   oNew := TEdit():New( "", "", y1, x1, y2, x2 )
+   IF !Empty( cp )
+      oNew:cp := cp
+   ENDIF
+   oNew:SetText( cText, cFileName )
    oNew:oParent := oEdit
    mnu_ToBuf( oEdit, Len( TEdit():aWindows ) )
 
