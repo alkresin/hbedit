@@ -78,6 +78,12 @@ FUNCTION Main( ... )
    REQUEST HB_GT_WVT_DEFAULT
 #endif
 
+#ifdef GTXWC
+   ANNOUNCE HB_GTSYS
+   REQUEST HB_GT_XWC
+   REQUEST HB_GT_XWC_DEFAULT
+#endif
+
    IF Empty( cFontName )
       hb_gtinfo( HB_GTI_FONTNAME, "Lusida console" )
    ELSE
