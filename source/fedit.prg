@@ -846,7 +846,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nDopMode := 0
             EXIT
          CASE 114  // r
-            ::InsText( n, ::nPos, cp_Chr(::lUtf8,hb_keyStd(nKeyExt)), .T. )
+            IF ::nby1 >= 0 .AND. ::nby2 >= 0
+               edi_FillSelected( Self, cp_Chr(::lUtf8,hb_keyStd(nKeyExt)) )
+            ELSE
+               ::InsText( n, ::nPos, cp_Chr(::lUtf8,hb_keyStd(nKeyExt)), .T. )
+            ENDIF
             ::nDopMode := 0
             EXIT
          CASE 103  // g
@@ -1140,6 +1144,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 105   // i
                      ::nDopMode := 118
                      cDopMode := "vi"
+                     nKey := K_RIGHT
+                     lNoDeselect := .T.
+                     EXIT
+                  CASE 114   // r
+                     ::nDopMode := 114
+                     cDopMode := "r"
                      nKey := K_RIGHT
                      lNoDeselect := .T.
                      EXIT
@@ -1628,16 +1638,17 @@ METHOD PosToCol( nLine, nPos ) CLASS TEdit
    nPos += nAdd
    RETURN nPos + ::x1 - ::nxFirst
 
-METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc ) CLASS TEdit
+METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc, nLenSea ) CLASS TEdit
 
-   LOCAL lRes := .F., i, nLen := Len( ::aText ), nLenSea := cp_Len(::lUtf8,cSea), nPos, s
+   LOCAL lRes := .F., i, nLen := Len( ::aText ), nPos, nEnd, s
 
+   nLenSea := cp_Len(::lUtf8,cSea)
    IF !lCase
       cSea := cp_Lower( ::lUtf8, cSea )
    ENDIF
    IF lNext
       s := cp_Substr( ::lUtf8, ::aText[ny], nx, nLenSea )
-      IF Empty( lInc ) .AND. cSea == Iif( lCase, s, cp_Lower( ::lUtf8,s ) )
+      IF Empty( lInc ) .AND. ( lRegex .OR. cSea == Iif( lCase, s, cp_Lower( ::lUtf8,s ) ) )
          nx ++
       ENDIF
       FOR i := ny TO nLen
@@ -1646,10 +1657,10 @@ METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc ) CLASS TEdit
             nx := 1
          ENDIF
          DO WHILE .T.
-            nPos := nx
+            nPos := nx; nEnd := Nil
             IF !lRegex .AND. ( nPos := cp_At( ::lUtf8, cSea, s, nx ) ) == 0
                EXIT
-            ELSEIF lRegex .AND. hb_Atx( cSea, s, lCase, @nPos ) == Nil
+            ELSEIF lRegex .AND. hb_Atx( cSea, s, lCase, @nPos, @nEnd ) == Nil
                nPos := 0
                EXIT
             ENDIF
@@ -1660,6 +1671,9 @@ METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc ) CLASS TEdit
                ELSE
                   nx ++
                ENDIF
+            ELSEIF lRegex
+               nLenSea := nEnd
+               EXIT
             ELSE
                EXIT
             ENDIF
@@ -3040,7 +3054,7 @@ FUNCTION mnu_Search( oEdit )
    ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
-      cSearch := Trim( aGets[1,4] )
+      cSearch := aGets[1,4]
       lCase := aGets[3,4]
       lBack := aGets[4,4]
       lWord := aGets[5,4]
@@ -3112,23 +3126,25 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       {11,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {13,22,0,"",33,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_ReplHist(oEdit,aGets[3])}}, ;
-      {14,23,1,.F.,1}, {14,43,1,.F.,1}, ;
-      {16,25,2,"[Replace]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {16,40,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, cRepl, lCase, lBack := .F., cs_utf8, cr_utf8, nSeaLen
+      {14,23,1,.F.,1}, {14,43,1,.F.,1}, {15,23,1,.F.,1}, {15,43,1,.F.,1}, ;
+      {17,25,2,"[Replace]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {17,40,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL cSearch, cRepl, lCase, lBack := .F., lWord, lRegex, cs_utf8, cr_utf8, nSeaLen
    LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 17, 60 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 15, 20 SAY "Ã"
-   @ 15, 60 SAY "´"
-   @ 15, 21 TO 15, 59
+   @ 09, 20, 18, 60 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 16, 20 SAY "Ã"
+   @ 16, 60 SAY "´"
+   @ 16, 21 TO 16, 59
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Search for"
    @ 12,22 SAY "Replace with"
    @ 14, 22 SAY "[ ] Case sensitive"
    @ 14, 42 SAY "[ ] Backward"
+   @ 15, 22 SAY "[ ] Whole word"
+   @ 15, 42 SAY "[ ] Regular expr."
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -3139,11 +3155,13 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
-      cSearch := Trim( aGets[1,4] )
+      cSearch := aGets[1,4]
       nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
-      cRepl := Trim( aGets[3,4] )
+      cRepl := aGets[3,4]
       lCase := aGets[5,4]
       lBack := aGets[6,4]
+      lWord := aGets[7,4]
+      lRegex := aGets[8,4]
       cs_utf8 := hb_Translate( cSearch,, "UTF8" )
       cr_utf8 := hb_Translate( cRepl,, "UTF8" )
       IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
@@ -3159,13 +3177,14 @@ FUNCTION mnu_SeaAndRepl( oEdit )
          hb_AIns( TEdit():aReplHis, 1, cr_utf8, Len(TEdit():aReplHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
       ENDIF
       nRes := 0
+      lWord_Sea := lWord; lRegex_Sea := lRegex
       DO WHILE .T.
-         IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, .F., .F., @ny, @nx )
+         IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord, lRegex, @ny, @nx,, @nSeaLen )
             oEdit:GoTo( ny, nx, nSeaLen )
             oEdit:TextOut()
             edi_SetPos( oEdit )
             IF nRes != 2
-               nRes := mnu_ReplNext( oEdit )
+               nRes := mnu_ReplNext( oEdit, nSeaLen )
             ENDIF
             IF nRes == 1 .OR. nRes == 2
                oEdit:DelText( ny, nx, ny, nx + nSeaLen - 1 )
@@ -3209,7 +3228,7 @@ FUNCTION mnu_ReplHist( oEdit, aGet )
 
    RETURN Nil
 
-FUNCTION mnu_ReplNext( oEdit )
+FUNCTION mnu_ReplNext( oEdit, nSeaLen )
 
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,,"+oEdit:cColorSel )
    LOCAL y1 := Iif( Row()>oEdit:y2-6, oEdit:y1+2, oEdit:y2-6 ), x1 := oEdit:x2-40, nRes := 0
@@ -3218,7 +3237,7 @@ FUNCTION mnu_ReplNext( oEdit )
       {y1+4,x1+14,2,"[All]",5,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+4,x1+21,2,"[Skip]",6,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+4,x1+30,2,"[Cancel]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
-   LOCAL cSearch, cRepl, nSeaLen, ny, nx
+   LOCAL cSearch, cRepl, ny, nx
 
    IF !Empty( TEdit():aSeaHis ) .AND. !Empty( TEdit():aReplHis )
       hb_cdpSelect( "RU866" )
@@ -3230,8 +3249,6 @@ FUNCTION mnu_ReplNext( oEdit )
 
       ny := oEdit:nLine
       nx := oEdit:nPos
-      cSearch := hb_Translate(TEdit():aSeaHis[1],"UTF8")
-      nSeaLen := cp_Len( oEdit:lUtf8, cSearch )
       cSearch := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, nSeaLen )
       cRepl := hb_Translate(TEdit():aReplHis[1],"UTF8")
       @ y1+1,x1+2 SAY 'Replace "' + cSearch + '"'
@@ -4105,6 +4122,51 @@ FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
    ENDIF
 
    RETURN Iif( lCalcOnly, Int(nLenNew), sNew )
+
+FUNCTION edi_FillSelected( oEdit, cChar )
+
+   LOCAL s := "", i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2
+
+   IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
+      IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
+         nby1 := oEdit:nby1; nbx1 := oEdit:nbx1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+      ELSE
+         nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+      ENDIF
+      IF nby1 == nby2
+         oEdit:InsText( nby1, nbx1, Replicate( cChar, nbx2-nbx1 ), .T., .F. )
+      ELSE
+         oEdit:Undo( nby1, nbx1,,, UNDO_OP_START )
+         FOR i := nby1 TO nby2
+            IF oEdit:nSeleMode == 2
+               nvx1 := nbx1; nvx2 := nbx2
+               IF i != nby1
+                  nvx1 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby1,nbx1 ) )
+               ENDIF
+               IF i != nby2
+                  nvx2 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby2,nbx2 ) )
+               ENDIF
+               IF nvx1 > nvx2
+                  j := nvx1; nvx1 := nvx2; nvx2 := j
+               ENDIF
+               oEdit:InsText( i, nvx1, Replicate( cChar, nvx2-nvx1 ), .T., .F. )
+            ELSE
+               IF i == nby1
+                  oEdit:InsText( i, nbx1, Replicate( cChar, ;
+                     cp_Len(oEdit:lUtf8,oEdit:aText[i]) - nbx1 + 1 ), .T., .F. )
+               ELSEIF i == nby2
+                  oEdit:InsText( i, 1, Replicate( cChar, nbx2-1 ), .T., .F. )
+               ELSE
+                  oEdit:InsText( i, 1, Replicate( cChar, ;
+                     cp_Len(oEdit:lUtf8,oEdit:aText[i]) ), .T., .F. )
+               ENDIF
+            ENDIF
+         NEXT
+         oEdit:Undo( nby1, nbx1,,, UNDO_OP_END )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
 
 /*
  * edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace )
