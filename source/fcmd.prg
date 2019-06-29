@@ -331,6 +331,7 @@ FUNCTION cmd_Quit( oEdit, acmd )
       oEdit:lUpdated := .F.
    ENDIF
    mnu_Exit( oEdit )
+   lEnd := .T.
 
    RETURN Nil
 
