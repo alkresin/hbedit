@@ -27,6 +27,7 @@ relevant functions, so you can use it as a reference.
    F12                 list of open files;
    Ctrl-Q              change current mode;
    Ctrl-Z, Alt-BS      undo;
+   Ctrl-Tab            switch buffer (opened file)/window;
 
    Alt-m [a ... z]     set a bookmark;
    Alt - '[a ... z]    go to the bookmark;
