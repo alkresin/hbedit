@@ -153,6 +153,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             IF lSingle .OR. Empty(aMenu[i,2])
                xRes := i + nFirst - 1
             ELSE
+               DevPos( y1 + i, x2 )
                xRes := aMenu[i,2]:exec( obj,aMenu[i+nFirst-1,3] )
             ENDIF
          ENDIF
