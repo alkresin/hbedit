@@ -3318,8 +3318,8 @@ FUNCTION mnu_Sele( oEdit )
 
    LOCAL aMenu := { {"UPPER CASE",@edi_ConvertCase(),.T.,"U"}, ;
       {"lower case",@edi_ConvertCase(),.F.,"u"}, ;
-      {"Indent right",@mnu_Indent(),{.T.,5,18},"> "}, ;
-      {"Indent left",@mnu_Indent(),{.F.,6,18},"< "}, ;
+      {"Indent right",@mnu_Indent(),{.T.},"> "}, ;
+      {"Indent left",@mnu_Indent(),{.F.},"< "}, ;
       {"Insert right",@mnu_AddToSele(),{.F.,7,18}}, {"Insert left",@mnu_AddToSele(),{.T.,8,18}} }
    LOCAL cPlugin
 
@@ -3343,18 +3343,24 @@ FUNCTION mnu_Sele( oEdit )
 
 FUNCTION mnu_Indent( oEdit, aParams )
 
-   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := aParams[2], x1 := aParams[3]
-   LOCAL aGets := { {y1+1,x1+11,0,"1",2} }, nRes, nVal, i
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := Row(), x1 := Col()-6
+   LOCAL aGets := { {y1+1,x1+11,0,"1",2} }, nRes, i
+   LOCAL nVal := Iif( Len(aParams)>1, aParams[2], Nil )
 
-   hb_cdpSelect( "RU866" )
-   @ y1, x1, y1+2, x1+15 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ y1+1, x1+2 SAY "Columns:"
-   hb_cdpSelect( oEdit:cp )
-
-   IF ( nRes := edi_READ( aGets ) ) > 0
+   IF Empty( nVal )
+      hb_cdpSelect( "RU866" )
+      @ y1, x1, y1+2, x1+15 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ y1+1, x1+2 SAY "Columns:"
+      hb_cdpSelect( oEdit:cp )
+      nRes := edi_READ( aGets )
       IF ( nVal := Val( aGets[1,4] ) ) == 0
          nVal := 1
       ENDIF
+   ELSE
+      nRes := 1
+   ENDIF
+
+   IF nRes > 0
       FOR i := 1 TO nVal
          edi_Indent( oEdit, aParams[1] )
       NEXT
@@ -3367,7 +3373,7 @@ FUNCTION mnu_Indent( oEdit, aParams )
 
 FUNCTION mnu_AddToSele( oEdit, aParams )
 
-   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := aParams[2], x1 := aParams[3]
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := Row(), x1 := Col()-6
    LOCAL aGets := { {y1+1,x1+11,0,"",34} }, nRes, i
    LOCAL nby1, nbx1, nby2, nbx2, nPos
 
