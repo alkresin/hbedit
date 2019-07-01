@@ -57,6 +57,7 @@ highlight text:
    Del, d            delete the text;
    Shift-Del,Ctrl-X  put in the system buffer and delete;
    c                 delete the text and switching to edit mode;
+   r[x]              replace all chars in selected text with x;
    u, U              convert, respectively, to lower or upper case;
    >, <              increase / decrease indent;
    m, F9             menu for a selected region;
