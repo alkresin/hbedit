@@ -141,6 +141,8 @@ functional. The following keys are currently supported:
    di[{,}]           delete a text in braces;
    x                 delete a char;
 
+   .                 repeat the last operation;
+
    m[a ... z]        set bookmark;
    '[a ... z]        go to the bookmark;
    '.                go to the last edit position;

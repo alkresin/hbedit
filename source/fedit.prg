@@ -62,6 +62,7 @@ STATIC aMacro
 STATIC cTab := e"\x9", cTabStr
 STATIC nLastMacro
 STATIC aLastSeleOper
+STATIC aLastOper, lLastOper_Ended := .T., lDoLastOper := .F., lAddLast
 
 CLASS TEdit
 
@@ -538,9 +539,10 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
 METHOD onKey( nKeyExt ) CLASS TEdit
 
-   LOCAL nKey := hb_keyStd(nKeyExt), i, j, n, nCol := Col(), nRow := Row()
-   LOCAL s, lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F., x
+   LOCAL nKey := hb_keyStd(nKeyExt), i, j, n, x, s, nCol := Col(), nRow := Row()
+   LOCAL lShift, lCtrl := .F., lNoDeselect := .F., lSkip := .F.
 
+   lAddLast := .F.
    n := ::nLine
    ::lTextOut := .F.
 
@@ -654,6 +656,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         ::DelText( n, 0, n+1, 0 )
                      ENDIF
                   NEXT
+                  edi_SetLastOper( cDopMode+Chr(nKey), .T. )
                ENDIF
                ::nDopMode := 0
 
@@ -666,15 +669,15 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                   NEXT
                   mnu_ChgMode( Self, .T. )
+                  edi_SetLastOper( cDopMode+Chr(nKey) )
                ENDIF
                ::nDopMode := 0
 
             ELSEIF nKey == 105    // i
-               //IF cDopMode == "d"
-                  cDopMode += Chr( nKey )
-               //ENDIF
+               cDopMode += Chr( nKey )
 
             ELSEIF (nKey == 98 .OR. nKey == 66) .AND. !(cDopMode $ "di;ci")    // b, B
+               edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                IF IsDigit( cDopMode )
                   x := Val( cDopMode )
                   i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
@@ -697,6 +700,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
 
             ELSEIF nKey == 101 .OR. nKey == 69   // e, E
+               edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                IF IsDigit( cDopMode )
                   x := Val( cDopMode )
                   i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
@@ -720,6 +724,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
 
             ELSEIF nKey == 119 .OR. nKey == 87   // w, W
+               edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                IF IsDigit( cDopMode )
                   x := Val( cDopMode )
                   i := Iif( ( i := At( 'd',cDopMode ) ) == 0, At( 'á',cDopMode ), i )
@@ -756,6 +761,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 
             ELSEIF nKey == 34 .OR. nKey == 39  // ",'
                IF cDopMode $ "di;ci"
+                  edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                   IF ( j := hb_At( Chr(nKey), ::aText[n], ::nPos+1 ) ) > 0
                      IF ( i := hb_Rat( Chr(nKey), ::aText[n],, ::nPos ) ) > 0
                         ::nPos := i + 1
@@ -777,6 +783,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSEIF Chr(nKey) $ "b()[]{}"
                IF !Empty( x := edi_Bracket( Self, .T., .F., ;
                      Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
+                  edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                   i := ::nLine; j := ::nPos
                   ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
                   ::nPos := Iif( Valtype( x ) == "A", x[2], x )
@@ -825,9 +832,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   edi_SetPos( Self )
                   lNoDeselect := .T.
                ENDIF
-            ELSEIF Chr(nKey) $ "b()[]{}"
+            ELSEIF Chr(nKey) $ "bB()[]{}"
                IF !Empty( x := edi_Bracket( Self, .T., .F., ;
-                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
+                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==66.OR.nKey==123.OR.nKey==125,'}',')')) ) )
                   i := ::nLine; j := ::nPos
                   ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
                   ::nPos := Iif( Valtype( x ) == "A", x[2], x )
@@ -852,6 +859,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ELSE
                ::InsText( n, ::nPos, cp_Chr(::lUtf8,hb_keyStd(nKeyExt)), .T. )
             ENDIF
+            edi_SetLastOper( cDopMode+Chr(nKey), .T. )
             ::nDopMode := 0
             EXIT
          CASE 103  // g
@@ -1219,30 +1227,36 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 105   // i - to edit mode
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .T.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 73    // I - to edit mode
                      edi_Move( Self, 94 )
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .T.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 97    // a - to edit mode
                      edi_GoRight( Self )
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .T.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 65    // A - to edit mode
                      mnu_ChgMode( Self, .T. )
                      edi_GoEnd( Self )
                      ::lIns := .T.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 82    // R - to edit mode
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .F.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 111   // o Insert line after current
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F. )
                      mnu_ChgMode( Self, .T. )
                      ::lIns := .T.
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 126   // ~ Invert case
                      x := cedi_Peek( ::lUtf8, ::aText[n], ::nPos )
@@ -1250,6 +1264,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                            ( s := cp_Lower( ::lUtf8, x ) ) != x
                         ::InsText( n, ::nPos, s, .T. )
                      ENDIF
+                     edi_SetLastOper( Chr(nKey), .T. )
                      EXIT
                   CASE 102   // f - find next char
                   CASE 70    // F - find previous char
@@ -1269,6 +1284,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 120   // x - delete a char
                      ::DelText( n, ::nPos, n, ::nPos )
+                     edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 37    // %  Go to matching parentheses
                      edi_Bracket( Self )
@@ -1314,10 +1330,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         mnu_ChgMode( Self )
                      ENDIF
                      EXIT
+                  CASE 46    // .
+                     edi_DoLastOper( Self )
+                     EXIT
                   END
                ENDIF
             ELSE
                ::InsText( n, ::nPos, cp_Chr(::lUtf8,nKey), !::lIns )
+               edi_SetLastOper( nKeyExt )
             ENDIF
 
          ELSE
@@ -1566,6 +1586,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
    ENDIF
 
+   IF !lAddLast
+      lLastOper_Ended := .T.
+   ENDIF
    ::WriteTopPane()
 
    RETURN Nil
@@ -3760,7 +3783,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    ENDIF
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
-   IF ch == " "
+   IF ch == " " .OR. ch == cTab
       DO WHILE ++nx <= nLen .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == ch; ENDDO
       lOk := Empty( lEndWord )
    ENDIF
@@ -3775,7 +3798,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
                nx --
                EXIT
             ENDIF
-            IF ch == " "
+            IF ch == " " .OR. ch == cTab
                DO WHILE ++nx <= nLen .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == ch; ENDDO
             ENDIF
             IF Empty( lEndWord )
@@ -3803,6 +3826,7 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
    LOCAL lUtf8 := oEdit:lUtf8
    LOCAL ch, lAlphaNum
 
+   lIn := Iif( lIn == Nil, .F., lIn )
    IF ny == Nil
       ny := oEdit:nLine
    ENDIF
@@ -3810,21 +3834,32 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
       nx := oEdit:nPos
    ENDIF
 
-   ch := cp_Substr( lUtf8, oEdit:aText[ny], --nx, 1 )
-   IF ch == " "
-      IF !Empty( lIn )
+   ch := cp_Substr( lUtf8, oEdit:aText[ny], nx-1, 1 )
+   IF !lIn
+      --nx
+   ENDIF
+   IF ch == " " .OR. ch == cTab
+      IF lIn
+         IF lChgPos == Nil .OR. lChgPos
+            edi_SetPos( oEdit, ny, nx )
+         ENDIF
          RETURN nx
       ENDIF
-      DO WHILE --nx > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) == " "; ENDDO
+      DO WHILE --nx > 1 .AND. ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " ;
+         .OR. ch == cTab
+      ENDDO
    ENDIF
 
    lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
-   IF !Empty( lIn ) .AND. nx > 1 .AND. ;
+   IF lIn .AND. nx > 1 .AND. ;
       edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx-1,1) ) ) != lAlphaNum
+      IF lChgPos == Nil .OR. lChgPos
+         edi_SetPos( oEdit, ny, nx )
+      ENDIF
       RETURN nx
    ENDIF
    DO WHILE --nx > 0
-      IF ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " .OR. ;
+      IF ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " .OR. ch == cTab .OR. ;
             ( !lBigW .AND. lAlphaNum != edi_AlphaNum( cp_Asc(lUtf8,ch) ) )
          nx ++
          EXIT
@@ -4480,6 +4515,51 @@ FUNCTION edi_ColorN2C( nColor )
 FUNCTION edi_SetLastSeleOper( aOper )
 
    aLastSeleOper := aOper
+   RETURN Nil
+
+FUNCTION edi_SetLastOper( xOper, lEnded )
+
+   IF !lDoLastOper
+      lAddLast := .T.
+
+      IF lLastOper_Ended
+         aLastOper := { xOper }
+         lLastOper_Ended := .F.
+      ELSE
+         AAdd( aLastOper, xOper )
+      ENDIF
+
+      IF !Empty( lEnded )
+         lLastOper_Ended := .T.
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION edi_DoLastOper( oEdit )
+
+   LOCAL i, j
+
+   IF !Empty( aLastOper )
+      lDoLastOper := .T.
+      IF Valtype( aLastOper[1] ) == "N"
+         oEdit:nMode := 0
+      ENDIF
+      FOR i := 1 TO Len( aLastOper )
+         IF Valtype( aLastOper[i] ) == "C"
+            FOR j := 1 TO Len( aLastOper[i] )
+               oEdit:onKey( 0x42000000 + Asc( Substr(aLastOper[i],j,1) ) )
+            NEXT
+         ELSE
+            oEdit:onKey( aLastOper[i] )
+         ENDIF
+      NEXT
+      IF oEdit:nMode == 0
+         oEdit:nMode := 1
+      ENDIF
+      lDoLastOper := .F.
+   ENDIF
+
    RETURN Nil
 
 FUNCTION cp_Chr( lUtf8, n )
