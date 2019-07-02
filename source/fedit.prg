@@ -557,7 +557,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    ENDIF
 
    //edi_writelog(str(nKey))
-   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE ;
+      .OR. nKey == K_LBUTTONUP .OR. nKey == K_RBUTTONUP
       RETURN Nil
    ENDIF
 
@@ -745,12 +746,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      mnu_ChgMode( Self, .T. )
                   ENDIF
                ELSEIF cDopMode $ "di;ci"
-                  edi_PrevWord( Self, .F.,, .T. )
-                  mnu_F3( Self )
-                  edi_NextWord( Self, (nKey == 87), .T. )
-                  edi_GoRight( Self )
-                  ::nby2 := ::nLine
-                  ::nbx2 := ::nPos
+                  edi_SelectW( Self, (nKey == 87) )
                   cbDele( Self )
                   ::lF3 := .F.
                   IF ::nDopMode == 99
@@ -780,9 +776,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                ENDIF
                ::nDopMode := 0
-            ELSEIF Chr(nKey) $ "b()[]{}"
+            ELSEIF Chr(nKey) $ "bB()[]{}"
                IF !Empty( x := edi_Bracket( Self, .T., .F., ;
-                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==123.OR.nKey==125,'}',')')) ) )
+                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==66.OR.nKey==123.OR.nKey==125,'}',')')) ) )
                   edi_SetLastOper( cDopMode+Chr(nKey), (::nDopMode == 100) )
                   i := ::nLine; j := ::nPos
                   ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
@@ -807,13 +803,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE 118  // v
             IF nKey == 87 .OR. nKey == 119  // w, W
-               edi_PrevWord( Self, (nKey == 87),, .T. )
-               ::nby1 := ::nLine
-               ::nbx1 := ::nPos
-               edi_NextWord( Self, (nKey == 87), .T. )
-               edi_GoRight( Self )
-               ::nby2 := ::nLine
-               ::nbx2 := ::nPos
+               edi_SelectW( Self, (nKey == 87) )
                nKey := K_RIGHT
                lNoDeselect := .T.
             ELSEIF nKey == 34 .OR. nKey == 39 // ",'
@@ -1445,6 +1435,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_PGDN
                edi_Move( Self, K_CTRL_F )
                EXIT
+            CASE K_LDBLCLK
             CASE K_LBUTTONDOWN
                IF ::nDopMode == 0
                   nCol := MCol()
@@ -1462,6 +1453,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         nRow := Len(::aText) - ::nyFirst + ::y1
                      ENDIF
                      edi_SetPos( Self, ::RowToLine(nRow), ::ColToPos(nRow,nCol) )
+                     IF nKey == K_LDBLCLK
+                        edi_SelectW( Self, .F. )
+                        ::lF3 := .T.
+                        nKey := K_RIGHT
+                        lNoDeselect := .T.
+                     ENDIF
                   ELSEIF nRow >= ::aRectFull[1] .AND. nRow <= ::aRectFull[3] .AND. nCol >= ::aRectFull[2] .AND. nCol <= ::aRectFull[4]
                      IF ( x := edi_FindWindow( Self,, nRow, nCol ) ) != Nil
                         mnu_ToBuf( Self, x )
@@ -3704,6 +3701,18 @@ STATIC FUNCTION edi_GoEnd( oEdit )
       oEdit:lTextOut := .T.
    ENDIF
    edi_SetPos( oEdit, n, oEdit:ColToPos( oEdit:LineToRow(n), nCol - oEdit:nxFirst + oEdit:x1) )
+
+   RETURN Nil
+
+FUNCTION edi_SelectW( oEdit, lBigW )
+
+   edi_PrevWord( oEdit, lBigW,, .T. )
+   oEdit:nby1 := oEdit:nLine
+   oEdit:nbx1 := oEdit:nPos
+   edi_NextWord( oEdit, lBigW, .T. )
+   edi_GoRight( oEdit )
+   oEdit:nby2 := oEdit:nLine
+   oEdit:nbx2 := oEdit:nPos
 
    RETURN Nil
 
