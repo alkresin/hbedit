@@ -79,6 +79,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       ENDIF
       SetColor( clrMenu )
       nKey := Inkey( 0, INKEY_ALL )
+      IF nKey == K_MOUSEMOVE .OR. nKey == K_NCMOUSEMOVE
+         LOOP
+      ENDIF
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
       IF ( lSea .AND. ( ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) );
             .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 47 + nLen) ;

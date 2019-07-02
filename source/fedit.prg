@@ -3702,9 +3702,11 @@ STATIC FUNCTION edi_ConvertCase( oEdit, lUpper )
             IF i == nby1
                s := cp_Substr( lUtf8, oEdit:aText[nby1], nbx1 )
             ELSEIF i == nby2
-               s += Chr(10) + cp_Left( lUtf8, oEdit:aText[i], nbx2-1 )
+               IF nbx2 > 1
+                  s += Chr(10) + cp_Left( lUtf8, oEdit:aText[i], nbx2-1 )
+               ENDIF
             ELSE
-               s += oEdit:aText[i]
+               s += Chr(10) + oEdit:aText[i]
             ENDIF
          NEXT
       ENDIF
