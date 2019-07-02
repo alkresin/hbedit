@@ -157,7 +157,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                xRes := i + nFirst - 1
             ELSE
                DevPos( y1 + i, x2 )
-               xRes := aMenu[i,2]:exec( obj,aMenu[i+nFirst-1,3] )
+               xRes := aMenu[i+nFirst-1,2]:exec( obj, Iif( Len(aMenu[i+nFirst-1])>2,aMenu[i+nFirst-1,3],Nil ) )
             ENDIF
          ENDIF
          lDo := .F.

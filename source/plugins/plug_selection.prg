@@ -21,25 +21,30 @@ FUNCTION _plug_sele_summ( oEdit )
       FOR i := 1 TO Len( arr )
          nSum += Val( Ltrim(arr[i]) )
       NEXT
+      edi_SetLastSeleOper( {@_plug_sele_summ(),Nil} )
       hb_gtInfo( HB_GTI_CLIPBOARDDATA, Ltrim(Str( nSum )) )
       edi_Alert( "Summ: " + Ltrim(Str( nSum )) )
    ENDIF
 
    RETURN Nil
 
-FUNCTION _plug_sele_surround( oEdit )
+FUNCTION _plug_sele_surround( oEdit, cTextS )
 
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := Row(), x1 := Col()-6
-   LOCAL aGets := { {y1+1,x1+8,0,cTextSurr,16} }, nRes, cText1, cText2, i
+   LOCAL aGets := { {y1+1,x1+8,0,cTextSurr,16} }, cText1, cText2, i
    LOCAL nby1, nby2, nbx1, nbx2, lRevert := .F., abr1 := "([{<", abr2 := ")]}>"
 
-   hb_cdpSelect( "RU866" )
-   @ y1, x1, y1+2, x1+26 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ y1+1, x1+2 SAY "Text:"
-   hb_cdpSelect( oEdit:cp )
+   IF Empty( cTextS )
+      hb_cdpSelect( "RU866" )
+      @ y1, x1, y1+2, x1+26 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ y1+1, x1+2 SAY "Text:"
+      hb_cdpSelect( oEdit:cp )
 
-   IF ( nRes := edi_READ( aGets ) ) > 0
-      cTextSurr := Trim( aGets[1,4] )
+      IF edi_READ( aGets ) > 0
+         cTextSurr := Trim( aGets[1,4] )
+      ENDIF
+   ELSE
+      cTextSurr := cTextS
    ENDIF
 
    SetColor( oldc )
@@ -78,6 +83,7 @@ FUNCTION _plug_sele_surround( oEdit )
          oEdit:InsText( nby1, nbx1, cText1,, .F. )
       ENDIF
       oEdit:Undo( nby1, nbx1,,, UNDO_OP_END )
+      edi_SetLastSeleOper( {@_plug_sele_surround(),cTextSurr} )
    ENDIF
 
    RETURN Nil

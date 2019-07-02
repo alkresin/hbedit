@@ -61,6 +61,7 @@ STATIC cLastDir := ""
 STATIC aMacro
 STATIC cTab := e"\x9", cTabStr
 STATIC nLastMacro
+STATIC aLastSeleOper
 
 CLASS TEdit
 
@@ -1103,6 +1104,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ELSE
          IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( ::lUtf8 .AND. nKey > 3000 )
             IF ::nby1 >= 0 .AND. ::nby2 >= 0
+               // Selection Mode
                nKey := edi_MapKey( Self, nKey )
                IF Chr(nKey) $ cKeysMove
                   edi_Move( Self, nKey )
@@ -1134,11 +1136,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      EXIT
                   CASE 62    // > Shift lines right
-                     edi_Indent( Self, .T. )
+                     edi_Indent( Self, .T.,, .T. )
                      lNoDeselect := .T.
                      EXIT
                   CASE 60    // > Shift lines left
-                     edi_Indent( Self, .F. )
+                     edi_Indent( Self, .F.,, .T. )
                      lNoDeselect := .T.
                      EXIT
                   CASE 105   // i
@@ -1169,6 +1171,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 109   // m
                      mnu_Sele( Self )
+                     lNoDeselect := .T.
+                     EXIT
+                  CASE 46    // .
+                     IF !Empty( aLastSeleOper )
+                        aLastSeleOper[1]:exec( Self, aLastSeleOper[2] )
+                     ENDIF
                      lNoDeselect := .T.
                      EXIT
                   CASE K_ESC
@@ -3320,11 +3328,11 @@ FUNCTION mnu_Sele( oEdit )
       {"lower case",@edi_ConvertCase(),.F.,"u"}, ;
       {"Indent right",@mnu_Indent(),{.T.},"> "}, ;
       {"Indent left",@mnu_Indent(),{.F.},"< "}, ;
-      {"Insert right",@mnu_AddToSele(),{.F.,7,18}}, {"Insert left",@mnu_AddToSele(),{.T.,8,18}} }
+      {"Insert right",@mnu_AddToSele(),{.F.}}, {"Insert left",@mnu_AddToSele(),{.T.}} }
    LOCAL cPlugin
 
    IF oEdit:nSeleMode == 2
-      Aadd( aMenu, {"Sorting", @mnu_SortSele(),{7,18} } )
+      Aadd( aMenu, {"Sorting", @mnu_SortSele() } )
    ENDIF
    IF !Empty( oEdit:hSelePlug )
       IF Valtype( oEdit:hSelePlug ) == "C"
@@ -3364,6 +3372,7 @@ FUNCTION mnu_Indent( oEdit, aParams )
       FOR i := 1 TO nVal
          edi_Indent( oEdit, aParams[1] )
       NEXT
+      edi_SetLastSeleOper( {@mnu_Indent(),{aParams[1],nVal}} )
    ENDIF
 
    SetColor( oldc )
@@ -3374,15 +3383,22 @@ FUNCTION mnu_Indent( oEdit, aParams )
 FUNCTION mnu_AddToSele( oEdit, aParams )
 
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), y1 := Row(), x1 := Col()-6
-   LOCAL aGets := { {y1+1,x1+11,0,"",34} }, nRes, i
+   LOCAL aGets := { {y1+1,x1+11,0,"",34} }, i, cText
    LOCAL nby1, nbx1, nby2, nbx2, nPos
 
-   hb_cdpSelect( "RU866" )
-   @ y1, x1, y1+2, x1+46 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ y1+1, x1+2 SAY "Input:"
-   hb_cdpSelect( oEdit:cp )
+   IF Len( aParams ) > 1 .AND. !Empty( aParams[2] )
+      cText := aParams[2]
+   ELSE
+      hb_cdpSelect( "RU866" )
+      @ y1, x1, y1+2, x1+46 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ y1+1, x1+2 SAY "Input:"
+      hb_cdpSelect( oEdit:cp )
+      IF edi_READ( aGets ) > 0 .AND. !Empty( aGets[1,4] )
+         cText := aGets[1,4]
+      ENDIF
+   ENDIF
 
-   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. !Empty( aGets[1,4] )
+   IF !Empty( cText )
       IF oEdit:nby1 <= oEdit:nby2
          nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx1 := oEdit:nbx1; nbx2 := oEdit:nbx2
       ELSE
@@ -3402,9 +3418,10 @@ FUNCTION mnu_AddToSele( oEdit, aParams )
                oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol(nby2,nbx2) ), ;
                Iif( i==nby2,nbx2,cp_Len(oEdit:lUtf8,oEdit:aText[i])+1 ) )
          ENDIF
-         oEdit:InsText( i, nPos, aGets[1,4], .F. )
+         oEdit:InsText( i, nPos, cText, .F. )
       NEXT
       oEdit:Undo( nby2, nbx2,,, UNDO_OP_END )
+      edi_SetLastSeleOper( {@mnu_AddToSele(),{aParams[1],cText}} )
    ENDIF
 
    SetColor( oldc )
@@ -3412,12 +3429,15 @@ FUNCTION mnu_AddToSele( oEdit, aParams )
 
    RETURN Nil
 
-FUNCTION mnu_SortSele( oEdit, aParams )
+FUNCTION mnu_SortSele( oEdit, nAsc )
 
-   LOCAL i, j, arr
+   LOCAL i, j, arr, y1 := Row(), x1 := Col()-6
    LOCAL nby1, nbx1, nby2, nbx2, nvx1, nvx2
 
-   IF ( j := FMenu( oEdit, {"Ascending","Descending"}, aParams[1], aParams[2] ) ) > 0
+   IF nAsc == Nil
+      nAsc := FMenu( oEdit, {"Ascending","Descending"}, y1, x1 )
+   ENDIF
+   IF nAsc > 0
       IF oEdit:nby1 <= oEdit:nby2
          nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx1 := oEdit:nbx1; nbx2 := oEdit:nbx2
       ELSE
@@ -3438,7 +3458,7 @@ FUNCTION mnu_SortSele( oEdit, aParams )
          arr[i-nby1+1,1] := cp_Substr( oEdit:lUtf8, oEdit:aText[i], nvx1, nvx2-nvx1 )
          arr[i-nby1+1,2] := oEdit:aText[i]
       NEXT
-      arr := ASort( arr,,, Iif( j==1, {|z,y| z[1] < y[1] }, {|z,y| z[1] > y[1] } ) )
+      arr := ASort( arr,,, Iif( nAsc==1, {|z,y| z[1] < y[1] }, {|z,y| z[1] > y[1] } ) )
       oEdit:lTextOut := .T.
       oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_START )
       FOR i := nby1 TO nby2
@@ -3446,6 +3466,7 @@ FUNCTION mnu_SortSele( oEdit, aParams )
          oEdit:InsText( i, 1, arr[i,2], .F. )
       NEXT
       oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_END )
+      edi_SetLastSeleOper( {@mnu_SortSele(),nAsc} )
    ENDIF
 
    RETURN Nil
@@ -3663,13 +3684,15 @@ STATIC FUNCTION edi_GoEnd( oEdit )
 
    RETURN Nil
 
-STATIC FUNCTION edi_ConvertCase( oEdit, lUpper )
+FUNCTION edi_ConvertCase( oEdit, lUpper )
 
    LOCAL s, i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2, lUtf8 := oEdit:lUtf8
 
    IF oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
       RETURN Nil
    ENDIF
+
+   edi_SetLastSeleOper( {@edi_ConvertCase(),lUpper} )
 
    IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
       nby1 := oEdit:nby1; nbx1 := oEdit:nbx1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
@@ -3860,7 +3883,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
 
    RETURN cName
 
-STATIC FUNCTION edi_Indent( oEdit, lRight, nLines )
+STATIC FUNCTION edi_Indent( oEdit, lRight, nLines, lAddLast )
 
    LOCAL i, n, nby1, nby2, nbx2, l := .F., nRow := Row(), nCol := Col()
 
@@ -3900,6 +3923,9 @@ STATIC FUNCTION edi_Indent( oEdit, lRight, nLines )
       oEdit:lUpdated := .T.
    ENDIF
    DevPos( nRow, nCol )
+   IF !Empty( lAddLast )
+      edi_SetLastSeleOper( {@mnu_Indent(),{lRight,1}} )
+   ENDIF
 
    RETURN Nil
 
@@ -4450,6 +4476,11 @@ FUNCTION edi_ColorN2C( nColor )
    NEXT
 
    RETURN s
+
+FUNCTION edi_SetLastSeleOper( aOper )
+
+   aLastSeleOper := aOper
+   RETURN Nil
 
 FUNCTION cp_Chr( lUtf8, n )
 
