@@ -963,7 +963,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nSeleMode := Iif( hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0, 2, 0 )
             ::lShiftKey := .T.
          ENDIF
-      ELSE
+      ELSEIF !( ::lShiftKey .AND. nKey == 111 )
          ::lShiftKey := .F.
       ENDIF
       IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
