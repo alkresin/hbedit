@@ -146,7 +146,7 @@ FUNCTION mnu_CmdLine( oEdit )
    oEdit:y2 ++
    SetColor( oEdit:cColor )
    oEdit:TextOut()
-   mnu_ChgMode( oEdit, .T. )
+   edi_ChgMode( oEdit, .T. )
    IF !Empty( cFileAdd )
       IF !Empty( cTemp := MemoRead( cFileAdd ) )
          cTemp := ">" + cCmdLine + Chr(10) + cTemp

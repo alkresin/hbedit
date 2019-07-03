@@ -39,8 +39,8 @@
 
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
-   {"Mark block",@mnu_F3(),Nil,"F3"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
-   {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, {"Change mode",@mnu_ChgMode(),Nil,"Ctrl-Q"}, ;
+   {"Open file",@mnu_F4(),{7,16},"F4 >"}, {"Selection",@mnu_Selection(),Nil,">"}, ;
+   {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, ;
    {"Codepage",@mnu_CPages(),{11,16},">"}, {"Palette",@mnu_Palettes(),{12,16},">"}, ;
    {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
    {"Windows",@mnu_Windows(),{15,16},">"}, {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
@@ -669,7 +669,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         ::DelText( n, 1, n, cp_Len(::lUtf8,::aText[n]) )
                      ENDIF
                   NEXT
-                  mnu_ChgMode( Self, .T. )
+                  edi_ChgMode( Self, .T. )
                   edi_SetLastOper( cDopMode+Chr(nKey) )
                ENDIF
                ::nDopMode := 0
@@ -695,7 +695,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cbDele( Self )
                   NEXT
                   IF ::nDopMode == 99
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                   ENDIF
                ENDIF
                ::nDopMode := 0
@@ -719,7 +719,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cbDele( Self )
                   NEXT
                   IF ::nDopMode == 99
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                   ENDIF
                ENDIF
                ::nDopMode := 0
@@ -743,14 +743,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::lF3 := .F.
                   NEXT
                   IF ::nDopMode == 99
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                   ENDIF
                ELSEIF cDopMode $ "di;ci"
                   edi_SelectW( Self, (nKey == 87) )
                   cbDele( Self )
                   ::lF3 := .F.
                   IF ::nDopMode == 99
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                   ENDIF
                ENDIF
                ::nDopMode := 0
@@ -771,7 +771,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                   IF nKey == K_RIGHT
                      IF ::nDopMode == 99
-                        mnu_ChgMode( Self, .T. )
+                        edi_ChgMode( Self, .T. )
                      ENDIF
                   ENDIF
                ENDIF
@@ -790,7 +790,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      s := Iif( Valtype( s ) == "A", s[2], s ) - 1
                      ::DelText( i, j, x, s )
                      IF ::nDopMode == 99
-                        mnu_ChgMode( Self, .T. )
+                        edi_ChgMode( Self, .T. )
                      ENDIF
                   ELSE
                      ::nLine := i; ::nPos := j
@@ -1022,7 +1022,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE K_CTRL_Q
             IF hb_keyVal( nKeyExt ) == 81 .AND. ::nDefMode >= 0
-               mnu_ChgMode( Self )
+               edi_ChgMode( Self )
             ENDIF
             EXIT
          CASE K_CTRL_Y
@@ -1120,7 +1120,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 99    // c Deletes selection and switch to Edit mode
                      IF ::nMode == 1
                         cbDele( Self )
-                        mnu_ChgMode( Self, .T. )
+                        edi_ChgMode( Self, .T. )
                      ENDIF
                      EXIT
                   CASE 100   // d Deletes selection
@@ -1215,36 +1215,36 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ENDIF
                      EXIT
                   CASE 105   // i - to edit mode
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      ::lIns := .T.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 73    // I - to edit mode
                      edi_Move( Self, 94 )
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      ::lIns := .T.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 97    // a - to edit mode
                      edi_GoRight( Self )
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      ::lIns := .T.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 65    // A - to edit mode
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      edi_GoEnd( Self )
                      ::lIns := .T.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 82    // R - to edit mode
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      ::lIns := .F.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
                   CASE 111   // o Insert line after current
                      ::InsText( n, cp_Len(::lUtf8,::aText[n])+1, Chr(10), .F. )
-                     mnu_ChgMode( Self, .T. )
+                     edi_ChgMode( Self, .T. )
                      ::lIns := .T.
                      edi_SetLastOper( Chr(nKey) )
                      EXIT
@@ -1317,7 +1317,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 58    // :
                      IF ::nDefMode >= 0
-                        mnu_ChgMode( Self )
+                        edi_ChgMode( Self )
                      ENDIF
                      EXIT
                   CASE 46    // .
@@ -1443,10 +1443,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
                      IF ::nby1 >= 0 .AND. ::nby2 >= 0
                         mnu_Sele( Self )
-                        lNoDeselect := .T.
                      ELSE
                         FMenu( Self, aMenuMain, 2, 6 )
                      ENDIF
+                     lNoDeselect := .T.
                      ::lTextOut := .T.
                   ELSEIF nRow >= ::y1 .AND. nRow <= ::y2 .AND. nCol >= ::x1 .AND. nCol <= ::x2
                      IF ::RowToLine(nRow) > Len(::aText)
@@ -1508,10 +1508,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_F9
                IF ::nby1 >= 0 .AND. ::nby2 >= 0
                   mnu_Sele( Self )
-                  lNoDeselect := .T.
                ELSE
                   FMenu( Self, aMenuMain, 2, 6 )
                ENDIF
+               nKey := K_RIGHT
+               lNoDeselect := .T.
                ::lTextOut := .T.
                edi_SetPos( Self )
                EXIT
@@ -1519,7 +1520,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_ESC
                IF nKey == K_ESC .AND. ::nDefMode == 1
                   IF ::nMode == 0
-                     mnu_ChgMode( Self )
+                     edi_ChgMode( Self )
                   ENDIF
                ELSE
                   mnu_Exit( Self )
@@ -2843,6 +2844,15 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    RETURN Nil
 
+FUNCTION mnu_Selection( oEdit )
+
+   LOCAL aMenu := { {"Mark block",@mnu_F3(),Nil,"F3"}, {"Vertical block",@mnu_F3(),2,"Ctrl-F3"} }
+   LOCAL y1 := Row(), x1 := Col()-6
+
+   FMenu( oEdit, aMenu, y1, x1 )
+
+   RETURN Nil
+
 FUNCTION mnu_F3( oEdit, nSeleMode )
 
    LOCAL i
@@ -3491,7 +3501,7 @@ FUNCTION mnu_SortSele( oEdit, nAsc )
 
    RETURN Nil
 
-FUNCTION mnu_ChgMode( oEdit, lBack )
+FUNCTION edi_ChgMode( oEdit, lBack )
 
    SetColor( oEdit:cColorSel )
    Scroll( oEdit:y1-1, oEdit:x1, oEdit:y1-1, oEdit:x2 )
