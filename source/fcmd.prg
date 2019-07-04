@@ -303,6 +303,9 @@ FUNCTION cmd_Set( oEdit, acmd )
          IF Len( acmd ) == 2
             hb_hSet( oEdit:options, cmd, !lOff )
          ENDIF
+      ELSEIF cmd == "wrap"
+         oEdit:lWrap := !lOff
+         oEdit:lTextOut := .T.
       ENDIF
    ENDIF
 
