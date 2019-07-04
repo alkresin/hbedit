@@ -428,6 +428,11 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
    LOCAL aStru, i, aClrs
    LOCAL nxPosFirst := 1, nxPosLast := nf + nWidth
 
+   IF ::lWrap
+      n := edi_CalcWrapped( Self, y,, @nxPosFirst, .F. )
+      nf := nxPosFirst
+      nxPosLast := nxPosFirst + nWidth - 1
+   ENDIF
    IF n <= Len( ::aText )
 
       IF ::nby1 >= 0 .AND. ::nby2 >= 0
@@ -452,7 +457,6 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
 
       DevPos( y, ::x1 )
       IF ::lWrap
-         n := edi_CalcWrapped( Self, y,, @nxPosFirst, .F. )
          s := cp_Substr( ::lUtf8, ::aText[n], nxPosFirst, nWidth )
          nLen := cp_Len( ::lUtf8, s )
       ELSE
@@ -1670,6 +1674,7 @@ METHOD ColToPos( nRow, nCol ) CLASS TEdit
       IF ::y1 > nRow
          RETURN 0
       ENDIF
+      //nCol --
       edi_CalcWrapped( Self, nRow, @nCol,, .F. )
       RETURN nCol
    ENDIF
@@ -3755,15 +3760,18 @@ STATIC FUNCTION edi_GoLeft( oEdit )
 
 STATIC FUNCTION edi_GoEnd( oEdit )
 
-   LOCAL n := oEdit:nLine, nPos
-   LOCAL nCol := edi_ExpandTabs( oEdit, oEdit:aText[n], 1, .T. ) + 1 //Iif( oEdit:nMode==1, 0, 1 )
+   LOCAL n := oEdit:nLine, nPos, nCol
 
-   IF nCol < oEdit:nxFirst .OR. nCol - oEdit:nxFirst > oEdit:x2 - oEdit:x1
-      oEdit:nxFirst := Max( 1, nCol - ( oEdit:x2 - oEdit:x1 ) + 1 )
-      oEdit:lTextOut := .T.
+   IF oEdit:lWrap
+      edi_SetPos( oEdit, n, cp_Len( oEdit:lUtf8, oEdit:aText[n] ) + 1 )
+   ELSE
+      nCol := edi_ExpandTabs( oEdit, oEdit:aText[n], 1, .T. ) + 1
+      IF nCol < oEdit:nxFirst .OR. nCol - oEdit:nxFirst > oEdit:x2 - oEdit:x1
+         oEdit:nxFirst := Max( 1, nCol - ( oEdit:x2 - oEdit:x1 ) + 1 )
+         oEdit:lTextOut := .T.
+      ENDIF
+      edi_SetPos( oEdit, n, oEdit:ColToPos( oEdit:LineToRow(n), nCol - oEdit:nxFirst + oEdit:x1) )
    ENDIF
-   edi_SetPos( oEdit, n, oEdit:ColToPos( oEdit:LineToRow(n), nCol - oEdit:nxFirst + oEdit:x1) )
-
    RETURN Nil
 
 FUNCTION edi_SelectW( oEdit, lBigW )
@@ -4648,7 +4656,7 @@ FUNCTION edi_CalcWrapped( oEdit, y, x, xOf_Line, l2Screen )
          IF ny == y
             IF nxOf_Line > x
                y := i
-               x := x - (nxOf_Line - nWidth) + 1
+               x := x - (nxOf_Line - nWidth) //+ 1
                RETURN i
             ENDIF
          ELSE
@@ -4666,8 +4674,11 @@ FUNCTION edi_CalcWrapped( oEdit, y, x, xOf_Line, l2Screen )
          nxOf_Line += nWidth
          IF nxOf_Line > nLen
             ny ++
-            nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
             nxOf_Line := 1
+            IF ny > Len( oEdit:aText )
+               EXIT
+            ENDIF
+            nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
          ENDIF
       NEXT
       y := ny
