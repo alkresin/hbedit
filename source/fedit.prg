@@ -38,8 +38,8 @@
 #define UNDO_INC       12
 
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
-   {"Save as",@mnu_Save(),.T.,"Shift-F2"}, ;
-   {"Open file",@mnu_F4(),{7,16},"F4 >"}, {"Selection",@mnu_Selection(),Nil,">"}, ;
+   {"Save as",@mnu_Save(),.T.,"Shift-F2"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
+   {"View",@mnu_View(),Nil,">"}, {"Selection",@mnu_Selection(),Nil,">"}, ;
    {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, ;
    {"Codepage",@mnu_CPages(),{11,16},">"}, {"Palette",@mnu_Palettes(),{12,16},">"}, ;
    {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
@@ -1065,7 +1065,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nPosBack := ::nPos
             ::nLineBack := ::nLine
             ::lTextOut := (::nyFirst>1 .OR. ::nxFirst>1)
-            ::nxFirst := ::nyFirst := 1
+            ::nxFirst := ::nyFirst := ::nxOfLine := 1
             edi_SetPos( Self, 1, 1 )
             EXIT
          CASE K_CTRL_PGDN
@@ -1798,15 +1798,20 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
       ::nPosBack := ::nPos
       ::nLineBack := ::nLine
    ENDIF
-   IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
-      ::nyFirst := Max( ny-3, 1 )
+   IF ::lWrap
+      ::nyFirst := ny
+      ::nxOfLine := 1
       lTextOut := .T.
+   ELSE
+      IF ny < ::nyFirst .OR. ny > ::nyFirst + (::y2-::y1)
+         ::nyFirst := Max( ny-3, 1 )
+         lTextOut := .T.
+      ENDIF
+      IF nx < ::nxFirst .OR. nx > ::nxFirst + (::x2-::x1)
+         ::nxFirst := Iif( nx < ::x2-::x1, 1, nx - Int((::x2-::x1)*0.8) )
+         lTextOut := .T.
+      ENDIF
    ENDIF
-   IF nx < ::nxFirst .OR. nx > ::nxFirst + (::x2-::x1)
-      ::nxFirst := Iif( nx < ::x2-::x1, 1, nx - Int((::x2-::x1)*0.8) )
-      lTextOut := .T.
-   ENDIF
-
    IF nSele != Nil .AND. nSele > 0
       ::nby1 := ::nby2 := ny; ::nbx1 := nx; ::nbx2 := nx + nSele
    ENDIF
@@ -1947,10 +1952,12 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
             ::nyFirst := nLineNew - 3
          ENDIF
          nPosNew := cp_Len( ::lUtf8, arr[i] ) + 1
-         IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 - 1
-            ::nxFirst := nPosNew - 3
-         ELSEIF nPosNew < ::nxFirst
-            nPosNew := 1
+         IF !::lWrap
+            IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 - 1
+               ::nxFirst := nPosNew - 3
+            ELSEIF nPosNew < ::nxFirst
+               nPosNew := 1
+            ENDIF
          ENDIF
          edi_SetPos( Self, nLineNew, nPosNew )
       ENDIF
@@ -1974,7 +1981,11 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
          ::lTextOut := .T.
       ELSE
          IF !::lTextOut
-            ::LineOut( ::nLine - ::nyFirst + 1 )
+            IF ::lWrap
+               ::lTextOut := .T.
+            ELSE
+               ::LineOut( ::nLine - ::nyFirst + 1 )
+            ENDIF
          ENDIF
          IF lChgPos
             edi_SetPos( Self )
@@ -2013,7 +2024,11 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
          ::aText[nLine1] := cp_Left( ::lUtf8, ::aText[nLine1], nPos1-1 ) + ;
             cp_Substr( ::lUtf8, ::aText[nLine1], nPos2+1 )
          IF !::lTextOut
-            ::LineOut( nLine1 -::nyFirst + 1 )
+            IF ::lWrap
+               ::lTextOut := .T.
+            ELSE
+               ::LineOut( nLine1 -::nyFirst + 1 )
+            ENDIF
          ENDIF
          edi_SetPos( Self, ::nLine, nPos1 )
       ENDIF
@@ -2885,6 +2900,19 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    RETURN Nil
 
+FUNCTION mnu_View( oEdit )
+
+   LOCAL aMenu := { "Set wrap "+Iif(oEdit:lWrap,"Off","On") }
+   LOCAL y1 := Row(), x1 := Col()-6, i
+
+   i := FMenu( oEdit, aMenu, y1, x1 )
+   IF i == 1
+      oEdit:lWrap := !oEdit:lWrap
+      oEdit:lTextOut := .T.
+   ENDIF
+
+   RETURN Nil
+
 FUNCTION mnu_Selection( oEdit )
 
    LOCAL aMenu := { {"Mark block",@mnu_F3(),Nil,"F3"}, {"Vertical block",@mnu_F3(),2,"Ctrl-F3"} }
@@ -3598,19 +3626,25 @@ FUNCTION edi_SetPos( oEdit, nLine, nPos )
 STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
    LOCAL i, x
+   LOCAL nLine, nPos, nRow, nLine1, nxOfLine
 
    IF nRepeat == Nil; nRepeat := 1; ENDIF
    IF nKey == 71 // G
       IF nRepeat == 1
          oEdit:nPosBack := oEdit:nPos
          oEdit:nLineBack := oEdit:nLine
-         IF Len( oEdit:aText ) > oEdit:y2-oEdit:y1+1
-            oEdit:nxFirst := 1
-            oEdit:nyFirst := Len( oEdit:aText ) - (oEdit:y2-oEdit:y1)
-            oEdit:lTextOut := .T.
-            edi_SetPos( oEdit, oEdit:nyFirst + oEdit:y2 - oEdit:y1, Min( oEdit:nPos,Iif(nKey==K_CTRL_END,1,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+         IF oEdit:lWrap
+            x := Len(oEdit:aText)
+            oEdit:GoTo( x, cp_Len(oEdit:lUtf8, oEdit:aText[x]) )
          ELSE
-            edi_SetPos( oEdit, Len(oEdit:aText)+oEdit:y1-1, Iif(nKey==K_CTRL_END,1,Min(oEdit:nPos,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+            IF Len( oEdit:aText ) > oEdit:y2-oEdit:y1+1
+               oEdit:nxFirst := 1
+               oEdit:nyFirst := Len( oEdit:aText ) - (oEdit:y2-oEdit:y1)
+               oEdit:lTextOut := .T.
+               edi_SetPos( oEdit, oEdit:nyFirst + oEdit:y2 - oEdit:y1, Min( oEdit:nPos,Iif(nKey==K_CTRL_END,1,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+            ELSE
+               edi_SetPos( oEdit, Len(oEdit:aText)+oEdit:y1-1, Iif(nKey==K_CTRL_END,1,Min(oEdit:nPos,cp_Len(oEdit:lUtf8,ATail(oEdit:aText))+1)) )
+            ENDIF
          ENDIF
       ELSE
          oEdit:GoTo( nRepeat )
@@ -3665,6 +3699,18 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
          EXIT
       CASE K_CTRL_F   // Ctrl-F PgDn
          IF oEdit:lWrap
+            nLine := oEdit:nLine; nPos := oEdit:nPos
+            nRow := edi_CalcWrapped( oEdit, nLine, @nPos,, .T. ) + (oEdit:y2-oEdit:y1)
+            nLine := edi_CalcWrapped( oEdit, nRow, @nPos,, .F. )
+            IF nLine <= Len(oEdit:aText)
+               IF nRow > oEdit:y2
+                  nLine1 := edi_CalcWrapped( oEdit, oEdit:y2, 1, @nxOfLine, .F. )
+                  oEdit:nyFirst := nLine1
+                  oEdit:nxOfLine := nxOfLine
+                  oEdit:lTextOut := .T.
+               ENDIF
+               edi_SetPos( oEdit, nLine, nPos )
+            ENDIF
          ELSE
             IF oEdit:nyFirst + (oEdit:y2-oEdit:y1) <= Len( oEdit:aText )
                oEdit:nyFirst += (oEdit:y2-oEdit:y1)
@@ -3677,6 +3723,17 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
          EXIT
       CASE K_CTRL_B   // Ctrl-B PgUp
          IF oEdit:lWrap
+            nLine := oEdit:nLine; nPos := oEdit:nPos
+            nRow := edi_CalcWrapped( oEdit, nLine, @nPos,, .T. ) - (oEdit:y2-oEdit:y1)
+            nLine := edi_CalcWrapped( oEdit, nRow, @nPos, @nxOfLine, .F. )
+            IF nLine > 0
+               IF nRow < oEdit:y1
+                  oEdit:nyFirst := nLine
+                  oEdit:nxOfLine := nxOfLine
+                  oEdit:lTextOut := .T.
+               ENDIF
+               edi_SetPos( oEdit, nLine, nPos )
+            ENDIF
          ELSE
             IF oEdit:nyFirst > (oEdit:y2-oEdit:y1)
                oEdit:nyFirst -= (oEdit:y2-oEdit:y1)
