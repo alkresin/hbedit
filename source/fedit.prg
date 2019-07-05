@@ -1400,7 +1400,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
                EXIT
             CASE K_TAB
-               IF !::lReadOnly .AND. ::lIns
+               IF ::nMode == 0 .AND. !::lReadOnly .AND. ::lIns
                   IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )
                      ::InsText( n, ::nPos, cTabStr, .F. )
                   ELSE
@@ -1654,8 +1654,6 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
 
 METHOD RowToLine( nRow )  CLASS TEdit
 
-   LOCAL i, nWidth, nxOf_Line, ny, nLen
-
    IF ::lWrap
       IF ::y1 > nRow
          RETURN 0
@@ -1666,15 +1664,12 @@ METHOD RowToLine( nRow )  CLASS TEdit
 
 METHOD ColToPos( nRow, nCol ) CLASS TEdit
 
-   LOCAL i, nWidth, nxOf_Line, ny, nLen
-
    nCol := nCol - ::x1 + ::nxFirst
 
    IF ::lWrap
       IF ::y1 > nRow
          RETURN 0
       ENDIF
-      //nCol --
       edi_CalcWrapped( Self, nRow, @nCol,, .F. )
       RETURN nCol
    ENDIF
@@ -1682,25 +1677,18 @@ METHOD ColToPos( nRow, nCol ) CLASS TEdit
 
 METHOD LineToRow( nLine, nPos ) CLASS TEdit
 
-   LOCAL i, nWidth, nxOf_Line, ny, nLen
-
    nLine := Iif( nLine==Nil, ::nLine, nLine )
    IF ::lWrap
       IF nLine < ::nyFirst
          RETURN 0
       ENDIF
       nPos := Iif( nPos == Nil, ::nPos, nPos )
-      nWidth := ::x2 - ::x1 + 1
-      nxOf_Line := ::nxOfLine
-      ny := ::nyFirst
-      nLen := cp_Len( ::lUtf8, ::aText[ny] )
       RETURN edi_CalcWrapped( Self, nLine, nPos,, .T. )
    ENDIF
    RETURN nLine + ::y1 - ::nyFirst
 
 METHOD PosToCol( nLine, nPos ) CLASS TEdit
 
-   LOCAL i, nWidth, nxOf_Line, ny, nLen
    LOCAL nAdd := 0
 
    IF nPos == Nil; nPos := ::nPos; ENDIF
@@ -1710,18 +1698,14 @@ METHOD PosToCol( nLine, nPos ) CLASS TEdit
       IF nLine < ::nyFirst
          RETURN 0
       ENDIF
-      nWidth := ::x2 - ::x1 + 1
-      nxOf_Line := ::nxOfLine
-      ny := ::nyFirst
-      nLen := cp_Len( ::lUtf8, ::aText[ny] )
       edi_CalcWrapped( Self, nLine, @nPos,, .T. )
-      RETURN nPos
+   ELSE
+      IF nPos > 1
+         edi_ExpandTabs( Self, cp_Left(::lUtf8,::aText[nLine],nPos-1), 1, .T., @nAdd )
+         nPos += nAdd
+      ENDIF
    ENDIF
 
-   IF nPos > 1
-      edi_ExpandTabs( Self, cp_Left(::lUtf8,::aText[nLine],nPos-1), 1, .T., @nAdd )
-   ENDIF
-   nPos += nAdd
    RETURN nPos + ::x1 - ::nxFirst
 
 METHOD Search( cSea, lCase, lNext, lWord, lRegex, ny, nx, lInc, nLenSea ) CLASS TEdit
@@ -3680,26 +3664,32 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
          edi_PrevWord( oEdit, .T. )
          EXIT
       CASE K_CTRL_F   // Ctrl-F PgDn
-         IF oEdit:nyFirst + (oEdit:y2-oEdit:y1) <= Len( oEdit:aText )
-            oEdit:nyFirst += (oEdit:y2-oEdit:y1)
-            oEdit:lTextOut := .T.
-            edi_SetPos( oEdit, Min( oEdit:nLine+(oEdit:y2-oEdit:y1),Len(oEdit:aText) ), oEdit:nPos )
+         IF oEdit:lWrap
          ELSE
-            edi_SetPos( oEdit, Len(oEdit:aText), oEdit:nPos )
+            IF oEdit:nyFirst + (oEdit:y2-oEdit:y1) <= Len( oEdit:aText )
+               oEdit:nyFirst += (oEdit:y2-oEdit:y1)
+               oEdit:lTextOut := .T.
+               edi_SetPos( oEdit, Min( oEdit:nLine+(oEdit:y2-oEdit:y1),Len(oEdit:aText) ), oEdit:nPos )
+            ELSE
+               edi_SetPos( oEdit, Len(oEdit:aText), oEdit:nPos )
+            ENDIF
          ENDIF
          EXIT
       CASE K_CTRL_B   // Ctrl-B PgUp
-         IF oEdit:nyFirst > (oEdit:y2-oEdit:y1)
-            oEdit:nyFirst -= (oEdit:y2-oEdit:y1)
-            oEdit:lTextOut := .T.
-            edi_SetPos( oEdit, oEdit:nLine-(oEdit:y2-oEdit:y1), oEdit:nPos )
-         ELSEIF oEdit:nyFirst > 1
-            x := oEdit:nyFirst - 1
-            oEdit:nyFirst := 1
-            oEdit:lTextOut := .T.
-            edi_SetPos( oEdit, oEdit:nLine-x, oEdit:nPos )
+         IF oEdit:lWrap
          ELSE
-            edi_Setpos( oEdit, 1, oEdit:nPos )
+            IF oEdit:nyFirst > (oEdit:y2-oEdit:y1)
+               oEdit:nyFirst -= (oEdit:y2-oEdit:y1)
+               oEdit:lTextOut := .T.
+               edi_SetPos( oEdit, oEdit:nLine-(oEdit:y2-oEdit:y1), oEdit:nPos )
+            ELSEIF oEdit:nyFirst > 1
+               x := oEdit:nyFirst - 1
+               oEdit:nyFirst := 1
+               oEdit:lTextOut := .T.
+               edi_SetPos( oEdit, oEdit:nLine-x, oEdit:nPos )
+            ELSE
+               edi_Setpos( oEdit, 1, oEdit:nPos )
+            ENDIF
          ENDIF
          EXIT
       END
@@ -3709,32 +3699,63 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
 STATIC FUNCTION edi_GoUp( oEdit )
 
-   IF oEdit:nLine == oEdit:nyFirst
-      IF oEdit:nyFirst > 1
-         oEdit:nyFirst --
-         oEdit:lTextOut := .T.
-         edi_SetPos( oEdit, oEdit:nyFirst, oEdit:ColToPos( Row(), Col() ) )
+   LOCAL nLine := oEdit:nLine, nPos := oEdit:nPos, nRow, nxOfLine
+
+   IF oEdit:lWrap
+      nRow := edi_CalcWrapped( oEdit, nLine, @nPos,, .T. ) - 1
+      nLine := edi_CalcWrapped( oEdit, nRow, @nPos, @nxOfLine, .F. )
+      IF nLine > 0
+         IF nRow < oEdit:y1
+            oEdit:nyFirst := nLine
+            oEdit:nxOfLine := nxOfLine
+            oEdit:lTextOut := .T.
+         ENDIF
+         edi_SetPos( oEdit, nLine, nPos )
       ENDIF
    ELSE
-      edi_SetPos( oEdit, oEdit:nLine-1, oEdit:ColToPos( Row()-1, Col() ) )
+      IF oEdit:nLine == oEdit:nyFirst
+         IF oEdit:nyFirst > 1
+            oEdit:nyFirst --
+            oEdit:lTextOut := .T.
+            edi_SetPos( oEdit, oEdit:nyFirst, oEdit:ColToPos( Row(), Col() ) )
+         ENDIF
+      ELSE
+         edi_SetPos( oEdit, oEdit:nLine-1, oEdit:ColToPos( Row()-1, Col() ) )
+      ENDIF
    ENDIF
    RETURN Nil
 
 STATIC FUNCTION edi_GoDown( oEdit )
 
-   IF oEdit:nLine < Len(oEdit:aText)
-      IF oEdit:LineToRow() == oEdit:y2
-         oEdit:nyFirst ++
-         oEdit:lTextOut := .T.
+   LOCAL nLine := oEdit:nLine, nPos := oEdit:nPos, nRow, nLine1, nxOfLine
+
+   IF oEdit:lWrap
+      nRow := edi_CalcWrapped( oEdit, nLine, @nPos,, .T. ) + 1
+      nLine := edi_CalcWrapped( oEdit, nRow, @nPos,, .F. )
+      IF nLine <= Len(oEdit:aText)
+         IF nRow > oEdit:y2
+            nLine1 := edi_CalcWrapped( oEdit, oEdit:y1 + 1, 1, @nxOfLine, .F. )
+            oEdit:nyFirst := nLine1
+            oEdit:nxOfLine := nxOfLine
+            oEdit:lTextOut := .T.
+         ENDIF
+         edi_SetPos( oEdit, nLine, nPos )
       ENDIF
-      edi_SetPos( oEdit, oEdit:nLine+1, oEdit:ColToPos( oEdit:LineToRow(oEdit:nLine+1), Col() ) )
+   ELSE
+      IF oEdit:nLine < Len(oEdit:aText)
+         IF oEdit:LineToRow() == oEdit:y2
+            oEdit:nyFirst ++
+            oEdit:lTextOut := .T.
+         ENDIF
+         edi_SetPos( oEdit, oEdit:nLine+1, oEdit:ColToPos( oEdit:LineToRow(oEdit:nLine+1), Col() ) )
+      ENDIF
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION edi_GoRight( oEdit )
 
-   IF oEdit:PosToCol() == oEdit:x2
+   IF !oEdit:lWrap .AND. oEdit:PosToCol() == oEdit:x2
       oEdit:nxFirst ++
       oEdit:lTextOut := .T.
    ENDIF
@@ -3745,7 +3766,7 @@ STATIC FUNCTION edi_GoRight( oEdit )
 STATIC FUNCTION edi_GoLeft( oEdit )
 
    IF oEdit:nPos > 1
-      IF oEdit:PosToCol() == oEdit:x1
+      IF !oEdit:lWrap .AND. oEdit:PosToCol() == oEdit:x1
          IF oEdit:nxFirst > 1
             oEdit:nxFirst --
             oEdit:lTextOut := .T.
@@ -4651,12 +4672,13 @@ FUNCTION edi_CalcWrapped( oEdit, y, x, xOf_Line, l2Screen )
    nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
 
    IF l2Screen
-      FOR i := oEdit:y1 TO oEdit:y2 - 1
+      i := oEdit:y1
+      DO WHILE ny <= y
          nxOf_Line += nWidth
          IF ny == y
             IF nxOf_Line > x
                y := i
-               x := x - (nxOf_Line - nWidth) //+ 1
+               x := x - (nxOf_Line - nWidth) + 1
                RETURN i
             ENDIF
          ELSE
@@ -4666,21 +4688,34 @@ FUNCTION edi_CalcWrapped( oEdit, y, x, xOf_Line, l2Screen )
                nxOf_Line := 1
             ENDIF
          ENDIF
-      NEXT
-      y := x := 0
-      RETURN 0
+         i ++
+      ENDDO
    ELSE
-      FOR i := oEdit:y1 TO y - 1
-         nxOf_Line += nWidth
-         IF nxOf_Line > nLen
-            ny ++
-            nxOf_Line := 1
-            IF ny > Len( oEdit:aText )
-               EXIT
+      IF y < oEdit:y1
+         FOR i := oEdit:y1-1 TO y STEP -1
+            nxOf_Line -= nWidth
+            IF nxOf_Line < 1
+               ny --
+               IF ny < 1
+                  EXIT
+               ENDIF
+               nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
+               nxOf_Line := nLen - (nLen % nWidth)
             ENDIF
-            nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
-         ENDIF
-      NEXT
+         NEXT
+      ELSE
+         FOR i := oEdit:y1 TO y - 1
+            nxOf_Line += nWidth
+            IF nxOf_Line > nLen
+               ny ++
+               nxOf_Line := 1
+               IF ny > Len( oEdit:aText )
+                  EXIT
+               ENDIF
+               nLen := cp_Len( oEdit:lUtf8, oEdit:aText[ny] )
+            ENDIF
+         NEXT
+      ENDIF
       y := ny
       IF x != Nil
          x := nxOf_Line + x - 1

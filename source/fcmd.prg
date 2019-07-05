@@ -306,6 +306,7 @@ FUNCTION cmd_Set( oEdit, acmd )
       ELSEIF cmd == "wrap"
          oEdit:lWrap := !lOff
          oEdit:lTextOut := .T.
+         lEnd := .T.
       ENDIF
    ENDIF
 
