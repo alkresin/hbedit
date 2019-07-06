@@ -3710,6 +3710,8 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
                   oEdit:lTextOut := .T.
                ENDIF
                edi_SetPos( oEdit, nLine, nPos )
+            ELSE
+               edi_Move( oEdit, 71 )
             ENDIF
          ELSE
             IF oEdit:nyFirst + (oEdit:y2-oEdit:y1) <= Len( oEdit:aText )
@@ -3732,8 +3734,11 @@ STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
                   oEdit:nxOfLine := nxOfLine
                   oEdit:lTextOut := .T.
                ENDIF
-               edi_SetPos( oEdit, nLine, nPos )
+            ELSE
+               oEdit:nxFirst := oEdit:nyFirst := oEdit:nxOfLine := nPos := nLine := 1
+               oEdit:lTextOut := .T.
             ENDIF
+            edi_SetPos( oEdit, nLine, nPos )
          ELSE
             IF oEdit:nyFirst > (oEdit:y2-oEdit:y1)
                oEdit:nyFirst -= (oEdit:y2-oEdit:y1)
