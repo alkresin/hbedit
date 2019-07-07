@@ -53,6 +53,7 @@ STATIC hKeyMap
 STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC aMenu_CB
+STATIC nLastReg := 0
 STATIC aLangs
 STATIC hPalettes
 STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
@@ -628,6 +629,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ENDIF
             ::nDopMode := 0
             EXIT
+         CASE 34  // "
+            IF nKey >= 97 .AND. nKey <= 122
+               // a...z
+               nLastReg := nKey
+               RETURN Nil
+            ENDIF
+            EXIT
          CASE 102 // f
             IF ( i := cp_At( ::lUtf8, cp_Chr(::lUtf8,nKey), ::aText[n], ::nPos+1 ) ) > 0
                ::GoTo( n, i )
@@ -1155,6 +1163,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Indent( Self, .F.,, .T. )
                      lNoDeselect := .T.
                      EXIT
+                  CASE 34    // "
+                     ::nDopMode := 34
+                     cDopMode := '"'
+                     nKey := K_RIGHT
+                     lNoDeselect := .T.
+                     EXIT
                   CASE 105   // i
                      ::nDopMode := 118
                      cDopMode := "vi"
@@ -1283,6 +1297,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 90    // Z
                   CASE 60    // <
                   CASE 62    // >
+                  CASE 34    // "
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
@@ -1598,6 +1613,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
    ENDIF
 
+   nLastReg := 0
    IF !lAddLast
       lLastOper_Ended := .T.
    ENDIF
@@ -2321,12 +2337,13 @@ FUNCTION cb2Text( oEdit, lToText )
             aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
          ENDIF
       NEXT
-      IF !Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
-         s := TEdit():aCBoards[i,1]
-         lVert := !Empty( TEdit():aCBoards[i,3] )
-         IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
-            s := hb_Translate( s, TEdit():aCBoards[i,2], oEdit:cp )
-         ENDIF
+      IF Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
+         RETURN Nil
+      ENDIF
+      s := TEdit():aCBoards[i,1]
+      lVert := !Empty( TEdit():aCBoards[i,3] )
+      IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
+         s := hb_Translate( s, TEdit():aCBoards[i,2], oEdit:cp )
       ENDIF
       oEdit:lTextOut := .T.
    ENDIF
