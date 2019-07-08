@@ -19,7 +19,8 @@
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
 #define ALT_PRESSED   0x040000
-#define MAX_CBOARDS         10
+#define MAX_CBOARDS         28
+#define MAX_EDIT_CBOARDS    10
 
 #define UNDO_LINE1      1
 #define UNDO_POS1       2
@@ -52,8 +53,7 @@ STATIC hKeyMap
 
 STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
-STATIC aMenu_CB
-STATIC nLastReg := 0
+STATIC nLastReg := 1
 STATIC aLangs
 STATIC hPalettes
 STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
@@ -630,6 +630,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nDopMode := 0
             EXIT
          CASE 34  // "
+            ::nDopMode := 0
+            cDopMode := ""
             IF nKey >= 97 .AND. nKey <= 122
                // a...z
                nLastReg := nKey
@@ -1019,11 +1021,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          SWITCH nKey
          CASE K_CTRL_INS
          CASE 3                           // Ctrl-Ins or Ctrl-c
-            IF !Empty( s := edi_GetSelected( Self ) )
-               hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-               TEdit():aCBoards[1,2] := Nil
-               TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
-            ENDIF
+            edi_2cb( Self )
             lNoDeselect := .T.
             EXIT
          CASE 22                          // Ctrl-v
@@ -1031,15 +1029,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_F3( Self, 2 )
                nKey := K_RIGHT
             ELSEIF !::lReadOnly
-               cb2Text( Self, .T. )
+               cb2Text( Self, 1 )
             ENDIF
             EXIT
+         CASE K_CTRL_P
+            cb2Text( Self )
+            EXIT
          CASE K_CTRL_X
-            IF !Empty( s := edi_GetSelected( Self ) )
-               hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-               TEdit():aCBoards[1,2] := Nil
-               TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
-            ENDIF
+            edi_2cb( Self )
             cbDele( Self )
             EXIT
          CASE K_CTRL_Q
@@ -1149,11 +1146,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      cbDele( Self )
                      EXIT
                   CASE 121   // y Copy to clipboard
-                     IF !Empty( s := edi_GetSelected( Self ) )
-                        hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-                        TEdit():aCBoards[1,2] := Nil
-                        TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
-                     ENDIF
+                     edi_2cb( Self, nLastReg )
                      EXIT
                   CASE 62    // > Shift lines right
                      edi_Indent( Self, .T.,, .T. )
@@ -1234,12 +1227,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 112   // p Insert clipboard after current coloumn
                      IF !::lReadOnly
                         edi_SetPos( Self, ::nLine, ++::nPos )
-                        cb2Text( Self, .T. )
+                        cb2Text( Self, nLastReg )
                      ENDIF
                      EXIT
                   CASE 80    // P Insert clipboard
                      IF !::lReadOnly
-                        cb2Text( Self, .T. )
+                        cb2Text( Self, nLastReg )
                      ENDIF
                      EXIT
                   CASE 105   // i - to edit mode
@@ -1379,10 +1372,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_DEL
                IF !::lReadOnly
                   IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := edi_GetSelected( Self ) )
-                        hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-                        TEdit():aCBoards[1,2] := Nil
-                        TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+                        edi_2cb( Self )
                      ENDIF
                      cbDele( Self )
                   ELSE
@@ -1393,10 +1384,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_BS
                IF !::lReadOnly .AND. ::nMode == 0
                   IF ::nby1 >= 0 .AND. ::nby2 >= 0
-                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. !Empty( s := edi_GetSelected( Self ) )
-                        hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] := s )
-                        TEdit():aCBoards[1,2] := Nil
-                        TEdit():aCBoards[1,3] := Iif( ::nSeleMode==2,.T.,Nil )
+                     IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+                        edi_2cb( Self )
                      ENDIF
                      cbDele( Self )
                   ELSE
@@ -1426,7 +1415,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_INS
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
                   IF !::lReadOnly
-                     cb2Text( Self, .T. )
+                     cb2Text( Self, 1 )
                   ENDIF
                ELSE
                   ::lIns := !::lIns
@@ -1447,10 +1436,28 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
                EXIT
             CASE K_LEFT
-               edi_GoLeft( Self )
+               IF ::nby1 >= 0 .AND. ::nby2 >= 0 .AND. !::lF3 .AND. !lShift
+                  IF (::nLine != ::nby1 .OR. ::nPos != ::nbx1) .AND. ;
+                     (::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 ))
+                     ::nLine := ::nby1
+                     ::nPos := ::nbx1
+                     edi_SetPos( Self )
+                  ENDIF
+               ELSE
+                  edi_GoLeft( Self )
+               ENDIF
                EXIT
             CASE K_RIGHT
-               edi_GoRight( Self )
+               IF ::nby1 >= 0 .AND. ::nby2 >= 0 .AND. !::lF3 .AND. !lShift
+                  IF (::nLine != ::nby1 .OR. ::nPos != ::nbx1) .AND. ;
+                     !(::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 ))
+                     ::nLine := ::nby1
+                     ::nPos := ::nbx1
+                     edi_SetPos( Self )
+                  ENDIF
+               ELSE
+                  edi_GoRight( Self )
+               ENDIF
                EXIT
             CASE K_HOME
                edi_Move( Self, 48 )
@@ -1613,7 +1620,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       DevPos( ::LineToRow(::npy1), ::PosToCol(::npy1,::npx1) )
    ENDIF
 
-   nLastReg := 0
+   nLastReg := 1
    IF !lAddLast
       lLastOper_Ended := .T.
    ENDIF
@@ -2312,34 +2319,52 @@ FUNCTION edi_GetSelected( oEdit )
 
    RETURN Iif( oEdit:lTabs, Strtran(s,cTabStr,cTab), s )
 
-FUNCTION cb2Text( oEdit, lToText )
+FUNCTION cb2Text( oEdit, nReg, lToText )
 
-   LOCAL arr
-   LOCAL i, lMulti := .F., s := hb_gtInfo( HB_GTI_CLIPBOARDDATA ), lVert, nPos
+   LOCAL arr, aMenu_CB, nLen := 1
+   LOCAL i, j, s, lVert, nPos
 
-   IF !( s == TEdit():aCBoards[1,1] )
-      TEdit():aCBoards[1,1] := s
-      TEdit():aCBoards[1,2] := Nil
-      TEdit():aCBoards[1,3] := Nil
-   ENDIF
-   lVert := !Empty( TEdit():aCBoards[1,3] )
-   FOR i := 2 TO MAX_CBOARDS
-      IF !Empty( TEdit():aCBoards[i,1] )
-         lMulti := .T.
-         EXIT
-      ENDIF
-   NEXT
-
-   IF lMulti
-      FOR i := 1 TO MAX_CBOARDS
-         aMenu_CB[i,1] := cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
-         IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
-            aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
+   IF lToText == Nil; lToText := .T.; ENDIF
+   IF nReg == Nil
+      nReg := 1
+      FOR i := 2 TO MAX_CBOARDS
+         IF !Empty( TEdit():aCBoards[i,1] )
+            nLen ++
          ENDIF
       NEXT
-      IF Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
+   ELSEIF nReg >= 97 .AND. nReg <= 122
+      nReg -= 95
+   ENDIF
+
+   IF nLen == 1
+      IF nReg == 1
+         s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
+         IF !( s == TEdit():aCBoards[1,1] )
+            TEdit():aCBoards[1,1] := s
+            TEdit():aCBoards[1,2] := Nil
+            TEdit():aCBoards[1,3] := Nil
+         ENDIF
+      ELSE
+         s := TEdit():aCBoards[nReg,1]
+      ENDIF
+      lVert := !Empty( TEdit():aCBoards[nReg,3] )
+   ELSE
+      aMenu_CB := Array( nLen,3 )
+      j := 0
+      FOR i := 1 TO MAX_CBOARDS
+         IF !Empty( TEdit():aCBoards[i,1] )
+            j ++
+            aMenu_CB[j,1] := cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
+            aMenu_CB[j,2] := Nil; aMenu_CB[j,3] := i
+            IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
+               aMenu_CB[j,1] := hb_Translate( aMenu_CB[j,1], TEdit():aCBoards[i,2], oEdit:cp )
+            ENDIF
+         ENDIF
+      NEXT
+      IF Empty( j := FMenu( oEdit, aMenu_CB, 2, 6 ) )
          RETURN Nil
       ENDIF
+      i := aMenu_CB[j,3]
       s := TEdit():aCBoards[i,1]
       lVert := !Empty( TEdit():aCBoards[i,3] )
       IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
@@ -2408,6 +2433,26 @@ STATIC FUNCTION cbDele( oEdit )
          oEdit:DelText( nby1, nbx1, nby2, Max(nbx2-1,1) )
       ENDIF
    ENDIF
+   RETURN Nil
+
+FUNCTION edi_2cb( oEdit, nReg )
+
+   LOCAL s
+
+   IF !Empty( s := edi_GetSelected( oEdit ) )
+      IF Empty( nReg )
+         nReg := 1
+      ELSEIF nReg >= 97 .AND. nReg <= 122
+         nReg -= 95
+      ENDIF
+      TEdit():aCBoards[nReg,1] := s
+      IF nReg == 1
+         hb_gtInfo( HB_GTI_CLIPBOARDDATA, s )
+      ENDIF
+      TEdit():aCBoards[nReg,2] := Nil
+      TEdit():aCBoards[nReg,3] := Iif( oEdit:nSeleMode==2,.T.,Nil )
+   ENDIF
+
    RETURN Nil
 
 FUNCTION edi_ReadIni( xIni )
@@ -2941,7 +2986,7 @@ FUNCTION mnu_Selection( oEdit )
 
 FUNCTION mnu_F3( oEdit, nSeleMode )
 
-   LOCAL i
+   LOCAL i, aMenu_CB
 
    nSeleMode := Iif( Empty( nSeleMode ), 0, nSeleMode )
 
@@ -2963,26 +3008,23 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
    ENDIF
    oEdit:lF3 := !oEdit:lF3
    IF !oEdit:lF3
-      IF Empty( aMenu_CB )
-         aMenu_CB := Array(MAX_CBOARDS)
-         FOR i := 1 TO MAX_CBOARDS
-            aMenu_CB[i] := { Nil,, i }
-         NEXT
-      ENDIF
+      aMenu_CB := Array(MAX_EDIT_CBOARDS,3)
+      //FOR i := 1 TO MAX_EDIT_CBOARDS
+      //   aMenu_CB[i] := { Nil,, i }
+      //NEXT
 
       TEdit():aCBoards[1,1] := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
       TEdit():aCBoards[1,2] := Nil
       TEdit():aCBoards[1,3] := Nil
-      FOR i := 1 TO MAX_CBOARDS
+      FOR i := 1 TO MAX_EDIT_CBOARDS
          aMenu_CB[i,1] := cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
          IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
             aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
+            aMenu_CB[i,2] := Nil; aMenu_CB[i,3] := i
          ENDIF
       NEXT
       IF !Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
-         TEdit():aCBoards[i,1] := edi_GetSelected( oEdit )
-         TEdit():aCBoards[i,2] := oEdit:cp
-         TEdit():aCBoards[1,3] := Iif( oEdit:nSeleMode==2,.T.,Nil )
+         edi_2cb( oEdit, i )
          IF i == 1
             hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] )
          ENDIF
