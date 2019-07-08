@@ -21,6 +21,7 @@
 #define ALT_PRESSED   0x040000
 #define MAX_CBOARDS         28
 #define MAX_EDIT_CBOARDS    10
+#define CBOARD_MINUS        28
 
 #define UNDO_LINE1      1
 #define UNDO_POS1       2
@@ -632,8 +633,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE 34  // "
             ::nDopMode := 0
             cDopMode := ""
-            IF nKey >= 97 .AND. nKey <= 122
-               // a...z
+            IF (nKey >= 97 .AND. nKey <= 122) .OR. nKey == 45
+               // a...z, -
                nLastReg := nKey
                RETURN Nil
             ENDIF
@@ -2087,6 +2088,8 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
       ::lTextOut := .T.
    ENDIF
 
+   ::aCBoards[CBOARD_MINUS,1] := cTextOld
+   ::aCBoards[CBOARD_MINUS,2] := ::aCBoards[CBOARD_MINUS,3] := Nil
    IF Empty( lNoUndo )
       ::Undo( nLine1, nPos1, nLine2, nPos2, UNDO_OP_DEL, cTextOld )
    ENDIF
@@ -2334,6 +2337,8 @@ FUNCTION cb2Text( oEdit, nReg, lToText )
       NEXT
    ELSEIF nReg >= 97 .AND. nReg <= 122
       nReg -= 95
+   ELSEIF nReg == 45
+      nReg := CBOARD_MINUS
    ENDIF
 
    IF nLen == 1

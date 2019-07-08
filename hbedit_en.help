@@ -53,7 +53,7 @@ highlight text:
    Selecting the desired text, you can use the following hotkeys:
 
    Ctrl-C, Ctrl-Ins, y put text into the system buffer;
-   F3                put text into one of 10 internal buffers (0th is system);
+   F3, Ctrl-p        put text into one of 10 internal buffers (0th is system);
    Del, d            delete the text;
    Shift-Del,Ctrl-X  put in the system buffer and delete;
    c                 delete the text and switching to edit mode;
@@ -109,6 +109,8 @@ functional. The following keys are currently supported:
    Ctrl-v            switch to vertical block selection mode;
    p, P              insert text from the buffer;
    y                 copy text to clipboard;
+
+   "[a...z,-]        set a register for a next operation;
 
    i                 switch to edit mode at the current position;
    a                 switch to edit mode after the current position;
