@@ -40,7 +40,6 @@ FUNCTION Plug_prg_Run1c( oEdit )
    cBuff := Memoread( "hb_compile_err.out" )
    IF Empty( cHrb ) .OR. ( !Empty( cBuff ) .AND. " Warning " $ cBuff .AND. ;
          edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
-
       oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _prg1c_ErrWin_OnKey(o,n) }
@@ -104,7 +103,10 @@ STATIC FUNCTION _1c_Connect()
       ? "Connect to OLE object..."
       oSession := win_OleCreateObject( cComObject )
    ENDIF
-   IF !Empty( oSession )
+   IF Empty( oSession )
+      ? "Connection failed"
+      Inkey(0)
+   ELSE
       IF Empty( cPass )
          ACCEPT "Пароль:" TO cPass
       ENDIF

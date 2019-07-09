@@ -655,6 +655,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             cDopMode += Chr( nKey )
             IF nKey == 103    // g
                ::nDopMode := 103
+            ELSEIF nKey == 121   // y
+               ::nDopMode := 121
             ELSEIF nKey == 64    // @
                ::nDopMode := 64
             ELSEIF Chr(nKey) $ cKeysMove .AND. nKey != 48
@@ -826,6 +828,22 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ::nDopMode := 0
             ENDIF
             EXIT
+         CASE 121  // y
+            IF Left( cDopMode, 2 ) == "yi"
+            ELSE
+               IF nKey == 121
+                  ::nby1 := ::nLine; ::nbx1 := 1
+                  ::nby2 := Iif( (i := Val(cDopMode)) > 0, ::nLine + i - 1, ::nLine )
+                  ::nbx2 := cp_Len( ::lUtf8, ::aText[::nby2] ) + 1
+                  edi_2cb( Self )
+                  ::nby1 := ::nby2 := -1
+                  ::nDopMode := 0
+               ELSEIF nKey == 105  // i
+               ELSE
+                  ::nDopMode := 0
+               ENDIF
+            ENDIF
+            EXIT
          CASE 118  // v
             IF nKey == 87 .OR. nKey == 119  // w, W
                edi_SelectW( Self, (nKey == 87) )
@@ -849,7 +867,8 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
             ELSEIF Chr(nKey) $ "bB()[]{}"
                IF !Empty( x := edi_Bracket( Self, .T., .F., ;
-                     Iif(nKey==91.OR.nKey==93, ']', Iif(nKey==66.OR.nKey==123.OR.nKey==125,'}',')')) ) )
+                     Iif(nKey==91.OR.nKey==93, ']', ;
+                     Iif(nKey==66.OR.nKey==123.OR.nKey==125,'}',')')) ) )
                   i := ::nLine; j := ::nPos
                   ::nLine := Iif( Valtype( x ) == "A", x[1], ::nLine )
                   ::nPos := Iif( Valtype( x ) == "A", x[2], x )
@@ -865,6 +884,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      ::nLine := i; ::nPos := j
                   ENDIF
                ENDIF
+            ELSEIF nKey == 115 // s
+               ::nby1 := ::nby2 := ::nLine
+               ::nbx1 := Iif( ( i := cp_Rat( ::lUtf8, '.', ::aText[::nLine],, ::nPos-1 ) ) > 0, i+1, 1 )
+               ::nbx2 := Iif( ( i := cp_At( ::lUtf8, '.', ::aText[::nLine], ::nbx1+1 ) ) > 0, i, ;
+                  cp_Len(::lUtf8, ::aText[::nLine] ) ) + 1
+               nKey := K_RIGHT
+               ::GoTo( , ::nbx2 )
+               lNoDeselect := .T.
             ENDIF
             ::nDopMode := 0
             EXIT
@@ -1177,15 +1204,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
                   CASE 111   // o
                      IF ::nLine == ::nby2 .AND. ::nPos == ::nbx2
-                        ::nLine := ::nby1
-                        ::nPos := ::nbx1
+                        ::GoTo( ::nby1, ::nbx1 )
                      ELSE
-                        ::nLine := ::nby2
-                        ::nPos := ::nbx2
+                        ::GoTo( ::nby2, ::nbx2 )
                      ENDIF
                      x := ::nby1; ::nby1 := ::nby2; ::nby2 := x
                      x := ::nbx1; ::nbx1 := ::nbx2; ::nbx2 := x
-                     edi_SetPos( Self )
                      nKey := K_RIGHT
                      lNoDeselect := .T.
                      EXIT
@@ -1292,6 +1316,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 60    // <
                   CASE 62    // >
                   CASE 34    // "
+                  CASE 121   // y
                      ::nDopMode := nKey
                      cDopMode := Chr( nKey )
                      EXIT
