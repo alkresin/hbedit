@@ -29,6 +29,9 @@ relevant functions, so you can use it as a reference.
    Ctrl-Z, Alt-BS      undo;
    Ctrl-Tab            switch buffer (opened file)/window;
 
+   Ctrl-v, Shift-Ins   paste text from the clipboard;
+   Ctrl-p              paste text from any of clipboard buffers;
+
    Alt-m [a ... z]     set a bookmark;
    Alt - '[a ... z]    go to the bookmark;
    Alt- '.             go to the last edit position;
@@ -71,9 +74,8 @@ highlight text:
    ESC               cancel selection.
 
    After pressing y, F3, Del, d, Shift-Del you return to
-editing. You can paste text from the buffer, as usual, with the keys Ctrl-V, Shift-Ins.
-At the same time, if you saved something in buffers from 1 to 9, a list of buffers will appear,
-to choose from which to insert. If only the system was used, everything will be as usual.
+editing. You can paste text from the buffer, as usual, with the keys Ctrl-v, Shift-Ins.
+Ctrl-p allows to paste from any of clipboard buffers (registers).
 
    Vim-like mode is activated with Ctrl-Q, switching from Vim to edit mode - by appropriate
 Vim keys (i, a, ...).
@@ -108,7 +110,15 @@ functional. The following keys are currently supported:
    V                 switch to lines selection mode;
    Ctrl-v            switch to vertical block selection mode;
    p, P              insert text from the buffer;
-   y                 copy text to clipboard;
+
+   yy                put the current line into the clipboard buffer;
+   yi[w,W]           put the word into the clipboard buffer;
+   yi[",']           put the a text between quotes into the clipboard buffer;
+   yi[b,(,)]         put the a text in parentheses into the clipboard buffer;
+   yi[               put the a text in square brackets into the clipboard buffer;
+   yi[B,{,}]         put the a text in braces into the clipboard buffer;
+
+   "[a...z,-]  установить регистр для последующей операции;
 
    "[a...z,-]        set a register for a next operation;
 
