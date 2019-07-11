@@ -66,6 +66,7 @@ highlight text:
    .                 repeat the last operation with a selected region;
    m, F9             menu for a selected region;
    o                 continue selection from opposite end;
+   r[x]              replace all characters of selected text with x;
    i[w,W]            select a word under the cursor;
    i[",']            select a text between quotes (double or single);
    i[b,(,)]          select a text in parentheses;

@@ -4075,7 +4075,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    nLen := cp_Len( lUtf8, oEdit:aText[ny] )
 
    IF nx > nLen
-      RETURN Nil
+      RETURN nLen
    ENDIF
 
    ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 )
