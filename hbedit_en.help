@@ -71,6 +71,7 @@ highlight text:
    i[b,(,)]          select a text in parentheses;
    i[                select a text in square brackets;
    i[B,{,}]          select a text in braces;
+   is                select a sentence;
    ESC               cancel selection.
 
    After pressing y, F3, Del, d, Shift-Del you return to
@@ -111,12 +112,13 @@ functional. The following keys are currently supported:
    Ctrl-v            switch to vertical block selection mode;
    p, P              insert text from the buffer;
 
-   yy                put the current line into the clipboard buffer;
-   yi[w,W]           put the word into the clipboard buffer;
-   yi[",']           put the a text between quotes into the clipboard buffer;
-   yi[b,(,)]         put the a text in parentheses into the clipboard buffer;
-   yi[               put the a text in square brackets into the clipboard buffer;
-   yi[B,{,}]         put the a text in braces into the clipboard buffer;
+   yy                put acurrent line into the clipboard buffer;
+   yi[w,W]           put a word into the clipboard buffer;
+   yi[",']           put a text between quotes into the clipboard buffer;
+   yi[b,(,)]         put a text in parentheses into the clipboard buffer;
+   yi[               put a text in square brackets into the clipboard buffer;
+   yi[B,{,}]         put a text in braces into the clipboard buffer;
+   yis               put a sentence into the clipboard buffer;
 
    "[a...z,-]  установить регистр для последующей операции;
 
@@ -169,6 +171,6 @@ functional. The following keys are currently supported:
    [0...9]@[0...9,a...z] playing macro specified number of times;
 
   The number entered before the move command (h, j, k, l, w, w, e, E, b, B) or before
-  dd, dw, dW, db, dB, de, dE, cc, cw, cW, cb, cB, ce, cE forces appropriate action
+  dd, dw, dW, db, dB, de, dE, cc, cw, cW, cb, cB, ce, cE, yy forces appropriate action
   to be done a specified number of times. For <<, >> commands this number sets the
   quantity of lines to be indented.

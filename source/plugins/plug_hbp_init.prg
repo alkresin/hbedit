@@ -45,6 +45,7 @@ FUNCTION Plug_hbp_Init( oEdit )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
+   oEdit:bNew := {|o|o:y1:= 0,o:y2 := MaxRow()}
 
    RETURN Nil
 

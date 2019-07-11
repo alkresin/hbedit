@@ -50,7 +50,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
-STATIC hKeyMap
+STATIC hKeyMap := Nil
 
 STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
@@ -367,8 +367,22 @@ METHOD Edit() CLASS TEdit
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) )
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
-      IF !Empty( hKeyMap ) .AND. ( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) ) != 0
-         nKeyExt := i
+      IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
+         IF Valtype( i ) == "N"
+            nKeyExt := i
+         ELSEIF Valtype( i ) == "A"
+            FOR n := 1 TO Len( i )
+               IF Empty( ::aPlugins[i[n],3] ) .OR. ::aPlugins[i[n],3] == ::cSyntaxType
+                  i := i[n]
+                  EXIT
+               ENDIF
+            NEXT
+            IF Valtype( i ) == "N"
+               SetCursor( SC_NONE )
+               edi_RunPlugin( Self, i )
+            ENDIF
+            LOOP
+         ENDIF
       ENDIF
       SetCursor( SC_NONE )
       ::onKey( nKeyExt )
@@ -2622,6 +2636,17 @@ FUNCTION edi_ReadIni( xIni )
                         s := Substr( s, n+1 )
                         IF ( n := At( ",", s ) ) > 0
                            Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil } )
+                           IF ( n := At( ",", s := Substr( s, n+1 ) ) ) > 0 .AND. ;
+                              ( nTemp := edi_KeyCToN(Substr(s,n+1)) ) != Nil
+                              IF hKeyMap == Nil
+                                 hKeyMap := hb_Hash()
+                              ENDIF
+                              IF !Empty( arr2 := hb_hGetDef( hKeyMap, nTemp, Nil ) )
+                                 Aadd( arr2, i )
+                              ELSE
+                                 hKeyMap[nTemp] := { i }
+                              ENDIF
+                           ENDIF
                         ENDIF
                      ENDIF
                   ENDIF
