@@ -16,8 +16,7 @@ FUNCTION Plug_prg_Run1c( oEdit )
       RETURN Nil
    ENDIF
 
-   cText := "#xtranslate ole.<ooo>.<aaa> => hb_ExecFromArray( <ooo>,<(aaa)>, {})"  + ;
-      Chr(13)+Chr(10) + "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]) => hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>})"  + ;
+   cText := "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]) => hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>})"  + ;
       Chr(13)+Chr(10) + "#xcommand TEXT TO VAR <var> => #pragma __stream|<var>:=%s" + ;
       Chr(13)+Chr(10) + "memvar oconn" + ;
       Chr(13)+Chr(10) + cText
@@ -45,13 +44,13 @@ FUNCTION Plug_prg_Run1c( oEdit )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _prg1c_ErrWin_OnKey(o,n) }
    ELSE
+      nRow := Row(); nCol := Col()
       CLEAR SCREEN
       DevPos( 0,0 )
       IF Empty( oConnection )
          _1c_Connect()
       ENDIF
       IF !Empty( oConnection )
-         nRow := Row(); nCol := Col()
          oConn := oConnection
          bOldError := Errorblock( {|e| MacroError( e ) } )
          BEGIN SEQUENCE
@@ -60,8 +59,8 @@ FUNCTION Plug_prg_Run1c( oEdit )
          Errorblock( bOldError )
          ? "Done!. Press any key"
          Inkey(0)
-         DevPos( nRow, nCol )
       ENDIF
+      DevPos( nRow, nCol )
    ENDIF
    SetColor( oEdit:cColor )
    oEdit:WriteTopPane()
@@ -87,7 +86,7 @@ FUNCTION _prg1c_ErrWin_OnKey( oEdit, nKeyExt )
          s := AllTrim( Left( s, nPos ) )
          IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
             nLine := Val( Substr( s,nPos+1 ) )
-            oEdit:oParent:GoTo( Iif(nLine>3,nLine-4,1), 1,, .T. )
+            oEdit:oParent:GoTo( Iif(nLine>3,nLine-3,1), 1,, .T. )
             oEdit:lShow := .F.
             oEdit:nCurr := Ascan( oEdit:aWindows, {|o|o==oEdit:oParent} )
          ENDIF

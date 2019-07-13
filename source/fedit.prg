@@ -2324,6 +2324,7 @@ METHOD OnExit() CLASS TEdit
 
       hb_MemoWrit( IIf( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his", s )
    ENDIF
+   edi_SetPalette( , "default" )
 
    RETURN Nil
 
@@ -4754,18 +4755,20 @@ FUNCTION edi_SetPalette( oEdit, cPalette )
    LOCAL hHili
    IF hb_hHaskey( hPalettes, cPalette ) .AND. hb_hHaskey( hPalettes[cPalette], "colors" )
       hb_gtinfo( HB_GTI_PALETTE, hPalettes[cPalette]["colors"] )
-      oEdit:cCurrPal := oEdit:cPalette := cPalette
-      hHili := hPalettes[cPalette]
-      oEdit:aHiliAttrs := hHili["attrs"]
-      oEdit:cColor     := hHili["colormain"]
-      oEdit:cColorSel  := hHili["colorsel"]
-      oEdit:cColorPane := hHili["colorpane"]
-      oEdit:cColorBra  := hHili["colorbra"]
-      oEdit:cColorMenu := hHili["colormenu"]
-      oEdit:cColorMenuSel := hHili["colormenusel"]
-      oEdit:cColorWB := hHili["colorwb"]
-      oEdit:cColorWR := hHili["colorwr"]
-      oEdit:cColorGet := hHili["colorget"]
+      IF oEdit != Nil
+         oEdit:cCurrPal := oEdit:cPalette := cPalette
+         hHili := hPalettes[cPalette]
+         oEdit:aHiliAttrs := hHili["attrs"]
+         oEdit:cColor     := hHili["colormain"]
+         oEdit:cColorSel  := hHili["colorsel"]
+         oEdit:cColorPane := hHili["colorpane"]
+         oEdit:cColorBra  := hHili["colorbra"]
+         oEdit:cColorMenu := hHili["colormenu"]
+         oEdit:cColorMenuSel := hHili["colormenusel"]
+         oEdit:cColorWB := hHili["colorwb"]
+         oEdit:cColorWR := hHili["colorwr"]
+         oEdit:cColorGet := hHili["colorget"]
+      ENDIF
    ENDIF
 
    RETURN Nil
