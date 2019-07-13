@@ -2499,11 +2499,13 @@ STATIC FUNCTION cbDele( oEdit )
    ENDIF
    RETURN Nil
 
-FUNCTION edi_2cb( oEdit, nReg )
+FUNCTION edi_2cb( oEdit, nReg, s )
 
-   LOCAL s
+   IF s == Nil
+      s := edi_GetSelected( oEdit )
+   ENDIF
 
-   IF !Empty( s := edi_GetSelected( oEdit ) )
+   IF !Empty( s )
       IF Empty( nReg )
          nReg := 1
       ELSEIF nReg >= 97 .AND. nReg <= 122
@@ -4066,6 +4068,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    LOCAL nInitPos := nx, nLen, lUtf8 := oEdit:lUtf8, ch, nch
    LOCAL lOk := .F., lAlphaNum
 
+   lBigW := Iif( lBigW == Nil, .F., lBigW )
    IF ny == Nil
       ny := oEdit:nLine
    ENDIF
@@ -4122,6 +4125,7 @@ STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
    LOCAL lUtf8 := oEdit:lUtf8
    LOCAL ch, lAlphaNum
 
+   lBigW := Iif( lBigW == Nil, .F., lBigW )
    lIn := Iif( lIn == Nil, .F., lIn )
    IF ny == Nil
       ny := oEdit:nLine
