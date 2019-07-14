@@ -5,14 +5,14 @@ STATIC lIsCurl := .F.
 
 FUNCTION Plug_WebServices( oEdit )
 
-   LOCAL cFileOut := "hbedit_curl.out", cBuff
+   LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff
    LOCAL aMenu := { "Get external IP", "Word definition", "Lorem ipsum" }, iChoic
    LOCAL nRow := Row(), nCol := Col(), cAddW := "$Result"
 
    IF !lIsCurl
-      FErase( cFileOut )
-      cedi_RunConsoleApp( "curl --version", cFileOut )
-      IF !Empty( cBuff := MemoRead( cFileOut ) ) .AND. "libcurl" $ cBuff
+      FErase( cFileRes )
+      cedi_RunConsoleApp( "curl --version", cFileRes )
+      IF !Empty( cBuff := MemoRead( cFileRes ) ) .AND. "libcurl" $ cBuff
          lIsCurl := .T.
       ELSE
          edi_Alert( "Curl must be installed to use this plugin; curl executable should be in PATH" )
@@ -22,12 +22,12 @@ FUNCTION Plug_WebServices( oEdit )
    ENDIF
 
    IF !Empty( iChoic := FMenu( oEdit, aMenu, 2, 6 ) )
-      FErase( cFileOut )
+      FErase( cFileRes )
       IF iChoic  == 1
-         cedi_RunConsoleApp( "curl ifconfig.me -o" + cFileOut )
-         IF !Empty( cBuff := MemoRead( cFileOut ) )
+         cedi_RunConsoleApp( "curl ifconfig.me -o" + cFileRes, cFileOut )
+         IF !Empty( cBuff := MemoRead( cFileRes ) )
             IF Len( cBuff ) > 20
-               edi_Alert( "Error.;See result in " + cFileOut )
+               edi_Alert( "Error.;See result in " + cFileRes )
             ELSE
                edi_2cb( oEdit,, cBuff )
                edi_Alert( cBuff )
@@ -38,8 +38,8 @@ FUNCTION Plug_WebServices( oEdit )
          edi_SelectW( oEdit )
          cBuff := cp_Substr( oEdit:lUtf8, oEdit:aText[oEdit:nLine], oEdit:nbx1, oEdit:nbx2-oEdit:nbx1 )
          IF !Empty( cBuff := _plug_GetString( oEdit, "Find word:", cBuff ) )
-            cedi_RunConsoleApp( "curl dict://dict.org/d:" + cBuff + " -o" + cFileOut )
-            IF !Empty( cBuff := MemoRead( cFileOut ) )
+            cedi_RunConsoleApp( "curl dict://dict.org/d:" + cBuff + " -o" + cFileRes, cFileOut )
+            IF !Empty( cBuff := MemoRead( cFileRes ) )
                edi_AddWindow( oEdit, cBuff, cAddW, 2, 10 )
             ELSE
                edi_Alert( "Error" )
@@ -48,8 +48,8 @@ FUNCTION Plug_WebServices( oEdit )
       ELSEIF iChoic  == 3
          edi_CloseWindow( cAddW )
          IF !Empty( cBuff := _lorem_GetString( oEdit ) )
-            cedi_RunConsoleApp( "curl " + cBuff + " -o" + cFileOut )
-            IF !Empty( cBuff := MemoRead( cFileOut ) )
+            cedi_RunConsoleApp( "curl " + cBuff + " -o" + cFileRes, cFileOut )
+            IF !Empty( cBuff := MemoRead( cFileRes ) )
                edi_AddWindow( oEdit, cBuff, cAddW, 2, 10 )
             ELSE
                edi_Alert( "Error" )

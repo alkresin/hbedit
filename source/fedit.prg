@@ -2664,23 +2664,23 @@ FUNCTION edi_ReadIni( xIni )
                      IF ( n := Ascan( aHiliOpt, arr[i] ) ) > 0
                         TEdit():aHiliAttrs[n] := cTemp
                      ELSEIF arr[i] == "colormain"
-                        TEdit:cColor := cTemp
+                        TEdit():cColor := cTemp
                      ELSEIF arr[i] == "colorsel"
-                        TEdit:cColorSel := cTemp
+                        TEdit():cColorSel := cTemp
                      ELSEIF arr[i] == "colorpane"
-                        TEdit:cColorPane := cTemp
+                        TEdit():cColorPane := cTemp
                      ELSEIF arr[i] == "colorbra"
-                        TEdit:cColorBra := cTemp
+                        TEdit():cColorBra := cTemp
                      ELSEIF arr[i] == "colormenu"
-                        TEdit:cColorMenu := cTemp
+                        TEdit():cColorMenu := cTemp
                      ELSEIF arr[i] == "colormenusel"
-                        TEdit:cColorMenuSel := cTemp
+                        TEdit():cColorMenuSel := cTemp
                      ELSEIF arr[i] == "colorwb"
-                        TEdit:cColorWB := cTemp
+                        TEdit():cColorWB := cTemp
                      ELSEIF arr[i] == "colorwr"
-                        TEdit:cColorWR := cTemp
+                        TEdit():cColorWR := cTemp
                      ELSEIF arr[i] == "colorget"
-                        TEdit:cColorGet := cTemp
+                        TEdit():cColorGet := cTemp
                      ENDIF
                   ENDIF
                NEXT
