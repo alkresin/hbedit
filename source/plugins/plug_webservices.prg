@@ -21,7 +21,7 @@ FUNCTION Plug_WebServices( oEdit )
       ENDIF
    ENDIF
 
-   IF !Empty( iChoic := FMenu( oEdit, aMenu, 2, 6 ) )
+   IF !Empty( iChoic := FMenu( oEdit, aMenu, 3, 10 ) )
       FErase( cFileRes )
       IF iChoic  == 1
          cedi_RunConsoleApp( "curl ifconfig.me -o" + cFileRes, cFileOut )
