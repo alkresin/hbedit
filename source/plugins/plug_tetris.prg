@@ -40,7 +40,7 @@ STATIC aLevelLimits := { 150, 350, 600, 900, 1300, 1900, 2700, 4000, 5500, 7500 
 STATIC aBoard[BOARD_HEIGHT,BOARD_WIDTH]
 STATIC cScreenBuff
 
-FUNCTION plug_Tetris( oEdit )
+FUNCTION plug_Tetris( oEdit, cPath )
 
    LOCAL i, cName := "$Tetris"
    LOCAL bWPane := {|o,l,y|
@@ -61,7 +61,7 @@ FUNCTION plug_Tetris( oEdit )
    }
 
    IF Empty( cIniPath )
-      Read_Tetr_Ini( cIniPath := edi_FindPath( "plugins" + hb_ps() + "tetris.ini" ) )
+      Read_Tetr_Ini( (cIniPath := cPath) + "tetris.ini" )
    ENDIF
 
    IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cName} ) ) > 0
@@ -361,9 +361,6 @@ STATIC FUNCTION Write_Tetr_Ini()
    s += "startlevel=" + Ltrim(Str( nStartLevel )) + Chr(13)+Chr(10)
    s += "maxscores=" + Ltrim(Str( nMaxScores )) + Chr(13)+Chr(10)
 
-   IF Empty( cIniPath )
-      cIniPath := edi_CurrPath() + "plugins" + hb_ps() + "tetris.ini"
-   ENDIF
-   hb_MemoWrit( cIniPath, s )
+   hb_MemoWrit( cIniPath + "tetris.ini", s )
 
    RETURN Nil

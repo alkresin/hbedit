@@ -4,7 +4,7 @@
 STATIC oConnection, oSession
 STATIC cComObject, cServerPath, cBaseName, cLogin, cPass
 
-FUNCTION Plug_prg_Run1c( oEdit )
+FUNCTION Plug_prg_Run1c( oEdit, cPath )
 
    LOCAL cText
    LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, oNew
@@ -22,7 +22,7 @@ FUNCTION Plug_prg_Run1c( oEdit )
       Chr(13)+Chr(10) + cText
 
    IF Empty( cComObject )
-      Read_1c_Ini( edi_FindPath( "plugins" + hb_ps() + "plug_1c.ini" ) )
+      Read_1c_Ini( cPath + "plug_1c.ini" )
    ENDIF
 
    edi_CloseWindow( cFile )

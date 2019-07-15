@@ -307,12 +307,12 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
             IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
                IF Valtype( xPlugin ) == "C" .AND. ;
                   !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
-                  xPlugin := ::oHili:hHili["plugin"] := hb_hrbLoad( cFullPath )
-                  IF Empty( xPlugin )
+                  xPlugin := ::oHili:hHili["plugin"] := { cFullPath, hb_hrbLoad( cFullPath ) }
+                  IF Empty( xPlugin[2] )
                      EXIT
                   ENDIF
                ENDIF
-               hb_hrbDo( xPlugin, Self )
+               hb_hrbDo( xPlugin[2], Self, hb_fnameDir( xPlugin[1] ) )
             ENDIF
             EXIT
          ENDIF
@@ -2638,7 +2638,7 @@ FUNCTION edi_ReadIni( xIni )
                      IF !Empty( edi_FindPath( "plugins" + hb_ps() + cTemp ) )
                         s := Substr( s, n+1 )
                         IF ( n := At( ",", s ) ) > 0
-                           Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil } )
+                           Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil, Nil } )
                            IF ( n := At( ",", s := Substr( s, n+1 ) ) ) > 0 .AND. ;
                               ( nTemp := edi_KeyCToN(Substr(s,n+1)) ) != Nil
                               IF hKeyMap == Nil
@@ -3744,10 +3744,11 @@ FUNCTION edi_RunPlugin( oEdit, xPlugin )
          cPlugin := TEdit():aPlugins[i,1]
          IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
             TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
+            TEdit():aPlugins[i,5] := cFullPath
          ENDIF
       ENDIF
       IF !Empty( TEdit():aPlugins[i,4] )
-         hb_hrbDo( TEdit():aPlugins[i,4], oEdit )
+         hb_hrbDo( TEdit():aPlugins[i,4], oEdit, hb_fnameDir( TEdit():aPlugins[i,5] ) )
       ENDIF
    ENDIF
 

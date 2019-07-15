@@ -1952,3 +1952,10 @@ REQUEST CEDI_RUNCONSOLEAPP, CEDI_REDIRON, CEDI_REDIROFF, CEDI_GETLASTPOS, CEDI_P
 REQUEST WIN_OLECREATEOBJECT
 #endif
 REQUEST HB_COMPILEFROMBUF
+
+#ifdef _SQLITE3
+REQUEST sqlite3_open, sqlite3_open_v2, sqlite3_exec, sqlite3_prepare, sqlite3_step
+REQUEST sqlite3_column_int, sqlite3_column_text, sqlite3_column_int64, sqlite3_column_blob
+REQUEST sqlite3_bind_text, sqlite3_bind_int, sqlite3_bind_int64, sqlite3_bind_blob
+REQUEST sqlite3_column_type, sqlite3_clear_bindings, sqlite3_finalize, sqlite3_errcode
+#endif
