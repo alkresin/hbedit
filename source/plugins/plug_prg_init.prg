@@ -25,9 +25,9 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
    }
    LOCAL bOnKey := {|o,n|
       LOCAL nRes := _prg_Init_OnKey(o,n)
-      //IF bOnKeyOrig != Nil .AND. nRes >= 0
-      //   nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
-      //ENDIF
+      IF bOnKeyOrig != Nil .AND. nRes >= 0
+         nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
+      ENDIF
       RETURN nRes
    }
 
