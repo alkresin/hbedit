@@ -78,14 +78,14 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
          DevOut( cSea )
       ENDIF
       SetColor( clrMenu )
-      nKey := Inkey( 0, INKEY_ALL )
+      nKeyMapped := nKey := Inkey( 0, INKEY_ALL )
       IF nKey == K_MOUSEMOVE .OR. nKey == K_NCMOUSEMOVE
          LOOP
       ENDIF
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
       IF ( lSea .AND. ( ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) );
-            .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 47 + nLen) ;
-            .OR. ( (nKeyMapped := edi_MapKey(obj,nKey))>= 97 .AND. nKeyMapped <= 86 + nLen) ) ) ;
+            .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 57) ;
+            .OR. ( (nKeyMapped := edi_MapKey(obj,nKey))>= 97 .AND. nKeyMapped <= 122) ) ) ;
             .OR. nKey == K_LBUTTONDOWN .OR. nKey == K_ENTER .OR. ( lMulti .AND. nKey == K_SPACE )
 
          IF nKey == K_LBUTTONDOWN
@@ -118,11 +118,11 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                ENDIF
                LOOP
             ELSE
-               IF nkey <= 57
-                  i := nKey - 47
-               ELSE
-                  i := nKeyMapped - 86
+               j := Ascan( arr, {|s|Asc(s) == nKeyMapped} )
+               IF j == 0 .OR. j > nLen
+                  LOOP
                ENDIF
+               i := j
                IF i > (y2-y1-1)
                   IF i - nFirst + 1 > nHeight
                      nFirst := i - nHeight + 1
@@ -134,33 +134,36 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                ENDIF
             ENDIF
          ENDIF
-         @ y1 + i, x1 + 2 SAY arr[i+nFirst-1] COLOR clrMenuSel
-         IF !(Right(arr[i+nFirst-1],1) == ">") .AND. !(nKey == K_ENTER)
-            Inkey( 0.3 )
-         ENDIF
 
-         IF lMulti
-            xRes := {}
-            FOR j := 1 TO Len( arr )
-               IF Asc( arr[j] ) != 32
-                  Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) )
+         @ y1 + i, x1 + 2 SAY arr[i+nFirst-1] COLOR clrMenuSel
+         IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+            IF !(Right(arr[i+nFirst-1],1) == ">") .AND. !(nKey == K_ENTER)
+               Inkey( 0.3 )
+            ENDIF
+
+            IF lMulti
+               xRes := {}
+               FOR j := 1 TO Len( arr )
+                  IF Asc( arr[j] ) != 32
+                     Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) )
+                  ENDIF
+               NEXT
+               IF Empty( xRes )
+                  xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,i), i) + nFirst - 1 }
                ENDIF
-            NEXT
-            IF Empty( xRes )
-               xRes := { Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,i), i) + nFirst - 1 }
-            ENDIF
-         ELSE
-            IF !Empty( aSea ) .AND. nLen < Len( aMenu )
-               i := Ascan( aSea, i )
-            ENDIF
-            IF lSingle .OR. Empty(aMenu[i,2])
-               xRes := i + nFirst - 1
             ELSE
-               DevPos( y1 + i, x2 )
-               xRes := aMenu[i+nFirst-1,2]:exec( obj, Iif( Len(aMenu[i+nFirst-1])>2,aMenu[i+nFirst-1,3],Nil ) )
+               IF !Empty( aSea ) .AND. nLen < Len( aMenu )
+                  i := Ascan( aSea, i )
+               ENDIF
+               IF lSingle .OR. Empty(aMenu[i,2])
+                  xRes := i + nFirst - 1
+               ELSE
+                  DevPos( y1 + i, x2 )
+                  xRes := aMenu[i+nFirst-1,2]:exec( obj, Iif( Len(aMenu[i+nFirst-1])>2,aMenu[i+nFirst-1,3],Nil ) )
+               ENDIF
             ENDIF
+            lDo := .F.
          ENDIF
-         lDo := .F.
 
       ELSEIF nKey == K_BS
          IF lSea .AND. !Empty( cSea )
@@ -248,7 +251,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
    LOCAL i, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
-   LOCAL cs, nDop, l, cLine, aSeaTmp
+   LOCAL cPrefix, cs, nDop, l, cLine, aSeaTmp
 
    IF lSea .AND. !Empty( cSearch )
       aSeaTmp := Array( Len( aMenu) )
@@ -270,15 +273,18 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
       IF ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 ) .AND. ;
          ( bSea == Nil .OR. Eval( bSea, 1, cSearch, cLine ) )
          nLenArr ++
+         IF Substr( Iif( lSingle,aMenu[i],aMenu[i,1] ), 2, 2 ) == ": "
+            cPrefix := ""
+         ELSE
+            cPrefix := Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " )
+         ENDIF
          IF lSingle
-            arr[nLenArr] := PAdr( Iif( i>36.OR.lSea, "   ", ;
-               Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + aMenu[i], nSize )
+            arr[nLenArr] := PAdr( cPrefix + aMenu[i], nSize )
          ELSE
             IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4]), 0 ) ) > 0
                nDop := nSize - nDop - Len(aMenu[i,1]) - 3
             ENDIF
-            arr[nLenArr] := PAdr( Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " ) + ;
-               aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
+            arr[nLenArr] := PAdr( cPrefix + aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
          ENDIF
          l := .T.
       ENDIF

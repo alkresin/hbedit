@@ -2148,7 +2148,8 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
    ENDIF
 
    ::aCBoards[CBOARD_MINUS,1] := cTextOld
-   ::aCBoards[CBOARD_MINUS,2] := ::aCBoards[CBOARD_MINUS,3] := Nil
+   ::aCBoards[CBOARD_MINUS,2] := ::cp
+   ::aCBoards[CBOARD_MINUS,3] := Nil
    IF Empty( lNoUndo )
       ::Undo( nLine1, nPos1, nLine2, nPos2, UNDO_OP_DEL, cTextOld )
    ENDIF
@@ -2385,7 +2386,7 @@ FUNCTION edi_GetSelected( oEdit )
 FUNCTION cb2Text( oEdit, nReg, lToText )
 
    LOCAL arr, aMenu_CB, nLen := 1
-   LOCAL i, j, s, lVert, nPos
+   LOCAL i, j, s, lVert, nPos, cPref
 
    IF lToText == Nil; lToText := .T.; ENDIF
    IF nReg == Nil
@@ -2406,20 +2407,24 @@ FUNCTION cb2Text( oEdit, nReg, lToText )
          s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
          IF !( s == TEdit():aCBoards[1,1] )
             TEdit():aCBoards[1,1] := s
-            TEdit():aCBoards[1,2] := Nil
+            TEdit():aCBoards[1,2] := oEdit:cp
             TEdit():aCBoards[1,3] := Nil
          ENDIF
       ELSE
          s := TEdit():aCBoards[nReg,1]
       ENDIF
       lVert := !Empty( TEdit():aCBoards[nReg,3] )
+      IF !Empty( TEdit():aCBoards[nReg,2] ) .AND. !( TEdit():aCBoards[nReg,2] == oEdit:cp )
+         s := hb_Translate( s, TEdit():aCBoards[nReg,2], oEdit:cp )
+      ENDIF
    ELSE
       aMenu_CB := Array( nLen,3 )
       j := 0
       FOR i := 1 TO MAX_CBOARDS
          IF !Empty( TEdit():aCBoards[i,1] )
             j ++
-            aMenu_CB[j,1] := cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
+            cPref := Iif( i == 1, "0: ", Iif( i == MAX_CBOARDS, "-: ", Chr( i + 95 ) + ": " ) )
+            aMenu_CB[j,1] := cPref + cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
             aMenu_CB[j,2] := Nil; aMenu_CB[j,3] := i
             IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
                aMenu_CB[j,1] := hb_Translate( aMenu_CB[j,1], TEdit():aCBoards[i,2], oEdit:cp )
@@ -2516,7 +2521,7 @@ FUNCTION edi_2cb( oEdit, nReg, s )
       IF nReg == 1
          hb_gtInfo( HB_GTI_CLIPBOARDDATA, s )
       ENDIF
-      TEdit():aCBoards[nReg,2] := Nil
+      TEdit():aCBoards[nReg,2] := oEdit:cp
       TEdit():aCBoards[nReg,3] := Iif( oEdit:nSeleMode==2,.T.,Nil )
    ENDIF
 
@@ -2801,7 +2806,11 @@ FUNCTION edi_ReadIni( xIni )
    ENDIF
 
    TEdit():aCBoards := Array( MAX_CBOARDS,3 )
-   FOR i := 1 TO MAX_CBOARDS
+   TEdit():aCBoards[1,1] := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
+   TEdit():aCBoards[1,2] := TEdit():cpInit
+   TEdit():aCBoards[1,3] := Nil
+
+   FOR i := 2 TO MAX_CBOARDS
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 
@@ -3064,7 +3073,7 @@ FUNCTION mnu_Selection( oEdit )
 
 FUNCTION mnu_F3( oEdit, nSeleMode )
 
-   LOCAL i, aMenu_CB
+   LOCAL i, aMenu_CB, cPref
 
    nSeleMode := Iif( Empty( nSeleMode ), 0, nSeleMode )
 
@@ -3087,15 +3096,13 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
    oEdit:lF3 := !oEdit:lF3
    IF !oEdit:lF3
       aMenu_CB := Array(MAX_EDIT_CBOARDS,3)
-      //FOR i := 1 TO MAX_EDIT_CBOARDS
-      //   aMenu_CB[i] := { Nil,, i }
-      //NEXT
 
       TEdit():aCBoards[1,1] := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
-      TEdit():aCBoards[1,2] := Nil
+      TEdit():aCBoards[1,2] := oEdit:cp
       TEdit():aCBoards[1,3] := Nil
       FOR i := 1 TO MAX_EDIT_CBOARDS
-         aMenu_CB[i,1] := cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
+         cPref := Iif( i == 1, "0: ", Chr( i + 95 ) + ": " )
+         aMenu_CB[i,1] := cPref + cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
          IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
             aMenu_CB[i,1] := hb_Translate( aMenu_CB[i,1], TEdit():aCBoards[i,2], oEdit:cp )
             aMenu_CB[i,2] := Nil; aMenu_CB[i,3] := i
