@@ -341,7 +341,14 @@ FUNCTION cmd_Quit( oEdit, acmd )
 
 FUNCTION MacroError( e )
 
-   edi_Alert( ErrorMessage( e ) )
+   LOCAL cMessage := ErrorMessage( e ), i := 2
+
+   DO WHILE ( !Empty( Procname( i ) ) )
+      cMessage += ";Called from " + Trim( Procname( i ) ) + "(" + LTrim( Str( Procline( i ) ) ) + ")"
+      i ++
+   ENDDO
+
+   edi_Alert( cMessage )
    BREAK
 RETURN .T.
 
