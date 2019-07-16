@@ -273,7 +273,8 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
       IF ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 ) .AND. ;
          ( bSea == Nil .OR. Eval( bSea, 1, cSearch, cLine ) )
          nLenArr ++
-         IF Substr( Iif( lSingle,aMenu[i],aMenu[i,1] ), 2, 2 ) == ": "
+         IF ( cPrefix := Substr( Iif( lSingle,aMenu[i],aMenu[i,1] ), 2, 2 ) ) == ": " ;
+            .OR. cPrefix == "--"
             cPrefix := ""
          ELSE
             cPrefix := Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " )

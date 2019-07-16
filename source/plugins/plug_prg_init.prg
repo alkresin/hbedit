@@ -64,13 +64,12 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _ctrlh( oEdit )
 
-   LOCAL aMenu := { "HwGUI functions" }, i, cAddW := "$Functions", cFile := "hwg_funcs.txt"
+   LOCAL aMenu := { "HwGUI functions" }, i, cFile := "hwg_funcs.txt"
    LOCAL arrfuncs, nCol := Col(), nRow := Row()
 
    i := FMenu( oEdit, aMenu, 2, 6 )
    IF i == 1
-      edi_CloseWindow( cAddW )
-      arrfuncs := MemoRead( cIniPath + cFile )
+      arrfuncs := hb_ATokens( MemoRead( cIniPath + cFile ), Chr(13)+Chr(10) )
       IF !Empty( arrfuncs )
          IF ( i := FMenu( oEdit, arrfuncs, 2, 6 ) ) > 0
             edi_2cb( oEdit,, arrfuncs[i] )
@@ -91,9 +90,10 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), nRes
    LOCAL aGets := { {10,22,0,"",32}, ;
       {11,23,1,.T.,1}, {11,40,1,.F.,1}, {12,23,1,.F.,1}, {12,40,1,.F.,1}, ;
-      {14,28,2,"[Info]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {14,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff
+      {13,23,1,.T.,1}, ;
+      {15,28,2,"[Info]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff, cAddW := "$FuncInfo", o
 
    IF ( nPos := At( '(', sFunc ) ) > 0
       sFunc := AllTrim( Left( sFunc, nPos-1 ) )
@@ -104,14 +104,15 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    ENDIF
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 15, 58 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 13, 20 SAY "Ã"
-   @ 13, 58 SAY "´"
-   @ 13, 21 TO 13, 57
+   @ 09, 20, 16, 58 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 14, 20 SAY "Ã"
+   @ 14, 58 SAY "´"
+   @ 14, 21 TO 14, 57
    hb_cdpSelect( oEdit:cp )
 
    @ 11, 22 SAY "[ ] Description  [ ] Sources"
    @ 12, 22 SAY "[ ] Changelog    [ ] Samples"
+   @ 13, 22 SAY "[ ] Russian language"
 
    IF ( nRes := edi_READ( aGets ) ) == 0 .OR. nRes == Len(aGets)
       RETURN Nil
@@ -140,7 +141,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
       cServAddr := Substr( cBuff, 6 )
    ENDIF
 
-   sFunc := "?f=" + sFunc + "&o="
+   sFunc := "?f=" + sFunc + "&" + "o="
    IF aGets[2,4]
       sFunc += "d"
    ENDIF
@@ -153,6 +154,9 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    IF aGets[5,4]
       sFunc += "t"
    ENDIF
+   IF aGets[6,4]
+      sFunc += "ru"
+   ENDIF
 
    FErase( cFileRes )
    cedi_RunConsoleApp( "curl " + cServAddr + sFunc + " -o" + cFileRes, cFileOut )
@@ -160,6 +164,13 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
       edi_Alert( "Error" )
       RETURN Nil
    ENDIF
-   edi_Alert( cBuff )
+
+   IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
+      o := oEdit:aWindows[nPos]
+      o:SetText( cBuff, cAddW )
+      mnu_ToBuf( oEdit, nPos )
+   ELSE
+      edi_AddWindow( oEdit, cBuff, cAddW, 2, 10, "UTF8" )
+   ENDIF
 
    RETURN Nil
