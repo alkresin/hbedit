@@ -1021,6 +1021,19 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_Exit( Self )
                ENDIF
             ELSEIF nKey == 111   // o
+               IF ::oParent != Nil
+                  edi_CloseWindow( Self, .F. )
+                  ::oParent := Nil
+                  ::y1 := ::aRect[1] := ::aRectFull[1]
+                  ::x1 := ::aRect[2] := ::aRectFull[2]
+                  ::y2 := ::aRect[3] := ::aRectFull[3]
+                  ::x2 := ::aRect[4] := ::aRectFull[4]
+                  IF ::lTopPane
+                     ::y1 ++
+                  ENDIF
+                  ::TextOut()
+                  edi_SetPos( Self )
+               ENDIF
             ELSEIF nKey == 43    // +
             ELSEIF nKey == 45    // -
             ELSEIF nKey == 60    // <
@@ -4591,7 +4604,7 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace, cp )
 
    RETURN oNew
 
-FUNCTION edi_CloseWindow( xEdit )
+FUNCTION edi_CloseWindow( xEdit, lClose )
 
    LOCAL oEdit, i, o, lUpd, lv := .F., lh := .F.
 
@@ -4658,7 +4671,9 @@ FUNCTION edi_CloseWindow( xEdit )
          ENDIF
       ENDDO
       TEdit():aWindows[xEdit]:oParent := Nil
-      hb_ADel( TEdit():aWindows, xEdit, .T. )
+      IF lClose == Nil .OR. lClose
+         hb_ADel( TEdit():aWindows, xEdit, .T. )
+      ENDIF
    ENDIF
 
    RETURN Nil

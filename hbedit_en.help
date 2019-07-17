@@ -42,6 +42,7 @@ relevant functions, so you can use it as a reference.
    Ctrl-w,v            split window vertically and open the same file in readonly mode;
    Ctrl-w,w            switch window.
    Ctrl-w,c            close window.
+   Ctrl-w,o            open window fully.
 
    There are a total of 4 modes in Hbedit: Edit (Edit), Select (Sele),
 Vim-like (Vim) and command (Cmd).
