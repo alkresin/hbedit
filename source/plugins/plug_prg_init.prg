@@ -1,6 +1,6 @@
-#define CTRL_PRESSED  0x020000
-#define K_CTRL_H      8
-#define K_CTRL_I      9
+#define ALT_PRESSED   0x040000
+#define K_ALT_D   288
+#define K_ALT_I   279
 #define K_ENTER    13
 #define K_ESC      27
 
@@ -16,7 +16,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
       SetColor( o:cColorPane )
       Scroll( y, o:x1 + 8, y, o:x2 )
       DevPos( y, o:x1 + 8 )
-      DevOut( "Harbour plugin:  Ctrl-H Help  Ctrl-I Info" )
+      DevOut( "Harbour plugin:  Alt-D Dictionary  Alt-I Info" )
       SetColor( o:cColor )
       o:bStartEdit := Nil
       DevPos( nRow, nCol )
@@ -44,13 +44,13 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cWord
 
-   IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
-      IF nKey == K_CTRL_H
+   IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+      IF nKey == K_ALT_D
          _ctrlh( oEdit )
          DevPos( nRow, nCol )
          oEdit:TextOut()
          RETURN -1
-      ELSEIF nKey == K_CTRL_I
+      ELSEIF nKey == K_ALT_I
          edi_SelectW( oEdit )
          cWord := cp_Substr( oEdit:lUtf8, oEdit:aText[oEdit:nLine], oEdit:nbx1, oEdit:nbx2-oEdit:nbx1 )
          _GetFuncInfo( oEdit, cWord )
