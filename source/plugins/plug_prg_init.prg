@@ -159,7 +159,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    ENDIF
 
    FErase( cFileRes )
-   cedi_RunConsoleApp( "curl " + cServAddr + sFunc + " -o" + cFileRes, cFileOut )
+   cedi_RunConsoleApp( 'curl "' + cServAddr + sFunc + '" -o' + cFileRes, cFileOut )
    IF Empty( cBuff := MemoRead( cFileRes ) )
       edi_Alert( "Error" )
       RETURN Nil
