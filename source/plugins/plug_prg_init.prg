@@ -6,6 +6,7 @@
 
 STATIC cIniPath
 STATIC lIsCurl := .F., cServAddr
+STATIC lDescri := .T., lSources := .F., lChglog := .F., lSamples := .F., lRu := .F.
 
 FUNCTION Plug_prg_Init( oEdit, cPath )
 
@@ -89,8 +90,8 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    LOCAL nPos
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), nRes
    LOCAL aGets := { {10,22,0,"",32}, ;
-      {11,23,1,.T.,1}, {11,40,1,.F.,1}, {12,23,1,.F.,1}, {12,40,1,.F.,1}, ;
-      {13,23,1,.T.,1}, ;
+      {11,23,1,lDescri,1}, {11,40,1,lSources,1}, {12,23,1,lChglog,1}, {12,40,1,lSamples,1}, ;
+      {13,23,1,lRu,1}, ;
       {15,28,2,"[Info]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff, cAddW := "$FuncInfo", o
@@ -142,19 +143,19 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    ENDIF
 
    sFunc := "?f=" + sFunc + "&" + "o="
-   IF aGets[2,4]
+   IF ( lDescri := aGets[2,4] )
       sFunc += "d"
    ENDIF
-   IF aGets[3,4]
+   IF ( lSources := aGets[3,4] )
       sFunc += "s"
    ENDIF
-   IF aGets[4,4]
+   IF ( lChglog := aGets[4,4] )
       sFunc += "c"
    ENDIF
-   IF aGets[5,4]
+   IF ( lSamples := aGets[5,4] )
       sFunc += "t"
    ENDIF
-   IF aGets[6,4]
+   IF ( lRu := aGets[6,4] )
       sFunc += "ru"
    ENDIF
 
