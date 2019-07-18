@@ -65,12 +65,16 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _ctrlh( oEdit )
 
-   LOCAL aMenu := { "HwGUI functions" }, i, cFile := "hwg_funcs.txt"
-   LOCAL arrfuncs, nCol := Col(), nRow := Row()
+   LOCAL aMenu := { "HwGUI functions" }, i, j, cFile := "hwg_funcs.txt"
+   LOCAL arrfuncs, nCol := Col(), nRow := Row(), cEol := Chr(10)
 
    i := FMenu( oEdit, aMenu, 2, 6 )
    IF i == 1
-      arrfuncs := hb_ATokens( MemoRead( cIniPath + cFile ), Chr(13)+Chr(10) )
+      arrfuncs := MemoRead( cIniPath + cFile )
+      IF ( j := At( cEol, arrfuncs ) ) > 1 .AND. Substr( arrfuncs, j-1, 1 ) == Chr(13)
+         cEol := Chr(13) + cEol
+      ENDIF
+      arrfuncs := hb_ATokens( arrfuncs, cEol )
       IF !Empty( arrfuncs )
          IF ( i := FMenu( oEdit, arrfuncs, 2, 6 ) ) > 0
             edi_2cb( oEdit,, arrfuncs[i] )
