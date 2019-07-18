@@ -133,7 +133,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
    IF Empty( cServAddr )
       FErase( cFileRes )
-      cedi_RunConsoleApp( "curl www.kresin.ru/php/getad.php -o" + cFileRes, cFileOut )
+      cedi_RunConsoleApp( "curl www.kresin.ru/php/getad.php -s -o" + cFileRes, cFileOut )
       IF Empty( cBuff := MemoRead( cFileRes ) ) .OR. Left( cBuff, 5 ) != "addr:"
          edi_Alert( "Error" )
          RETURN Nil
@@ -159,7 +159,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    ENDIF
 
    FErase( cFileRes )
-   cedi_RunConsoleApp( 'curl "' + cServAddr + sFunc + '" -o' + cFileRes, cFileOut )
+   cedi_RunConsoleApp( 'curl "' + cServAddr + sFunc + '" -s -o' + cFileRes, cFileOut )
    IF Empty( cBuff := MemoRead( cFileRes ) )
       edi_Alert( "Error" )
       RETURN Nil
