@@ -211,7 +211,7 @@ HB_FUNC( CEDI_REDIROFF )
    fclose( ( istd == 1 ) ? stdout : stderr );
 }
 
-#define BUFSIZE  1024
+#define BUFSIZE  4096
 
 #if defined(__linux__) || defined(__unix__)
 
@@ -273,7 +273,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    sa.lpSecurityDescriptor = NULL;
 
    // Create a pipe for the child process's STDOUT.
-   if( !CreatePipe( &g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &sa, 0 ) )
+   if( !CreatePipe( &g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &sa, 32768 ) )
    {
       hb_retni( 1 );
       return;
@@ -307,7 +307,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       return;
    }
 
-   WaitForSingleObject( pi.hProcess, INFINITE );
+   WaitForSingleObject( pi.hProcess, 8000 ); //INFINITE );
    GetExitCodeProcess( pi.hProcess, &dwExitCode );
    CloseHandle( pi.hProcess );
    CloseHandle( pi.hThread );
