@@ -1,0 +1,1523 @@
+AAdd( <aArray>, [<xValue>] )
+Abs( <nNumber> )
+accelerator
+AChoice( <nTop>, <nLeft>, <nBottom>, <nRight>, <acMenuItems>,...
+AClone( <aSource> )
+ACopy( <aSource>, <aTarget>, [<nStart>], [<nCount>], [<nTarge...
+ADel( <aArray>, <nPos> )
+ADir( [<cFileMask>], [<aName>], [<aSize>], [<aDate>], [<aTime...
+AEval( <aArray>, <bBlock>, [<nStart>], [<nCount>] )
+AFields( <aNames>, [<aTypes>], [<aLen>], [<aDecs>] )
+AFill( <aArray>, <xValue>, [<nStart>], [<nCount>] )
+AIns( <aArray>, <nPos> )
+Alert( <xMessage>, [<aOptions>], [<cColorNorm>], [<nDelay>] )
+Alias( [<nWorkArea>] )
+AllTrim( <cString> )
+ALTD([<nAction>])
+ampm
+applydefau
+Array( <nElements>[, <nElements>...] )
+Asc( <cCharacter> )
+AScan( <aArray>, <xSearch>, [<nStart>], [<nCount>] )
+ASize( <aArray>, <nLen> )
+ASort( <aArray>, [<nStart>], [<nCount>], [<bSort>] )
+At( <cSearch>, <cString> )
+ATail( <aArray> )
+Bin2I( <cBuffer> )
+Bin2L( <cBuffer> )
+Bin2W( <cBuffer> )
+Bof()
+Break( <xExp> )
+Browse( [<nTop>, <nLeft>, <nBottom>, <nRight>] )
+buttndefco
+CDoW( <dDate> )
+cftsadd
+cftsclose
+cftscrea
+cftsdelete
+cftsifdel
+cftsnext
+cftsopen
+cftsrecn
+cftsreplac
+cftsset
+cftsundel
+cftsveri
+cftsvers
+checkbox
+checkdefco
+Chr( <nAsciiNum> )
+CMonth( <dDate> )
+Col()
+COLORSELECT(<nColorIndex>)
+combodefco
+CToD( <cDateString> )
+CurDir( [<cDrive>] )
+Date()
+Day( <cDate> )
+Days( <nSecs> )
+dbAppend( [<lLock>] )
+dbClearFilter()
+DBCLEARINDEX()
+DBCLEARRELATION()
+dbCloseAll()
+dbCloseArea()
+dbCommit()
+dbCommitAll()
+dbCreate( <cDatabase>, <aStruct>, [<cDriver>], [<lOpen>], [<c...
+dbcreateindex
+dbDelete()
+dbdrop
+dbEdit( [<nTop>], [<nLeft>], [<nBottom>], [<nRight>], [<acCol...
+dbEval( <bBlock>, [<bFor>], [<bWhile>],
+dbexists
+Dbf()
+dbfblob
+DBFIELDINFO(<nInfoType>, <nFieldPos>, [<expNewSetting>])
+DBFILEGET(<nFieldPos>, <cTargetFile>, <nMode>)
+DBFILEPUT(<nFieldPos>, <cSourceFile>)
+dbFilter()
+dbGoBottom()
+dbGoto( <xRecordNumber> )
+dbGoTop()
+dbgshadow
+DBINFO(<nInfoType>, [<expNewSetting>])
+DBORDERINFO(<nInfoType>,   [<cIndexFile>], [<cOrder> | <nPosi...
+dbRecall()
+DBRECORDINFO(<nInfoType>, [<nRecord>], [<expNewSetting>])
+DBREINDEX()
+DBRELATION(<nRelation>)
+dbrename
+dbRLock( [<xIdentity>] )
+dbrlocklis
+dbRLockList()
+DBRSELECT(<nRelation>)
+dbRUnlock( [<xIdentity>] )
+dbSeek( <expKey>, [<lSoftSeek>], [<lFindLast>] )
+dbSelectArea( <xArea> ) -
+dbSetDriver( [<cDriver>] )
+dbSetFilter( <bCondition>, [<cCondition>] )
+DBSETINDEX(<cOrderBagName>)
+dbsetorder
+DBSETRELATION(<nArea> | <cAlias>, <bExpr>, <cExpr>)
+dbSkip( [<nRecords>] )
+dbStruct()
+dbtableext
+dbUnlock()
+dbUnlockAll()
+dbUseArea( [<lNewArea>], [<cDriver>], <cName>, [<xcAlias>], [...
+defpath
+Deleted()
+Descend( <xExp> )
+DEVOUT(<exp>, [<cColorString>])
+DevOutPict( <xExp>, <cPicture>, [<cColorString>] )
+DEVPOS(<nRow>, <nCol>)
+DirChange( <cDirectory> )
+DIRECTORY(<cDirSpec>, [<cAttributes>])
+DirRemove( <cDirectory> )
+DISKCHANGE(<cDrive>)
+DISKNAME()
+DiskSpace( [<nDrive>] )
+DISPBEGIN()
+DISPBOX(<nTop>, <nLeft>, <nBottom>, <nRight>, [<cnBoxString>]...
+DISPCOUNT()
+DISPEND()
+DISPOUT(<exp>, [<cColorString>])
+dispoutat
+Do( <xFuncProc> [, <xArguments...>] )
+DOSERROR([<nNewOsCode>])
+DoW( <dDate> )
+DToC( <dDateString> )
+DToS( <dDateString> )
+ElapTime( <cStartTime>, <cEndTime> )
+Empty( <xExp> )
+Eof()
+erasegetmsg
+ERRORBLOCK([<bErrorHandler>])
+errorinhandler
+ERRORLEVEL([<nNewReturnCode>])
+errornew
+ErrorSys()
+Eval( <bBlock> [, <xVal> [,...] ] )
+Exp( <nNumber> )
+FClose( <nHandle> )
+FCount()
+FCreate( <cFile>, [<nAttribute>] )
+FErase( <cFile> )
+FError()
+FieldBlock( <cFieldName> )
+fielddec
+FieldGet( <nField> )
+fieldlen
+FieldName()/Field( <nPosition> )
+FieldPos( <cFieldName> )
+FieldPut( <nField>, <expAssign> )
+fieldtype
+FieldWBlock( <cFieldName>, <nWorkArea> )
+File( <cFileSpec> )
+FKLABEL(<nFunctionKey>)
+FKMAX()
+FLock()
+FOpen( <cFile>, [<nMode>] )
+Found()
+FRead( <nHandle>, @<cBuffer>, <nBytes> )
+FReadStr( <nHandle>, <nBytes> )
+FRename( <cOldFile>, <cNewFile> )
+FSeek( <nHandle>, <nOffset>, [<nOrigin>] )
+fsetdevmod
+FWrite( <nHandle>, <cBuffer>, [<nBytes>] )
+GETACTIVE([<oGet>])
+GETAPPLYKEY(<oGet>, <nKey>, <GetList>, <oMenu>, <nMsgRow>, <n...
+getclrback
+getclrfore
+getclrpair
+GETDOSETKEY(<bKeyBlock>, <oGet>)
+GetE( <cEnviroment> )
+GetEnv( <cEnviroment> )
+getnew
+getpairlen
+getpairpos
+getpostvalidate
+getprevalidate
+GETREADER(<oGet>, <GetList>, <oMenu>, <nMsgRow>, <nMsgLeft>, ...
+guiapplykey
+guipostvalidate
+guiprevalidate
+guireader
+HardCR( <cString> )
+hb_acmdline
+hb_ADel( <aArray>, [<nPos>], [<lAutoSize>] )
+hb_adler32
+hb_AIns( <aArray>, [<nPos>], [<xValue>], [<lAutoSize>] )
+hb_alert
+hb_ansitooem
+hb_aparams
+hb_argc
+hb_argcheck
+hb_argshift
+hb_argstring
+hb_argv
+hb_arraytoparams
+hb_AScan( <aArray>, <xSearch>, [<nStart>], [<nCount>], [<lExa...
+hb_asciiisalpha
+hb_asciiisdigit
+hb_asciiislower
+hb_asciiisupper
+hb_asciilower
+hb_asciiupper
+hb_At( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
+hb_AtI( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
+hb_ATokens( <cString>, [<cDelim>|<lEOL>], [<lSkipStrings>], ;...
+hb_atx
+hb_base64decode
+hb_base64encode
+hb_bat
+hb_bchar
+hb_bcode
+hb_bitand
+hb_bitnot
+hb_bitor
+hb_bitreset
+hb_bitset
+hb_bitshift
+hb_bittest
+hb_bitxor
+hb_bleft
+hb_blen
+hb_blowfishdecrypt
+hb_blowfishdecrypt_cfb
+hb_blowfishencrypt
+hb_blowfishencrypt_cfb
+hb_blowfishkey
+hb_bpadc
+hb_bpadl
+hb_bpadr
+hb_bpeek
+hb_bpoke
+hb_brat
+hb_bright
+hb_bstuff
+hb_bsubstr
+hb_builddate
+hb_byteswapi
+hb_byteswapl
+hb_byteswapll
+hb_byteswapu
+hb_byteswapw
+hb_cday
+hb_cdpcharmax
+hb_cdpexists
+hb_cdpinfo
+hb_cdpischaridx
+hb_cdpisutf8
+hb_cdplist
+hb_cdpos
+hb_cdpSelect( [<cNewLang>] )
+hb_cdpterm
+hb_cdpuniid
+hb_clocks2secs
+hb_clrarea
+hb_cmdline
+hb_ColorIndex( <cColorSpec>, <nIndex> )
+hb_colorton
+hb_comclose
+hb_comdiscardchar
+hb_comerrorchar
+hb_comfindport
+hb_comflowchars
+hb_comflowcontrol
+hb_comflowset
+hb_comflush
+hb_comgetdevice
+hb_comgetdevicehandle
+hb_comgeterror
+hb_comgetoserror
+hb_cominit
+hb_cominputcount
+hb_cominputstate
+hb_comlastnum
+hb_comlsr
+hb_commcr
+hb_commsr
+hb_comopen
+hb_comoutputcount
+hb_comoutputstate
+hb_compiler
+hb_comrecv
+hb_comsend
+hb_comsendbreak
+hb_comsetdevice
+hb_comseterror
+hb_crc
+hb_crc16
+hb_crc32
+hb_crcct
+hb_cstr
+hb_ctod
+hb_ctot
+hb_curdrive
+hb_cwd
+hb_date
+hb_datetime
+hb_dbcreatetemp
+hb_dbdetach
+hb_dbdrop
+hb_dbexists
+hb_dbgetfilter
+hb_dbpack
+hb_dbrename
+hb_dbrequest
+hb_dbzap
+hb_default
+hb_defaultvalue
+hb_deserialize
+hb_dirbase
+hb_dirbuild
+hb_dircreate
+hb_dirdelete
+hb_directory
+hb_direxists
+hb_dirremoveall
+hb_dirscan
+hb_dirsepadd
+hb_dirsepdel
+hb_dirseptoos
+hb_dirtemp
+hb_dirunbuild
+hb_disablewaitlocks
+hb_DiskSpace( [<cDrive>] [, <nType>] )
+hb_dispbox
+hb_dispoutat
+hb_dispoutatbox
+hb_dtoc
+hb_DToT( <dDate> [, <cTime|nSeconds>] )
+hb_dyncall
+hb_endobject
+hb_eol()
+hb_execfromarray
+hb_execmsg
+hb_fcommit
+hb_fcopy
+hb_fcreate
+hb_FEof( <nHandle> )
+hb_fgetattr
+hb_fgetdatetime
+hb_fielddec
+hb_fieldlen
+hb_fieldtype
+hb_filedelete
+hb_fileexists
+hb_filematch
+hb_fisdevice
+hb_flink
+hb_flinkread
+hb_flinksym
+hb_FLock( <nHandle>, <nOffset>, <nBytes> [, <nType ] )
+hb_fnamedir
+hb_fnameexists
+hb_fnameext
+hb_fnameextset
+hb_fnameextsetdef
+hb_fnamemerge
+hb_fnamename
+hb_fnamenameext
+hb_fnamesplit
+hb_fornext
+hb_freadlen
+hb_fsetattr
+hb_fsetdatetime
+hb_fsetdevmode
+hb_fsize
+hb_ftempcreate
+hb_ftempcreateex
+hb_FUnlock( <nHandle>, <nOffset>, <nBytes> )
+hb_gcAll()
+hb_gcstep
+hb_GetEnv( <cEnviroment>, [<cDefaultValue>] )
+hb_getreadvar
+hb_getstderr
+hb_getstdin
+hb_getstdout
+hb_gfxprimitive
+hb_gfxtext
+hb_gtalert
+hb_gtcreate
+hb_gtinfo
+hb_gtlock
+hb_gtreload
+hb_gtselect
+hb_gtsys
+hb_gtunlock
+hb_gtversion
+hb_gzclearerr
+hb_gzclose
+hb_gzcompress
+hb_gzcompressbound
+hb_gzdirect
+hb_gzdopen
+hb_gzeof
+hb_gzerror
+hb_gzflush
+hb_gzgetc
+hb_gzgets
+hb_gzopen
+hb_gzputc
+hb_gzputs
+hb_gzread
+hb_gzrewind
+hb_gzseek
+hb_gzsetparams
+hb_gztell
+hb_gzungetc
+hb_gzwrite
+hb_HAllocate( <hTable>, <nItems> )
+hb_Hash( [ <Key1>, <Value1> ], [ <KeyN>, <ValueN> ], ... ) ->...
+hb_HAutoAdd( <hTable>, [<lFlag>] ) -> <lPreviousFlag>
+hb_HBinary( <hTable>, [<lFlag>] ) -> <lPreviousFlag>
+hb_HCaseMatch( <hTable>, [<lFlag>] ) -> <lPreviousFlag>
+hb_hclear
+hb_HClone( <hTable> ) -> <hsDestination>
+hb_HCopy( <hsDestination>, <hsSource>, [<nStart>], [<nCount>]...
+hb_HDefault( <hTable>, <DefaultValue> ) -> <OldDefaultValue>
+hb_HDel( <hTable>, <Key> ) -> <hTable>
+hb_HDelAt( <hTable>, <nPosition> ) -> <hTable>
+hb_HEval( <hTable>, <bBlock>, [<nStart>], [<nCount>] ) -> <hT...
+hb_hextonum
+hb_hextostr
+hb_HFill( <hTable>, <Value> ) -> <hTable>
+hb_HGet( <hTable>, <Key> ) -> <Value>
+hb_HGetDef( <hTable>, <Key>, [<DefaultValue>] ) -> <Value>
+hb_hgetref
+hb_HHasKey( <hTable>, <Key> ) -> lExists
+hb_hkeeporder
+hb_HKeyAt( <hTable>, <nPosition> ) -> <Key>
+hb_HKeys( <hTable> ) -> <aKeys>
+hb_hmac_md5
+hb_hmac_sha1
+hb_hmac_sha224
+hb_hmac_sha256
+hb_hmac_sha384
+hb_hmac_sha512
+hb_HMerge( <hsDestination>, <hsSource>, <bBlock>|<nPosition> ...
+hb_hour
+hb_HPairAt( <hTable>, <nPosition> ) -> <aKeyValue>
+hb_HPos( <hTable>, <Key> ) -> nPosition
+hb_hrbdo
+hb_hrbgetfunlist
+hb_hrbgetfunsym
+hb_hrbload
+hb_hrbrun
+hb_hrbsignature
+hb_hrbunload
+hb_HScan( <hTable>, <Value>, [<nStart>], [<nCount>, [<lExact>...
+hb_HSet( <hTable>, <Key>, <Value> ) -> <hTable>
+hb_hsetautoadd
+hb_hsetbinary
+hb_hsetcasematch
+hb_hsetdef
+hb_hsetorder
+hb_HSort( <hTable> ) -> <hsSortedTable>
+hb_HValueAt( <hTable>, <nPosition>, [<NewValue>] ) -> <Value>
+hb_HValues( <hTable> ) -> <aValues>
+hb_i18n_addtext
+hb_i18n_check
+hb_i18n_codepage
+hb_i18n_create
+hb_i18n_description
+hb_i18n_gettext
+hb_i18n_gettext_strict
+hb_i18n_headersize
+hb_i18n_loadpot
+hb_i18n_ngettext
+hb_i18n_ngettext_strict
+hb_i18n_pluralform
+hb_i18n_restoretable
+hb_i18n_savepot
+hb_i18n_savetable
+hb_i18n_set
+hb_idleAdd( <bAction> )
+hb_idleDel( <nHandle> )
+hb_idlereset
+hb_idlesleep
+hb_idleState()
+hb_inetAccept( <socket> )
+hb_inetAddress( <socket> )
+hb_inetCleanup()
+hb_inetClearError( <socket> )
+hb_inetClearPeriodCallback( <socket> )
+hb_inetClearTimeLimit( <socket> )
+hb_inetClearTimeout( <socket> )
+hb_inetClose( <socket> )
+hb_inetcompress
+hb_inetConnect( <cAddress>, <nPort> )
+hb_inetConnectIP( <cAddress>, <nPort> )
+hb_inetCount( <socket> )
+hb_inetCreate( [ <nTimeout> ] )
+hb_inetCRLF()
+hb_inetDataReady( <socket>, [ <nMillisec> ] )
+hb_inetDGram( [<lBroadcast>] )
+hb_inetDGramBind( <nPort>, [<cAddress> [, <lBroadcast>] ] )
+hb_inetDGramRecv( <socket>, @<cBuffer> [, <nSize> ] )
+hb_inetDGramSend( <socket>, <cAddress>, <nPort>, <cBuffer> [,...
+hb_inetErrorCode( <socket> )
+hb_inetErrorDesc( <socket> )
+hb_inetFD( <socket> [, <lNoSocket> ] )
+hb_inetGetAlias( <cName> )
+hb_inetGetHosts( <cName> )
+hb_inetGetRcvBufSize( <socket> )
+hb_inetGetSndBufSize( <socket> )
+hb_inetifinfo
+hb_inetInit()
+hb_inetIsSocket( <socket> )
+hb_inetPeriodCallback( <socket> [, <xCallback> ] )
+hb_inetPort( <socket> )
+hb_inetRecv( <socket>, @<cResult>, [ <nAmount> ] )
+hb_inetRecvAll( <socket>, @<cResult>, [ <nAmount> ] )
+hb_inetRecvEndblock( <socket> [, <cBlock >[, @<nBytesRead> [,...
+hb_inetRecvLine( <socket> [, @<nBytesRead>, [, <nMaxLength> [...
+hb_inetSend( <socket>, <cBuffer> [, <nLength> ] )
+hb_inetSendAll( <socket>, <cBuffer> [, <nLength> ] )
+hb_inetServer( <port> [, <cBindAddr> [, <nListenLimit> ]]  )
+hb_inetSetRcvBufSize( <socket>, <nSize> )
+hb_inetSetSndBufSize( <socket>, <nSize> )
+hb_inetstatus( <socket> )
+hb_inetTimeLimit( <socket> [, <nTimeLimit> )
+hb_inetTimeout( <socket> [, <nTimeout> ] )
+hb_ininew
+hb_iniread
+hb_inireadstr
+hb_inisetcomment
+hb_iniwrite
+hb_iniwritestr
+hb_isarray
+hb_isblock
+hb_ischar
+hb_isdate
+hb_isdatetime
+hb_isevalitem
+hb_isfunction
+hb_ishash
+hb_ishashkey
+hb_islogical
+hb_ismemo
+hb_isnil
+hb_isnull
+hb_isnumeric
+hb_isobject
+hb_ispointer
+hb_isprinter
+hb_isregex
+hb_isstring
+hb_issymbol
+hb_istimestamp
+hb_jsondecode
+hb_jsonencode
+hb_keychar
+hb_keyclear
+hb_keycode
+hb_keyext
+hb_keyins
+hb_keylast
+hb_keymod
+hb_keynext
+hb_keyPut( <nInkeyCode> )
+hb_keysetlast
+hb_keystd
+hb_keyval
+hb_langErrMsg( <nErrorCode> )
+hb_langMessage( <nMsg>[, <cLangID>] )
+hb_langName( [<cLangID>] )
+hb_langnew
+hb_langSelect( [<cNewLang>][, <cCodepage>] )
+hb_LeftEq( <cString>, <cSubString> )
+hb_LeftEqI( <cString>, <cSubString> )
+hb_liberror
+hb_libext
+hb_libfree
+hb_libgetfunsym
+hb_libload
+hb_libname
+hb_libpostfix
+hb_libprefix
+hb_libsuffix
+hb_lppcreate
+hb_lppdestroy
+hb_lpperror
+hb_lpprecv
+hb_lpprecvlen
+hb_lppsend
+hb_lppsendlen
+hb_lppsetlimit
+hb_macroblock
+hb_matherBlock( [<bNewBlock>] )
+hb_matherMode( [<nNewMode>] )
+hb_md5
+hb_md5decrypt
+hb_md5encrypt
+hb_md5file
+hb_MemoRead( <cFileName> )
+hb_MemoWrit( <cFileName>, <cString> )
+hb_methodname
+hb_mgetbounds
+hb_milliseconds
+hb_minute
+hb_mleval
+hb_mmiddledown
+hb_msectot
+hb_mt
+hb_mtvm
+hb_mutexcreate
+hb_mutexeval
+hb_mutexexists
+hb_mutexlock
+hb_mutexnotify
+hb_mutexnotifyall
+hb_mutexqueueinfo
+hb_mutexsubscribe
+hb_mutexsubscribenow
+hb_mutexunlock
+hb_mvrestore
+hb_mvsave
+hb_ntocolor
+hb_ntohour
+hb_ntomin
+hb_ntomsec
+hb_ntos( <nValue> )
+hb_ntosec
+hb_ntot
+hb_numtohex
+hb_oemtoansi
+hb_oscpu
+hb_osdriveseparator
+hb_oserror
+hb_osfilemask
+hb_osis64bit
+hb_osiswin10
+hb_osiswin2k
+hb_osiswin7
+hb_osiswin8
+hb_osiswin81
+hb_osiswin9x
+hb_osiswince
+hb_osiswinnt
+hb_osiswinvista
+hb_osnewline
+hb_ospathdelimiters
+hb_ospathlistseparator
+hb_ospathseparator
+hb_pathjoin
+hb_pathnormalize
+hb_pathrelativize
+hb_pcodever
+hb_PIsByRef( nParam )
+hb_pread
+hb_processclose
+hb_processopen
+hb_processrun
+hb_processvalue
+hb_progname
+hb_ps
+hb_PValue( <nArg> )
+hb_pwrite
+hb_rand32
+hb_randint
+hb_randnum
+hb_random
+hb_randomint
+hb_randomintmax
+hb_randomseed
+hb_randstr
+hb_rascan
+hb_RAt( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
+hb_rddgettempalias
+hb_rddinfo
+hb_regex
+hb_regexall
+hb_regexatx
+hb_regexcomp
+hb_regexhas
+hb_regexlike
+hb_regexmatch
+hb_regexsplit
+hb_releasecpu
+hb_run
+hb_scrmaxcol
+hb_scrmaxrow
+hb_scroll
+hb_sec
+hb_secondscpu
+hb_sectot
+hb_serialize
+hb_setclshandle
+hb_setdispcp
+hb_setenv
+hb_setkey
+hb_setkeyarray
+hb_SetKeyCheck( <nKey> [, <p1> ][, <p2> ][, <p3> ] )
+hb_setkeycp
+hb_SetKeyGet( <nKey> [, <bConditionByRef> ] )
+hb_SetKeySave( [ <OldKeys> ] )
+hb_setlastkey
+hb_SetMacro( <nOption>, [<lOnOff>] )
+hb_setobject
+hb_settermcp
+hb_sha1
+hb_sha224
+hb_sha256
+hb_sha384
+hb_sha512
+hb_shadow
+hb_socketaccept
+hb_socketautoflush
+hb_socketautoshutdown
+hb_socketbind
+hb_socketclose
+hb_socketconnect
+hb_socketerrorstring
+hb_socketflush
+hb_socketgeterror
+hb_socketgetfd
+hb_socketgetfilter
+hb_socketgethostname
+hb_socketgethosts
+hb_socketgetifaces
+hb_socketgetoserror
+hb_socketgetpeername
+hb_socketgetrcvbufsize
+hb_socketgetsndbufsize
+hb_socketgetsockname
+hb_socketlisten
+hb_socketnewbfsock
+hb_socketnewznet
+hb_socketnewzsock
+hb_socketopen
+hb_socketread
+hb_socketrecv
+hb_socketrecvfrom
+hb_socketresolveaddr
+hb_socketresolveinetaddr
+hb_socketselect
+hb_socketselectread
+hb_socketselectwrite
+hb_socketselectwriteex
+hb_socketsend
+hb_socketsendto
+hb_socketsetblockingio
+hb_socketsetbroadcast
+hb_socketsetexclusiveaddr
+hb_socketsetfilter
+hb_socketsetkeepalive
+hb_socketsetmulticast
+hb_socketsetnodelay
+hb_socketsetrcvbufsize
+hb_socketsetreuseaddr
+hb_socketsetsndbufsize
+hb_socketshutdown
+hb_socketwrite
+hb_stod
+hb_stot
+hb_strcdecode
+hb_strclear
+hb_strdecodescape
+hb_strformat
+hb_strisutf8
+hb_strreplace
+hb_strshrink
+hb_strtoexp
+hb_strtohex
+hb_strtots
+hb_strtoutf8
+hb_strxor
+hb_threaddetach
+hb_threadid
+hb_threadismain
+hb_threadjoin
+hb_threadonce
+hb_threadonceinit
+hb_threadquitrequest
+hb_threadself
+hb_threadstart
+hb_threadterminateall
+hb_threadwait
+hb_threadwaitforall
+hb_tokencount
+hb_tokenget
+hb_tokenptr
+hb_tracefile
+hb_traceflush
+hb_tracelevel
+hb_tracelog
+hb_tracelogat
+hb_traceloglevel
+hb_tracemode
+hb_tracestate
+hb_tracestring
+hb_tracesysout
+hb_Translate( <cSrcText>, [<cPageFrom>], [<cPageTo>] )
+hb_tstostr
+hb_tstoutc
+hb_ttoc
+hb_ttod
+hb_ttohour
+hb_ttomin
+hb_ttomsec
+hb_tton
+hb_ttos
+hb_ttosec
+hb_uat
+hb_uchar
+hb_ucode
+hb_uleft
+hb_ulen
+hb_upadc
+hb_upadl
+hb_upadr
+hb_upeek
+hb_upoke
+hb_uright
+hb_userlang
+hb_username
+hb_ustuff
+hb_usubstr
+hb_utcoffset
+hb_utf8asc
+hb_utf8at
+hb_utf8chr
+hb_utf8left
+hb_utf8len
+hb_utf8peek
+hb_utf8poke
+hb_utf8rat
+hb_utf8right
+hb_utf8strtran
+hb_utf8stuff
+hb_utf8substr
+hb_utf8tostr
+hb_utf8tostrbox
+hb_val
+hb_valtoexp
+hb_ValToStr( <xValue> )
+hb_version
+hb_vfattrget
+hb_vfattrset
+hb_vfclose
+hb_vfcommit
+hb_vfconfig
+hb_vfcopyfile
+hb_vfdirectory
+hb_vfdirexists
+hb_vfdirmake
+hb_vfdirremove
+hb_vfdirspace
+hb_vfeof
+hb_vferase
+hb_vfexists
+hb_vfflush
+hb_vfhandle
+hb_vflink
+hb_vflinkread
+hb_vflinksym
+hb_vfload
+hb_vflock
+hb_vflocktest
+hb_vfmovefile
+hb_vfopen
+hb_vfread
+hb_vfreadat
+hb_vfreadlen
+hb_vfrename
+hb_vfseek
+hb_vfsize
+hb_vftempfile
+hb_vftimeget
+hb_vftimeset
+hb_vftrunc
+hb_vfunlock
+hb_vfwrite
+hb_vfwriteat
+hb_waeval
+hb_Week( <dDate>, [@<nYear>], [@<nDayOfWeek>] )
+hb_wildmatch
+hb_wildmatchi
+hb_zcompress
+hb_zcompressbound
+hb_zerror
+hb_zlibversion
+hb_zuncompress
+hb_zuncompresslen
+Header()
+hittest
+hs_add
+hs_close
+hs_create
+hs_delete
+hs_filter
+hs_ifdel
+hs_index
+hs_keycount
+hs_next
+hs_open
+hs_replace
+hs_set
+hs_undelete
+hs_verify
+hs_version
+I2Bin( <nNumber> )
+IndexExt()
+IndexKey( <nOrder> )
+IndexOrd()
+Inkey( [<nTimeout>] [, <nEvents>] )
+Int( <nNumber> )
+iousr_register
+iousr_seterror
+IsAffirm( <cChar> )
+IsAlpha( <cString> )
+ISCOLOR() | ISCOLOUR()
+isdefcolor
+IsDigit( <cString> )
+IsDisk( <cDrive> )
+IsLower( <cString> )
+IsNegative( <cChar> )
+ISPRINTER()
+isquick
+isshortcut
+IsUpper( <cString> )
+L2Bin( <nNumber> )
+LastKey( [<nInputMask>] )
+LastRec() | RecCount()*
+Left( <cString>, <nLen> )
+Len( <cString> | <aArray> )
+lennum
+listbdefco
+listbox
+lock
+Log( <nNumber> )
+Lower( <cString> )
+LTrim( <cString> )
+LUpdate()
+MakeDir( <cDirectory> )
+Max( <xValue>, <xValue1> )
+MaxCol()
+MaxRow()
+MCol()
+MDBLCLK([<nNewSpeed>])
+memoedit
+MEMOLINE(<cString>, [<nLineLength>], [<nLineNumber>], [<nTabS...
+MemoRead( <cFileName> )
+MEMORY(<nExp>)
+MemoTran( <cString>, <cHard>, <cSoft> )
+MemoWrit( <cFileName>, <cString> )
+memvarbloc
+MemVarBlock( <cMemvarName> )
+menudefcol
+menuitem
+MENUMODAL(<oTopBar>, <nSelection>, <nMsgRow>, <nMsgLeft>, <nM...
+MHIDE()
+Min( <xValue>, <xValue1> )
+MLCOUNT(<cString>, [<nLineLength>], [<nTabSize>], [<lWrap>])
+MLCTOPOS(<cText>, <nWidth>, <nLine>, <nCol>, [<nTabSize>], [<...
+MLEFTDOWN()
+mlpos
+mmiddledown
+Mod( <nNumber>, <nNumber1> )
+Month( <dDate> )
+MPOSTOLC(<cText>, <nWidth>, <nPos>, [<nTabSize>], [<lWrap>])
+MPRESENT()
+mreststate
+mrightdown
+MRow()
+msavestate
+msetbounds
+MSETCURSOR( [<lVisible>] )
+msetpos
+mshow
+NationMsg( <nMsg> )
+NetErr( [<lNewError>] )
+NETNAME()
+NextKey( [<nInputMask>] )
+NOSNOW(<lToggle>)
+ordbagclea
+ordbagclear
+ordBagExt()
+ordBagName( <nOrder> | <cOrderName> )
+ordCondSet( [<cForCondition>], [<bForCondition>],
+ordcount
+ordCreate( <cOrderBagName>,[<cOrderName>], <cExpKey>, [<bExpK...
+ordcustom
+ORDDESCEND([<cOrder> | <nPosition>],[<cIndexFile>], [<lNewDes...
+ordDestroy( <cOrderName> [, <cOrderBagName> ] )
+ordfindrec
+ordFor( <xOrder>[, <cOrderBagName>] )
+ORDISUNIQUE([<cOrder> | <nPosition>], [<cIndexFile>])
+ordKey( <cOrderName> | <nOrder> [, <cOrderBagName>] )
+ORDKEYADD([<cOrder> | <nPosition>], [<cIndexFile>],[<expKeyVa...
+ORDKEYCOUNT([<cOrder> | <nPosition>], [<cIndexFile>])
+ORDKEYDEL([<cOrder> | <nPosition>], [<cIndexFile>], [<expKeyV...
+ORDKEYGOTO(<nKeyNo>)
+ORDKEYNO([<cOrder> | <nPosition>], [<cIndexFile>])
+ordkeyrelpos
+ORDKEYVAL()
+ORDLISTADD(<cOrderBagName> [, <cOrderName>])
+ordlistclear
+ordlistrebuild
+ordname
+ordnumber
+ordscope
+ORDSETFOCUS([<cOrderName> | <nOrder>] [,<cOrderBagName>])
+ordsetrelation
+ordskipraw
+ORDSKIPUNIQUE([<nDirection>])
+ordwildseek
+OS()
+OutErr( <xExp,...> )
+OutStd( <xExp,...> )
+PADL(<exp>, <nLength>, [<cFillChar>])
+PadC( <xVal>, <nWidth>, <cFill> )
+PadL( <xVal>, <nWidth>, <cFill> )
+PadR( <xVal>, <nWidth>, <cFill> )
+PCOL()
+PCount()
+popup
+ProcFile( <xExp> )
+ProcLine( <nLevel> )
+ProcName( <nLevel> )
+PROW()
+pushbutton
+pvalue
+QOUT([<exp list>])
+qqout
+radgrdefco
+radiobutton
+radiogroup
+raditdefco
+rangecheck
+RAt( <cSearch>, <cString> )
+rddinfo
+RDDLIST([<nRDDType>])
+RDDNAME()
+rddregister
+rddsetdefault
+rddsys
+rdd_count
+rdd_info
+rdd_name
+readexit
+READFORMAT([<bFormat>])
+READINSERT([<lToggle>])
+ReadKey()
+READKILL([<lKillRead>])
+READMODAL(<aGetList>, [<nGet>], [<oMenu>], [<nMsgRow>, <nMsgL...
+readstats
+READUPDATED([<lChanged>])
+ReadVar( [<cVarName>] )
+RecCount()* | LastRec()
+RecNo()
+RecSize()
+Replicate( <cString>, <nSize> )
+RESTSCREEN([<nTop>], [<nLeft>], [<nBottom>], [<nRight>], <cSc...
+Right( <cString>, <nLen> )
+RLock()
+Round( <nNumber>, <nPlace> )
+Row()
+RTrim( <cExpression> )
+SAVESCREEN([<nTop>], [<nLeft>], [<nBottom>], [<nRight>])
+SCROLL([<nTop>], [<nLeft>],[<nBottom>], [<nRight>], [<nVert>]...
+scrollbar
+sdf
+Seconds()
+Secs( <cTime> )
+Select( [<cAlias>] )
+Set( <nSet> [, <xNewSetting> [, <xOption> ] ] )
+SETBLINK([<lToggle>])
+SETCANCEL([<lToggle>])
+setclrpair
+SETCOLOR([<cColorString>])
+SETCURSOR([<nCursorShape>])
+SetKey( <anKey> [, <bAction> [, <bCondition> ] ] )
+SetMode( <nRows>, <nCols> )
+SETPOS(<nRow>, <nCol>)
+setposbs
+SETPRC(<nRow>, <nCol>)
+SetTypeahead( <nSize> )
+showgetmsg
+showmsg
+sixcdx
+SOUNDEX(<cString>)
+Space( <nSize> )
+Sqrt( <nNumber> )
+stod
+Str( <nNumber>, [<nLength>], [<nDecimals>] )
+StrTran( <cString>, <cLocString>, [<cRepString>], [<nPos>], [...
+StrZero( <nNumber>, [<nLength>], [<nDecimals>] )
+STUFF(<cString>, <nStart>, <nDelete>, <cInsert>)
+SubStr( <cString>, <nStart>, [<nLen>] )
+sxchar
+sxdate
+sxlog
+sxnum
+sx_autoopen
+sx_autoshare
+sx_blob2file
+sx_chill
+sx_clearorder
+sx_clrscope
+sx_compress
+sx_dbcreate
+sx_dbfdecrypt
+sx_dbfencrypt
+sx_decompress
+sx_decrypt
+sx_deftrigger
+sx_descend
+sx_dtop
+sx_encrypt
+sx_error
+sx_fcompress
+sx_fdecompress
+sx_file2blob
+sx_fileorder
+sx_findrec
+sx_fnameparser
+sx_freeze
+sx_getlocks
+sx_idtype
+sx_indexcount
+sx_indexname
+sx_indextype
+sx_iniheader
+sx_isdbt
+sx_isflocked
+sx_islocked
+sx_ismyrox
+sx_isreadonly
+sx_isreindex
+sx_isroxlock
+sx_issem
+sx_isshared
+sx_i_indexname
+sx_i_tagname
+sx_keyadd
+sx_keycount
+sx_keydata
+sx_keydrop
+sx_keygoto
+sx_keyno
+sx_keysincluded
+sx_keyskip
+sx_killsem
+sx_killtag
+sx_lockretry
+sx_makesem
+sx_memoblk
+sx_memoext
+sx_memopack
+sx_ptod
+sx_rlock
+sx_rollback
+sx_roxlock
+sx_roxunlock
+sx_seeklast
+sx_setfileord
+sx_setmemoblock
+sx_setpass
+sx_setscope
+sx_settag
+sx_settrig
+sx_settrigger
+sx_setturbo
+sx_skipunique
+sx_slimfast
+sx_sortoption
+sx_step
+sx_strxcheck
+sx_tablename
+sx_tabletype
+sx_tagcount
+sx_taginfo
+sx_tagno
+sx_tagorder
+sx_tags
+sx_tagunique
+sx_thermometer
+sx_turboarea
+sx_unlock
+sx_version
+sx_vfget
+sx_vsiglen
+sx_warm
+sx_wildmatch
+sx_wildseek
+tapplykey
+tbaddcol
+tbapplykey
+tbbblock
+tbclose
+tbcolumnnew
+tbcreate
+tbdelcol
+tbdisplay
+tbeditcell
+tbfblock
+tbgobot
+tbgotop
+tbinscol
+tbmodal
+tbmouse
+tbreader
+TBrowseDB( [<nTop>], [<nLeft>], [<nBottom>], [<nRight>] )
+tbrowsenew
+tbsblock
+tbskip
+Time()
+Tone( <nFrequency>, <nDuration> )
+topbar
+Transform( <xExpression>, <cTemplate> )
+Trim( <cExpression> )
+tstring
+Type( <cExp> )
+UPDATED()
+Upper( <cString> )
+Used()
+usrrdd_areadata
+usrrdd_arearesult
+usrrdd_getfunctable
+usrrdd_id
+usrrdd_rdddata
+usrrdd_setbof
+usrrdd_setbottom
+usrrdd_seteof
+usrrdd_setfound
+usrrdd_settop
+Val( <cNumber> )
+ValType( <xExp> )
+Version()
+Word( <nDouble> )
+Year( <dDate> )
+_checkbox_
+_dbf
+_dtxcondset
+_einstvar
+_getnumcol
+_isgraphic
+_listbox_
+_natmsgver
+_natsortver
+_pushbutt_
+_radiogrp_
+_setvideomode
+_sxopeninit
+_sx_iniinit
+_sx_strcompress
+_sx_strdecompress
+__accept
+__acceptstr
+__atclear
+__AtPrompt( <nRow>, <nCol>, <cPrompt>, [<xMsg>] )
+__box
+__boxd
+__boxs
+__breakblock
+__caplength
+__capmetrics
+__caption
+__classadd
+__classh
+__classinstance
+__classname
+__classnew
+__classsel
+__clear
+__clsaddfriend
+__clsaddmsg
+__clsassoctype
+__clscntclasses
+__clsdelmsg
+__clsgetancestors
+__clsgetproperties
+__clsinst
+__clsinstsuper
+__clslock
+__clslockdef
+__clsmodmsg
+__clsmsgtype
+__clsnew
+__clsparent
+__clspreallocate
+__clssyncsignal
+__clssyncwait
+__clsunlockdef
+__clsverify
+__cls_cntclsdata
+__cls_cntdata
+__cls_cntshrdata
+__cls_decdata
+__cls_incdata
+__copyfile
+__dbapp
+__dbappend
+__dbarrang
+__dbarrange
+__dbclearindex
+__dbclearr
+__dbclearrelation
+__dbclose
+__dbclosea
+__dbclosearea
+__dbcommit
+__dbcommitall
+__dbcontin
+__dbcontinue
+__dbcopy
+__dbcopyst
+__dbCopyStruct( <cFileName>, [<aFieldList>] )
+__dbcopyxs
+__dbCopyXStruct( <cFileName> )
+__dbCreate( <cFileName>, [<cFileFrom>], [<cRDDName>], [<lNew>...
+__dbcreatindex
+__dbdelete
+__dbDelim( <lExport>, <xcFile>, [<xcDelim>], [<aFields>], [<b...
+__dbginvokedebug
+__dbgobottom
+__dbgoto
+__dbgotop
+__dbgproclevel
+__dbgvmlocallist
+__dbgvmparllist
+__dbgvmstkgcount
+__dbgvmstkglist
+__dbgvmstklcount
+__dbgvmstkllist
+__dbgvmvargget
+__dbgvmvarglist
+__dbgvmvargset
+__dbgvmvarlget
+__dbgvmvarlset
+__dbgvmvarsget
+__dbgvmvarslen
+__dbgvmvarslist
+__dbgvmvarsset
+__dbjoin
+__dblist
+__dblocate
+__dbopensdf
+__dbpack
+__dbrecall
+__dbreinde
+__dbreindex
+__dbSDF( <lExport>, <xcFile>, [<aFields>], [<bFor>], [<bWhile...
+__dbseek
+__dbselect
+__dbsetfil
+__dbsetfilter
+__dbsetfou
+__dbsetfound
+__dbsetind
+__dbsetindex
+__dbsetloc
+__dbsetlocate
+__dbsetord
+__dbsetorder
+__dbsetrel
+__dbsetrelation
+__dbskip
+__dbskipper
+__dbsort
+__dbsql
+__dbstruct
+__dbStructFilter( <aStruct>, [<aFieldList>] )
+__dbtotal
+__dbtrans
+__dbtransrec
+__dbunlall
+__dbunlock
+__dbupdate
+__dbuse
+__dbzap
+__defaultnil
+__defpath
+__Dir( [<cFileMask>] )
+__dynscount
+__dynsgetindex
+__dynsgetname
+__dynsgetprf
+__dynsisfun
+__dynsn2ptr
+__dynsn2sym
+__dynsp2name
+__dynsverify
+__einstvar52
+__einstvar53
+__eject
+__errinhandler
+__errrt_base
+__errrt_sbase
+__FLedit( <aStruct>, [<aFieldList>] )
+__fm_alloclimit
+__get
+__geta
+__getlistactive
+__getlistlast
+__getlistsetactive
+__getmessage
+__getmsgprf
+__guicolor
+__hbdoc_dirlastmodified
+__hbdoc_filterout
+__hbdoc_fromsource
+__hbdoc_loaddir
+__hbdoc_loadhbd
+__hbdoc_savehbd
+__hbdoc_tosource
+__hbvminit
+__hb_langselect
+__i18n_hashjoin
+__i18n_hashtable
+__i18n_potarrayclean
+__i18n_potarrayjoin
+__i18n_potarrayload
+__i18n_potarraysave
+__i18n_potarraysort
+__i18n_potarraytohash
+__i18n_potarraytrans
+__Input( <cMessage> )
+__itemsetobj
+__itemsetobjraw
+__itemsetref
+__keyBoard( <cString> )
+__killread
+__labelform
+__mclear
+__MenuTo( <bBlock>, <cVariable> )
+__micolumn
+__mirow
+__mrelease
+__mrestore
+__msave
+__mvClear()
+__mvDbgInfo( <nScope> [, <nPosition> [, @<cVarName>] ] )
+__mvExist( <cVarName> )
+__mvGet( <cVarName> )
+__mvgetdef
+__mvPrivate( <variable_name> )
+__mvPublic( <variable_name> )
+__mvPut( <cVarName> [, <xValue>] )
+__mvRelease( <skeleton>, <include_exclude_flag> )
+__mvrestore
+__mvsave
+__mvScope( <cVarName> )
+__mvsetbase
+__mvXRelease( <variable_name> )
+__mxrelease
+__natisaffirm
+__natisnegative
+__natmsg
+__natmsgver
+__natsortver
+__nonoaler
+__NoNoAlert()
+__objAddData( <oObject>, <cDataName> )
+__objAddInline( <oObject>, <cInlineName>, <bInline> )
+__objAddMethod( <oObject>, <cMethodName>, <nFuncPtr> )
+__objclone
+__objDelMethod( <oObject>, <cDataName> )
+__objDelInline( <oObject>, <cSymbol> )
+__objDelMethod( <oObject>, <cSymbol> )
+__objDerivedFrom( <oObject>, <xSuper> )
+__objgetclsname
+__objgetivars
+__objGetMethodList( <oObject> )
+__objGetMsgList( <oObject>, [<lData>], [nClassType] )
+__objgetproperties
+__objGetValueList( <oObject>, [<aExcept>] )
+__objHasData( <oObject>, <cSymbol> )
+__objHasMethod( <oObject>, <cSymbol> )
+__objhasmsg
+__objhasmsgassigned
+__objModInline( <oObject>, <cInlineName>, <bInline> )
+__objModMethod( <oObject>, <cMethodName>, <nFuncPtr> )
+__objrestoreivars
+__objsendmsg
+__objsetclass
+__objsetclasshandle
+__objsetivars
+__objSetValueList( <oObject>, <aData> )
+__opcount
+__opgetprf
+__pp_addrule
+__pp_init
+__pp_path
+__pp_process
+__pp_reset
+__pp_stdrules
+__qqpub
+__Quit()
+__quitcancel
+__rddpreallocate
+__recovererrorblock
+__reportform
+__Run( <cCommand> )
+__sender
+__SetCentury([<lFlag> | <cOnOff> ] )
+__setformat
+__SetFunction( <nFunctionKey>, [<cString>] )
+__SetHelpK()
+__setprofiler
+__TextRestore()
+__TextSave( <cFile> )
+__traceprgcalls
+__TypeFile( <cFile>, [<lPrint>] )
+__vmcountthreads
+__vmitemid
+__vmitemrefs
+__vmmodulesverify
+__vmnointernals
+__Wait( <cMessage> )
+__wapi_getacp
+__wapi_getconsoleoutputcp
+__wapi_getoemcp
+__XHelp()
+__XRestScreen()
+__xsavegetattr
+__xsavegetchar
+__xsavegetcolor
+__XSaveScreen()

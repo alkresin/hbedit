@@ -7,6 +7,8 @@
 STATIC cIniPath
 STATIC lIsCurl := .F., cServAddr
 STATIC lDescri := .T., lSources := .F., lChglog := .F., lSamples := .F., lRu := .F.
+STATIC aHwgFuncs, aHbFuncs
+STATIC aHbShort
 
 FUNCTION Plug_prg_Init( oEdit, cPath )
 
@@ -47,7 +49,7 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_D
-         _ctrlh( oEdit )
+         _f_dict( oEdit )
          DevPos( nRow, nCol )
          oEdit:TextOut()
          RETURN -1
@@ -63,50 +65,93 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION _ctrlh( oEdit )
+STATIC FUNCTION _f_get_dict( n )
 
-   LOCAL aMenu := { "HwGUI functions" }, i, j, cFile := "hwg_funcs.txt"
-   LOCAL arrfuncs, nCol := Col(), nRow := Row(), cEol := Chr(10)
+   LOCAL aFiles := { "hb_funcs.txt", "hwg_funcs.txt" }, cEol := Chr(10)
+   LOCAL aDicts := { aHbFuncs, aHwgFuncs }, arr := aDicts[n], i, j, nPos
 
-   i := FMenu( oEdit, aMenu, 2, 6 )
-   IF i == 1
-      arrfuncs := MemoRead( cIniPath + cFile )
-      IF ( j := At( cEol, arrfuncs ) ) > 1 .AND. Substr( arrfuncs, j-1, 1 ) == Chr(13)
-         cEol := Chr(13) + cEol
-      ENDIF
-      arrfuncs := hb_ATokens( arrfuncs, cEol )
-      IF !Empty( arrfuncs )
-         IF ( i := FMenu( oEdit, arrfuncs, 2, 6 ) ) > 0
-            edi_2cb( oEdit,, arrfuncs[i] )
-            DevPos( nRow, nCol )
-            oEdit:TextOut()
-            _GetFuncInfo( oEdit, arrfuncs[i] )
+   IF Empty( arr )
+      IF !Empty( arr := MemoRead( cIniPath + aFiles[n] ) )
+         IF ( j := At( cEol, arr ) ) > 1 .AND. Substr( arr, j-1, 1 ) == Chr(13)
+            cEol := Chr(13) + cEol
+         ENDIF
+         arr := hb_ATokens( arr, cEol )
+         IF n == 1
+            aHbFuncs := arr
+            aHbShort := Array( Len(arr) )
+            FOR i := 1 TO Len( arr )
+               IF ( nPos := At( '(', arr[i] ) ) > 0
+                  aHbShort[i] := Lower( Left( arr[i],nPos-1 ) )
+               ELSE
+                  aHbShort[i] := arr[i]
+               ENDIF
+            NEXT
+         ELSEIF n == 2
+            aHwgFuncs := arr
          ENDIF
       ELSE
-         edi_Alert( cFile + " not found..." )
+         edi_Alert( aFiles[n] + " not found..." )
+      ENDIF
+   ENDIF
+
+   RETURN arr
+
+STATIC FUNCTION _f_dict( oEdit )
+
+   LOCAL aMenu := { "Harbour functions", "HwGUI functions" }, i, j
+   LOCAL arrfuncs, nCol := Col(), nRow := Row()
+
+   i := FMenu( oEdit, aMenu, 2, 6 )
+   IF i == 1 .OR. i == 2
+      arrfuncs := _f_get_dict( i )
+      IF !Empty( arrfuncs )
+         IF ( j := FMenu( oEdit, arrfuncs, 2, 6,,,,,, .T. ) ) > 0
+            edi_2cb( oEdit,, arrfuncs[j] )
+            DevPos( nRow, nCol )
+            oEdit:TextOut()
+            _GetFuncInfo( oEdit, arrfuncs[j], i )
+         ENDIF
       ENDIF
    ENDIF
 
    RETURN 0
 
-STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
+STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 
-   LOCAL nPos
+   LOCAL aGets, nPos, arrf
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), nRes
-   LOCAL aGets := { {10,22,0,"",32}, ;
-      {11,23,1,lDescri,1}, {11,40,1,lSources,1}, {12,23,1,lChglog,1}, {12,40,1,lSamples,1}, ;
-      {13,23,1,lRu,1}, ;
-      {15,28,2,"[Info]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff, cAddW := "$FuncInfo", o
 
    IF ( nPos := At( '(', sFunc ) ) > 0
       sFunc := AllTrim( Left( sFunc, nPos-1 ) )
    ENDIF
-   aGets[1,4] := Lower( sFunc )
-   IF Empty( sFunc ) .OR. Left( sFunc,4 ) != "hwg_"
+   IF Empty( sFunc )
       RETURN Nil
    ENDIF
+
+   IF nDict == Nil
+      IF Left( sFunc,4 ) == "hwg_"
+         nDict := 2
+      ELSE
+         nDict := 1
+         IF Empty( arrf := _f_get_dict( nDict ) )
+            RETURN Nil
+         ENDIF
+         cBuff := Lower( sFunc )
+         IF Ascan( aHbShort, {|s|s==cBuff} ) == 0
+           edi_Alert( sFunc + " isn't found in a dictionary" )
+           RETURN Nil
+         ENDIF
+      ENDIF
+   ENDIF
+   aGets := { {10,22,0,Lower( sFunc ),32}, ;
+      {11,23,1,lDescri,1}, {11,40,1,lSources,1}, {12,23,1,lChglog,1} }
+   IF nDict == 2
+      Aadd( aGets, {12,40,1,lSamples,1} )
+      Aadd( aGets, {13,23,1,lRu,1} )
+   ENDIF
+   Aadd( aGets, {15,28,2,"[Info]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
+   Aadd( aGets, {15,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 16, 58 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -116,8 +161,11 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    hb_cdpSelect( oEdit:cp )
 
    @ 11, 22 SAY "[ ] Description  [ ] Sources"
-   @ 12, 22 SAY "[ ] Changelog    [ ] Samples"
-   @ 13, 22 SAY "[ ] Russian language"
+   @ 12, 22 SAY "[ ] Changelog"
+   IF nDict == 2
+      @ 12, 39 SAY "[ ] Samples"
+      @ 13, 22 SAY "[ ] Russian language"
+   ENDIF
 
    IF ( nRes := edi_READ( aGets ) ) == 0 .OR. nRes == Len(aGets)
       RETURN Nil
@@ -156,11 +204,15 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc )
    IF ( lChglog := aGets[4,4] )
       sFunc += "c"
    ENDIF
-   IF ( lSamples := aGets[5,4] )
-      sFunc += "t"
-   ENDIF
-   IF ( lRu := aGets[6,4] )
-      sFunc += "ru"
+   IF nDict == 1
+      sFunc += "&d=hb0"
+   ELSEIF nDict == 2
+      IF ( lSamples := aGets[5,4] )
+         sFunc += "t"
+      ENDIF
+      IF ( lRu := aGets[6,4] )
+         sFunc += "ru"
+      ENDIF
    ENDIF
 
    FErase( cFileRes )
