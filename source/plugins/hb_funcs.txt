@@ -208,27 +208,27 @@ hb_asciiupper
 hb_At( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
 hb_AtI( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
 hb_ATokens( <cString>, [<cDelim>|<lEOL>], [<lSkipStrings>], ;...
-hb_atx
+hb_Atx( cRegEx, cString, [lCase], [@nStart], [@nEnd] )
 hb_base64decode
 hb_base64encode
 hb_bat
 hb_bchar
 hb_bcode
-hb_bitand
-hb_bitnot
-hb_bitor
-hb_bitreset
-hb_bitset
-hb_bitshift
-hb_bittest
-hb_bitxor
+hb_BitAnd( x, y ) 
+hb_BitNot( x ) 
+hb_BitOr( x, y ) 
+hb_BitReset( x, n ) 
+hb_BitSet( x, n ) 
+hb_BitShift( x, y ) 
+hb_BitTest( x, n ) 
+hb_BitXor( x, y ) 
 hb_bleft
 hb_blen
-hb_blowfishdecrypt
-hb_blowfishdecrypt_cfb
-hb_blowfishencrypt
-hb_blowfishencrypt_cfb
-hb_blowfishkey
+hb_blowfishDecrypt( cBfKey, cCipher [, lRaw ] )
+hb_blowfishDecrypt_CFB( cBfKey, cCipher [, cInitSeed ] )
+hb_blowfishEncrypt( cBfKey, cText [, lRaw ] )
+hb_blowfishEncrypt_CFB( cBfKey, cText [, cInitSeed ] )
+hb_blowfishKey( cPasswd )
 hb_bpadc
 hb_bpadl
 hb_bpadr
@@ -300,29 +300,29 @@ hb_cwd
 hb_date
 hb_datetime
 hb_dbcreatetemp
-hb_dbdetach
+hb_dbDetach( [nWorkArea|cAlias] [, xCargo] )
 hb_dbdrop
 hb_dbexists
 hb_dbgetfilter
 hb_dbpack
 hb_dbrename
-hb_dbrequest
+hb_dbRequest( [cAlias] [, lNewArea] [,@xCargo] [,lWait])
 hb_dbzap
 hb_default
 hb_defaultvalue
 hb_deserialize
-hb_dirbase
+hb_DirBase() 
 hb_dirbuild
 hb_dircreate
 hb_dirdelete
 hb_directory
 hb_direxists
-hb_dirremoveall
+hb_DirRemoveAll( cDir )
 hb_dirscan
 hb_dirsepadd
 hb_dirsepdel
 hb_dirseptoos
-hb_dirtemp
+hb_DirTemp() 
 hb_dirunbuild
 hb_disablewaitlocks
 hb_DiskSpace( [<cDrive>] [, <nType>] )
@@ -334,42 +334,42 @@ hb_DToT( <dDate> [, <cTime|nSeconds>] )
 hb_dyncall
 hb_endobject
 hb_eol()
-hb_execfromarray
+hb_ExecFromArray()
 hb_execmsg
-hb_fcommit
+hb_fcommit( nHandle )
 hb_fcopy
 hb_fcreate
 hb_FEof( <nHandle> )
-hb_fgetattr
-hb_fgetdatetime
+hb_fGetAttr( cFileName, @nAttr ) 
+hb_fGetDateTime( cFileName, @dDate [, @cTime] ) 
 hb_fielddec
 hb_fieldlen
 hb_fieldtype
-hb_filedelete
+hb_FileDelete( cFileMask [, cAttr ] )
 hb_fileexists
-hb_filematch
-hb_fisdevice
-hb_flink
-hb_flinkread
-hb_flinksym
+hb_filematch( cFile, cPattern )
+hb_fisdevice( nHandle )
+hb_flink()
+hb_flinkread()
+hb_flinksym()
 hb_FLock( <nHandle>, <nOffset>, <nBytes> [, <nType ] )
-hb_fnamedir
+hb_FNameDir( cFullPath ) 
 hb_fnameexists
-hb_fnameext
-hb_fnameextset
-hb_fnameextsetdef
+hb_FNameExt( cFullPath ) 
+hb_FNameExtSet( cFullPath, cExt ) 
+hb_FNameExtSetDef( cFullPath, cExt ) 
 hb_fnamemerge
-hb_fnamename
-hb_fnamenameext
+hb_FNameName( cFullPath ) 
+hb_FNameNameExt( cFullPath ) 
 hb_fnamesplit
-hb_fornext
-hb_freadlen
-hb_fsetattr
-hb_fsetdatetime
-hb_fsetdevmode
-hb_fsize
-hb_ftempcreate
-hb_ftempcreateex
+hb_ForNext( nStart, nEnd | bEnd, bCode [, nStep ] ) 
+hb_freadlen( nHandle, nToRead )
+hb_fSetAttr( cFileName, nAttr ) 
+hb_fSetDateTime( cFileName, dDate [, cTime] ) 
+hb_fsetdevmode( nHandle, nMode )
+hb_fsize( cFileName[, lUseDirEntry] )
+hb_fTempCreate( [cPath], [cPrefix], [nAttr], [@cFileName] ) 
+hb_fTempCreateEx( [@cFileName], [cPath], [cPrefix], [cExt], [...
 hb_FUnlock( <nHandle>, <nOffset>, <nBytes> )
 hb_gcAll()
 hb_gcstep
@@ -422,40 +422,40 @@ hb_HDefault( <hTable>, <DefaultValue> ) -> <OldDefaultValue>
 hb_HDel( <hTable>, <Key> ) -> <hTable>
 hb_HDelAt( <hTable>, <nPosition> ) -> <hTable>
 hb_HEval( <hTable>, <bBlock>, [<nStart>], [<nCount>] ) -> <hT...
-hb_hextonum
+hb_HexToNum( cHex ) 
 hb_hextostr
 hb_HFill( <hTable>, <Value> ) -> <hTable>
 hb_HGet( <hTable>, <Key> ) -> <Value>
 hb_HGetDef( <hTable>, <Key>, [<DefaultValue>] ) -> <Value>
-hb_hgetref
+hb_hGet( aHash, Key ) 
 hb_HHasKey( <hTable>, <Key> ) -> lExists
-hb_hkeeporder
+hb_hKeepOrder( aHash, [lFlag] ) 
 hb_HKeyAt( <hTable>, <nPosition> ) -> <Key>
 hb_HKeys( <hTable> ) -> <aKeys>
 hb_hmac_md5
-hb_hmac_sha1
-hb_hmac_sha224
-hb_hmac_sha256
-hb_hmac_sha384
-hb_hmac_sha512
+hb_HMAC_SHA1( cText, cKey [, lRaw ] )
+hb_HMAC_SHA224( cText, cKey [, lRaw ] )
+hb_HMAC_SHA256( cText, cKey [, lRaw ] )
+hb_HMAC_SHA384( cText, cKey [, lRaw ] )
+hb_HMAC_SHA512( cText, cKey [, lRaw ] )
 hb_HMerge( <hsDestination>, <hsSource>, <bBlock>|<nPosition> ...
 hb_hour
 hb_HPairAt( <hTable>, <nPosition> ) -> <aKeyValue>
 hb_HPos( <hTable>, <Key> ) -> nPosition
-hb_hrbdo
-hb_hrbgetfunlist
-hb_hrbgetfunsym
-hb_hrbload
-hb_hrbrun
+hb_hrbDo( handle, ... (parameters))
+hb_hrbGetFunList( handle, nType )
+hb_hrbGetFunsym( handle, functionName )
+hb_hrbLoad( [ nOptions, ] hrbName [, xparams,... ] )
+hb_hrbRun( hrbName, ... (parameters))
 hb_hrbsignature
-hb_hrbunload
+hb_hrbUnload( handle )
 hb_HScan( <hTable>, <Value>, [<nStart>], [<nCount>, [<lExact>...
 hb_HSet( <hTable>, <Key>, <Value> ) -> <hTable>
-hb_hsetautoadd
-hb_hsetbinary
-hb_hsetcasematch
+hb_hSet( aHash, Key, xValue ) 
+hb_hSetBinary( aHash, [lFlag] ) 
+hb_hSetCaseMatch( aHash, [lFlag] ) 
 hb_hsetdef
-hb_hsetorder
+hb_hSetOrder( aHash, [lFlag] ) 
 hb_HSort( <hTable> ) -> <hsSortedTable>
 hb_HValueAt( <hTable>, <nPosition>, [<NewValue>] ) -> <Value>
 hb_HValues( <hTable> ) -> <aValues>
@@ -478,7 +478,7 @@ hb_i18n_set
 hb_idleAdd( <bAction> )
 hb_idleDel( <nHandle> )
 hb_idlereset
-hb_idlesleep
+hb_IdleSleep( nSeconds )
 hb_idleState()
 hb_inetAccept( <socket> )
 hb_inetAddress( <socket> )
@@ -520,7 +520,7 @@ hb_inetSendAll( <socket>, <cBuffer> [, <nLength> ] )
 hb_inetServer( <port> [, <cBindAddr> [, <nListenLimit> ]]  )
 hb_inetSetRcvBufSize( <socket>, <nSize> )
 hb_inetSetSndBufSize( <socket>, <nSize> )
-hb_inetstatus( <socket> )
+hb_inetStatus( hSocket ) 
 hb_inetTimeLimit( <socket> [, <nTimeLimit> )
 hb_inetTimeout( <socket> [, <nTimeout> ] )
 hb_ininew
@@ -546,12 +546,12 @@ hb_isnumeric
 hb_isobject
 hb_ispointer
 hb_isprinter
-hb_isregex
+hb_isRegex( cRegEx )
 hb_isstring
 hb_issymbol
 hb_istimestamp
-hb_jsondecode
-hb_jsonencode
+hb_jsonDecode( cJSON, @xValue )
+hb_jsonEncode( xValue [, lHuman] )
 hb_keychar
 hb_keyclear
 hb_keycode
@@ -591,10 +591,10 @@ hb_lppsetlimit
 hb_macroblock
 hb_matherBlock( [<bNewBlock>] )
 hb_matherMode( [<nNewMode>] )
-hb_md5
-hb_md5decrypt
-hb_md5encrypt
-hb_md5file
+hb_MD5( cText )
+hb_MD5Decrypt( cCipher, cPasswd )
+hb_MD5Encrypt( cText, cPasswd )
+hb_MD5File( cFilename )
 hb_MemoRead( <cFileName> )
 hb_MemoWrit( <cFileName>, <cString> )
 hb_methodname
@@ -605,17 +605,17 @@ hb_mleval
 hb_mmiddledown
 hb_msectot
 hb_mt
-hb_mtvm
-hb_mutexcreate
-hb_mutexeval
+hb_mtvm()
+hb_mutexCreate()
+hb_mutexEval( pMtx, bCode | @sFunc() [, params,...] )
 hb_mutexexists
-hb_mutexlock
-hb_mutexnotify
-hb_mutexnotifyall
-hb_mutexqueueinfo
-hb_mutexsubscribe
-hb_mutexsubscribenow
-hb_mutexunlock
+hb_mutexLock( pMtx [, nTimeOut] )
+hb_mutexNotify( pMtx [, xVal] )
+hb_mutexNotifyAll( pMtx [, xVal] )
+hb_mutexQueueInfo( pMtx, @nWaiters, @nEvents )
+hb_mutexSubscribe( pMtx, [nTimeOut] [, @xVal] )
+hb_mutexSubscribeNow( pMtx, [nTimeOut] [, @xSubscribed] )
+hb_mutexUnlock( pMtx )
 hb_mvrestore
 hb_mvsave
 hb_ntocolor
@@ -625,10 +625,10 @@ hb_ntomsec
 hb_ntos( <nValue> )
 hb_ntosec
 hb_ntot
-hb_numtohex
+hb_NumToHex( num[, nLen] ) 
 hb_oemtoansi
 hb_oscpu
-hb_osdriveseparator
+hb_osDriveSeparator() 
 hb_oserror
 hb_osfilemask
 hb_osis64bit
@@ -651,34 +651,34 @@ hb_pathrelativize
 hb_pcodever
 hb_PIsByRef( nParam )
 hb_pread
-hb_processclose
-hb_processopen
-hb_processrun
-hb_processvalue
-hb_progname
-hb_ps
+hb_ProcessClose( handle, lGentle )
+hb_ProcessOpen( cCommand, [cStdIn], [@cStdOut], [@cStdErr], [...
+hb_ProcessRun( cCommand, [cStdIn], [@cStdOut], [@cStdErr], [l...
+hb_ProcessValue( handle, [lWait] )
+hb_Progname() 
+hb_ps() 
 hb_PValue( <nArg> )
 hb_pwrite
-hb_rand32
+hb_Rand32()
 hb_randint
 hb_randnum
-hb_random
-hb_randomint
+hb_Random( [n1,] [n2] )
+hb_RandomInt( [n1,] [n2] )
 hb_randomintmax
-hb_randomseed
+hb_RandomSeed( n )
 hb_randstr
-hb_rascan
+hb_RAscan( aArray, [block], [nStart], [nCount], [lExact] )
 hb_RAt( <cSearch>, <cString>, [<nStart>], [<nEnd>] )
 hb_rddgettempalias
 hb_rddinfo
-hb_regex
-hb_regexall
-hb_regexatx
-hb_regexcomp
-hb_regexhas
-hb_regexlike
+hb_Regex( cRegex, cString, </nobr>[lCase], [lNewLine] )
+hb_RegexAll( cRegex, cString, [lCase], [lNewLine], [nMaxMatch...
+hb_RegexAtx( cRegEx, cString, [lCase], [lNewLine] )
+hb_RegexComp( cRegEx, [lCase], [lNewLine] )
+hb_RegexHas( cRegEx, cString, [lCase], [lNewLine] )
+hb_RegexLike( cRegEx, cString, [lCase], [lNewLine] )
 hb_regexmatch
-hb_regexsplit
+hb_RegexSplit( cRegEx, cString, [lCase], [lNewLine], [nMaxMat...
 hb_releasecpu
 hb_run
 hb_scrmaxcol
@@ -701,7 +701,7 @@ hb_setlastkey
 hb_SetMacro( <nOption>, [<lOnOff>] )
 hb_setobject
 hb_settermcp
-hb_sha1
+hb_SHA1( cText [, lRaw ] )
 hb_sha224
 hb_sha256
 hb_sha384
@@ -759,30 +759,30 @@ hb_stot
 hb_strcdecode
 hb_strclear
 hb_strdecodescape
-hb_strformat
+hb_strFormat( cFormat, ... ) 
 hb_strisutf8
 hb_strreplace
 hb_strshrink
 hb_strtoexp
 hb_strtohex
 hb_strtots
-hb_strtoutf8
+hb_StrToUtf8( sData, sCodepageIN ) 
 hb_strxor
-hb_threaddetach
-hb_threadid
+hb_threadDetach( pThID )
+hb_threadId( [ pThID ] )
 hb_threadismain
-hb_threadjoin
-hb_threadonce
-hb_threadonceinit
-hb_threadquitrequest
-hb_threadself
-hb_threadstart
-hb_threadterminateall
-hb_threadwait
-hb_threadwaitforall
-hb_tokencount
-hb_tokenget
-hb_tokenptr
+hb_threadJoin( pThID [, @xRetCode ] )
+hb_threadOnce( @onceControl [, bAction] )
+hb_threadOnceInit( @item, value )
+hb_threadQuitRequest( pThID )
+hb_threadSelf()
+hb_threadStart( @sStart() | bStart | cStart [, params,... ] )
+hb_threadTerminateAll()
+hb_threadWait( pThID | apThID [, nTimeOut] [, lAll] )
+hb_threadWaitForAll()
+hb_TokenCount( cString, [cDelim], [lSkipStrings], [lDoubleQuo...
+hb_TokenGet( cString, nToken, [cDelim], [lSkipStrings], [lDou...
+hb_TokenPtr( cString, @nSkip, [cDelim], [lSkipStrings], [lDou...
 hb_tracefile
 hb_traceflush
 hb_tracelevel
@@ -820,71 +820,71 @@ hb_username
 hb_ustuff
 hb_usubstr
 hb_utcoffset
-hb_utf8asc
+hb_utf8Asc( sData ) 
 hb_utf8at
-hb_utf8chr
-hb_utf8left
-hb_utf8len
-hb_utf8peek
-hb_utf8poke
+hb_utf8Chr( n ) 
+hb_utf8Left( sData, n1 ) 
+hb_Utf8Len( sData ) 
+hb_utf8Peek( sData, n1 ) 
+hb_utf8Poke( sData, n1, n ) 
 hb_utf8rat
-hb_utf8right
+hb_utf8Right( sData, n1 ) 
 hb_utf8strtran
-hb_utf8stuff
-hb_utf8substr
-hb_utf8tostr
+hb_utf8Stuff( sData, n1, n2, cNew ) 
+hb_utf8Substr( sData, n1, n2 ) 
+hb_Utf8ToStr( sData, sCodepageOUT ) 
 hb_utf8tostrbox
 hb_val
 hb_valtoexp
 hb_ValToStr( <xValue> )
 hb_version
-hb_vfattrget
-hb_vfattrset
-hb_vfclose
-hb_vfcommit
-hb_vfconfig
-hb_vfcopyfile
-hb_vfdirectory
-hb_vfdirexists
-hb_vfdirmake
-hb_vfdirremove
-hb_vfdirspace
-hb_vfeof
-hb_vferase
-hb_vfexists
-hb_vfflush
-hb_vfhandle
-hb_vflink
-hb_vflinkread
-hb_vflinksym
-hb_vfload
-hb_vflock
-hb_vflocktest
+hb_vfAttrGet( cFileName, @nAttr ) 
+hb_vfAttrSet( cFileName, nAttr ) 
+hb_vfClose( pHandle )
+hb_vfCommit( pHandle ) 
+hb_vfConfig( pHandle, nSet, [ nParam ] ) 
+hb_vfCopyFile( cFileSrc, cFileDst ) 
+hb_vfDirectory( [ cDirSpec ], [ cAttr ] ) 
+hb_vfDirExists( cDirName )
+hb_vfDirMake( cDirName )
+hb_vfDirRemove( cDirName )
+hb_vfDirSpace( cDirName, [ nInfoType ] ) 
+hb_vfEof( pHandle ) 
+hb_vfErase( cFileName ) 
+hb_vfExists( cFileName, [ @cDestFileName ] )
+hb_vfFlush( , [ lDirtyOnly ] ) 
+hb_vfHandle( pHandle ) 
+hb_vfLink( cExistingFileName, cNewFileName ) 
+hb_vfLinkRead( cFileName )
+hb_vfLinkSym( cTargetFileName, cNewFileName ) 
+hb_vfLoad( cFileName, [ nMaxSize ] )
+hb_vfLock( pHandle, nStart, nLen, [ nType ] ) 
+hb_vfLockTest( pHandle, nStart, nLen, [ nType ] )
 hb_vfmovefile
-hb_vfopen
-hb_vfread
-hb_vfreadat
-hb_vfreadlen
-hb_vfrename
-hb_vfseek
-hb_vfsize
-hb_vftempfile
-hb_vftimeget
-hb_vftimeset
-hb_vftrunc
-hb_vfunlock
-hb_vfwrite
-hb_vfwriteat
+hb_vfOpen( [@]cFileName, [ nModeAttr ] ) 
+hb_vfRead( pHandle, @cBuff, [ nToRead ], [ nTimeOut ] ) 
+hb_vfReadAt( pHandle, @cBuff, [ nToRead ], [ nAtOffset ] ) 
+hb_vfReadLen( pHandle, nToRead, [ nTimeOut ] ) 
+hb_vfRename( cFileSrc, cFileDst ) 
+hb_vfSeek( pHandle, nOffset, [ nWhence ] ) 
+hb_vfSize( pHandle | cFileName [, lUseDirEntry ] ) 
+hb_vfTempFile( @cFileName, [ cDir ], [ cPrefix ], [ cExt ], [...
+hb_vfTimeGet( cFileName, @tsDateTime ) 
+hb_vfTimeSet( cFileName, tsDateTime ) 
+hb_vfTrunc( pHandle, [ nAtOffset ] ) 
+hb_vfUnlock( pHandle, nStart, nLen )
+hb_vfWrite( pHandle, cBuff, [ nToWrite ], [ nTimeOut ] ) 
+hb_vfWriteAt( pHandle, cBuff, [ nToWrite ], [ nAtOffset ] ) 
 hb_waeval
 hb_Week( <dDate>, [@<nYear>], [@<nDayOfWeek>] )
-hb_wildmatch
-hb_wildmatchi
-hb_zcompress
-hb_zcompressbound
-hb_zerror
-hb_zlibversion
-hb_zuncompress
-hb_zuncompresslen
+hb_wildMatch( cPattern, cString, [lExact] )
+hb_wildMatchI( cPattern, cString )
+hb_zCompress( cData [@cBuffer | nBufLen], [@nResult], [nLevel...
+hb_zCompressBound( cData | nDataLen ) 
+hb_zError( nError ) 
+hb_zlibVersion() 
+hb_zunCompress( cPackedData, [@cBuffer | nBufLen], [@nResult] ) 
+hb_zunCompressLen( cPackedData, [@nResult] ) 
 Header()
 hittest
 hs_add
@@ -1437,7 +1437,7 @@ __mvClear()
 __mvDbgInfo( <nScope> [, <nPosition> [, @<cVarName>] ] )
 __mvExist( <cVarName> )
 __mvGet( <cVarName> )
-__mvgetdef
+__mvGet( cVarName ) 
 __mvPrivate( <variable_name> )
 __mvPublic( <variable_name> )
 __mvPut( <cVarName> [, <xValue>] )
@@ -1445,7 +1445,7 @@ __mvRelease( <skeleton>, <include_exclude_flag> )
 __mvrestore
 __mvsave
 __mvScope( <cVarName> )
-__mvsetbase
+__mvSetBase() 
 __mvXRelease( <variable_name> )
 __mxrelease
 __natisaffirm
@@ -1458,7 +1458,7 @@ __NoNoAlert()
 __objAddData( <oObject>, <cDataName> )
 __objAddInline( <oObject>, <cInlineName>, <bInline> )
 __objAddMethod( <oObject>, <cMethodName>, <nFuncPtr> )
-__objclone
+__objClone( oSource )
 __objDelMethod( <oObject>, <cDataName> )
 __objDelInline( <oObject>, <cSymbol> )
 __objDelMethod( <oObject>, <cSymbol> )
@@ -1476,7 +1476,7 @@ __objhasmsgassigned
 __objModInline( <oObject>, <cInlineName>, <bInline> )
 __objModMethod( <oObject>, <cMethodName>, <nFuncPtr> )
 __objrestoreivars
-__objsendmsg
+__objSendMsg( oObject, cName [,xParams...] )
 __objsetclass
 __objsetclasshandle
 __objsetivars
