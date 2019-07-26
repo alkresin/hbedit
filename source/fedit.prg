@@ -311,6 +311,8 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
                   IF Empty( xPlugin[2] )
                      EXIT
                   ENDIF
+               ELSE
+                  EXIT
                ENDIF
                hb_hrbDo( xPlugin[2], Self, hb_fnameDir( xPlugin[1] ) )
             ENDIF
