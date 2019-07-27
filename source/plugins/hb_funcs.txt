@@ -31,19 +31,6 @@ Break( <xExp> )
 Browse( [<nTop>, <nLeft>, <nBottom>, <nRight>] )
 buttndefco
 CDoW( <dDate> )
-cftsadd
-cftsclose
-cftscrea
-cftsdelete
-cftsifdel
-cftsnext
-cftsopen
-cftsrecn
-cftsreplac
-cftsset
-cftsundel
-cftsveri
-cftsvers
 checkbox
 checkdefco
 Chr( <nAsciiNum> )
@@ -887,21 +874,21 @@ hb_zunCompress( cPackedData, [@cBuffer | nBufLen], [@nResult] )
 hb_zunCompressLen( cPackedData, [@nResult] ) 
 Header()
 hittest
-hs_add
-hs_close
-hs_create
-hs_delete
-hs_filter
-hs_ifdel
-hs_index
-hs_keycount
-hs_next
-hs_open
-hs_replace
-hs_set
-hs_undelete
-hs_verify
-hs_version
+hs_Add( handle, Expr, [lDel] )
+hs_Close( handle )
+hs_Create( cFileName, nBufSize, nKeySize, lCase, nFiltSet, xE...
+hs_Delete( handle, nVal )
+hs_Filter( cIndex, cVal, [cExpr], [nBufSize], [nOpenMode] )
+hs_IfDel( handle, nVal )
+hs_Index( cFileName, cExpr, [nKeySize], [nOpenMode], [nBufSiz...
+hs_KeyCount( handle )
+hs_Next( handle )
+hs_Open( cFileName, nBufSize, nOpenMode )
+hs_Replace( handle, Expr, nVal, lDel )
+hs_Set( handle, cExpr )
+hs_UnDelete( handle, nVal )
+hs_Verify( bSource, cValue )
+hs_Version()
 I2Bin( <nNumber> )
 IndexExt()
 IndexKey( <nOrder> )
