@@ -2290,7 +2290,7 @@ METHOD Highlighter( oHili ) CLASS TEdit
 METHOD OnExit() CLASS TEdit
 
    LOCAL i, j, s := "", nSaveHis := TEdit():options["savehis"]
-   LOCAL aMacros, arr, sLine
+   LOCAL aMacros, arr, sLine, cHisDir := hb_DirBase()
 
    IF nSaveHis > 0
       IF !Empty( TEdit():aSeaHis )
@@ -2338,7 +2338,12 @@ METHOD OnExit() CLASS TEdit
          NEXT
       ENDIF
 
-      hb_MemoWrit( IIf( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his", s )
+#ifdef __PLATFORM__UNIX
+      IF hb_dirExists( sLine := ( hb_getenv( "HOME" ) + "/hbedit" ) )
+         cHisDir := sLine + "/"
+      ENDIF
+#endif
+      hb_MemoWrit( IIf( nSaveHis==1, cHisDir, "" ) + "hbedit.his", s )
    ENDIF
    edi_SetPalette( , "default" )
 
@@ -2840,7 +2845,13 @@ FUNCTION edi_ReadIni( xIni )
    ENDIF
 
    IF nSaveHis > 0
-      hIni := edi_iniRead( Iif( nSaveHis==1, hb_DirBase(), "" ) + "hbedit.his" )
+      cTemp := hb_DirBase()
+#ifdef __PLATFORM__UNIX
+      IF hb_dirExists( s := ( hb_getenv( "HOME" ) + "/hbedit" ) )
+         cTemp := s + "/"
+      ENDIF
+#endif
+      hIni := edi_iniRead( Iif( nSaveHis==1, cTemp, "" ) + "hbedit.his" )
       IF !Empty( hIni )
          hb_hCaseMatch( hIni, .F. )
          IF hb_hHaskey( hIni, cTemp := "SEARCH" ) .AND. !Empty( aSect := hIni[ cTemp ] )
