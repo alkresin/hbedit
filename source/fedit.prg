@@ -2138,18 +2138,22 @@ METHOD DelText( nLine1, nPos1, nLine2, nPos2, lNoUndo ) CLASS TEdit
          cTextOld := ::aText[nLine1] + Chr(10)
          ::aText[nLine1] := ""
       ENDIF
-      n := nLine1 + 1
-      FOR i := nLine1+1 TO nLine2-1
-         cTextOld += ::aText[n] + Chr(10)
-         ADel( ::aText, n )
-         ncou ++
-      NEXT
+      IF nLine1 < Len( ::aText )
+         n := nLine1 + 1
+         FOR i := nLine1+1 TO nLine2-1
+            cTextOld += ::aText[n] + Chr(10)
+            ADel( ::aText, n )
+            ncou ++
+         NEXT
 
-      IF nPos2 > 1
-         cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
-         ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+         IF nPos2 > 1
+            cTextOld += cp_Left( ::lUtf8, ::aText[n], nPos2 )
+            ::aText[nLine1] += cp_Substr( ::lUtf8, ::aText[n], nPos2+1 )
+         ELSE
+            ::aText[nLine1] += ::aText[n]
+         ENDIF
       ELSE
-         ::aText[nLine1] += ::aText[n]
+         n := nLine1
       ENDIF
       ADel( ::aText, n )
       ncou ++

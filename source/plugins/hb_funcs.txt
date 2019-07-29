@@ -299,11 +299,11 @@ hb_default
 hb_defaultvalue
 hb_deserialize
 hb_DirBase() 
-hb_dirbuild
-hb_dircreate
-hb_dirdelete
-hb_directory
-hb_direxists
+hb_DirBuild( cDir )
+hb_DirCreate( cDir )
+hb_DirDelete( cDir )
+hb_Directory() 
+hb_DirExists( cDir )
 hb_DirRemoveAll( cDir )
 hb_dirscan
 hb_dirsepadd
