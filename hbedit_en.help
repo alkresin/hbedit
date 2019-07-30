@@ -40,8 +40,8 @@ relevant functions, so you can use it as a reference.
 
    Ctrl-w,s            split window horizontally and open the same file in readonly mode;
    Ctrl-w,v            split window vertically and open the same file in readonly mode;
-   Ctrl-w,w            switch window.
-   Ctrl-w,c            close window.
+   Ctrl-w,w            switch window;
+   Ctrl-w,c            close window;
    Ctrl-w,o            open window fully.
 
    There are a total of 4 modes in Hbedit: Edit (Edit), Select (Sele),
@@ -61,7 +61,6 @@ highlight text:
    Del, d            delete the text;
    Shift-Del,Ctrl-X  put in the system buffer and delete;
    c                 delete the text and switching to edit mode;
-   r[x]              replace all chars in selected text with x;
    u, U              convert, respectively, to lower or upper case;
    >, <              increase / decrease indent;
    .                 repeat the last operation with a selected region;
@@ -121,8 +120,6 @@ functional. The following keys are currently supported:
    yi[               put a text in square brackets into the clipboard buffer;
    yi[B,{,}]         put a text in braces into the clipboard buffer;
    yis               put a sentence into the clipboard buffer;
-
-   "[a...z,-]  установить регистр для последующей операции;
 
    "[a...z,-]        set a register for a next operation;
 
