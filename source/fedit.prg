@@ -13,7 +13,9 @@
 #ifdef _FULL
 #include "hbfuncsfull.ch"
 #else
+#ifndef _SMALL
 #include "hbfuncs.ch"
+#endif
 #endif
 
 #define SHIFT_PRESSED 0x010000
@@ -341,7 +343,8 @@ METHOD Edit() CLASS TEdit
       ENDIF
    NEXT
 
-   IF ::cCurrPal == Nil .OR. !( ::cPalette == ::cCurrPal )
+   IF ( ::cCurrPal == Nil .OR. !( ::cPalette == ::cCurrPal ) ) .AND. ;
+      ( !Empty(::cPalette) .OR. !Empty(::cDefPal) )
       edi_SetPalette( Self, Iif( Empty( ::cPalette ), ::cDefPal, ::cPalette ) )
    ENDIF
    SetCursor( SC_NONE )
@@ -2568,7 +2571,6 @@ FUNCTION edi_ReadIni( xIni )
    hPalettes := hb_Hash()
    hPalettes["default"] := hb_Hash()
    hPalettes["default"]["colors"] := hb_gtinfo( HB_GTI_PALETTE )
-   TEdit():cDefPal := "default"
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )
@@ -2717,6 +2719,7 @@ FUNCTION edi_ReadIni( xIni )
          ENDIF
       NEXT
 
+      TEdit():cDefPal := "default"
       hHili := hPalettes["default"]
       hHili["attrs"] := TEdit():aHiliAttrs
       hHili["colormain"] := TEdit():cColor
