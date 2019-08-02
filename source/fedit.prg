@@ -2538,7 +2538,7 @@ FUNCTION edi_2cb( oEdit, nReg, s )
       s := edi_GetSelected( oEdit )
    ENDIF
 
-   IF !Empty( s )
+   IF Len( s ) > 0
       IF Empty( nReg )
          nReg := 1
       ELSEIF nReg >= 97 .AND. nReg <= 122
