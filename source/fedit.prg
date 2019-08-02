@@ -2719,7 +2719,9 @@ FUNCTION edi_ReadIni( xIni )
          ENDIF
       NEXT
 
-      TEdit():cDefPal := "default"
+      IF Empty( TEdit():cDefPal )
+         TEdit():cDefPal := "default"
+      ENDIF
       hHili := hPalettes["default"]
       hHili["attrs"] := TEdit():aHiliAttrs
       hHili["colormain"] := TEdit():cColor
