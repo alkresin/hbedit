@@ -1440,7 +1440,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      DO WHILE ( x := cp_Substr( ::lUtf8, ::aText[n], ++i, 1 )  ) == " " .OR. x == cTab
                         s += x
                      ENDDO
-                     IF s != "" .AND. ::nPos <= Len( s )
+                     IF !(s == "") .AND. ::nPos <= Len( s )
                         s := Left( s, ::nPos - 1 )
                      ENDIF
                   ENDIF
