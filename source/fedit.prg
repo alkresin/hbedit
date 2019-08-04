@@ -2352,7 +2352,7 @@ METHOD OnExit() CLASS TEdit
 #endif
       hb_MemoWrit( IIf( nSaveHis==1, cHisDir, "" ) + "hbedit.his", s )
    ENDIF
-   edi_SetPalette( , "default" )
+   //edi_SetPalette( , "default" )
 
    RETURN Nil
 
