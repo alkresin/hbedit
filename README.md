@@ -35,14 +35,24 @@ A fullscreen console multiplatform text editor.
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
   + source/plugins/     - plugins source files
+    + hb_funcs.txt          - Harbour functions list for plug_prg_init
+    + hwg_funcs.txt         - HwGUI functions list for plug_prg_init
     + plug_c_spis.prg       - C functions list
+    + plug_calculator.prg   - Calculator
+    + plug_chartable.prg    - Chartable
+    + plug_go_build.prg     - Golang build project
     + plug_go_fmt.prg       - Golang formatting
     + plug_go_run.prg       - Golang run code
     + plug_go_spis.prg      - Golang functions list
     + plug_hbp_init.prg     - a start plugin for .hbp files
     + plug_prg_compile.prg  - Harbour compiling
+    + plug_prg_init.prg     - a start plugin for .prg files
     + plug_prg_run.prg      - Harbour run
+    + plug_prg_run1c.prg    - Harbour for 1c
     + plug_prg_spis.prg     - Harbour functions list
+    + plug_selection.prg    - Additional operations on selected region
+    + plug_tetris.prg       - A tetris game
+    + plug_webservices.prg  - Some web services access
 
 ### Usage
 
@@ -72,20 +82,7 @@ A fullscreen console multiplatform text editor.
 ### hbedit.ini
 
  hbedit.ini includes many important options, you may edit it to tune the editor.
-
- One of them - codepages used. The list is in [CODEPAGES] section, you can include there those,
- which you need and delete others. Below is a list of possible values:
-
- BG866, BGISO, BGMIK, BGWIN, BIG5, CP950, CS852, CS852C, CSISO, CSKAMC,
- CSWIN, DE850, DE850M, DEISO, DEWIN, DK865, EL437, EL737, ELISO, ELWIN,
- EN, ES850, ES850C, ES850M, ESISO, ESMWIN, ESWIN, FI850, FR850, FR850C,
- FR850M, FRISO, FRWIN, GBK, HE862, HEWIN, HR646, HR852, HRISO, HRWIN,
- HU852, HU852C, HUISO, HUWIN, IS850, IS861, IT437, IT850, IT850M, ITISB,
- ITISO, ITWIN, LT775, LTWIN, NL850, NL850M, NO865, PL852, PLISO, PLMAZ,
- PLWIN, PT850, PT860, PTISO, RO852, ROISO, ROWIN, RU1251, RU866, RUISO,
- RUKOI8, SK852, SK852C, SKISO, SKKAMC, SKWIN, SL646, SL852, SLISO, SLWIN,
- SR646, SR646C, SRWIN, SV437C, SV850, SV850M, SVISO, SVWIN, TR857, TRISO,
- TRWIN, UA1125, UA1251, UA866, UAKOI8, UTF8.
+ See detailed description at http://www.kresin.ru/en/hbedit.html
 
 ### Download
    You may download some ready binaries from http://www.kresin.ru/en/hbedit.html
