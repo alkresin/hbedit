@@ -310,13 +310,10 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
                IF Valtype( xPlugin ) == "C" .AND. ;
                   !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
                   xPlugin := ::oHili:hHili["plugin"] := { cFullPath, hb_hrbLoad( cFullPath ) }
-                  IF Empty( xPlugin[2] )
-                     EXIT
-                  ENDIF
-               ELSE
-                  EXIT
                ENDIF
-               hb_hrbDo( xPlugin[2], Self, hb_fnameDir( xPlugin[1] ) )
+               IF Valtype( xPlugin ) == "A" .AND. !Empty( xPlugin[2] )
+                  hb_hrbDo( xPlugin[2], Self, hb_fnameDir( xPlugin[1] ) )
+               ENDIF
             ENDIF
             EXIT
          ENDIF
