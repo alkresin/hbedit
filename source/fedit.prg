@@ -2410,10 +2410,14 @@ FUNCTION edi_GetSelected( oEdit )
 
    RETURN Iif( oEdit:lTabs, Strtran(s,cTabStr,cTab), s )
 
-FUNCTION cb2Text( oEdit, nReg, lToText )
+/*
+ * cb2Text( oEdit, nReg, lToText, s, lVert )
+ * If nReg == 0, s is a text inserted and lVert should be set.
+ */
+FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
 
    LOCAL arr, aMenu_CB, nLen := 1
-   LOCAL i, j, s, lVert, nPos, cPref
+   LOCAL i, j, nPos, cPref
 
    IF lToText == Nil; lToText := .T.; ENDIF
    IF nReg == Nil
@@ -2437,12 +2441,14 @@ FUNCTION cb2Text( oEdit, nReg, lToText )
             TEdit():aCBoards[1,2] := oEdit:cp
             TEdit():aCBoards[1,3] := Nil
          ENDIF
-      ELSE
+      ELSEIF nReg > 1
          s := TEdit():aCBoards[nReg,1]
       ENDIF
-      lVert := !Empty( TEdit():aCBoards[nReg,3] )
-      IF !Empty( TEdit():aCBoards[nReg,2] ) .AND. !( TEdit():aCBoards[nReg,2] == oEdit:cp )
-         s := hb_Translate( s, TEdit():aCBoards[nReg,2], oEdit:cp )
+      IF nReg > 0
+         lVert := !Empty( TEdit():aCBoards[nReg,3] )
+         IF !Empty( TEdit():aCBoards[nReg,2] ) .AND. !( TEdit():aCBoards[nReg,2] == oEdit:cp )
+            s := hb_Translate( s, TEdit():aCBoards[nReg,2], oEdit:cp )
+         ENDIF
       ENDIF
    ELSE
       aMenu_CB := Array( nLen,3 )
@@ -4224,7 +4230,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
 
 STATIC FUNCTION edi_Indent( oEdit, lRight, nLines, lAddLast )
 
-   LOCAL i, n, nby1, nby2, nbx2, l := .F., nRow := Row(), nCol := Col()
+   LOCAL i, n, nby1, nby2, nbx2, nbx1, l := .F., nRow := Row(), nCol := Col(), s
 
    IF oEdit:lReadOnly
       RETURN Nil
@@ -4235,9 +4241,20 @@ STATIC FUNCTION edi_Indent( oEdit, lRight, nLines, lAddLast )
       nbx2 := 0
    ELSE
       IF oEdit:nby1 <= oEdit:nby2
-         nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+         nby1 := oEdit:nby1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2; nbx1 := oEdit:nbx1
       ELSE
-         nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+         nby1 := oEdit:nby2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1; nbx1 := oEdit:nbx2
+      ENDIF
+      IF oEdit:nSeleMode == 2
+         s := edi_GetSelected( oEdit )
+         oEdit:Undo( nby1, oEdit:nbx1,,, UNDO_OP_START )
+         cbDele( oEdit )
+         nbx1 += Iif( lRight, 1, -1 )
+         edi_SetPos( oEdit, nby1, nbx1 )
+         cb2Text( oEdit, 0, .T., s, .T. )
+         oEdit:Undo( nby1, oEdit:nbx1,,, UNDO_OP_END )
+         oEdit:nby1 := nby1; oEdit:nby2 := nby2; oEdit:nbx1 := nbx1; oEdit:nbx2 := nbx2 + Iif( lRight, 1, -1 )
+         RETURN Nil
       ENDIF
    ENDIF
    FOR i := nby1 TO nby2

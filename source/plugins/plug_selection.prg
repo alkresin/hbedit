@@ -89,7 +89,7 @@ FUNCTION _plug_sele_surround( oEdit, cTextS )
 
    RETURN Nil
 
-FUNCTION _plug_sele_align( oEdit )
+FUNCTION _plug_sele_align( oEdit, lLeft )
 
    LOCAL aMenu := { "Align Left", "Align Right" }, y1 := Row(), x1 := Col()-6
    LOCAL i, s, arr, nLen, lTabs := oEdit:lTabs, nWidth := 0
@@ -104,16 +104,27 @@ FUNCTION _plug_sele_align( oEdit )
    NEXT
    s := ""
 
-   IF ( i := FMenu( oEdit, aMenu, y1, x1 ) ) == 1
+   IF lLeft == Nil
+      IF ( i := FMenu( oEdit, aMenu, y1, x1 ) ) == 1
+         lLeft := .T.
+      ELSEIF i == 2
+         lLeft := .F.
+      ELSE
+         RETURN Nil
+      ENDIF
+   ENDIF
+
+   IF lLeft
       FOR i := 1 TO nLen
          s += Padr( Alltrim(arr[i]), nWidth ) + Iif( i == nLen, "", Chr(10) )
       NEXT
       edi_ReplSelected( oEdit, s )
-   ELSEIF i == 2
+   ELSE
       FOR i := 1 TO nLen
          s += Padl( Alltrim(arr[i]), nWidth ) + Iif( i == nLen, "", Chr(10) )
       NEXT
       edi_ReplSelected( oEdit, s )
    ENDIF
+   edi_SetLastSeleOper( {@_plug_sele_align(),lLeft} )
 
    RETURN Nil
