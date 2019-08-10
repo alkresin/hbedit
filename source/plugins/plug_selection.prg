@@ -9,6 +9,7 @@ FUNCTION plug_Selection( oEdit, aMenu )
    Aadd( aMenu, {"Surround",@_plug_sele_surround(),Nil} )
    IF oEdit:nSeleMode == 2
       Aadd( aMenu, {"Summ",@_plug_sele_summ(),Nil} )
+      Aadd( aMenu, {"Align",@_plug_sele_align(),Nil,">"} )
    ENDIF
    RETURN Nil
 
@@ -84,6 +85,35 @@ FUNCTION _plug_sele_surround( oEdit, cTextS )
       ENDIF
       oEdit:Undo( nby1, nbx1,,, UNDO_OP_END )
       edi_SetLastSeleOper( {@_plug_sele_surround(),cTextSurr} )
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION _plug_sele_align( oEdit )
+
+   LOCAL aMenu := { "Align Left", "Align Right" }, y1 := Row(), x1 := Col()-6
+   LOCAL i, s, arr, nLen, lTabs := oEdit:lTabs, nWidth := 0
+
+   oEdit:lTabs := .F.
+   s := edi_GetSelected( oEdit )
+   oEdit:lTabs := lTabs
+   arr := hb_ATokens( s, Chr(10) )
+   nLen := Len(arr)
+   FOR i := 1 TO nLen
+      nWidth := Max( nWidth, Len(arr[i]) )
+   NEXT
+   s := ""
+
+   IF ( i := FMenu( oEdit, aMenu, y1, x1 ) ) == 1
+      FOR i := 1 TO nLen
+         s += Padr( Alltrim(arr[i]), nWidth ) + Iif( i == nLen, "", Chr(10) )
+      NEXT
+      edi_ReplSelected( oEdit, s )
+   ELSEIF i == 2
+      FOR i := 1 TO nLen
+         s += Padl( Alltrim(arr[i]), nWidth ) + Iif( i == nLen, "", Chr(10) )
+      NEXT
+      edi_ReplSelected( oEdit, s )
    ENDIF
 
    RETURN Nil

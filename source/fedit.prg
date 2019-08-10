@@ -1762,6 +1762,8 @@ METHOD RowToLine( nRow )  CLASS TEdit
 
 METHOD ColToPos( nRow, nCol ) CLASS TEdit
 
+   LOCAL nLine
+
    nCol := nCol - ::x1 + ::nxFirst
 
    IF ::lWrap
@@ -1771,7 +1773,8 @@ METHOD ColToPos( nRow, nCol ) CLASS TEdit
       edi_CalcWrapped( Self, nRow, @nCol,, .F. )
       RETURN nCol
    ENDIF
-   RETURN edi_Col2Pos( Self, ::RowToLine(nRow), nCol )
+   RETURN Iif( (nLine := ::RowToLine(nRow)) > 0 .AND. nLine <= Len(::aText), ;
+      edi_Col2Pos( Self, nLine, nCol ), 1 )
 
 METHOD LineToRow( nLine, nPos ) CLASS TEdit
 
@@ -2398,7 +2401,7 @@ FUNCTION edi_GetSelected( oEdit )
                ELSEIF i == nby2
                   s += cp_Left( oEdit:lUtf8, oEdit:aText[i], nbx2-1 )
                ELSE
-                  s += oEdit:aText[i] + oEdit:cEol
+                  s += oEdit:aText[i] + Chr(10)
                ENDIF
             ENDIF
          NEXT
@@ -2482,6 +2485,9 @@ FUNCTION cb2Text( oEdit, nReg, lToText )
          arr := hb_ATokens( s, Chr(10) )
          nPos := oEdit:nPos
          FOR i := 1 TO Len( arr ) - 1
+            IF oEdit:nLine+i-1 > Len( oEdit:aText )
+               Aadd( oEdit:aText, "" )
+            ENDIF
             oEdit:InsText( oEdit:nLine+i-1, ;
                oEdit:ColToPos( oEdit:LineToRow(oEdit:nLine+i-1), oEdit:PosToCol( oEdit:nLine,nPos ) ), arr[i], .F., .F. )
             oEdit:nPos := nPos
@@ -4048,55 +4054,12 @@ FUNCTION edi_SelectW( oEdit, lBigW )
 
 FUNCTION edi_ConvertCase( oEdit, lUpper )
 
-   LOCAL s, i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2, lUtf8 := oEdit:lUtf8
+   LOCAL s := edi_GetSelected( oEdit ), lUtf8 := oEdit:lUtf8
 
-   IF oEdit:nby1 < 0 .OR. oEdit:nby2 < 0
-      RETURN Nil
+   IF !Empty( s )
+      edi_SetLastSeleOper( {@edi_ConvertCase(),lUpper} )
+      edi_ReplSelected( oEdit, Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ) )
    ENDIF
-
-   edi_SetLastSeleOper( {@edi_ConvertCase(),lUpper} )
-
-   IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
-      nby1 := oEdit:nby1; nbx1 := oEdit:nbx1; nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
-   ELSE
-      nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
-   ENDIF
-   IF nby1 == nby2
-      s := cp_Substr( lUtf8, oEdit:aText[nby1], nbx1, nbx2-nbx1 )
-   ELSE
-      IF oEdit:nSeleMode == 2
-         oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_START )
-         FOR i := nby1 TO nby2
-            nvx1 := nbx1; nvx2 := nbx2
-            IF i != nby1
-               nvx1 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby1,nbx1 ) )
-            ENDIF
-            IF i != nby2
-               nvx2 := oEdit:ColToPos( oEdit:LineToRow(i), oEdit:PosToCol( nby2,nbx2 ) )
-            ENDIF
-            IF nvx1 > nvx2
-               j := nvx1; nvx1 := nvx2; nvx2 := j
-            ENDIF
-            s := cp_Substr( lUtf8, oEdit:aText[i], nvx1, nvx2-nvx1 )
-            oEdit:InsText( i, nvx1, Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ), .T., .F. )
-         NEXT
-         oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_END )
-         RETURN Nil
-      ELSE
-         FOR i := nby1 TO nby2
-            IF i == nby1
-               s := cp_Substr( lUtf8, oEdit:aText[nby1], nbx1 )
-            ELSEIF i == nby2
-               IF nbx2 > 1
-                  s += Chr(10) + cp_Left( lUtf8, oEdit:aText[i], nbx2-1 )
-               ENDIF
-            ELSE
-               s += Chr(10) + oEdit:aText[i]
-            ENDIF
-         NEXT
-      ENDIF
-   ENDIF
-   oEdit:InsText( nby1, nbx1, Iif( lUpper, cp_Upper(lUtf8,s), cp_Lower(lUtf8,s) ), .T., .F. )
 
    RETURN Nil
 
@@ -4533,9 +4496,9 @@ FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
 
    RETURN Iif( lCalcOnly, Int(nLenNew), sNew )
 
-FUNCTION edi_FillSelected( oEdit, cChar )
+FUNCTION edi_ReplSelected( oEdit, s )
 
-   LOCAL s := "", i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2
+   LOCAL i, j, nby1, nby2, nbx1, nbx2, nvx1, nvx2, arr
 
    IF oEdit:nby1 >= 0 .AND. oEdit:nby2 >= 0
       IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
@@ -4543,9 +4506,17 @@ FUNCTION edi_FillSelected( oEdit, cChar )
       ELSE
          nby1 := oEdit:nby2; nbx1 := oEdit:nbx2; nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
       ENDIF
+      IF Chr(10) $ s
+         arr := hb_ATokens( s, Chr(10) )
+      ENDIF
       IF nby1 == nby2
-         oEdit:InsText( nby1, nbx1, Replicate( cChar, nbx2-nbx1 ), .T., .F. )
+         IF arr == Nil .AND. Len(s) == (nbx2-nbx1)
+            oEdit:InsText( nby1, nbx1, s, .T., .F. )
+         ENDIF
       ELSE
+         IF arr == Nil //.OR. Len(arr) != (nby2-nby1+1)
+            RETURN Nil
+         ENDIF
          oEdit:Undo( nby1, nbx1,,, UNDO_OP_START )
          FOR i := nby1 TO nby2
             IF oEdit:nSeleMode == 2
@@ -4559,22 +4530,33 @@ FUNCTION edi_FillSelected( oEdit, cChar )
                IF nvx1 > nvx2
                   j := nvx1; nvx1 := nvx2; nvx2 := j
                ENDIF
-               oEdit:InsText( i, nvx1, Replicate( cChar, nvx2-nvx1 ), .T., .F. )
-            ELSE
-               IF i == nby1
-                  oEdit:InsText( i, nbx1, Replicate( cChar, ;
-                     cp_Len(oEdit:lUtf8,oEdit:aText[i]) - nbx1 + 1 ), .T., .F. )
-               ELSEIF i == nby2
-                  oEdit:InsText( i, 1, Replicate( cChar, nbx2-1 ), .T., .F. )
+               IF Len( arr[i-nby1+1] ) == nvx2 - nvx1
+                  oEdit:InsText( i, nvx1, arr[i-nby1+1], .T., .F. )
                ELSE
-                  oEdit:InsText( i, 1, Replicate( cChar, ;
-                     cp_Len(oEdit:lUtf8,oEdit:aText[i]) ), .T., .F. )
+                  oEdit:DelText( i, nvx1, i, nvx2-1 )
+                  oEdit:InsText( i, nvx1, arr[i-nby1+1], .F., .F. )
                ENDIF
+            ELSE
+               oEdit:InsText( i, nbx1, arr[i-nby1+1], .T., .F. )
             ENDIF
          NEXT
          oEdit:Undo( nby1, nbx1,,, UNDO_OP_END )
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+FUNCTION edi_FillSelected( oEdit, cChar )
+
+   LOCAL arr := hb_ATokens( edi_GetSelected( oEdit ), Chr(10) ), i, s := "", nLen := Len(arr)
+
+   edi_SetLastSeleOper( {@edi_FillSelected(),cChar} )
+
+   FOR i := 1 TO nLen
+      s += Replicate( cChar, Len( arr[i] ) ) + Iif( i == nLen, "", Chr(10) )
+   NEXT
+
+   edi_ReplSelected( oEdit, s )
 
    RETURN Nil
 
