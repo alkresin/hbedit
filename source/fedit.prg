@@ -4192,9 +4192,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
    LOCAL cName
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
    LOCAL aGets := { {11,22,0,"",48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
-      {12,29,3,.T.,1}, {12,47,3,.F.,1}, {12,63,3,.F.,1}, ;
-      {15,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {12,29,3,.T.,1}, {12,47,3,.F.,1}, {12,63,3,.F.,1} }
 
    hb_cdpSelect( "RU866" )
    @ 09, 20, 16, 72 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -4205,6 +4203,12 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
 
    @ 10,22 SAY "Save file as"
    @ 12, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
+   IF oEdit:lTabs
+      hb_AIns( aGets, 5, {13,47,1,.F.,1}, .T. )
+      @ 12, 46 SAY "[ ] Tabs to spaces"
+   ENDIF
+   Aadd( aGets, {15,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
+   Aadd( aGets, {15,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
       hb_AIns( aGets, 5, {13,24,1,oEdit:lBom,1}, .T. )
       @ 13, 23 SAY "[ ] Add BOM"
@@ -4220,6 +4224,9 @@ STATIC FUNCTION edi_SaveDlg( oEdit )
       ENDIF
       IF oEdit:lUtf8
          oEdit:lBom := aGets[5,4]
+      ENDIF
+      IF oEdit:lTabs
+         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[6,4], aGets[5,4] )
       ENDIF
    ENDIF
 
