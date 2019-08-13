@@ -1514,9 +1514,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF ::nby1 >= 0 .AND. ::nby2 >= 0 .AND. !::lF3 .AND. !lShift
                   IF (::nLine != ::nby1 .OR. ::nPos != ::nbx1) .AND. ;
                      (::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 ))
-                     ::nLine := ::nby1
-                     ::nPos := ::nbx1
-                     edi_SetPos( Self )
+                     ::GoTo( ::nby1, ::nbx1 )
                   ENDIF
                ELSE
                   edi_GoLeft( Self )
@@ -1526,9 +1524,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                IF ::nby1 >= 0 .AND. ::nby2 >= 0 .AND. !::lF3 .AND. !lShift
                   IF (::nLine != ::nby1 .OR. ::nPos != ::nbx1) .AND. ;
                      !(::nby1 < ::nby2 .OR. ( ::nby1 == ::nby2 .AND. ::nbx1 < ::nbx2 ))
-                     ::nLine := ::nby1
-                     ::nPos := ::nbx1
-                     edi_SetPos( Self )
+                     ::GoTo( ::nby1, ::nbx1 )
                   ENDIF
                ELSE
                   edi_GoRight( Self )
