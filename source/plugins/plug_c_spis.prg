@@ -1,6 +1,6 @@
 Function plug_C_Spis( oEdit )
 
-   LOCAL i, j, arr := oEdit:aText, nLen, cLine, nPos, c, cLinePrev := "", arrfnc := {}
+   LOCAL i, j, n, arr := oEdit:aText, nLen, cLine, nPos, c, cLinePrev := "", arrfnc := {}
    LOCAL lComm := .F., lUtf8 := oEdit:lUtf8, cQuotes := ['"], nLevel := 0
 
    FOR i := 1 TO Len( arr )
@@ -75,7 +75,7 @@ Function plug_C_Spis( oEdit )
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>36) ) ) > 0
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, .T. ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF

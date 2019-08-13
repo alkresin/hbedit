@@ -444,7 +444,7 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
    LOCAL n := nLine + ::nyFirst - 1, y := ::y1 + nLine - 1, nWidth := ::x2 - ::x1 + 1, s, nLen
    LOCAL lSel := .F., nby1, nby2, nbx1, nbx2, nx1, nx2, lTabs := .F., nf := ::nxFirst, nf1
    LOCAL aStru, i, aClrs
-   LOCAL nxPosFirst := 1, nxPosLast := nf + nWidth
+   LOCAL nxPosFirst := 1, nxPosLast := nf + nWidth, nDop
 
    IF ::lWrap
       n := edi_CalcWrapped( Self, y,, @nxPosFirst, .F. )
@@ -511,7 +511,11 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          nLen := Col() - ::x1
 
          IF !Empty( ::oHili ) .AND. hb_hGetDef( TEdit():options, "syntax", .F. )
+            nDop := Iif( !Empty(::oHili:aDop) .AND. Len(::oHili:aDop) >= n, ::oHili:aDop[n], 0 )
             ::oHili:Do( n )
+            IF nDop != ::oHili:aDop[n]
+               ::lTextOut := .T.
+            ENDIF
             aStru := ::oHili:aLineStru
             IF ::oHili:nItems > 0
                aClrs := ::oHili:hHili["colors"]

@@ -1,6 +1,6 @@
 Function plug_go_Spis( oEdit )
 
-   LOCAL i, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
 
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
@@ -20,7 +20,7 @@ Function plug_go_Spis( oEdit )
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>36) ) ) > 0
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, .T. ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF
