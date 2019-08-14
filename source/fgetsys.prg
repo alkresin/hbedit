@@ -292,3 +292,24 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
    ENDIF
 
    RETURN Nil
+
+FUNCTION edi_Wait( cText, cColor )
+
+   LOCAL oldc := SetColor( cColor ), cp := hb_cdpSelect( "RU866" )
+   LOCAL aText := hb_aTokens( cText, ";" ), i
+   LOCAL nLen := 0, x1, y1 := 10
+
+   FOR i := 1 TO Len( aText )
+      nLen := Max( nLen, Len( aText[i] ) )
+   NEXT
+   nLen += 4
+
+   x1 := Int( (MaxCol()-nLen)/2 )
+   @ y1, x1, y1+Len(aText)+1, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
+   hb_cdpSelect( cp )
+   FOR i := 1 TO Len( aText )
+      @ y1+i, x1 + 2 SAY aText[i]
+   NEXT
+   SetColor( oldc )
+
+   RETURN Nil
