@@ -39,7 +39,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                Iif(Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4])+1,0) )
          ENDIF
       NEXT
-      x2 := x1 + x2 + 6
+      x2 := Min( MaxCol()-4, x1 + x2 + 6 )
    ENDIF
    IF y2 == Nil
       y2 := Min( MaxRow()-2, nLen + y1 + 1 )
