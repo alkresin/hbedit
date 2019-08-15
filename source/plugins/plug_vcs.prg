@@ -1,7 +1,15 @@
+#define ALT_PRESSED   0x040000
+#define K_ALT_D   288
+#define K_ALT_I   279
+#define K_ENTER    13
+#define K_ESC      27
+
+STATIC lCurr, oParent
+
 FUNCTION Plug_Vcs( oEdit )
 
    LOCAL aMenu := { "Git: History", "Fossil: History" }, iChoic, ic
-   LOCAL aMenu1 := { "Show file", "Diff with next", "Diff with previous", "Diff with last", "Diff with current" }, i1, nPos, o
+   LOCAL aMenu1 := { "Show file", "Diff with next", "Diff with last", "Diff with current" }, i1, nPos, o
    LOCAL cCurrDir, cFileRes := hb_DirTemp() + "pluggit.out", cAddW := "$Vcs", cBuff, arrh
    LOCAL cFileName := hb_FNameNameExt( oEdit:cFileName ), cv1, cv2
    LOCAL nRow := Row(), nCol := Col()
@@ -37,68 +45,57 @@ FUNCTION Plug_Vcs( oEdit )
          edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
          cv1 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
          IF i1 == 1
-            IF ic == 1
-               cedi_RunConsoleApp( 'git show ' + cv1 + ":./" + ;
-                  cFileName, cFileRes )
+             IF ic == 1
+               cedi_RunConsoleApp( 'git show ' + cv1 + ":./" + cFileName, cFileRes )
             ELSEIF ic == 2
-               cedi_RunConsoleApp( 'fossil finfo -p -r ' + cv1 + ;
-                  " " + cFileName, cFileRes )
+               cedi_RunConsoleApp( 'fossil finfo -p -r ' + cv1 + " " + cFileName, cFileRes )
             ENDIF
-
          ELSEIF i1 == 2
-            IF iChoic == 1
-               edi_Alert( "Not available" )
-               i1 := 0
-            ELSEIF ic == 1
-               cedi_RunConsoleApp( 'git diff ' + Substr( arrh[iChoic],3,7 ) + " " + ;
-                  Substr( arrh[iChoic-1],3,7 ) + " " + cFileName, cFileRes )
-            ELSEIF ic == 2
-               cedi_RunConsoleApp( 'fossil diff --from ' + Left( arrh[iChoic-1],10 ) + " --to " + ;
-                  Left( arrh[iChoic],10 ) + " " + cFileName, cFileRes )
-            ENDIF
-
+            iChoic --
          ELSEIF i1 == 3
-            IF iChoic == Len( arrh )
-               edi_Alert( "Not available" )
-               i1 := 0
-            ELSEIF ic == 1
-               cedi_RunConsoleApp( 'git diff ' + Substr( arrh[iChoic+1],3,7 ) + " " + ;
-                  Substr( arrh[iChoic],3,7 ) + " " + cFileName, cFileRes )
-            ELSEIF ic == 2
-               cedi_RunConsoleApp( 'fossil diff --from ' + Left( arrh[iChoic],10 ) + " --to " + ;
-                  Left( arrh[iChoic+1],10 ) + " " + cFileName, cFileRes )
-            ENDIF
-
+            iChoic := 1
          ELSEIF i1 == 4
-            IF ic == 1
-               cedi_RunConsoleApp( 'git diff ' + Substr( arrh[1],3,7 ) + " " + ;
-                  Substr( arrh[iChoic],3,7 ) + " " + cFileName, cFileRes )
-            ELSEIF ic == 2
-               cedi_RunConsoleApp( 'fossil diff --from ' + Left( arrh[iChoic],10 ) + " --to " + ;
-                  Left( arrh[1],10 ) + " " + cFileName, cFileRes )
-            ENDIF
+            iChoic := 0
+         ENDIF
 
-         ELSEIF i1 == 5
+         IF iChoic == 0
+            lCurr := .T.
             IF ic == 1
-               cedi_RunConsoleApp( 'git diff ' + Substr( arrh[iChoic],3,7 ) + " " + ;
-                  cFileName, cFileRes )
+               cedi_RunConsoleApp( 'git diff ' + cv1 + " " + cFileName, cFileRes )
             ELSEIF ic == 2
-               cedi_RunConsoleApp( 'fossil diff --from ' + Left( arrh[iChoic],10 ) + " " + ;
-                  cFileName, cFileRes )
+               cedi_RunConsoleApp( 'fossil diff --from ' + cv1 + " " + cFileName, cFileRes )
+            ENDIF
+         ELSE
+            lCurr := .F.
+            cv2 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
+            IF ic == 1
+               cedi_RunConsoleApp( 'git diff ' + cv2 + " " + cv1 + " " + cFileName, cFileRes )
+            ELSEIF ic == 2
+               cedi_RunConsoleApp( 'fossil diff --from ' + cv1 + " --to " + cv2 + " " + cFileName, cFileRes )
             ENDIF
          ENDIF
 
-         IF i1 == 0 .OR. Empty( cBuff := MemoRead(cFileRes) )
+         IF Empty( cBuff := MemoRead(cFileRes) )
             edi_Alert( "No result" )
          ELSE
-            IF i1 > 1
-            ENDIF
+            oParent := oEdit
             IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
                o := oEdit:aWindows[nPos]
                o:SetText( cBuff, cAddW )
                mnu_ToBuf( oEdit, nPos )
             ELSE
-               edi_AddWindow( oEdit, cBuff, cAddW, 3, Int(MaxCol()/2) )
+               o := edi_AddWindow( oEdit, cBuff, cAddW, 3, Int(MaxCol()/2) )
+               o:lReadOnly := .T.
+            ENDIF
+            FOR i1 := Len( o:aText ) TO 1 STEP -1
+               IF Right( o:aText[i1],1 ) == Chr(13 )
+                  o:aText[i1] := Left( o:aText[i1], Len(o:aText[i1])-1 )
+               ENDIF
+            NEXT
+            IF i1 == 1
+               o:bOnKey := Nil
+            ELSE
+               o:bOnKey := {|o,n|_plug_vcs_onkey( o,n )}
             ENDIF
          ENDIF
       ENDIF
@@ -106,3 +103,30 @@ FUNCTION Plug_Vcs( oEdit )
    DevPos( nRow, nCol )
 
    RETURN Nil
+
+FUNCTION _plug_vcs_onkey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), n, nminus, c, nPos
+
+   IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+   ELSEIF nKey == K_ENTER
+      IF lCurr
+         n := oEdit:nLine
+         nminus := 0
+         DO WHILE n >= 1
+           IF ( c := Left( oEdit:aText[n],1 ) ) == '-'
+              nMinus ++
+           ELSEIF c == '@' .AND. Left( oEdit:aText[n],2 ) == '@@'
+              IF ( nPos := At( '+', oEdit:aText[n] ) ) > 0
+                 nPos := Val( Substr( oEdit:aText[n], nPos+1 ) )
+                 oParent:GoTo( oEdit:nLine - n - nminus + nPos - 1, 1 )
+                 mnu_ToBuf( oEdit, oParent )
+              ENDIF
+              EXIT
+           ENDIF
+           n --
+         ENDDO
+      ENDIF
+   ENDIF
+
+   RETURN 0
