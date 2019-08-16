@@ -17,7 +17,7 @@ FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
-   LOCAL ypos, xpos, nStartLine, lRO := .F.
+   LOCAL ypos, xpos, nStartLine, lRO := .F., lDiff := .F., cText
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) == "-"
@@ -31,6 +31,9 @@ FUNCTION Main( ... )
             IF Empty( hb_fnameDir( cIniName ) )
                cIniName := cCurrPath + cIniName
             ENDIF
+
+         ELSEIF c == "d"
+            lDiff := .T.
 
          ELSEIF c == "g"
             nStartLine := Val( Substr( aParams[i],3 ) )
@@ -104,14 +107,6 @@ FUNCTION Main( ... )
    ENDIF
    hb_gtinfo( HB_GTI_CLOSABLE, .F. )
 
-/*
-   IF Valtype( arr := hb_gtinfo( HB_GTI_PALETTE ) ) == "A"
-      arr[2] := 0x800000
-      arr[4] := 0x808000
-      arr[8] := 0xC8C8C8
-      hb_gtinfo( HB_GTI_PALETTE, arr )
-   ENDIF
-*/
    IF lMaximize
       hb_gtinfo( HB_GTI_MAXIMIZED, .T. )
    ENDIF
@@ -121,12 +116,21 @@ FUNCTION Main( ... )
       hb_hrbRun( cStartPlugin )
    ENDIF
 
-   FOR i := 1 TO Len( aFiles )
-      TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
-      IF lRO
-         ATail(TEdit():aWindows):lReadOnly := .T.
+   IF lDiff .AND. Len( aFiles ) == 2
+      TEdit():New( Memoread(aFiles[1]), aFiles[1], 0, 0, nScreenH-1, nScreenW-1 )
+      IF ( cText := edi_MakeDiff( TEdit():aWindows[1], aFiles[2] ) ) == Nil
+         edi_Alert( "Diff tool not found" )
+      ELSE
+         edi_AddDiff( TEdit():aWindows[1], cText, .T. )
       ENDIF
-   NEXT
+   ELSE
+      FOR i := 1 TO Len( aFiles )
+         TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
+         IF lRO
+            ATail(TEdit():aWindows):lReadOnly := .T.
+         ENDIF
+      NEXT
+   ENDIF
 
    IF Empty( TEdit():aWindows )
       TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
