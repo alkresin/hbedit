@@ -1,3 +1,9 @@
+/*
+ * Few functions, related to file system.
+ *
+ * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
 

@@ -42,7 +42,9 @@ FUNCTION edi_READ( aGets )
       aClrdef[4] := ""
    ENDIF
    FOR i := 1 TO Len( aGets )
-      ShowGetItem( aGets[i], .F., lUtf8 )
+      IF aGets[i,G_TYPE] >= 0
+         ShowGetItem( aGets[i], .F., lUtf8 )
+      ENDIF
    NEXT
 
    ShowGetItem( aGets[1], .T., lUtf8, .T. )
@@ -147,18 +149,28 @@ FUNCTION edi_READ( aGets )
          ENDIF
 
       ELSEIF nKey == K_UP
-         IF nCurr > 1
-            ShowGetItem( aGets[nCurr], .F., lUtf8 )
-            nCurr --
-            ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
-         ENDIF
+         i := nCurr
+         DO WHILE i > 1
+            i --
+            IF aGets[i,G_TYPE] >= 0
+               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               nCurr := i
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               EXIT
+            ENDIF
+         ENDDO
 
       ELSEIF nKey == K_DOWN .OR. nKey == K_TAB
-         IF nCurr < Len( aGets )
-            ShowGetItem( aGets[nCurr], .F., lUtf8 )
-            nCurr ++
-            ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
-         ENDIF
+         i := nCurr
+         DO WHILE i < Len( aGets )
+            i ++
+            IF aGets[i,G_TYPE] >= 0
+               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               nCurr := i
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               EXIT
+            ENDIF
+         ENDDO
 
       ELSEIF nKey == K_HOME
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
@@ -210,7 +222,8 @@ FUNCTION edi_READ( aGets )
          nCol := MCol()
          nRow := MRow()
          FOR i := 1 TO Len(aGets)
-            IF aGets[i,G_Y] == nRow .AND. aGets[i,G_X] <= nCol .AND. aGets[i,G_X]+aGets[i,G_WIDTH] > nCol
+            IF aGets[i,G_TYPE] >= 0 .AND. aGets[i,G_Y] == nRow .AND. ;
+                  aGets[i,G_X] <= nCol .AND. aGets[i,G_X]+aGets[i,G_WIDTH] > nCol
                ShowGetItem( aGets[nCurr], .F., lUtf8 )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
@@ -295,21 +308,33 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
 
 FUNCTION edi_Wait( cText, cColor )
 
-   LOCAL oldc := SetColor( cColor ), cp := hb_cdpSelect( "RU866" )
-   LOCAL aText := hb_aTokens( cText, ";" ), i
-   LOCAL nLen := 0, x1, y1 := 10
+   LOCAL oldc, cp, aText, i, nLen := 0
+   STATIC cBuffScr, x1, y1 := 10, x2, y2
 
-   FOR i := 1 TO Len( aText )
-      nLen := Max( nLen, Len( aText[i] ) )
-   NEXT
-   nLen += 4
+   IF cText == Nil
+      IF !Empty( cBuffScr )
+         RestScreen( y1, x1, y2, x2, cBuffScr )
+         cBuffScr := Nil
+      ENDIF
+   ELSE
+      oldc := SetColor( cColor )
+      cp := hb_cdpSelect( "RU866" )
+      aText := hb_aTokens( cText, ";" )
+      FOR i := 1 TO Len( aText )
+         nLen := Max( nLen, Len( aText[i] ) )
+      NEXT
+      nLen += 4
 
-   x1 := Int( (MaxCol()-nLen)/2 )
-   @ y1, x1, y1+Len(aText)+1, x1+nLen BOX "ÚÄ¿³ÙÄÀ³ "
-   hb_cdpSelect( cp )
-   FOR i := 1 TO Len( aText )
-      @ y1+i, x1 + 2 SAY aText[i]
-   NEXT
-   SetColor( oldc )
+      x1 := Int( (MaxCol()-nLen)/2 )
+      x2 := x1+nLen
+      y2 := y1+Len(aText)+1
+      cBuffScr := SaveScreen( y1, x1, y2, x2 )
+      @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+      hb_cdpSelect( cp )
+      FOR i := 1 TO Len( aText )
+         @ y1+i, x1 + 2 SAY aText[i]
+      NEXT
+      SetColor( oldc )
+   ENDIF
 
    RETURN Nil

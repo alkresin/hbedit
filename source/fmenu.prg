@@ -1,3 +1,10 @@
+/*
+ * Menu / list selection function.
+ *
+ * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #include "inkey.ch"
 #include "setcurs.ch"
 

@@ -126,7 +126,7 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
    RETURN Self
 
 METHOD SET( oEdit ) CLASS Hili
-   LOCAL oHili := Hili():New()
+   LOCAL oHili := ::New()
 
    oHili:hHili      := ::hHili
    oHili:cKeywords1 := ::cKeywords1

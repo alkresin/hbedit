@@ -513,7 +513,7 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          IF !Empty( ::oHili ) .AND. hb_hGetDef( TEdit():options, "syntax", .F. )
             nDop := Iif( !Empty(::oHili:aDop) .AND. Len(::oHili:aDop) >= n, ::oHili:aDop[n], 0 )
             ::oHili:Do( n )
-            IF nDop != ::oHili:aDop[n]
+            IF !Empty(::oHili:aDop) .AND. nDop != ::oHili:aDop[n]
                ::lTextOut := .T.
             ENDIF
             aStru := ::oHili:aLineStru
@@ -528,7 +528,9 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
                         IF lTabs
                            nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nx1 - nxPosFirst ), nf, .T. )
                            DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
-                           DevOut( cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ) )
+                           //DevOut( cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ) )
+                           DevOut( edi_ExpandTabs( Self, ;
+                              cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ), nf + nf1 ) )
                         ELSE
                            DevPos( y, nx1 - nf + ::x1 )
                            DevOut( cp_Substr( ::lUtf8, s, nx1-nf+1, nx2-nx1+1 ) )
@@ -1716,6 +1718,9 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          SetColor( ::cColorPane )
          Scroll( y, ::x1, y, ::x2 )
          IF Empty( lClear )
+            IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
+               Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
+            ENDIF
             DevPos( y, ::x1 )
             IF ::x2 - ::x1 > 54
                DevOut( "F9-menu" )
@@ -3223,10 +3228,11 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
 FUNCTION mnu_OpenFile( oEdit, cFile )
 
    LOCAL cScBuf := Savescreen( 09, 10, 15, 72 )
-   LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorMenu ), cName, nRes, oNew
+   LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorMenu ), cName, nRes, oNew, cText
    LOCAL aGets := { {11,12,0,Iif(Empty(cFile),"",cFile),56}, ;
       {11,68,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_FileList(oEdit,aGets[1])}}, ;
-      {12,13,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, {12,31,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
+      {12,13,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, {12,28,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
+      {12,56,-1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {14,26,2,"[Open]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {14,46,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
@@ -3238,12 +3244,22 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    hb_cdpSelect( oEdit:cp )
    @ 10, 12 SAY "Open file"
    @ 12, 12 SAY "[ ] ReadOnly"
-   @ 12, 30 SAY "[ ] In a current window"
+   @ 12, 27 SAY "[ ] In a current window"
+   IF !Empty( oEdit:cFileName )
+      aGets[5,3] := 1
+      @ 12, 55 SAY "[ ] Diff"
+   ENDIF
    SetColor( oEdit:cColorMenu )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       IF !Empty( cName := aGets[1,4] ) .AND. File( cName )
-         IF aGets[4,4]
+         IF aGets[5,4]
+            IF ( cText := edi_MakeDiff( oEdit, cName ) ) == Nil
+               edi_Alert( "Diff tool not found" )
+            ELSE
+               edi_AddDiff( oEdit, cText, .T. )
+            ENDIF
+         ELSEIF aGets[4,4]
             IF oEdit:lUpdated
                IF mnu_Exit( oEdit )
                   oEdit:lShow := .T.
