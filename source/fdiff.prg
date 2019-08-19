@@ -20,7 +20,7 @@
 #define HILIGHT_MCOMM   8
 #define HILIGHT_BLOCK   9
 
-STATIC lCurr, cParent, nDiffs
+STATIC lCurr, cParent, nDiffs, cFileFrom
 STATIC nDiffMode                   // 1 - diff, 2 - full, 3 - prev. file version
 STATIC aShort, aDiff, aFull, aFrom
 
@@ -47,13 +47,14 @@ STATIC FUNCTION _DiffTool()
 
    ENDIF
 
-   RETURN 0
+   RETURN nDiffTool
 
 FUNCTION edi_MakeDiff( oEdit, cFileName )
 
    LOCAL nDiffTool := _DiffTool()
    LOCAL cFileRes := hb_DirTemp() + "hbedit.out"
 
+   cFileFrom := cFileName
    IF nDiffTool > 0
       IF nDiffTool == 1
          cedi_RunConsoleApp( hb_dirBase() + 'diff -u ' + cFileName + " " + oEdit:cFileName, cFileRes )
@@ -79,12 +80,12 @@ FUNCTION edi_AddDiff( oEdit, cText, lCurrEd )
    cParent := oEdit:cFileName
    lCurr   := lCurrEd
    nDiffs  := 0
-   aFull := aDiff := aFrom := Nil
+   aFull := aFrom := Nil
 
    IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
       o := oEdit:aWindows[nPos]
-      o:SetText( cBuff, cAddW )
-      mnu_ToBuf( oEdit, nPos )
+      o:SetText( cText, cAddW )
+      mnu_ToBuf( oEdit:aWindows[oEdit:nCurr], nPos )
    ELSE
       o := edi_AddWindow( oEdit, cText, cAddW, 3, Int(MaxCol()/2), oEdit:cp )
       o:lReadOnly := .T.
@@ -97,15 +98,16 @@ FUNCTION edi_AddDiff( oEdit, cText, lCurrEd )
       o:bStartEdit := bStartEdit
    ENDIF
    aShort := {}
-   FOR i := 1 TO Len( o:aText )
-      IF Right( o:aText[i],1 ) == Chr(13 )
-         o:aText[i] := Left( o:aText[i], Len(o:aText[i])-1 )
+   aDiff := o:aText
+   FOR i := 1 TO Len( aDiff )
+      IF Right( aDiff[i],1 ) == Chr(13 )
+         aDiff[i] := Left( aDiff[i], Len(aDiff[i])-1 )
       ENDIF
-      IF ( c := Left( o:aText[i], 1 ) ) == '@'
+      IF ( c := Left( aDiff[i], 1 ) ) == '@'
          nDiffs ++
-         IF ( nPos := At( '+', o:aText[i] ) ) > 0 .AND. ( nPos2 := At( '-', o:aText[i] ) ) > 0
-            n := Val( Substr( o:aText[i], nPos+1 ) )
-            Aadd( aShort, { i, n + nminus, Val( Substr( o:aText[i], nPos2+1 ) ), n } )
+         IF ( nPos := At( '+', aDiff[i] ) ) > 0 .AND. ( nPos2 := At( '-', aDiff[i] ) ) > 0
+            n := Val( Substr( aDiff[i], nPos+1 ) )
+            Aadd( aShort, { i, n + nminus, Val( Substr( aDiff[i], nPos2+1 ) ), n } )
          ENDIF
       ELSEIF c == '-'
          nminus ++
@@ -117,7 +119,7 @@ FUNCTION edi_AddDiff( oEdit, cText, lCurrEd )
 
 FUNCTION _diff_onkey( oEdit, nKeyExt )
 
-   LOCAL nKey := hb_keyStd(nKeyExt), n, nminus, c, nPos, i
+   LOCAL nKey := hb_keyStd(nKeyExt), n, n1, nminus, c, nPos, i, cText
 
    IF nKey == 78 .OR. nKey == 110     // n,N
       n := oEdit:nLine
@@ -142,45 +144,40 @@ FUNCTION _diff_onkey( oEdit, nKeyExt )
    ELSEIF nKey == 83 .OR. nKey == 115 // s,S
       _diff_Switch( oEdit )
       RETURN -1
+
+   ELSEIF nKey == 82 .OR. nKey == 114 // r,R
+      IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cParent} ) ) > 0 .AND. ;
+         !Empty(cFileFrom) .AND. !Empty( cText := edi_MakeDiff( oEdit:aWindows[i], cFileFrom ) )
+         edi_AddDiff( oEdit:aWindows[i], cText, .T. )
+      ENDIF
+      RETURN -1
+
    ELSEIF nKey == K_ENTER
       IF lCurr
          n := oEdit:nLine
-         IF nDiffMode == 1
-            nminus := 0
-            DO WHILE n >= 1
-              IF ( c := Left( oEdit:aText[n],1 ) ) == '-'
-                 nMinus ++
-              ELSEIF c == '@' .AND. Left( oEdit:aText[n],2 ) == '@@'
-                 nPos := 1
-                 IF ( nPos := At( '+', oEdit:aText[n] ) ) > 0
-                    nPos := Val( Substr( oEdit:aText[n], nPos+1 ) )
-                    nPos := oEdit:nLine - n - nminus + nPos - 1
-                 ENDIF
-                 EXIT
-              ENDIF
-              n --
-            ENDDO
-         ELSEIF nDiffMode == 2
-            i := Ascan( aShort, {|a|a[4]>n} )
-            nPos := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[4], aShort[i-1,4] ) )
-            n := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[2], aShort[i-1,2] ) ) - 1
-            edi_writelog( str(oEdit:nLine) + " " + str(nPos) + " " + str(n) )
-            DO WHILE ++n < oEdit:nLine
-               IF Left( oEdit:aText[n],1 ) != '-'
-                  nPos ++
-               ENDIF
-            ENDDO
-         ELSEIF nDiffMode == 3
-            i := Ascan( aShort, {|a|a[4]>n} )
-            nPos := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[4], aShort[i-1,4] ) )
-            n := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[3], aShort[i-1,3] ) ) - 1
-            edi_writelog( str(oEdit:nLine) + " " + str(nPos) + " " + str(n) )
-            DO WHILE ++n < oEdit:nLine
-               IF Left( oEdit:aText[n],1 ) != '-'
-                  nPos ++
-               ENDIF
-            ENDDO
+         i := Ascan( aShort, {|a|a[nDiffMode]>n} )
+         nPos := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[4], aShort[i-1,4] ) )
+         n1 := n := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[1], aShort[i-1,1] ) ) + 1
+         IF nDiffMode > 1
+            n1 := Iif( i == 1, 1, Iif( i == 0, ATail(aShort)[nDiffMode], aShort[i-1,nDiffMode] ) )
          ENDIF
+         //edi_writelog( str(i) + " / " + str(oEdit:nLine) + " " + str(nPos) + " " + str(n) + " " + str(n1) )
+         DO WHILE n1 <= oEdit:nLine .AND. n <= Len(aDiff) .AND. ( c := Left( aDiff[n],1 ) ) != '@'
+            IF c != '-'
+               nPos ++
+            ENDIF
+            IF nDiffMode < 3 .OR. (nDiffMode == 3 .AND. c != '+')
+               n1 ++
+            ENDIF
+            n ++
+         ENDDO
+         IF nDiffMode == 1
+            nPos --
+         ELSE
+            //edi_writelog( "  " + str(nPos) + " " + str(n) + " " + str(n1) )
+            nPos += (oEdit:nLine - n1)
+         ENDIF
+
          IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cParent} ) ) > 0
             oEdit:aWindows[i]:GoTo( nPos, 1 )
             mnu_ToBuf( oEdit, oEdit:aWindows[i] )
@@ -201,9 +198,6 @@ STATIC FUNCTION _diff_Switch( oEdit )
    LOCAL nPos, nLine1, nLineNew, aTextBase
 
    IF ( i := FMenu( oEdit, aMenu, oEdit:y1+3, oEdit:x1+6 ) ) > 0 .AND. nDiffMode != i
-      IF nDiffMode == 1
-         aDiff := oEdit:aText
-      ENDIF
       IF i == 1
          oEdit:aText := aDiff
          oEdit:Goto( 1, 1 )
@@ -232,7 +226,7 @@ STATIC FUNCTION _diff_Switch( oEdit )
                     NEXT
                     nLine1 := nPos
                   ENDIF
-               ELSE
+               ELSEIF c != '\'
                   aFull[nLineNew] := aDiff[i1]
                   nLineNew ++
                   IF c != '-'
@@ -241,7 +235,6 @@ STATIC FUNCTION _diff_Switch( oEdit )
                ENDIF
                i1 ++
             ENDDO
-            i1 := nLine1
             DO WHILE nLine1 <= Len( aTextBase ) .AND. nLineNew <= Len( aFull )
                aFull[nLineNew++] := aTextBase[nLine1++]
             ENDDO
@@ -254,9 +247,9 @@ STATIC FUNCTION _diff_Switch( oEdit )
             i1 := 0
             DO WHILE Left( aDiff[++i1], 1 ) != '@';  ENDDO
             DO WHILE ++i1 <= Len( aDiff )
-               IF Left( aDiff[i1], 1 ) == '-'
+               IF ( c := Left( aDiff[i1], 1 ) ) == '-'
                   nminus ++
-               ELSEIF c == '+'
+               ELSEIF c == '+' .OR. c == '\'
                   nplus ++
                ENDIF
             ENDDO
@@ -276,17 +269,16 @@ STATIC FUNCTION _diff_Switch( oEdit )
                     nLine1 := nPos
                   ENDIF
                ELSEIF c == '+'
-                  //nLine1 ++
-               ELSE
+                  nLine1 ++
+               ELSEIF c != '\'
                   aFrom[nLineNew] := aDiff[i1]
                   nLineNew ++
-                  //IF c != '-'
+                  IF c != '-'
                      nLine1 ++
-                  //ENDIF
+                  ENDIF
                ENDIF
                i1 ++
             ENDDO
-            i1 := nLine1
             DO WHILE nLine1 <= Len( aTextBase ) .AND. nLineNew <= Len( aFrom )
                aFrom[nLineNew++] := aTextBase[nLine1++]
             ENDDO
@@ -297,6 +289,7 @@ STATIC FUNCTION _diff_Switch( oEdit )
       ENDIF
       nDiffMode := i
       oEdit:TextOut()
+      oEdit:WriteTopPane()
    ENDIF
 
    RETURN Nil
