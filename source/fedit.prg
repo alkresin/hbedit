@@ -1493,6 +1493,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   ENDIF
                ENDIF
                EXIT
+            CASE K_SH_TAB
+               IF ::lCtrlTab
+                  ::lShow := .F.
+                  ::nCurr --
+               ENDIF
+               lNoDeselect := .T.
+               EXIT
             CASE K_INS
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
                   IF !::lReadOnly
@@ -2062,7 +2069,8 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
             IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 - 1
                ::nxFirst := nPosNew - 3
             ELSEIF nPosNew < ::nxFirst
-               nPosNew := 1
+               //nPosNew := 1
+               ::nxFirst := 1
             ENDIF
          ENDIF
          edi_SetPos( Self, nLineNew, nPosNew )
@@ -3023,7 +3031,6 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
       {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
       {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
    LOCAL i, o
-   //STATIC cForbid := "Forbidden for a child window"
 
    IF n == Nil
       n := FMenu( oEdit, aMenu, aXY[1], aXY[2] )
@@ -3031,21 +3038,11 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
    IF n == 1
       mnu_ToBuf( oEdit, edi_FindWindow( oEdit, .T. ) )
    ELSEIF n == 2
-      //IF !Empty( oEdit:oParent )
-      //   edi_Alert( cForbid )
-      //   oEdit:GoTo( ,1 )
-      //ELSE
-         o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
-         o:lReadOnly := .T.
-      //ENDIF
+      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
+      o:lReadOnly := .T.
    ELSEIF n == 3
-      //IF !Empty( oEdit:oParent )
-      //   edi_Alert( cForbid )
-      //   oEdit:GoTo( ,1 )
-      //ELSE
-         o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
-         o:lReadOnly := .T.
-      //ENDIF
+      o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
+      o:lReadOnly := .T.
    ENDIF
 
    RETURN Nil

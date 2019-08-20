@@ -17,5 +17,6 @@ harbour plug_chartable.prg -n -gh
 harbour plug_calculator.prg -n -gh
 harbour plug_tetris.prg -n -gh
 harbour plug_webservices.prg -n -gh
+harbour plug_vcs.prg -n -gh
 cd ..\..\
 

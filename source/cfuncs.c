@@ -307,7 +307,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       return;
    }
 
-   WaitForSingleObject( pi.hProcess, 8000 ); //INFINITE );
+   //WaitForSingleObject( pi.hProcess, 8000 ); //INFINITE );
    GetExitCodeProcess( pi.hProcess, &dwExitCode );
    CloseHandle( pi.hProcess );
    CloseHandle( pi.hThread );

@@ -47,7 +47,10 @@ FUNCTION edi_READ( aGets )
       ENDIF
    NEXT
 
-   ShowGetItem( aGets[1], .T., lUtf8, .T. )
+   DO WHILE aGets[nCurr,G_TYPE] < 0
+      nCurr ++
+   ENDDO
+   ShowGetItem( aGets[nCurr], .T., lUtf8, .T. )
 
    DO WHILE .T.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )

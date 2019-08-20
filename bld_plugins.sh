@@ -17,5 +17,6 @@ $HB_INS/bin/linux/gcc/harbour plug_chartable.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_calculator.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_tetris.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_webservices.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh
 cd ../../
 
