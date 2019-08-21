@@ -249,7 +249,7 @@ STATIC FUNCTION _diff_Switch( oEdit )
             aFull := Array( Len(aTextBase) + nminus )
             nLine1 := nLineNew := 1
             i1 := 0
-            DO WHILE Left( aDiff[++i1], 1 ) != '@';  ENDDO
+            DO WHILE ++i1 <= Len( aDiff ) .AND. Left( aDiff[i1], 1 ) != '@';  ENDDO
             DO WHILE i1 < Len( aDiff ) .AND. nLineNew < Len( aFull )
                IF ( c := Left( aDiff[i1], 1 ) ) == '@'
                   IF ( nPos := At( '+', aDiff[i1] ) ) > 0
@@ -281,7 +281,7 @@ STATIC FUNCTION _diff_Switch( oEdit )
             aFrom := Array( Len(aTextBase) + nminus - nplus )
             nLine1 := nLineNew := 1
             i1 := 0
-            DO WHILE Left( aDiff[++i1], 1 ) != '@';  ENDDO
+            DO WHILE ++i1 <= Len( aDiff ) .AND. Left( aDiff[i1], 1 ) != '@';  ENDDO
             DO WHILE i1 < Len( aDiff ) .AND. nLineNew < Len( aFrom )
                IF ( c := Left( aDiff[i1], 1 ) ) == '@'
                   IF ( nPos := At( '+', aDiff[i1] ) ) > 0
