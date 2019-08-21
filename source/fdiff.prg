@@ -95,6 +95,7 @@ FUNCTION edi_AddDiff( oEdit, cText )
       o:oHili:hHili['colors'] := TEdit():aHiliAttrs
       o:oHili:hHili['bra'] := .F.
       o:bStartEdit := bStartEdit
+      o:bWriteTopPane := {|o,l,y|_diff_toppane( o,l,y )}
    ENDIF
    aShort := {}
    aDiff := o:aText
@@ -118,7 +119,7 @@ FUNCTION edi_AddDiff( oEdit, cText )
 
    RETURN o
 
-FUNCTION _diff_onkey( oEdit, nKeyExt )
+STATIC FUNCTION _diff_onkey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), n, n1, c, nPos, i, cText
 
@@ -127,6 +128,7 @@ FUNCTION _diff_onkey( oEdit, nKeyExt )
       IF ( i := Ascan( aShort, {|a|a[nDiffMode]>n} ) ) > 0
          oEdit:GoTo( aShort[i,nDiffMode]+1, 1 )
       ENDIF
+      oEdit:WriteTopPane()
       RETURN -1
 
    ELSEIF nKey == 66 .OR. nKey == 98  // b,B
@@ -140,6 +142,7 @@ FUNCTION _diff_onkey( oEdit, nKeyExt )
             oEdit:GoTo( aShort[Len(aShort)-1,nDiffMode]+1, 1 )
          ENDIF
       ENDIF
+      oEdit:WriteTopPane()
       RETURN -1
 
    ELSEIF nKey == 83 .OR. nKey == 115 // s,S
@@ -149,7 +152,7 @@ FUNCTION _diff_onkey( oEdit, nKeyExt )
    ELSEIF nKey == 82 .OR. nKey == 114 // r,R
       IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cParent} ) ) > 0 .AND. ;
          !Empty(cFileFrom) .AND. !Empty( cText := edi_MakeDiff( oEdit:aWindows[i], cFileFrom ) )
-         edi_AddDiff( oEdit:aWindows[i], cText, .T. )
+         edi_AddDiff( oEdit:aWindows[i], cText )
       ENDIF
       RETURN -1
 
@@ -189,6 +192,42 @@ FUNCTION _diff_onkey( oEdit, nKeyExt )
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION _diff_toppane( o, lClear, y )
+
+   LOCAL clen, nchars, nLine := o:nLine, nDiff, nCol := Col(), nRow := Row()
+
+   DispBegin()
+   SetColor( o:cColorPane )
+   Scroll( y, o:x1, y, o:x2 )
+   IF Empty( lClear )
+      IF o:oParent != Nil .AND. o:x1 == o:oParent:x2 + 2
+         Scroll( o:y1, o:x1-1, o:y2, o:x1-1 )
+      ENDIF
+      DevPos( y, o:x1 )
+      DevOut( Iif(nDiffMode==1,"$Diff",Iif(nDiffMode==2,"$Full","$From")) )
+
+      cLen := Ltrim(Str( nDiffs ))
+      nchars := Len(cLen)
+      nDiff := Ascan( aShort, {|a|a[nDiffMode]>nLine} )
+      nDiff := Iif( nDiff == 0, Len(aShort), nDiff - 1 )
+      DevPos( y, o:x1 + 8 )
+      DevOut( PAdl(Ltrim(Str(nDiff)),nchars) + "/" + cLen )
+
+      DevPos( y, o:x1 + 24 )
+      DevOut( Lower( o:cp ) )
+
+      cLen := Ltrim(Str(Len(o:aText)))
+      nchars := Len(cLen)
+      DevPos( y, o:x2-nChars*2-2 )
+      DevOut( PAdl(Ltrim(Str(nLine)),nchars) + "/" + cLen )
+
+   ENDIF
+   SetColor( o:cColor )
+   DevPos( nRow, nCol )
+   DispEnd()
+
+   RETURN Nil
 
 STATIC FUNCTION _diff_Switch( oEdit )
 

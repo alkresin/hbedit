@@ -27,7 +27,7 @@ relevant functions, so you can use it as a reference.
    F12                 list of open files;
    Ctrl-Q              change current mode;
    Ctrl-Z, Alt-BS      undo;
-   Ctrl-Tab            switch buffer (opened file)/window;
+   Ctrl-Tab, Shift-Tab switch buffer (opened file)/window;
 
    Ctrl-v, Shift-Ins   paste text from the clipboard;
    Ctrl-p              paste text from any of clipboard buffers;

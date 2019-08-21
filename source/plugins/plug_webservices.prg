@@ -5,7 +5,7 @@ STATIC lIsCurl := .F.
 
 FUNCTION Plug_WebServices( oEdit )
 
-   LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff
+   LOCAL cFileRes := hb_DirTemp() + "hbedit_curl.out", cFileOut := hb_DirTemp() + "hbedit.out", cBuff
    LOCAL aMenu := { "Get external IP", "Word definition", "Lorem ipsum" }, iChoic
    LOCAL nRow := Row(), nCol := Col(), cAddW := "$Result"
 

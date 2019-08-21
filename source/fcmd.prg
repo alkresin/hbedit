@@ -171,7 +171,7 @@ STATIC FUNCTION fSea( oEdit, s )
 
 STATIC FUNCTION cmdExec( oEdit, sCmd )
 
-   LOCAL acmd, arr, fnc, nPos, cFileOut := "hbedit_cons.out", cBuff
+   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", cBuff
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
