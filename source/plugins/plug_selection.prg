@@ -10,6 +10,11 @@ FUNCTION plug_Selection( oEdit, aMenu )
    IF oEdit:nSeleMode == 2
       Aadd( aMenu, {"Summ",@_plug_sele_summ(),Nil} )
       Aadd( aMenu, {"Align",@_plug_sele_align(),Nil,">"} )
+   ELSE
+      IF oEdit:nby1 != oEdit:nby2 .AND. !Empty( TEdit():aCBoards[1,1] ) .AND. ;
+         Empty( TEdit():aCBoards[1,3] ) .AND. ( Chr(10) $ TEdit():aCBoards[1,1] )
+         Aadd( aMenu, {"Compare",@_plug_sele_diff(),Nil} )
+      ENDIF
    ENDIF
    RETURN Nil
 
@@ -126,5 +131,25 @@ FUNCTION _plug_sele_align( oEdit, lLeft )
       edi_ReplSelected( oEdit, s )
    ENDIF
    edi_SetLastSeleOper( {@_plug_sele_align(),lLeft} )
+
+   RETURN Nil
+
+FUNCTION _plug_sele_diff( oEdit )
+
+   LOCAL f1 := hb_DirTemp() + "hbedit1.out", f2 := hb_DirTemp() + "hbedit2.out"
+   LOCAL cText, o1, cAddw1 := "$1"
+
+   hb_Memowrit( f1, TEdit():aCBoards[1,1] )
+   hb_Memowrit( f2, edi_GetSelected( oEdit ) )
+
+   edi_CloseWindow( cAddw1 )
+   o1 := TEdit():New( Memoread( f1 ), f1, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
+   IF ( cText := edi_MakeDiff( o1, f2 ) ) == Nil
+      edi_Alert( "Diff tool not found" )
+   ELSE
+      edi_AddDiff( o1, cText )
+      o1:cFileName := cAddw1
+      mnu_ToBuf( oEdit, o1 )
+   ENDIF
 
    RETURN Nil

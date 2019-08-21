@@ -121,7 +121,7 @@ FUNCTION Main( ... )
       IF ( cText := edi_MakeDiff( TEdit():aWindows[1], aFiles[2] ) ) == Nil
          edi_Alert( "Diff tool not found" )
       ELSE
-         edi_AddDiff( TEdit():aWindows[1], cText, .T. )
+         edi_AddDiff( TEdit():aWindows[1], cText )
       ENDIF
    ELSE
       FOR i := 1 TO Len( aFiles )
