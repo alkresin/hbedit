@@ -432,6 +432,7 @@ METHOD TextOut( n1, n2 ) CLASS TEdit
    IF n1 == Nil; n1 := 1; ENDIF
    IF n2 == Nil; n2 := ::y2 -::y1 + 1; ENDIF
 
+   hb_cdpSelect( ::cp )
    FOR i := n1 TO n2
       ::LineOut( i )
    NEXT
@@ -1724,17 +1725,18 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          DispBegin()
          SetColor( ::cColorPane )
          Scroll( y, ::x1, y, ::x2 )
+         IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
+            Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
+         ENDIF
          IF Empty( lClear )
-            IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
-               Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
-            ENDIF
             DevPos( y, ::x1 )
             IF ::x2 - ::x1 > 54
                DevOut( "F9-menu" )
                DevPos( y, ::x1+8 )
                nF9 := 8
             ENDIF
-            DevOut( cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) )
+            DevOut( Iif( hb_hGetDef(::options,"pathinhead",.F.), NameShortcut(::cFileName,::nTopName,'~'), ;
+               cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) ) )
             IF !Empty( cDopMode )
                DevPos( y, ::x1 )
                DevOut( Padr( cDopMode, 8 ) )
@@ -2579,7 +2581,8 @@ FUNCTION edi_2cb( oEdit, nReg, s )
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lTab2Spaces := .F.
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
+   LOCAL lTab2Spaces := .F., lPathInHead := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
    LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","quotes","scomm","startline","mcomm","block" }
@@ -2605,6 +2608,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "incsearch" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lIncSea := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "pathinhead" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lPathInHead := ( Lower(cTemp) == "on" )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "autoindent" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lAutoIndent := ( Lower(cTemp) == "on" )
@@ -2850,6 +2856,7 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["syntax"] := lSyntax
+   TEdit():options["pathinhead"] := lPathInHead
    cTabStr := Space( TEdit():nTablen )
 
    IF Empty( TEdit():aCPages )
