@@ -4,7 +4,7 @@
 Function plug_prg_run( oEdit )
 
    LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, oNew
-   LOCAL nRow, nCol
+   LOCAL nRow, nCol, cFileRes := hb_DirTemp() + "hb_compile_err.out"
 
    edi_CloseWindow( cFile )
 
@@ -14,11 +14,11 @@ Function plug_prg_run( oEdit )
    acmd[4] := "-q"
    acmd[5] := "-w"
 
-   cedi_rediron( 2, "hb_compile_err.out" )
+   cedi_rediron( 2, cFileRes )
    cHrb := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
    cedi_rediroff( 2 )
 
-   cBuff := Memoread( "hb_compile_err.out" )
+   cBuff := Memoread( cFileRes )
    IF Empty( cHrb ) .OR. ( !Empty( cBuff ) .AND. " Warning " $ cBuff .AND. ;
          edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
       

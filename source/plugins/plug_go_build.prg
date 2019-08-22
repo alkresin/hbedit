@@ -4,7 +4,7 @@
 FUNCTION Plug_Go_Build( oEdit )
 
    LOCAL i, arr := { "Build current file", "Build project" }
-   LOCAL cFileOut := "hb_compile_err.out", cBuff, oNew
+   LOCAL cFileOut := hb_DirTemp() + "hb_compile_err.out", cAddW := "$hb_compile_err", cBuff, oNew
 
    oEdit:Save()
 
@@ -21,12 +21,11 @@ FUNCTION Plug_Go_Build( oEdit )
    ENDIF
 
    cBuff := MemoRead( cFileOut )
-   cFileOut := "$" + cFileOut
 
    IF Empty( cBuff )
       edi_Alert( "Done" )
    ELSE
-      oNew := edi_AddWindow( oEdit, cBuff, cFileOut, 2, 9 )
+      oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, 9 )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _hbp_ErrWin_OnKey(o,n) }
    ENDIF

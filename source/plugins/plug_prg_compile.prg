@@ -4,6 +4,7 @@
 Function plug_prg_compile( oEdit )
 
    LOCAL acmd := Array( 5 ), cHrb, i, cName := "", cTemp, nPos, cFile := "$hb_compile_err", oNew
+   LOCAL cFileRes := hb_DirTemp() + "hb_compile_err.out"
    LOCAL nRow := Row(), nCol := Col()
 
    edi_CloseWindow( cFile )
@@ -14,7 +15,7 @@ Function plug_prg_compile( oEdit )
    acmd[4] := "-q"
    acmd[5] := "-w"
 
-   cedi_rediron( 2, "hb_compile_err.out" )
+   cedi_rediron( 2, cFileRes )
    cHrb := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
    cedi_rediroff( 2 )
    CLEAR SCREEN
@@ -33,7 +34,7 @@ Function plug_prg_compile( oEdit )
       ENDIF
    NEXT
 
-   cTemp := Memoread( "hb_compile_err.out" )
+   cTemp := Memoread( cFileRes )
    IF Empty( cHrb ) .OR. ( !Empty( cTemp ) .AND. " Warning " $ cTemp .AND. ;
          edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
 

@@ -167,20 +167,19 @@ STATIC FUNCTION _hbp_Get_Files( oEdit )
 
 STATIC FUNCTION _hbp_Init_Build( oEdit )
 
-   LOCAL cBuff, oNew, i, cFile := "hb_compile_err.out"
+   LOCAL cBuff, oNew, i, cFileRes := hb_DirTemp() + "hb_compile_err.out", cAddW := "$hb_compile_err"
 
-   edi_CloseWindow( "$"+cFile )
+   edi_CloseWindow( "$"+cAddW )
 
    SetColor( oEdit:cColorSel )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
-   cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, cFile )
-   cBuff := MemoRead( cFile )
-   cFile := "$" + cFile
+   cedi_RunConsoleApp( "hbmk2 " + oEdit:cFileName, cFileRes )
+   cBuff := MemoRead( cFileRes )
    SetColor( oEdit:cColor )
    IF Empty( cBuff )
       edi_Alert( "Done" )
    ELSE
-      oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 9 )
+      oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, 9 )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _hbp_ErrWin_OnKey(o,n) }
    ENDIF
