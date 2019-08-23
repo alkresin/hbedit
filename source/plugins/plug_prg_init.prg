@@ -15,14 +15,15 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
    LOCAL bOnKeyOrig
    LOCAL bStartEdit := {|o|
       LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col()
-
-      SetColor( o:cColorPane )
-      Scroll( y, o:x1 + 8, y, o:x2 )
-      DevPos( y, o:x1 + 8 )
-      DevOut( "Harbour plugin:  Alt-D Dictionary  Alt-I Info" )
-      SetColor( o:cColor )
+      IF o:lTopPane
+         SetColor( o:cColorPane )
+         Scroll( y, o:x1 + 8, y, o:x2 )
+         DevPos( y, o:x1 + 8 )
+         DevOut( "Harbour plugin:  Alt-D Dictionary  Alt-I Info" )
+         SetColor( o:cColor )
+         DevPos( nRow, nCol )
+      ENDIF
       o:bStartEdit := Nil
-      DevPos( nRow, nCol )
 
       RETURN Nil
    }

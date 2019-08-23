@@ -373,17 +373,24 @@ METHOD Edit() CLASS TEdit
          IF Valtype( i ) == "N"
             nKeyExt := i
          ELSEIF Valtype( i ) == "A"
-            FOR n := 1 TO Len( i )
-               IF Empty( ::aPlugins[i[n],3] ) .OR. ::aPlugins[i[n],3] == ::cSyntaxType
-                  i := i[n]
-                  EXIT
+            IF i[1] == 0
+               FOR n := 2 TO Len( i ) - 1
+                  ::onKey( i[n] )
+               NEXT
+               nKeyExt := i[n]
+            ELSE
+               FOR n := 1 TO Len( i )
+                  IF Empty( ::aPlugins[i[n],3] ) .OR. ::aPlugins[i[n],3] == ::cSyntaxType
+                     i := i[n]
+                     EXIT
+                  ENDIF
+               NEXT
+               IF Valtype( i ) == "N"
+                  SetCursor( SC_NONE )
+                  edi_RunPlugin( Self, i )
                ENDIF
-            NEXT
-            IF Valtype( i ) == "N"
-               SetCursor( SC_NONE )
-               edi_RunPlugin( Self, i )
+               LOOP
             ENDIF
-            LOOP
          ENDIF
       ENDIF
       SetCursor( SC_NONE )
@@ -1022,27 +1029,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             IF nKey == 119   // w
                mnu_Windows( Self,, 1 )
             ELSEIF nKey == 115   // s  split window horizontally
-               mnu_Windows( Self,, 2 )
+               mnu_Windows( Self,, 4 )
             ELSEIF nKey == 118   // v  split window vertically
-               mnu_Windows( Self,, 3 )
+               mnu_Windows( Self,, 5 )
             ELSEIF nKey == 99    // c
-               IF ::oParent != Nil
-                  mnu_Exit( Self )
-               ENDIF
+               mnu_Windows( Self,, 3 )
             ELSEIF nKey == 111   // o
-               IF ::oParent != Nil
-                  edi_CloseWindow( Self, .F. )
-                  ::oParent := Nil
-                  ::y1 := ::aRect[1] := ::aRectFull[1]
-                  ::x1 := ::aRect[2] := ::aRectFull[2]
-                  ::y2 := ::aRect[3] := ::aRectFull[3]
-                  ::x2 := ::aRect[4] := ::aRectFull[4]
-                  IF ::lTopPane
-                     ::y1 ++
-                  ENDIF
-                  ::TextOut()
-                  edi_SetPos( Self )
-               ENDIF
+               mnu_Windows( Self,, 2 )
             ELSEIF nKey == 43    // +
             ELSEIF nKey == 45    // -
             ELSEIF nKey == 60    // <
@@ -2063,15 +2056,14 @@ METHOD InsText( nLine, nPos, cText, lOver, lChgPos, lNoUndo ) CLASS TEdit
       ::lTextOut := .T.
       IF lChgPos
          nLineNew := nLine + i - 1
-         IF nLineNew - ::nyFirst + 1 > ::y2 - ::y1 - 1
-            ::nyFirst := nLineNew - 3
+         IF nLineNew - ::nyFirst + 1 > ::y2 - ::y1 + 1
+            ::nyFirst := nLineNew - (::y2 - ::y1)
          ENDIF
          nPosNew := cp_Len( ::lUtf8, arr[i] ) + 1
          IF !::lWrap
-            IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 - 1
+            IF nPosNew - ::nxFirst + 1 > ::x2 - ::x1 + 1
                ::nxFirst := nPosNew - 3
             ELSEIF nPosNew < ::nxFirst
-               //nPosNew := 1
                ::nxFirst := 1
             ENDIF
          ENDIF
@@ -2658,9 +2650,24 @@ FUNCTION edi_ReadIni( xIni )
                   hKeyMap := hb_Hash()
                   FOR i := 1 TO Len( arr )
                      IF ( nPos := At( "=>", arr[i] ) ) > 0 .AND. ;
-                        ( nTemp := edi_KeyCToN(Left(arr[i],nPos-1)) ) != Nil .AND. ;
-                        ( nPos := edi_KeyCToN(Substr(arr[i],nPos+2)) ) != Nil
-                        hKeyMap[nTemp] := nPos
+                        ( nTemp := edi_KeyCToN(Left(arr[i],nPos-1)) ) != Nil
+                        IF '|' $ ( cTemp := Substr(arr[i],nPos+2) )
+                           arr1 := hb_aTokens( cTemp, "|", .T. )
+                           FOR n := 1 TO Len( arr1 )
+                              IF ( nPos := edi_KeyCToN(arr1[n]) ) == Nil
+                                 arr1 := Nil
+                                 EXIT
+                              ELSE
+                                 arr1[n] := nPos
+                              ENDIF
+                           NEXT
+                           IF !Empty( arr1 )
+                              hb_AIns( arr1, 1, 0, .T. )
+                              hKeyMap[nTemp] := arr1
+                           ENDIF
+                        ELSEIF ( nPos := edi_KeyCToN(cTemp) ) != Nil
+                           hKeyMap[nTemp] := nPos
+                        ENDIF
                      ENDIF
                   NEXT
                ENDIF
@@ -3035,6 +3042,8 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 FUNCTION mnu_Windows( oEdit, aXY, n )
 
    LOCAL aMenu := { {"Switch window",Nil,Nil,"Ctrl-w,w"}, ;
+      {"To full size",Nil,Nil,"Ctrl-w,o"}, ;
+      {"Close",Nil,Nil,"Ctrl-w,c"}, ;
       {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
       {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
    LOCAL i, o
@@ -3045,9 +3054,27 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
    IF n == 1
       mnu_ToBuf( oEdit, edi_FindWindow( oEdit, .T. ) )
    ELSEIF n == 2
+      IF oEdit:oParent != Nil
+         edi_CloseWindow( oEdit, .F. )
+         oEdit:oParent := Nil
+         oEdit:y1 := oEdit:aRect[1] := oEdit:aRectFull[1]
+         oEdit:x1 := oEdit:aRect[2] := oEdit:aRectFull[2]
+         oEdit:y2 := oEdit:aRect[3] := oEdit:aRectFull[3]
+         oEdit:x2 := oEdit:aRect[4] := oEdit:aRectFull[4]
+         IF oEdit:lTopPane
+            oEdit:y1 ++
+         ENDIF
+         oEdit:TextOut()
+         edi_SetPos( oEdit )
+      ENDIF
+   ELSEIF n == 3
+      IF oEdit:oParent != Nil
+         mnu_Exit( oEdit )
+      ENDIF
+   ELSEIF n == 4
       o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 2, Int( (oEdit:y2-oEdit:y1)/2 ) )
       o:lReadOnly := .T.
-   ELSEIF n == 3
+   ELSEIF n == 5
       o := edi_AddWindow( oEdit, MemoRead(oEdit:cFileName), oEdit:cFileName, 3, Int( (oEdit:x2-oEdit:x1)/2 ) )
       o:lReadOnly := .T.
    ENDIF
