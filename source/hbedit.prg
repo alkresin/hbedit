@@ -81,6 +81,14 @@ FUNCTION Main( ... )
    REQUEST HB_GT_WVT_DEFAULT
 #endif
 
+#ifdef GTHWG
+   ANNOUNCE HB_GTSYS
+   REQUEST HB_GT_HWGUI
+   REQUEST HB_GT_HWGUI_DEFAULT
+
+   gthwg_CreateMainWindow()
+#endif
+
 #ifdef GTXWC
    ANNOUNCE HB_GTSYS
    REQUEST HB_GT_XWC
@@ -92,15 +100,15 @@ FUNCTION Main( ... )
    ELSE
       hb_gtinfo( HB_GTI_FONTNAME, cFontName )
    ENDIF
-   IF Empty( nFontHeight )
-      hb_gtinfo( HB_GTI_FONTSIZE, Int( ( ( hb_gtinfo( HB_GTI_DESKTOPHEIGHT ) - 64 ) / nScreenW ) ) )
-   ELSE
-      hb_gtinfo( HB_GTI_FONTSIZE, nFontHeight )
-   ENDIF
    IF Empty( nFontWidth )
       hb_gtinfo( HB_GTI_FONTWIDTH, Int( ( hb_gtinfo( HB_GTI_DESKTOPWIDTH ) / nScreenH ) ) )
    ELSE
       hb_gtinfo( HB_GTI_FONTWIDTH, nFontWidth )
+   ENDIF
+   IF Empty( nFontHeight )
+      hb_gtinfo( HB_GTI_FONTSIZE, Int( ( ( hb_gtinfo( HB_GTI_DESKTOPHEIGHT ) - 64 ) / nScreenW ) ) )
+   ELSE
+      hb_gtinfo( HB_GTI_FONTSIZE, nFontHeight )
    ENDIF
    IF yPos != Nil
       hb_gtinfo( HB_GTI_SETPOS_XY, xPos, yPos )
@@ -155,6 +163,10 @@ FUNCTION Main( ... )
       TEdit():aWindows[TEdit():nCurr]:Edit()
    ENDDO
    TEdit():onExit()
+
+#ifdef GTHWG
+   gthwg_CloseWindow()
+#endif
 
    RETURN Nil
 
