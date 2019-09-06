@@ -1711,6 +1711,10 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
    LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row(), nF9 := 0
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
+   IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
+      Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
+   ENDIF
+
    IF ::bWriteTopPane != Nil
       Eval( ::bWriteTopPane, Self, lClear, y )
    ELSE
@@ -1718,9 +1722,6 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          DispBegin()
          SetColor( ::cColorPane )
          Scroll( y, ::x1, y, ::x2 )
-         IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
-            Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
-         ENDIF
          IF Empty( lClear )
             DevPos( y, ::x1 )
             IF ::x2 - ::x1 > 54
