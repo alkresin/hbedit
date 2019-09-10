@@ -3829,30 +3829,6 @@ FUNCTION edi_ChgMode( oEdit, lBack )
 
    RETURN Nil
 
-FUNCTION edi_RunPlugin( oEdit, xPlugin )
-
-   LOCAL i, cPlugin, cFullPath
-
-   IF Valtype( xPlugin ) == "N"
-      i := xPlugin
-   ELSEIF Valtype( xPlugin ) == "C"
-      i := Ascan( TEdit():aPlugins, {|a|a[1]==xPlugin} )
-   ENDIF
-   IF i > 0
-      IF Empty( TEdit():aPlugins[i,4] )
-         cPlugin := TEdit():aPlugins[i,1]
-         IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
-            TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
-            TEdit():aPlugins[i,5] := cFullPath
-         ENDIF
-      ENDIF
-      IF !Empty( TEdit():aPlugins[i,4] )
-         hb_hrbDo( TEdit():aPlugins[i,4], oEdit, hb_fnameDir( TEdit():aPlugins[i,5] ) )
-      ENDIF
-   ENDIF
-
-   RETURN Nil
-
 FUNCTION edi_SetPos( oEdit, nLine, nPos )
 
    IF nLine != Nil; oEdit:nLine := nLine; ENDIF

@@ -1,5 +1,7 @@
 /*
  * A replacement for a Alert() function.
+ * edi_RunPlugin()
+ * These functions are placed to separate file for a possibility to replace them
  *
  * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
@@ -55,3 +57,28 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
    Restscreen( y1, x1, y1+Len(aText)+3, x1+nLen, bufsc )
 
    RETURN i
+
+FUNCTION edi_RunPlugin( oEdit, xPlugin )
+
+   LOCAL i, cPlugin, cFullPath
+
+   IF Valtype( xPlugin ) == "N"
+      i := xPlugin
+   ELSEIF Valtype( xPlugin ) == "C"
+      i := Ascan( TEdit():aPlugins, {|a|a[1]==xPlugin} )
+   ENDIF
+   IF i > 0
+      IF Empty( TEdit():aPlugins[i,4] )
+         cPlugin := TEdit():aPlugins[i,1]
+         IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
+            TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
+            TEdit():aPlugins[i,5] := cFullPath
+         ENDIF
+      ENDIF
+      IF !Empty( TEdit():aPlugins[i,4] )
+         hb_hrbDo( TEdit():aPlugins[i,4], oEdit, hb_fnameDir( TEdit():aPlugins[i,5] ) )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+

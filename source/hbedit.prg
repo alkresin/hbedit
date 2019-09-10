@@ -17,7 +17,7 @@ FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
-   LOCAL ypos, xpos, nStartLine, lRO := .F., lDiff := .F., cText
+   LOCAL ypos, xpos, nStartLine, lRO := .F., lDiff := .F., cText, cDefCP, cDefPal, nSaveHis := -1
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) == "-"
@@ -51,6 +51,19 @@ FUNCTION Main( ... )
             xPos := Val( arr[1] )
             yPos := Iif( Len(arr)>1, Val( arr[2] ), 0 )
 
+         ELSEIF c == "c" .AND. Substr( aParams[i],3,2 ) == "p="
+            cDefCP := Substr( aParams[i],5 )
+            IF !hb_cdpExists( cDefCP )
+               cDefCP := Nil
+            ENDIF
+
+         ELSEIF c == "p" .AND. Substr( aParams[i],3,3 ) == "al="
+            cDefPal := Substr( aParams[i],6 )
+
+         ELSEIF c == "h" .AND. Substr( aParams[i],3,3 ) == "is="
+            IF ( nSaveHis := Val( Substr( aParams[i],6 ) ) ) > 2
+               nSaveHis := -1
+            ENDIF
          ENDIF
       ELSE
          Aadd( aFiles, aParams[i] )
@@ -60,8 +73,13 @@ FUNCTION Main( ... )
    IF Empty( cIniName ) .OR. !File( cIniName )
       cIniName := edi_FindPath( "hbedit.ini" )
    ENDIF
-   ReadIni( cIniName )
-
+   ReadIni( cIniName, cDefCP )
+   IF !Empty( cDefPal )
+      TEdit():cDefPal := cDefPal
+   ENDIF
+   IF nSaveHis >= 0
+      TEdit():options["savehis"] := nSaveHis
+   ENDIF
    IF Empty( nScreenH )
       nScreenH := 25
    ENDIF
@@ -170,7 +188,7 @@ FUNCTION Main( ... )
 
    RETURN Nil
 
-STATIC FUNCTION ReadIni( cIniName )
+STATIC FUNCTION ReadIni( cIniName, cDefCP )
 
    LOCAL hIni := edi_iniRead( cIniName ), aSect, cTmp, arr, i
    LOCAL cp
@@ -224,7 +242,9 @@ STATIC FUNCTION ReadIni( cIniName )
        ENDIF
    ENDIF
 
-   IF Empty(cp) .OR. !hb_cdpExists( cp )
+   IF !Empty( cDefCP )
+      cp := cDefCP
+   ELSEIF Empty(cp) .OR. !hb_cdpExists( cp )
       cp := "RU866"
    ENDIF
    hb_cdpSelect( cp )

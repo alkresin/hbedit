@@ -77,6 +77,9 @@ A fullscreen console multiplatform text editor.
   - -size=nCols,nRows   - number of columns and rows in an editor window
   - -ro                 - open file in a readonly mode
   - -d                  - open two files side-by-side in diff mode
+  - -cp=CP              - sets CP codepage as default
+  - -pal=paletteName    - sets paletteName as default palette
+  - -his=N              - overrides 'savehis' option
   - files...            - the list of files to edit
 
 
