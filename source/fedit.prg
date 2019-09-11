@@ -1711,6 +1711,7 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
    LOCAL y := ::y1 - 1, nCol := Col(), nRow := Row(), nF9 := 0
    LOCAL cLen := Ltrim(Str(Len(::aText))), nchars := Len(cLen)
 
+   SetColor( ::cColorPane )
    IF ::oParent != Nil .AND. ::x1 == ::oParent:x2 + 2
       Scroll( ::y1, ::x1-1, ::y2, ::x1-1 )
    ENDIF
@@ -1720,7 +1721,6 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
    ELSE
       IF ::lTopPane
          DispBegin()
-         SetColor( ::cColorPane )
          Scroll( y, ::x1, y, ::x2 )
          IF Empty( lClear )
             DevPos( y, ::x1 )
@@ -1750,11 +1750,11 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
                   Iif( ::nMode == 1, " Vim", " Cmd" ) ) )
             ENDIF
          ENDIF
-         SetColor( ::cColor )
          DevPos( nRow, nCol )
          DispEnd()
       ENDIF
    ENDIF
+   SetColor( ::cColor )
 
    RETURN Nil
 

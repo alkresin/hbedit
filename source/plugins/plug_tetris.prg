@@ -36,7 +36,7 @@ STATIC aFigs := { { { {0,1}, {1,0}, {1,1} }, { {0,1}, {1,0}, {1,1} }, ;
    }
 
 STATIC aFigColors := { "N/GR","N/BG","N/RB","N/W","N/B","N/G","N/R" }
-STATIC aLevelLimits := { 150, 350, 600, 900, 1300, 1900, 2700, 4000, 5500, 7500 }
+STATIC aLevelLimits := { 150, 350, 600, 900, 1400, 2200, 3100, 5000, 7500, 11000 }
 STATIC aBoard[BOARD_HEIGHT,BOARD_WIDTH]
 STATIC cScreenBuff
 
@@ -45,13 +45,11 @@ FUNCTION plug_Tetris( oEdit, cPath )
    LOCAL i, cName := "$Tetris"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
-      SetColor( o:cColorPane )
       Scroll( y, o:x1, y, o:x2 )
       IF Empty( l )
          DevPos( y, o:x1 )
          DevOut( "Tetris" )
       ENDIF
-      SetColor( o:cColor )
       DevPos( nRow, nCol )
       RETURN Nil
    }

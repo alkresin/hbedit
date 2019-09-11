@@ -198,11 +198,7 @@ STATIC FUNCTION _diff_toppane( o, lClear, y )
    LOCAL clen, nchars, nLine := o:nLine, nDiff, nCol := Col(), nRow := Row()
 
    DispBegin()
-   SetColor( o:cColorPane )
    Scroll( y, o:x1, y, o:x2 )
-   IF o:oParent != Nil .AND. o:x1 == o:oParent:x2 + 2
-      Scroll( o:y1, o:x1-1, o:y2, o:x1-1 )
-   ENDIF
    IF Empty( lClear )
       DevPos( y, o:x1 )
       DevOut( Iif(nDiffMode==1,"$Diff",Iif(nDiffMode==2,"$Full","$From")) )
@@ -223,7 +219,6 @@ STATIC FUNCTION _diff_toppane( o, lClear, y )
       DevOut( PAdl(Ltrim(Str(nLine)),nchars) + "/" + cLen )
 
    ENDIF
-   SetColor( o:cColor )
    DevPos( nRow, nCol )
    DispEnd()
 
