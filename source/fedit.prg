@@ -1099,6 +1099,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE K_CTRL_INS
          CASE 3                           // Ctrl-Ins or Ctrl-c
             edi_2cb( Self )
+            nKey := K_CTRL_INS
             lNoDeselect := .T.
             EXIT
          CASE 22                          // Ctrl-v
@@ -3209,7 +3210,7 @@ FUNCTION mnu_F4( oEdit, aXY )
          @mnu_OpenRecent(),i } )
    NEXT
 
-   FMenu( oEdit, aMenu, aXY[1], aXY[2] )
+   FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,,, .T. )
 
    RETURN Nil
 
