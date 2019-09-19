@@ -82,7 +82,7 @@ CLASS TEdit
    CLASS VAR aReplHis   SHARED  INIT {}
    CLASS VAR aEditHis   SHARED  INIT {}
    CLASS VAR aCBoards   SHARED                   // An array for clipboard buffers
-   CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
+   CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
    CLASS VAR cDefPal    SHARED
@@ -2579,7 +2579,7 @@ FUNCTION edi_ReadIni( xIni )
    LOCAL lTab2Spaces := .F., lPathInHead := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
-   LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","quotes","scomm","startline","mcomm","block" }
+   LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","keywords5","quotes","scomm","startline","mcomm","block" }
 
    TEdit():lReadIni := .T.
    hIni := Iif( Valtype( xIni ) == "C", edi_iniRead( xIni ), xIni )

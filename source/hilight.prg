@@ -11,11 +11,12 @@
 #define HILIGHT_KEYW2   2
 #define HILIGHT_KEYW3   3
 #define HILIGHT_KEYW4   4
-#define HILIGHT_QUOTE   5
-#define HILIGHT_SCOMM   6
-#define HILIGHT_SLEFT   7
-#define HILIGHT_MCOMM   8
-#define HILIGHT_BLOCK   9
+#define HILIGHT_KEYW5   5
+#define HILIGHT_QUOTE   6
+#define HILIGHT_SCOMM   7
+#define HILIGHT_SLEFT   8
+#define HILIGHT_MCOMM   9
+#define HILIGHT_BLOCK  10
 
 #define MAX_ITEMS    1024
 
@@ -43,7 +44,7 @@ CLASS Hili INHERIT HiliBase
 
    DATA   hHili
    DATA   cKeywords1, cKeywords2   // A list of keywords (commands), divided by space
-   DATA   cKeywords3, cKeywords4
+   DATA   cKeywords3, cKeywords4, cKeywords5
    DATA   cScomm                   // A string, which starts single line comments
    DATA   cSleft
    DATA   cMcomm1, cMcomm2         // Start and end strings for multiline comments
@@ -51,7 +52,7 @@ CLASS Hili INHERIT HiliBase
    DATA   lMultiComm
    DATA   aDop, nDopChecked
 
-   METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
+   METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5, ;
       cSComm, cSLeft, cMComm, lCase )
    METHOD SET( oEdit )
    METHOD DO( nLine, lCheck )
@@ -60,7 +61,7 @@ CLASS Hili INHERIT HiliBase
 
 ENDCLASS
 
-METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
+METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
       cSComm, cSLeft, cMComm, lCase ) CLASS Hili
    LOCAL nPos
 
@@ -72,6 +73,7 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
       cKeywords2 := hb_hGetDef( hHili, "keywords2", "" )
       cKeywords3 := hb_hGetDef( hHili, "keywords3", "" )
       cKeywords4 := hb_hGetDef( hHili, "keywords4", "" )
+      cKeywords5 := hb_hGetDef( hHili, "keywords5", "" )
       cSComm := hb_hGetDef( hHili, "scomm", "" )
       cSLeft := hb_hGetDef( hHili, "startline", "" )
       cMComm := hb_hGetDef( hHili, "mcomm", "" )
@@ -88,6 +90,9 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
    ENDIF
    IF !Empty( cKeywords4 )
       ::cKeywords4 := " " + AllTrim( cKeywords4 ) + " "
+   ENDIF
+   IF !Empty( cKeywords5 )
+      ::cKeywords5 := " " + AllTrim( cKeywords5 ) + " "
    ENDIF
 
    IF !Empty( cSComm )
@@ -121,6 +126,9 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, ;
       IF !Empty( ::cKeywords4 )
          ::cKeywords4 := Lower( ::cKeywords4 )
       ENDIF
+      IF !Empty( ::cKeywords5 )
+         ::cKeywords5 := Lower( ::cKeywords5 )
+      ENDIF
    ENDIF
 
    RETURN Self
@@ -133,6 +141,7 @@ METHOD SET( oEdit ) CLASS Hili
    oHili:cKeywords2 := ::cKeywords2
    oHili:cKeywords3 := ::cKeywords3
    oHili:cKeywords4 := ::cKeywords4
+   oHili:cKeywords5 := ::cKeywords5
    oHili:cScomm     := ::cScomm
    oHili:cSleft     := ::cSleft
    oHili:cMcomm1    := ::cMcomm1
@@ -276,6 +285,8 @@ METHOD DO( nLine, lCheck ) CLASS Hili
                ::AddItem( nPos1, nPos, HILIGHT_KEYW3 )
             ELSEIF !Empty( ::cKeywords4 ) .AND. cWord $ ::cKeywords4
                ::AddItem( nPos1, nPos, HILIGHT_KEYW4 )
+            ELSEIF !Empty( ::cKeywords5 ) .AND. cWord $ ::cKeywords5
+               ::AddItem( nPos1, nPos, HILIGHT_KEYW5 )
             ENDIF
          ENDIF
          nPos ++
