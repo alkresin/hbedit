@@ -6,7 +6,6 @@ FUNCTION plug_Calculator( oEdit )
    LOCAL oCalc := edi_AddWindow( oEdit, "", "$Calculator", 2, 5 )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
-      Scroll( y, o:x1, y, o:x2 )
       IF Empty( l )
          DevPos( y, o:x1 )
          DevOut( "Calculator    F5 - Calculate" )

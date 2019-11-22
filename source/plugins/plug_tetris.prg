@@ -45,7 +45,6 @@ FUNCTION plug_Tetris( oEdit, cPath )
    LOCAL i, cName := "$Tetris"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
-      Scroll( y, o:x1, y, o:x2 )
       IF Empty( l )
          DevPos( y, o:x1 )
          DevOut( "Tetris" )

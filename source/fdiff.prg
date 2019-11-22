@@ -198,7 +198,6 @@ STATIC FUNCTION _diff_toppane( o, lClear, y )
    LOCAL clen, nchars, nLine := o:nLine, nDiff, nCol := Col(), nRow := Row()
 
    DispBegin()
-   Scroll( y, o:x1, y, o:x2 )
    IF Empty( lClear )
       DevPos( y, o:x1 )
       DevOut( Iif(nDiffMode==1,"$Diff",Iif(nDiffMode==2,"$Full","$From")) )
