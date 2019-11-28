@@ -228,7 +228,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, xPlugin, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf", cPal
+   LOCAL i, arr, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
    LOCAL lT2Sp := hb_hGetDef( TEdit():options,"tabtospaces", .F. )
    LOCAL dDateMod, cTimeMod
@@ -302,19 +302,6 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       FOR i := 1 TO Len(aLangExten)
          IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
-            IF !Empty( cPal := hb_hGetDef( ::oHili:hHili, "palette", Nil ) ) .AND. ;
-               hb_hHaskey( hPalettes, cPal )
-               ::cPalette := cPal
-            ENDIF
-            IF !Empty( xPlugin := hb_hGetDef( ::oHili:hHili, "plugin", Nil ) )
-               IF Valtype( xPlugin ) == "C" .AND. ;
-                  !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
-                  xPlugin := ::oHili:hHili["plugin"] := { cFullPath, hb_hrbLoad( cFullPath ) }
-               ENDIF
-               IF Valtype( xPlugin ) == "A" .AND. !Empty( xPlugin[2] )
-                  hb_hrbDo( xPlugin[2], Self, hb_fnameDir( xPlugin[1] ) )
-               ENDIF
-            ENDIF
             EXIT
          ENDIF
       NEXT
@@ -3038,8 +3025,24 @@ FUNCTION mnu_Syntax( oEdit, aXY )
 
 FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
+   LOCAL cPal, xPlugin
+
    oEdit:Highlighter( Iif( Empty(cLang), Nil, Hili():New( aLangs[cLang] ) ) )
    oEdit:cSyntaxType := cLang
+
+   IF !Empty( cPal := hb_hGetDef( oEdit:oHili:hHili, "palette", Nil ) ) .AND. ;
+      hb_hHaskey( hPalettes, cPal )
+      oEdit:cPalette := cPal
+   ENDIF
+   IF !Empty( xPlugin := hb_hGetDef( oEdit:oHili:hHili, "plugin", Nil ) )
+      IF Valtype( xPlugin ) == "C" .AND. ;
+         !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
+         xPlugin := oEdit:oHili:hHili["plugin"] := { cFullPath, hb_hrbLoad( cFullPath ) }
+      ENDIF
+      IF Valtype( xPlugin ) == "A" .AND. !Empty( xPlugin[2] )
+         hb_hrbDo( xPlugin[2], oEdit, hb_fnameDir( xPlugin[1] ) )
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
