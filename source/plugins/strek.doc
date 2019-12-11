@@ -1,0 +1,118 @@
+ F10 - закрыть экран помощи            | F10 - close help screen                |
+ Об истории читайте в Википедии:       | Read Wikipedia about the game history: |
+           https://en.wikipedia.org/wiki/Star_Trek_(1971_video_game)            |
+           https://ru.wikipedia.org/wiki/Star_Trek_(текстовая_игра)             |
+                                                                                |
+Вы командир звездолёта USS Enterprise  |You are the commander of the starship   |
+(NCC-1701) и должны ликвидировать      |USS Enterprise (NCC-1701) and must      |
+клингонскую угрозу галактике.          |eliminate Klingon threat to the galaxy. |
+Вся галактика содержит 64 квадранта    |The whole galaxy contains 64 quadrants  |
+(8x8), а каждый квадрант в, свою       |(8x8), and each quadrant contains 64    |
+очередь, содержит 64 сектора (8x8).    |sectors (8x8). The ship has a limited   |
+У корабля есть ограниченное число      |number units of energy that is used     |
+единиц энергии, которая используется   |for movement, nutrition protective      |
+для передвижения, питания защитных     |screens, and shooting phasers. The      |
+экранов, и стрельбы фазерами. Цель     |of purpose the game is to destroy       |
+игры состоит в том, чтобы уничтожить   |all the Klingon ships in the galaxy     |
+все корабли клингонов в галактике за   |beyond set time and at the same time    |
+заданное время и при этом не дать им   |not give them destroy Enterprise.       |
+разрушить Enterprise.                  |The main weapons of Enterprise phasers  |
+Основным оружием Enterprise являются   |that can shoot at any place of a        |
+фазеры, которые могут стрелять в любое |quadrant, but consume energy. The ship  |
+место квадранта, но расходуют энергию. |also contains a certain number of photon|
+Корабль также содержит определенное    |torpedoes that inflict more damage than |
+число фотонных торпед, которые наносят |phasers, but can blocked by obstacles   |
+больший урон, чем фазеры, но могут     |such as stars.                          |
+блокироваться препятствиями, такими как|                                        |
+звёзды.                                |                                        |
+                                       |                                        |
+Управление игровым процессом ведется с |Game control is carried out using       |
+помощью команд - текста из 3-х букв с  |short text commands or by pressing the  |
+последующим нажатием ENTER, или        |corresponding functional keys (F1, F2,  |
+нажатием соответствующей функциональной| ...).                                  |
+клавиши (F1, F2, ... ).                |                                        |
+                                       |                                        |
+   Команды:                            |   Commands:                            |
+                                       |                                        |
+nav  -  Warp Engine Control            |nav   -   Warp Engine Control           |
+Перемещает Enterprise в другую позицию,|Moves Enterprise to another position,   |
+используя полярные координаты - для    |using the polar coordinates,            |
+этого надо дополнительно указать курс и|you must additionally indicate the      |
+расстояние.                            |course and distance.                    |
+Курс определяется в сооветствии с этой |The course is determined as in a        |
+диаграммой:                            |following diagramm:                     |
+                                                                                |
+                                    4  3  2                                     |
+                                     . . .                                      |
+                                      ...                                       |
+                                  5 ---*--- 1                                   |
+                                      ...                                       |
+                                     . . .                                      |
+                                    6  7  8                                     |
+                                                                                |
+Это может быть целое или вещественное  |It can be integer or real number rom 1  |
+число от 1 до 8.999                    |to 8.999                                |
+Дистанция (warp factor) измеряется в   |The distance (warp factor) is measured  |
+квадрантах: 1 - 1 квадрант, 0.5 -      |in quadrants: 1 - 1 quadrant, 0.5 -     |
+полквадранта (4 сектора).              |half a quadrant (4 sectors).            |
+                                       |                                        |
+srs  -  Short Range Sensor Scan        |srs  -  Short Range Sensor Scan         |
+Показывает карту текущего квадранта.   |Shows you a map of your present quadrant|
+Используются следующие обозначения:    |The following notation is used:         |
+   *  -  звезда                        |    *  - a star                         |
+   E  -  Enterprise                    |    E  -  Enterprise                    |
+   K  -  звездолет клингонов           |    K  -  Klingon battlecruiser         |
+   B  -  База Федерации                |    B  -  Federation starbase           |
+                                       |                                        |
+lrs  =  Long Range Sensor Scan         |lrs  =  Long Range Sensor Scan          |
+Показывает карту Галактики вокруг      |Shows a map of the Galaxy around the    |
+текущего квадранта, который показан в  |current quadrant, which is displayed in |
+центре карты. Каждый квадрант          |the center of the map. Each quadrant    |
+представлен в формате ### - число      |uses the format ### - the number of     |
+клингонов, число баз и число звезд в   |Klingons, the number of bases and the   |
+квадранте.                             |number of stars in the quadrant.        |
+Так, например, 305 - три клингона, ни  |For example, 305 - 3 Klingons, no       |
+одной базы и 5 звезд.                  |Starbases, 5 stars.                     |
+                                       |                                        |
+pha  -  Phaser Control                 |pha  -  Phaser Control                  |
+Оружие, поражающее всех врагов в       |Weapons that hit all enemies in         |
+квадранте заданным количеством единиц  |quadrant with a given number of units of|
+энергии. Реальное количество энергии   |energy. Real amount of energy for each  |
+на каждого клингона зависит от         |Klingon depends on their total number   |
+их общего количества и расстояния до   |and distance to him. If this amount is  |
+него. Если это количество больше чем   |greater than Klingon shield power, it   |
+мощность защитного экрана, клингон     |will be destroyed, if less then         |
+будет уничтожен, если меньше, то       |protection power decreases.             |
+уменьшается мощность защиты.           |                                        |
+                                       |                                        |
+tor  -  Photon Torpedo Control         |tor  -  Photon Torpedo Control          |
+Торпеда гарантированно поражает        |The torpedo is guaranteed to hit enemy  |
+корабль противника, если вы не         |ship if you don't miss. The course is   |
+промахнетесь. Курс определяется так же,|determined in the same way as in the    |
+как и в команде 'nav'.                 |command 'nav'.                          |
+                                       |                                        |
+she  -  Shield Control                 |she  -  Shield Control                  |
+Определяет количество единиц энергии,  |Determines the number of units of       |
+выделяемых для защитного экрана.       |energy, allocated for the shield.       |
+                                       |                                        |
+dam  -  Damage Control report          |dam  -  Damage Control report           |
+Показывает состояние всех устройств.   |Shows the status of all devices. A      |
+Отрицательное значение означает, что   |negative value means that the device is |
+устройство повреждено.                 |damaged.                                |
+                                       |                                        |
+com  -  Library-Computer               |com  -  Library-Computer                |
+Компьютер выполняет 6 действий:        |                                        |
+1 - полная карта галактики, на которой |1 - A complete galaxy map showing the   |
+    отмечены посещенные и сканированные|    quadrants visited and scanned with  |
+    с помощью lrs квадранты. Формат    |    lrs. Display format - as in lrs.    |
+    отображения - как в lrs.           |                                        |
+2 - Отчет о текущем состоянии (энергия,|2 - Report on the current state (energy,| 
+    клингоны, оставшееся время, базы). |   Klingons, remaining time, starbases).|
+3 - Калькулятор перемещения.           |3 - Direction/distance calculations.    |
+4 - Показывает путь и расстояние к базе|4 - Direction and distance to a starbase|
+    в текущем квадранте.               |    in your quadrant.                   |
+5 - Показывает пути и расстояния до    |5 - Directions and distance from        |
+    клингонов в текущем квадранте.     |    Enterprise to all Klingons in your  |
+                                       |    quadrant.                           |
+6 - Показывает имена районов галактики.|6 - Prints the names of galactic regions|
+
