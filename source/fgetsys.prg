@@ -99,6 +99,7 @@ FUNCTION edi_READ( aGets )
             IF nKey == K_SPACE
                IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
                   Eval( aGets[nCurr,G_CB] )
+                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
                ENDIF
             ENDIF
          ENDIF
@@ -249,6 +250,7 @@ FUNCTION edi_READ( aGets )
                ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
                   IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
                      Eval( aGets[nCurr,G_CB] )
+                     ShowGetItem( aGets[nCurr], .T., lUtf8 )
                   ENDIF
                ENDIF
             ENDIF

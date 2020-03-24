@@ -3267,8 +3267,9 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
 
    LOCAL cScBuf := Savescreen( 09, 10, 15, 72 )
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorMenu ), cName, nRes, oNew, cText
-   LOCAL aGets := { {11,12,0,Iif(Empty(cFile),"",cFile),56}, ;
-      {11,68,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_FileList(oEdit,aGets[1])}}, ;
+   LOCAL aGets := { {11,12,0,Iif(Empty(cFile),"",cFile),52}, ;
+      {11,64,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_FileList(oEdit,aGets[1])}}, ;
+      {11,68,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[1])}}, ;
       {12,13,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, {12,28,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {12,56,-1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {14,26,2,"[Open]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
@@ -3291,13 +3292,13 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       IF !Empty( cName := aGets[1,4] ) .AND. File( cName )
-         IF aGets[5,4]
+         IF aGets[6,4]
             IF ( cText := edi_MakeDiff( oEdit, cName ) ) == Nil
                edi_Alert( "Diff tool not found" )
             ELSE
                edi_AddDiff( oEdit, cText, .T. )
             ENDIF
-         ELSEIF aGets[4,4]
+         ELSEIF aGets[5,4]
             IF oEdit:lUpdated
                IF mnu_Exit( oEdit )
                   oEdit:lShow := .T.
@@ -3309,10 +3310,10 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
                ENDIF
             ENDIF
             oEdit:SetText( MemoRead( cName ), cName )
-            oEdit:lReadOnly := aGets[3,4]
+            oEdit:lReadOnly := aGets[4,4]
          ELSE
             oNew := mnu_NewBuf( oEdit, cName )
-            oNew:lReadOnly := aGets[3,4]
+            oNew:lReadOnly := aGets[4,4]
          ENDIF
       ENDIF
    ENDIF
@@ -3354,6 +3355,28 @@ FUNCTION mnu_FileList( oEdit, aGet )
       cLastDir := hb_fnameDir( xFileName )
       aGet[4] := xFileName
       ShowGetItem( aGet, .F., oEdit:lUtf8 )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION mnu_DirList( oEdit, aGet )
+
+   LOCAL i, cDir, ny2 := oEdit:aRectFull[3]-2, cScBuf, aMenu := {}
+
+   FOR i := 1 TO Len( oEdit:aEditHis )
+      cDir := NameShortcut(hb_Translate(hb_fnameDir(oEdit:aEditHis[i,1]),"UTF8"), 48,'~' )
+      IF Ascan( aMenu, {|a|a[1]==cDir} ) == 0
+         AAdd( aMenu, { cDir,Nil,i} )
+      ENDIF
+   NEXT
+
+   cScBuf := Savescreen( 12, 12, ny2, 67 )
+   i := FMenu( oEdit, aMenu, 12, 12, ny2, 67 )
+   Restscreen( 12, 12, ny2, 67, cScBuf )
+
+   IF i != 0
+      cLastDir := hb_fnameDir( oEdit:aEditHis[aMenu[i,3],1] )
+      mnu_FileList( oEdit, aGet )
    ENDIF
 
    RETURN Nil
