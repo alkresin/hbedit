@@ -11,6 +11,7 @@
 #include "hbapicdp.h"
 
 static HB_SIZE nLastX, nLastPos;
+static char* shm_file_name = "hbedit_cb";
 
 /*
 #include "hbapifs.h"
@@ -214,6 +215,36 @@ HB_FUNC( CEDI_REDIROFF )
 #define BUFSIZE  4096
 
 #if defined(__linux__) || defined(__unix__)
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <string.h>
+
+HB_FUNC( CEDI_SHMREAD )
+{
+   int shm, iLen;
+   char *addr;
+   struct stat stat;
+
+   if( (shm = shm_open(shm_file_name, O_RDONLY, 0777)) == -1 ) {
+      return;
+   }
+   fstat( shm, &stat );
+   iLen = stat.st_size;
+   addr = mmap(0, iLen, PROT_READ, MAP_SHARED, shm, 0);
+   if( addr == (char*)-1 ) {
+      return;
+   }
+
+   hb_retc( addr );
+
+   munmap(addr, iLen);
+   close(shm);
+   shm_unlink( shm_file_name );
+}
 
 HB_FUNC( CEDI_RUNCONSOLEAPP )
 {

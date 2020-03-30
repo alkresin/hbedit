@@ -11,7 +11,7 @@ Function plug_prg_run( oEdit )
    acmd[1] := oEdit:ToString()
    acmd[2] := "harbour"
    acmd[3] := "-n2"
-   acmd[4] := "-q"
+   acmd[4] := "-q2"
    acmd[5] := "-w"
 
    cedi_rediron( 2, cFileRes )
@@ -21,7 +21,7 @@ Function plug_prg_run( oEdit )
    cBuff := Memoread( cFileRes )
    IF Empty( cHrb ) .OR. ( !Empty( cBuff ) .AND. " Warning " $ cBuff .AND. ;
          edi_Alert( "There are warnings;Run anyway?","Yes","No" ) == 2 )
-      
+
       oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
       oNew:lReadOnly := .T.
       oNew:bOnKey := {|o,n| _prg_ErrWin_OnKey(o,n) }

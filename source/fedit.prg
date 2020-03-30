@@ -21,9 +21,10 @@
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
 #define ALT_PRESSED   0x040000
-#define MAX_CBOARDS         28
+#define MAX_CBOARDS         29
 #define MAX_EDIT_CBOARDS    10
 #define CBOARD_MINUS        28
+#define CBOARD_SYS          29
 
 #define UNDO_LINE1      1
 #define UNDO_POS1       2
@@ -101,6 +102,9 @@ CLASS TEdit
    CLASS VAR bNew       SHARED
    CLASS VAR hMacros    SHARED
    CLASS VAR hSelePlug  SHARED
+#ifdef __PLATFORM__UNIX
+   CLASS VAR cClipCmd   SHARED
+#endif
 
    DATA   aRect       INIT { 0,0,24,79 }
    DATA   y1, x1, y2, x2
@@ -650,7 +654,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE 34  // "
             ::nDopMode := 0
             cDopMode := ""
-            IF (nKey >= 97 .AND. nKey <= 122) .OR. nKey == 45
+            IF (nKey >= 97 .AND. nKey <= 122) .OR. nKey == 42 .OR. nKey == 45
                // a...z, -
                nLastReg := nKey
                RETURN Nil
@@ -1074,7 +1078,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             ::nDopMode := 39
             cDopMode := "'"
             EXIT
-         CASE K_ALT_BS
+         CASE K_ALT_SC
+            ::nDopMode := 34
+            cDopMode := '"'
+            EXIT
+        CASE K_ALT_BS
             ::Undo()
             EXIT
          END
@@ -2427,13 +2435,20 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       NEXT
    ELSEIF nReg >= 97 .AND. nReg <= 122
       nReg -= 95
+   ELSEIF nReg == 42
+      nReg := CBOARD_SYS
+      TEdit():aCBoards[nReg,1] := s_cb2t()
    ELSEIF nReg == 45
       nReg := CBOARD_MINUS
    ENDIF
 
    IF nLen == 1
       IF nReg == 1
-         s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
+#ifdef __PLATFORM__UNIX
+         s := TEdit():aCBoards[1,1]
+#else
+         s := s_cb2t()
+#endif
          IF !( s == TEdit():aCBoards[1,1] )
             TEdit():aCBoards[1,1] := s
             TEdit():aCBoards[1,2] := oEdit:cp
@@ -2452,9 +2467,10 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       aMenu_CB := Array( nLen,3 )
       j := 0
       FOR i := 1 TO MAX_CBOARDS
-         IF !Empty( TEdit():aCBoards[i,1] )
+         IF i == 1 .OR. !Empty( TEdit():aCBoards[i,1] )
             j ++
-            cPref := Iif( i == 1, "0: ", Iif( i == MAX_CBOARDS, "-: ", Chr( i + 95 ) + ": " ) )
+            cPref := Iif( i == 1, "0: ", Iif( i == CBOARD_MINUS, "-: ", ;
+               Iif( i == CBOARD_SYS, "*: ",Chr( i + 95 ) + ": " ) ) )
             aMenu_CB[j,1] := cPref + cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
             aMenu_CB[j,2] := Nil; aMenu_CB[j,3] := i
             IF !Empty( TEdit():aCBoards[i,2] ) .AND. !( TEdit():aCBoards[i,2] == oEdit:cp )
@@ -2550,16 +2566,49 @@ FUNCTION edi_2cb( oEdit, nReg, s )
          nReg := 1
       ELSEIF nReg >= 97 .AND. nReg <= 122
          nReg -= 95
+      ELSEIF nReg == 42
+         nReg := CBOARD_SYS
+         s_t2cb( oEdit, s )
       ENDIF
       TEdit():aCBoards[nReg,1] := s
       IF nReg == 1
-         hb_gtInfo( HB_GTI_CLIPBOARDDATA, s )
+#ifdef __PLATFORM__UNIX
+#else
+         s_t2cb( oEdit, s )
+#endif
       ENDIF
       TEdit():aCBoards[nReg,2] := oEdit:cp
       TEdit():aCBoards[nReg,3] := Iif( oEdit:nSeleMode==2,.T.,Nil )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION s_t2cb( oEdit, s )
+
+#ifdef __PLATFORM__UNIX
+   IF !Empty( TEdit():cClipCmd )
+      cedi_RunConsoleApp( TEdit():cClipCmd + ' -s "' + StrTran( s,'"','\"' ) + '" 2>/dev/null', "/dev/null" )
+      RETURN Nil
+   ENDIF
+#endif
+   hb_gtInfo( HB_GTI_CLIPBOARDDATA, s )
+
+   RETURN Nil
+
+
+STATIC FUNCTION s_cb2t()
+
+#ifdef __PLATFORM__UNIX
+   LOCAL s
+   IF !Empty( TEdit():cClipCmd )
+      cedi_RunConsoleApp( TEdit():cClipCmd + ' -gm 2>/dev/null', "/dev/null" )
+      IF !Empty( s := cedi_shmRead() )
+         RETURN s
+      ENDIF
+   ENDIF
+#endif
+
+   RETURN hb_gtInfo( HB_GTI_CLIPBOARDDATA )
 
 FUNCTION edi_ReadIni( xIni )
 
@@ -2862,13 +2911,15 @@ FUNCTION edi_ReadIni( xIni )
    ENDIF
 
    TEdit():aCBoards := Array( MAX_CBOARDS,3 )
-   TEdit():aCBoards[1,1] := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
-   TEdit():aCBoards[1,2] := TEdit():cpInit
-   TEdit():aCBoards[1,3] := Nil
-
-   FOR i := 2 TO MAX_CBOARDS
+   FOR i := 1 TO MAX_CBOARDS
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
+#ifdef __PLATFORM__UNIX
+#else
+   TEdit():aCBoards[1,1] := s_cb2t()
+   TEdit():aCBoards[1,2] := TEdit():cpInit
+   TEdit():aCBoards[1,3] := Nil
+#endif
 
    TEdit():hMacros := hb_Hash()
 
@@ -2949,6 +3000,15 @@ FUNCTION edi_ReadIni( xIni )
          ENDIF
       ENDIF
    ENDIF
+
+#ifdef __PLATFORM__UNIX
+   IF File( cTemp := hb_DirBase() + "gtkclip" )
+      cedi_RunConsoleApp( cTemp + ' -tm 2>/dev/null', "/dev/null" )
+      IF !Empty( s := cedi_ShmRead() ) .AND. Left( s,1 ) == 'y'
+         TEdit():cClipCmd := cTemp
+      ENDIF
+   ENDIF
+#endif
 
    RETURN Nil
 
@@ -3184,9 +3244,9 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
    IF !oEdit:lF3
       aMenu_CB := Array(MAX_EDIT_CBOARDS,3)
 
-      TEdit():aCBoards[1,1] := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
-      TEdit():aCBoards[1,2] := oEdit:cp
-      TEdit():aCBoards[1,3] := Nil
+      //TEdit():aCBoards[1,1] := s_cb2t()
+      //TEdit():aCBoards[1,2] := oEdit:cp
+      //TEdit():aCBoards[1,3] := Nil
       FOR i := 1 TO MAX_EDIT_CBOARDS
          cPref := Iif( i == 1, "0: ", Chr( i + 95 ) + ": " )
          aMenu_CB[i,1] := cPref + cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
@@ -3198,7 +3258,10 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
       IF !Empty( i := FMenu( oEdit, aMenu_CB, 2, 6 ) )
          edi_2cb( oEdit, i )
          IF i == 1
-            hb_gtInfo( HB_GTI_CLIPBOARDDATA, TEdit():aCBoards[1,1] )
+#ifdef __PLATFORM__UNIX
+#else
+            s_t2cb( oEdit, TEdit():aCBoards[1,1] )
+#endif
          ENDIF
       ENDIF
       oEdit:lTextOut := .T.
