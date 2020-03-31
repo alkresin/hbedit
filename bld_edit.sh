@@ -16,6 +16,7 @@ gcc -I. -I$HB_INS/include -Wall -c hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c fal
 gcc -Wall -ohbedit hbedit.o fedit.o fcmd.o fmenu.o fgetsys.o falert.o ffiles.o fkeymaps.o hilight.o errorsys.o cfuncs.o -L $HB_INS/lib/linux/gcc  \
 	  -Wl,--start-group -lhbdebug  -lhbvm  -lhbrtl  -lhblang  -lhbrdd  \
 	  -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix \
-        -lhbct -lgttrm -lhbcpage -lhbnetio -lpcre -lhbcplr -lm -lz -Wl,--end-group
+        -lhbct -lgttrm -lhbcpage -lhbnetio -lpcre -lhbcplr -lm -lz -rt -Wl,--end-group
+gcc $SRC_DIR/gtkclip.c -ogtkclip  `pkg-config --cflags gtk+-2.0` `pkg-config gtk+-2.0 --libs` -lrt
 rm *.o
 rm *.c
