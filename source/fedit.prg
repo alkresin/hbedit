@@ -1102,7 +1102,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_F3( Self, 2 )
                nKey := K_RIGHT
             ELSEIF !::lReadOnly
-               cb2Text( Self, 1 )
+               cb2Text( Self, nLastReg )
             ENDIF
             EXIT
          CASE K_CTRL_P
@@ -1294,7 +1294,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 117   // u Undo
                      ::Undo()
                      EXIT
-                  CASE 112   // p Insert clipboard after current coloumn
+                  CASE 112   // p Insert clipboard after current column
                      IF !::lReadOnly
                         edi_SetPos( Self, ::nLine, ++::nPos )
                         cb2Text( Self, nLastReg )
@@ -1493,7 +1493,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_INS
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
                   IF !::lReadOnly
-                     cb2Text( Self, 1 )
+                     cb2Text( Self, nLastReg)
                   ENDIF
                ELSE
                   ::lIns := !::lIns
@@ -2500,6 +2500,9 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
          s := Strtran( s, Chr(13), "" )
       ENDIF
 
+      IF Len( s ) == 0
+         RETURN Nil
+      ENDIF
       IF lVert
          oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_START )
          arr := hb_ATokens( s, Chr(10) )
