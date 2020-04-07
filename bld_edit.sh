@@ -13,10 +13,10 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fdiff.prg  -n -q0 -es2 -gc0 -I$HB_INS/inc
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hilight.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/errorsys.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 gcc -I. -I$HB_INS/include -Wall -c hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c errorsys.c $SRC_DIR/cfuncs.c
-gcc -Wall -ohbedit hbedit.o fedit.o fcmd.o fmenu.o fgetsys.o falert.o ffiles.o fkeymaps.o hilight.o errorsys.o cfuncs.o -L $HB_INS/lib/linux/gcc  \
+gcc -Wall -ohbedit hbedit.o fedit.o fcmd.o fmenu.o fgetsys.o falert.o ffiles.o fdiff.o fkeymaps.o hilight.o errorsys.o cfuncs.o -L $HB_INS/lib/linux/gcc  \
 	  -Wl,--start-group -lhbdebug  -lhbvm  -lhbrtl  -lhblang  -lhbrdd  \
 	  -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix \
-        -lhbct -lgttrm -lhbcpage -lhbnetio -lpcre -lhbcplr -lm -lz -rt -Wl,--end-group
+        -lhbct -lgttrm -lhbcpage -lhbnetio -lpcre -lhbcplr -lm -lz -lrt -Wl,--end-group
 gcc $SRC_DIR/gtkclip.c -ogtkclip  `pkg-config --cflags gtk+-2.0` `pkg-config gtk+-2.0 --libs` -lrt
 rm *.o
 rm *.c
