@@ -1,3 +1,11 @@
+/*
+ * Tetris
+ * HbEdit plugin
+ *
+ * Copyright 2020 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define K_ESC        27
 #define K_CTRL_TAB  404
 #define K_UP          5
@@ -40,7 +48,7 @@ STATIC aLevelLimits := { 150, 350, 600, 900, 1400, 2200, 3100, 5000, 7500, 11000
 STATIC aBoard[BOARD_HEIGHT,BOARD_WIDTH]
 STATIC cScreenBuff
 
-FUNCTION plug_Tetris( oEdit, cPath )
+FUNCTION plug_gm_Tetris( oEdit, cPath )
 
    LOCAL i, cName := "$Tetris"
    LOCAL bWPane := {|o,l,y|

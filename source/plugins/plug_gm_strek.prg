@@ -1,3 +1,11 @@
+/*
+ * Star trek
+ * HbEdit plugin
+ *
+ * Copyright 2020 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define K_ESC        27
 #define K_ENTER      13
 #define K_BS          8
@@ -27,7 +35,7 @@ STATIC aDamages
 STATIC cCommand, cMessage
 STATIC lSRS
 
-FUNCTION plug_STrek( oEdit, cPath )
+FUNCTION plug_gm_STrek( oEdit, cPath )
 
    LOCAL i, cName := "$StarTrek"
    LOCAL bWPane := {|o,l,y|

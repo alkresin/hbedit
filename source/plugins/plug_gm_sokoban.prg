@@ -1,3 +1,11 @@
+/*
+ * Sokoban game
+ * HbEdit plugin
+ *
+ * Copyright 2020 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define K_ESC        27
 #define K_CTRL_TAB  404
 #define K_UP          5
@@ -16,7 +24,7 @@ STATIC aData, aBoard, aHis, nHis
 STATIC clrBoard := "GR+/N", clrBorder := "GR+/B", clrBox := "N/GR", clrTarget := "W/N", clrMan := "W+/N"
 STATIC ccBorder := "°°", ccBox := "::", ccTarget := "x ", ccMan := "NN"
 
-FUNCTION plug_Sokoban( oEdit, cPath )
+FUNCTION plug_gm_Sokoban( oEdit, cPath )
 
    LOCAL i, cName := "$Sokoban"
    LOCAL bWPane := {|o,l,y|
