@@ -2599,7 +2599,7 @@ STATIC FUNCTION s_t2cb( oEdit, s )
    RETURN Nil
 
 
-STATIC FUNCTION s_cb2t()
+FUNCTION s_cb2t()
 
 #ifdef __PLATFORM__UNIX
    LOCAL s
@@ -2607,7 +2607,11 @@ STATIC FUNCTION s_cb2t()
       cedi_RunConsoleApp( TEdit():cClipCmd + ' -gm 2>/dev/null', "/dev/null" )
       IF !Empty( s := cedi_shmRead() )
          RETURN s
+      ELSE
+         RETURN ""
       ENDIF
+   ELSE
+      RETURN ""
    ENDIF
 #endif
 

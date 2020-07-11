@@ -204,7 +204,7 @@ FUNCTION edi_READ( aGets )
                aGets[nCurr,G_VALUE] := ""
                aOpt[nCurr] := .F.
             ENDIF
-            s := hb_gtInfo( HB_GTI_CLIPBOARDDATA )
+            s := s_cb2t() //hb_gtInfo( HB_GTI_CLIPBOARDDATA )
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
                   s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
             DevPos( y, aGets[nCurr,G_X] )
