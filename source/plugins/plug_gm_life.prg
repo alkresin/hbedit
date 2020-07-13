@@ -29,6 +29,7 @@ STATIC hIdle
 STATIC x1t, x2t, y1t, y2t
 STATIC lPaused, lStep
 STATIC nTics := 0
+STATIC cCellChar := "þ"
 
 STATIC aBoard, aBoard_tmp, nBoardHeight, nBoardWidth
 STATIC cScreenBuff
@@ -126,7 +127,7 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
          ENDIF
 
       ELSEIF nKey == K_SPACE
-         life_SetCell()
+         life_SetCell( Row() - oLife:y1 + 1, Col() - oLife:x1 + 1 )
 
       ELSEIF nKey == K_F2
          life_SetPatt()
@@ -181,7 +182,7 @@ STATIC FUNCTION life_Menu()
          life_Clear()
 
       ELSEIF i == 4
-         life_SetCell()
+         life_SetCell( Row() - oLife:y1 + 1, Col() - oLife:x1 + 1 )
 
       ELSEIF i == 5
          life_SetPatt()
@@ -232,16 +233,13 @@ STATIC FUNCTION life_Clear()
 
    RETURN Nil
 
-STATIC FUNCTION life_SetCell( n )
-
-   LOCAL i := Col() - oLife:x1 + 1
-   LOCAL j := Row() - oLife:y1 + 1
+STATIC FUNCTION life_SetCell( j, i, n )
 
    aBoard[j,i] := Iif( n != Nil, n, Iif( aBoard[j,i]==0, 1, 0 ) )
    aBoard_Tmp[j,i] := Iif( n != Nil, n, Iif( aBoard_Tmp[j,i]==0, 1, 0 ) )
    SetColor( BOARD_CLR )
-   DevOut( Iif( aBoard[j,i]==0, ' ', POINT_CHR ) )
    DevPos( oLife:y1 + j - 1, oLife:x1 + i - 1 )
+   DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
 
    RETURN Nil
 
@@ -270,13 +268,11 @@ STATIC FUNCTION life_DrawPatt( cPatt )
          IF (j2 - j1) > 0
             n := Val( Substr( aPatt[i], j1, j2-j1 ) )
             FOR i1 := 1 TO n
-               DevPos( y0+i-1, x0+j1+i1-2 )
-               life_SetCell( 0 )
+               life_SetCell( y0+i-oLife:y1, x0+j1+i1-1-oLife:x1, 0 )
                j3 ++
             NEXT
          ENDIF
-         DevPos( y0+i-1, x0+j3-1 )
-         life_SetCell( 1 )
+         life_SetCell( y0+i-oLife:y1, x0+j3-oLife:x1, 1 )
          j3 ++
          j1 := j2 + 1
       ENDDO
@@ -327,7 +323,7 @@ FUNCTION _Life_Tf()
             FOR j := 1 TO nBoardHeight
                IF aBoard[j,i] != aBoard_Tmp[j,i]
                   DevPos( j0+j, i0+i )
-                  DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', POINT_CHR ) )
+                  DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
                   aBoard[j,i] := aBoard_Tmp[j,i]
                ENDIF
             NEXT
@@ -347,6 +343,12 @@ STATIC FUNCTION Read_Life_Ini( cIni )
       aIni := hb_hKeys( hIni )
       FOR nSect := 1 TO Len( aIni )
          IF Upper(aIni[nSect]) == "GAME"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTemp := "cellchar" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cCellChar := Chr(Val( cTemp ))
+               ENDIF
+            ENDIF
          ENDIF
       NEXT
    ENDIF
