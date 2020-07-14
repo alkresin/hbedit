@@ -19,7 +19,8 @@
 #define SC_NONE       0
 #define SC_NORMAL     1
 
-#define BOARD_CLR   "GR+/N"
+#define BORDER_CLR  "GR+/N"
+#define BOARD_CLR   "N+/BG"
 
 #define POINT_CHR   "þ"
 
@@ -30,6 +31,7 @@ STATIC x1t, x2t, y1t, y2t
 STATIC lPaused, lStep
 STATIC nTics := 0
 STATIC cCellChar := "þ"
+STATIC nSpeed := 0.5
 
 STATIC aBoard, aBoard_tmp, nBoardHeight, nBoardWidth
 STATIC cScreenBuff
@@ -88,11 +90,14 @@ FUNCTION plug_gm_Life( oEdit, cPath )
 FUNCTION _Life_Start()
 
    IF Empty( cScreenBuff )
-      y1t := oLife:y1; y2t := y1t + nBoardHeight-1
-      x1t := oLife:x1; x2t := x1t + nBoardWidth-1
+      y1t := oLife:y1+1; y2t := oLife:y2-1
+      x1t := oLife:x1+1; x2t := oLife:x2-1
 
-      SetColor( BOARD_CLR )
+      SetColor( BORDER_CLR )
       Scroll( oLife:y1, oLife:x1, oLife:y2, oLife:x2 )
+      SetColor( BOARD_CLR )
+      Scroll( y1t, x1t, y2t, x2t )
+      DevPos( y1t, x1t )
    ELSE
       RestScreen( oLife:y1, oLife:x1, oLife:y2, oLife:x2, cScreenBuff )
    ENDIF
@@ -107,27 +112,35 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
    SetCursor( SC_NONE )
    IF lPaused
       IF nKey == K_UP
-         IF ( i := Row() ) > oLife:y1
+         IF ( i := Row() ) > y1t
             DevPos( i - 1, Col() )
+         ELSE
+            DevPos( y2t, Col() )
          ENDIF
 
       ELSEIF nKey == K_DOWN
-         IF ( i := Row() ) < oLife:y2
+         IF ( i := Row() ) < y2t
             DevPos( i + 1, Col() )
+         ELSE
+            DevPos( y1t, Col() )
          ENDIF
 
       ELSEIF nKey == K_LEFT
-         IF ( i := Col() ) > oLife:x1
+         IF ( i := Col() ) > x1t
             DevPos( Row(), i - 1 )
+         ELSE
+            DevPos( Row(), x2t )
          ENDIF
 
       ELSEIF nKey == K_RIGHT
-         IF ( i := Col() ) < oLife:x2
+         IF ( i := Col() ) < x2t
             DevPos( Row(), i + 1 )
+         ELSE
+            DevPos( Row(), x1t )
          ENDIF
 
       ELSEIF nKey == K_SPACE
-         life_SetCell( Row() - oLife:y1 + 1, Col() - oLife:x1 + 1 )
+         life_SetCell( Row() - y1t + 1, Col() - x1t + 1 )
 
       ELSEIF nKey == K_F2
          life_SetPatt()
@@ -167,7 +180,8 @@ STATIC FUNCTION life_Menu()
 
    LOCAL aMenu1 := { {"Play",,,"p"}, {"Step",,,"s"}, {"Clear board",,,"c"}, ;
       {"Set cell",,,"Space"}, {"Set pattern",,,"F2"}, {"Help",,,"F1"} }
-   LOCAL aMenu2 := { {"Pause",,,"p"}, {"Step",,,"s"} }
+   LOCAL aMenu2 := { {"Pause",,,"p"}, {"Step",,,"s"}, {"Speed",,,""} }
+   LOCAL aMenuD := { "0.1", "0.3", "0.5", "1.0" }
    LOCAL i
 
    IF lPaused
@@ -182,7 +196,7 @@ STATIC FUNCTION life_Menu()
          life_Clear()
 
       ELSEIF i == 4
-         life_SetCell( Row() - oLife:y1 + 1, Col() - oLife:x1 + 1 )
+         life_SetCell( Row() - y1t + 1, Col() - x1t + 1 )
 
       ELSEIF i == 5
          life_SetPatt()
@@ -199,6 +213,12 @@ STATIC FUNCTION life_Menu()
       ELSEIF i == 2
          lStep := .T.
 
+      ELSEIF i == 3
+         IF ( i := FMenu( oLife, aMenuD, 5, 20 ) ) != 0
+            nSpeed := Val( aMenuD[i] )
+            life_Pause()
+         ENDIF
+
       ELSE
          life_Pause()
       ENDIF
@@ -213,7 +233,7 @@ STATIC FUNCTION life_Pause()
    SetColor( oLife:cColorPane )
    @ oLife:y1-1, oLife:x2-8 SAY Iif( lPaused, "Paused  ", "        " )
    SetColor( BOARD_CLR )
-   DevPos( oLife:y1, oLife:x1 )
+   DevPos( y1t, x1t )
 
    RETURN Nil
 
@@ -237,9 +257,11 @@ STATIC FUNCTION life_SetCell( j, i, n )
 
    aBoard[j,i] := Iif( n != Nil, n, Iif( aBoard[j,i]==0, 1, 0 ) )
    aBoard_Tmp[j,i] := Iif( n != Nil, n, Iif( aBoard_Tmp[j,i]==0, 1, 0 ) )
-   SetColor( BOARD_CLR )
-   DevPos( oLife:y1 + j - 1, oLife:x1 + i - 1 )
-   DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
+   IF y1t + j - 1 <= y2t .AND. x1t + i - 1 <= x2t
+      SetColor( BOARD_CLR )
+      DevPos( y1t + j - 1, x1t + i - 1 )
+      DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
+   ENDIF
 
    RETURN Nil
 
@@ -268,11 +290,11 @@ STATIC FUNCTION life_DrawPatt( cPatt )
          IF (j2 - j1) > 0
             n := Val( Substr( aPatt[i], j1, j2-j1 ) )
             FOR i1 := 1 TO n
-               life_SetCell( y0+i-oLife:y1, x0+j1+i1-1-oLife:x1, 0 )
+               life_SetCell( y0+i-y1t, x0+j1+i1-1-x1t, 0 )
                j3 ++
             NEXT
          ENDIF
-         life_SetCell( y0+i-oLife:y1, x0+j3-oLife:x1, 1 )
+         life_SetCell( y0+i-y1t, x0+j3-x1t, 1 )
          j3 ++
          j1 := j2 + 1
       ENDDO
@@ -290,7 +312,7 @@ FUNCTION _Life_Tf()
    LOCAL nSec := Seconds(), lLast := .F., i, j, n, i1, i2, j1, j2, i0, j0
    STATIC nSecPrev := 0
 
-   IF nSec - nSecPrev > 0.5 .OR. lStep
+   IF nSec - nSecPrev > nSpeed .OR. lStep
       nSecPrev := nSec
       IF lPaused .AND. !lStep
          RETURN Nil
@@ -300,8 +322,8 @@ FUNCTION _Life_Tf()
             SetColor( oLife:cColorPane )
             @ oLife:y1-1, oLife:x2-8 SAY Str( nTics, 8 )
          ENDIF
-         i0 := oLife:x1 - 1
-         j0 := oLife:y1 - 1
+         i0 := x1t - 1
+         j0 := y1t - 1
          FOR i := 1 TO nBoardWidth
             FOR j := 1 TO nBoardHeight
                i1 := Iif( i==1, nBoardWidth, i-1 )
@@ -322,8 +344,10 @@ FUNCTION _Life_Tf()
          FOR i := 1 TO nBoardWidth
             FOR j := 1 TO nBoardHeight
                IF aBoard[j,i] != aBoard_Tmp[j,i]
-                  DevPos( j0+j, i0+i )
-                  DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
+                  IF j0+j <= y2t .AND. i0+i <= x2t
+                     DevPos( j0+j, i0+i )
+                     DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
+                  ENDIF
                   aBoard[j,i] := aBoard_Tmp[j,i]
                ENDIF
             NEXT
