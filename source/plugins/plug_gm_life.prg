@@ -300,8 +300,8 @@ STATIC FUNCTION life_SetCell( j, i, n )
 
 STATIC FUNCTION life_SetPatt()
 
-   LOCAL aMenu := { "Glider", "Light ship", "Eight" }
-   LOCAL aPatt := { "1x,2x,xxx", "3x,4x,x3x,1xxxx", "xxx,xxx,xxx,3xxx,3xxx,3xxx" }
+   LOCAL aMenu := { "Glider", "Light ship", "r-pentamino", "Eight" }
+   LOCAL aPatt := { "1x,2x,xxx", "3x,4x,x3x,1xxxx", "1xx,xx,1x", "xxx,xxx,xxx,3xxx,3xxx,3xxx" }
    LOCAL i
 
    i := FMenu( oLife, aMenu, 2, 6 )
@@ -368,6 +368,7 @@ STATIC FUNCTION life_Redraw()
 FUNCTION _Life_Tf()
 
    LOCAL nSec := Seconds(), lLast := .F., i, j, n, i1, i2, j1, j2, i0, j0, y, x
+   LOCAL lt, lb, ll, lr
    STATIC nSecPrev := 0
 
    IF nSec - nSecPrev > nSpeed .OR. lStep
@@ -398,14 +399,46 @@ FUNCTION _Life_Tf()
                ENDIF
             NEXT
          NEXT
+         SetColor( cBorderClr )
+         DevPos( y1t + Int((y2t-y1t)/2), x1t-1 ); DevOut( ' ' )        // lt
+         DevPos( y1t + Int((y2t-y1t)/2), x2t+1 ); DevOut( ' ' )        // lb
+         DevPos( y1t - 1, x1t + Int((x2t-x1t)/2) ); DevOut( ' ' )      // lr
+         DevPos( y2t + 1, x1t + Int((x2t-x1t)/2) ); DevOut( ' ' )      // ll
          SetColor( cBoardClr )
+         lt := lb := ll := lr := .F.
          FOR i := 1 TO nBoardWidth
             FOR j := 1 TO nBoardHeight
                IF aBoard[j,i] != aBoard_Tmp[j,i]
                   y := j0 + j - py0; x := i0 + i -px0
-                  IF y >= y1t .AND. y <= y2t .AND. x >= x1t .AND. x <= x2t
-                     DevPos( y, x )
-                     DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
+                  IF y >= y1t
+                     IF y <= y2t
+                        IF x >= x1t
+                           IF x <= x2t
+                              DevPos( y, x )
+                              DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
+                           ELSEIF aBoard_Tmp[j,i] == 1 .AND. !lr
+                              SetColor( cBorderClr )
+                              DevPos( y1t + Int((y2t-y1t)/2), x2t+1 ); DevOut( '' )
+                              SetColor( cBoardClr )
+                              lr := .T.
+                           ENDIF
+                        ELSEIF aBoard_Tmp[j,i] == 1 .AND. !ll
+                           SetColor( cBorderClr )
+                           DevPos( y1t + Int((y2t-y1t)/2), x1t-1 ); DevOut( '' )
+                           SetColor( cBoardClr )
+                           ll := .T.
+                        ENDIF
+                     ELSEIF aBoard_Tmp[j,i] == 1 .AND. !lb
+                        SetColor( cBorderClr )
+                        DevPos( y2t + 1, x1t + Int((x2t-x1t)/2) ); DevOut( '' )
+                        SetColor( cBoardClr )
+                        lb := .T.
+                     ENDIF
+                  ELSEIF aBoard_Tmp[j,i] == 1 .AND. !lt
+                     SetColor( cBorderClr )
+                     DevPos( y1t - 1, x1t + Int((x2t-x1t)/2) ); DevOut( '' )
+                     SetColor( cBoardClr )
+                     lt := .T.
                   ENDIF
                   aBoard[j,i] := aBoard_Tmp[j,i]
                ENDIF
