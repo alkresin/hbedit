@@ -12,12 +12,14 @@
 #define K_DOWN       24
 #define K_LEFT       19
 #define K_RIGHT       4
+#define K_HOME        1
 #define K_CTRL_UP     397
 #define K_CTRL_DOWN   401
 #define K_CTRL_LEFT   26
 #define K_CTRL_RIGHT  2
 
 #define K_SPACE      32
+#define K_F1         28
 #define K_F2         -1
 #define K_F9         -8
 
@@ -65,6 +67,7 @@ FUNCTION plug_gm_Life( oEdit, cPath )
    x1t := oEdit:x1+1; x2t := oEdit:x2-1
    nBoardHeight := y2t - y1t + 1
    nBoardWidth := x2t -x1t + 1
+   px0 := py0 := 0
 
    IF Empty( cIniPath )
       Read_Life_Ini( (cIniPath := cPath) + "life.ini" )
@@ -94,7 +97,12 @@ FUNCTION plug_gm_Life( oEdit, cPath )
    oLife:cp := "RU866"
    lPaused := .T.
    lStep := .F.
-   px0 := py0 := 0
+   IF nBoardHeight > y2t - y1t + 1
+      py0 := Int( (nBoardHeight - (y2t - y1t + 1)) / 2 )
+   ENDIF
+   IF nBoardWidth > x2t -x1t + 1
+      px0 := Int( (nBoardWidth - (x2t - x1t + 1)) / 2 )
+   ENDIF
 
    RETURN Nil
 
@@ -103,9 +111,7 @@ FUNCTION _Life_Start()
    IF Empty( cScreenBuff )
       SetColor( cBorderClr )
       Scroll( oLife:y1, oLife:x1, oLife:y2, oLife:x2 )
-      SetColor( cBoardClr )
-      Scroll( y1t, x1t, y2t, x2t )
-      DevPos( y1t, x1t )
+      life_Redraw()
    ELSE
       RestScreen( oLife:y1, oLife:x1, oLife:y2, oLife:x2, cScreenBuff )
    ENDIF
@@ -147,11 +153,20 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
             DevPos( Row(), x1t )
          ENDIF
 
+      ELSEIF nKey == K_HOME
+         life_GoHome()
+
       ELSEIF nKey == K_SPACE
-         life_SetCell( Row() - y1t + 1, Col() - x1t + 1 )
+         life_SetCell( Row() - y1t + 1 + py0, Col() - x1t + 1 + px0 )
+         IF Col() > x2t
+            DevPos( Row(), x2t )
+         ENDIF
 
       ELSEIF nKey == K_F2
          life_SetPatt()
+
+      ELSEIF nKey == K_F1
+         life_Help()
 
       ELSEIF nKey == 99  // c - Clear board
          life_Clear()
@@ -171,6 +186,9 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == K_CTRL_UP
          IF py0 > 0
             py0 -= 5
+            IF py0 < 0
+               py0 := 0
+            ENDIF
             life_Redraw()
          ENDIF
 
@@ -183,6 +201,9 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == K_CTRL_LEFT
          IF px0 > 0
             px0 -= 5
+            IF px0 < 0
+               px0 := 0
+            ENDIF
             life_Redraw()
          ENDIF
 
@@ -228,7 +249,7 @@ STATIC FUNCTION life_Menu()
          life_Clear()
 
       ELSEIF i == 4
-         life_SetCell( Row() - y1t + 1, Col() - x1t + 1 )
+         life_SetCell( Row() - y1t + 1 + py0, Col() - x1t + 1 + px0 )
 
       ELSEIF i == 5
          life_SetPatt()
@@ -288,6 +309,7 @@ STATIC FUNCTION life_Clear()
 STATIC FUNCTION life_SetCell( j, i, n )
 
    LOCAL y := y1t + j - 1 - py0, x := x1t + i - 1 - px0
+
    aBoard[j,i] := Iif( n != Nil, n, Iif( aBoard[j,i]==0, 1, 0 ) )
    aBoard_Tmp[j,i] := Iif( n != Nil, n, Iif( aBoard_Tmp[j,i]==0, 1, 0 ) )
    IF y >= y1t .AND. y <= y2t .AND. x >= x1t .AND. x <= x2t
@@ -323,20 +345,45 @@ STATIC FUNCTION life_DrawPatt( cPatt )
          IF (j2 - j1) > 0
             n := Val( Substr( aPatt[i], j1, j2-j1 ) )
             FOR i1 := 1 TO n
-               life_SetCell( y0+i-y1t, x0+j1+i1-1-x1t, 0 )
+               life_SetCell( y0+i-y1t+py0, x0+j1+i1-1-x1t+px0, 0 )
                j3 ++
             NEXT
          ENDIF
-         life_SetCell( y0+i-y1t, x0+j3-x1t, 1 )
+         life_SetCell( y0+i-y1t+py0, x0+j3-x1t+px0, 1 )
          j3 ++
          j1 := j2 + 1
       ENDDO
    NEXT
+   IF Col() > x2t
+      DevPos( Row(), x2t )
+   ENDIF
+   IF Row() > y2t
+      DevPos( y2t, Col() )
+   ENDIF
    SetCursor( SC_NORMAL )
 
    RETURN Nil
 
+STATIC FUNCTION life_GoHome()
+
+   DevPos( y1t+Int((y2t-y1t)/2), x1t+Int((x2t-x1t)/2) )
+   RETURN Nil
+
 STATIC FUNCTION life_Help()
+
+   LOCAL cBuff := SaveScreen( oLife:y1, oLife:x1, oLife:y2, oLife:x2 )
+   LOCAL oldc := SetColor( cBorderClr )
+
+   hb_cdpSelect( "RU866" )
+   @ y1t+2, x1t+2, y2t-2, x2t-2 BOX "ÚÄ¿³ÙÄÀ³ "
+   hb_cdpSelect( oLife:cp )
+
+   @ y1t+4, x1t + 4 SAY "Game of Life by John Horton Conway"
+   @ y1t+6, x1t + 4 SAY ""
+
+   Inkey( 0 )
+   SetColor( oldc )
+   RestScreen( oLife:y1, oLife:x1, oLife:y2, oLife:x2, cBuff )
 
    RETURN Nil
 
@@ -354,7 +401,6 @@ STATIC FUNCTION life_Redraw()
       FOR y := y1t TO y2t
          j := y + py0 - y1t + 1; i := x + px0 -x1t + 1
          DevPos( y, x )
-         //edi_writelog( ltrim(str(y))+' '+ltrim(str(x))+'/'+ltrim(str(y))+' '+ltrim(str(i)) )
          IF j <= nBoardHeight .AND. i <= nBoardWidth
             DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
          ELSE
@@ -362,6 +408,7 @@ STATIC FUNCTION life_Redraw()
          ENDIF
       NEXT
    NEXT
+   life_GoHome()
 
    RETURN Nil
 
@@ -446,6 +493,7 @@ FUNCTION _Life_Tf()
          NEXT
          lStep := .F.
          nTics ++
+         life_GoHome()
       ENDIF
    ENDIF
 
@@ -463,6 +511,9 @@ STATIC FUNCTION Read_Life_Ini( cIni )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTemp := "cellchar" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   cCellChar := Chr(Val( cTemp ))
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "palette" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cPal := cTemp
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "borderclr" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   cBorderClr := cTemp
