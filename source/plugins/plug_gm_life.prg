@@ -12,6 +12,11 @@
 #define K_DOWN       24
 #define K_LEFT       19
 #define K_RIGHT       4
+#define K_CTRL_UP     397
+#define K_CTRL_DOWN   401
+#define K_CTRL_LEFT   26
+#define K_CTRL_RIGHT  2
+
 #define K_SPACE      32
 #define K_F2         -1
 #define K_F9         -8
@@ -19,8 +24,8 @@
 #define SC_NONE       0
 #define SC_NORMAL     1
 
-#define BORDER_CLR  "GR+/N"
-#define BOARD_CLR   "N+/BG"
+#define BORDER_CLR  "RB/N"
+#define BOARD_CLR   "B/R"
 
 #define POINT_CHR   "þ"
 
@@ -28,12 +33,14 @@ STATIC cIniPath
 STATIC oLife
 STATIC hIdle
 STATIC x1t, x2t, y1t, y2t
+STATIC px0, py0
 STATIC lPaused, lStep
 STATIC nTics := 0
 STATIC cCellChar := "þ"
 STATIC nSpeed := 0.5
 
 STATIC aBoard, aBoard_tmp, nBoardHeight, nBoardWidth
+STATIC cPal := "solarized dark", cBorderClr := "RB/N", cBoardClr := "B/R"
 STATIC cScreenBuff
 
 FUNCTION plug_gm_Life( oEdit, cPath )
@@ -54,6 +61,11 @@ FUNCTION plug_gm_Life( oEdit, cPath )
       RETURN Nil
    }
 
+   y1t := oEdit:y1+1; y2t := oEdit:y2-1
+   x1t := oEdit:x1+1; x2t := oEdit:x2-1
+   nBoardHeight := y2t - y1t + 1
+   nBoardWidth := x2t -x1t + 1
+
    IF Empty( cIniPath )
       Read_Life_Ini( (cIniPath := cPath) + "life.ini" )
    ENDIF
@@ -63,8 +75,6 @@ FUNCTION plug_gm_Life( oEdit, cPath )
       RETURN oEdit:aWindows[i]
    ENDIF
 
-   nBoardHeight := oEdit:y2 - oEdit:y1 + 1
-   nBoardWidth := oEdit:x2 - oEdit:x1 + 1
    aBoard := Array( nBoardHeight,nBoardWidth )
    aBoard_tmp := Array( nBoardHeight,nBoardWidth )
    FOR i := 1 TO nBoardHeight
@@ -75,7 +85,7 @@ FUNCTION plug_gm_Life( oEdit, cPath )
    NEXT
 
    oLife := mnu_NewBuf( oEdit )
-   edi_SetPalette( oLife, "default" )
+   edi_SetPalette( oLife, cPal )
    oLife:cFileName := cName
    oLife:bWriteTopPane := bWPane
    oLife:bOnKey := {|o,n| _Life_OnKey(o,n) }
@@ -84,18 +94,16 @@ FUNCTION plug_gm_Life( oEdit, cPath )
    oLife:cp := "RU866"
    lPaused := .T.
    lStep := .F.
+   px0 := py0 := 0
 
    RETURN Nil
 
 FUNCTION _Life_Start()
 
    IF Empty( cScreenBuff )
-      y1t := oLife:y1+1; y2t := oLife:y2-1
-      x1t := oLife:x1+1; x2t := oLife:x2-1
-
-      SetColor( BORDER_CLR )
+      SetColor( cBorderClr )
       Scroll( oLife:y1, oLife:x1, oLife:y2, oLife:x2 )
-      SetColor( BOARD_CLR )
+      SetColor( cBoardClr )
       Scroll( y1t, x1t, y2t, x2t )
       DevPos( y1t, x1t )
    ELSE
@@ -159,6 +167,30 @@ FUNCTION _Life_OnKey( oEdit, nKeyExt )
       IF !lPaused
          life_Pause()
       ENDIF
+
+      ELSEIF nKey == K_CTRL_UP
+         IF py0 > 0
+            py0 -= 5
+            life_Redraw()
+         ENDIF
+
+      ELSEIF nKey == K_CTRL_DOWN
+         IF py0 + y2t-y1t+1 <= nBoardHeight - 5
+            py0 += 5
+            life_Redraw()
+         ENDIF
+
+      ELSEIF nKey == K_CTRL_LEFT
+         IF px0 > 0
+            px0 -= 5
+            life_Redraw()
+         ENDIF
+
+      ELSEIF nKey == K_CTRL_RIGHT
+         IF px0 + x2t-x1t+1 <= nBoardWidth - 5
+            px0 += 5
+            life_Redraw()
+         ENDIF
 
    ELSEIF nKey == K_CTRL_TAB
       cScreenBuff := SaveScreen( oLife:y1, oLife:x1, oLife:y2, oLife:x2 )
@@ -232,7 +264,7 @@ STATIC FUNCTION life_Pause()
    SetCursor( Iif( lPaused, SC_NORMAL, SC_NONE ) )
    SetColor( oLife:cColorPane )
    @ oLife:y1-1, oLife:x2-8 SAY Iif( lPaused, "Paused  ", "        " )
-   SetColor( BOARD_CLR )
+   SetColor( cBoardClr )
    DevPos( y1t, x1t )
 
    RETURN Nil
@@ -247,7 +279,7 @@ STATIC FUNCTION life_Clear()
          aBoard_Tmp[i,j] := 0
       NEXT
    NEXT
-   SetColor( BOARD_CLR )
+   SetColor( cBoardClr )
    Scroll( y1t, x1t, y2t, x2t )
    nTics := 0
 
@@ -255,11 +287,12 @@ STATIC FUNCTION life_Clear()
 
 STATIC FUNCTION life_SetCell( j, i, n )
 
+   LOCAL y := y1t + j - 1 - py0, x := x1t + i - 1 - px0
    aBoard[j,i] := Iif( n != Nil, n, Iif( aBoard[j,i]==0, 1, 0 ) )
    aBoard_Tmp[j,i] := Iif( n != Nil, n, Iif( aBoard_Tmp[j,i]==0, 1, 0 ) )
-   IF y1t + j - 1 <= y2t .AND. x1t + i - 1 <= x2t
-      SetColor( BOARD_CLR )
-      DevPos( y1t + j - 1, x1t + i - 1 )
+   IF y >= y1t .AND. y <= y2t .AND. x >= x1t .AND. x <= x2t
+      SetColor( cBoardClr )
+      DevPos( y, x )
       DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
    ENDIF
 
@@ -307,9 +340,34 @@ STATIC FUNCTION life_Help()
 
    RETURN Nil
 
+STATIC FUNCTION life_Redraw()
+
+   LOCAL x, y, i, j
+
+   SetColor( cBorderClr )
+   @ y1t-1, x1t SAY PAdr( Ltrim(Str(py0))+","+Ltrim(Str(px0)), 8 )
+   @ y2t+1, x1t SAY PAdr( Ltrim(Str(py0+y2t-y1t+1))+","+Ltrim(Str(px0)), 8 )
+   @ y1t-1, x2t-8 SAY PAdl( Ltrim(Str(py0))+","+Ltrim(Str(px0+x2t-x1t+1)), 8 )
+   @ y2t+1, x2t-8 SAY PAdl( Ltrim(Str(py0+y2t-y1t+1))+","+Ltrim(Str(px0+x2t-x1t+1)), 8 )
+   SetColor( cBoardClr )
+   FOR x := x1t TO x2t
+      FOR y := y1t TO y2t
+         j := y + py0 - y1t + 1; i := x + px0 -x1t + 1
+         DevPos( y, x )
+         //edi_writelog( ltrim(str(y))+' '+ltrim(str(x))+'/'+ltrim(str(y))+' '+ltrim(str(i)) )
+         IF j <= nBoardHeight .AND. i <= nBoardWidth
+            DevOut( Iif( aBoard[j,i]==0, ' ', cCellChar ) )
+         ELSE
+            DevOut( ' ' )
+         ENDIF
+      NEXT
+   NEXT
+
+   RETURN Nil
+
 FUNCTION _Life_Tf()
 
-   LOCAL nSec := Seconds(), lLast := .F., i, j, n, i1, i2, j1, j2, i0, j0
+   LOCAL nSec := Seconds(), lLast := .F., i, j, n, i1, i2, j1, j2, i0, j0, y, x
    STATIC nSecPrev := 0
 
    IF nSec - nSecPrev > nSpeed .OR. lStep
@@ -340,12 +398,13 @@ FUNCTION _Life_Tf()
                ENDIF
             NEXT
          NEXT
-         SetColor( BOARD_CLR )
+         SetColor( cBoardClr )
          FOR i := 1 TO nBoardWidth
             FOR j := 1 TO nBoardHeight
                IF aBoard[j,i] != aBoard_Tmp[j,i]
-                  IF j0+j <= y2t .AND. i0+i <= x2t
-                     DevPos( j0+j, i0+i )
+                  y := j0 + j - py0; x := i0 + i -px0
+                  IF y >= y1t .AND. y <= y2t .AND. x >= x1t .AND. x <= x2t
+                     DevPos( y, x )
                      DevOut( Iif( aBoard_Tmp[j,i]==0, ' ', cCellChar ) )
                   ENDIF
                   aBoard[j,i] := aBoard_Tmp[j,i]
@@ -371,6 +430,18 @@ STATIC FUNCTION Read_Life_Ini( cIni )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTemp := "cellchar" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   cCellChar := Chr(Val( cTemp ))
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "borderclr" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cBorderClr := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "boardclr" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cBoardClr := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "boardheight" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nBoardHeight := Val( cTemp )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "boardwidth" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nBoardWidth := Val( cTemp )
                ENDIF
             ENDIF
          ENDIF
