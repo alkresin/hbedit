@@ -390,37 +390,55 @@ STATIC FUNCTION life_GoHome()
 
 STATIC FUNCTION life_Load()
 
+   LOCAL cName
+
+   IF Empty( cName := life_OpenDlg() )
+      RETURN Nil
+   ENDIF
+
+   IF !Empty( cName := MemoRead( cName ) )
+      px0 := py0 := 0
+      life_Clear()
+      DevPos( y1t, x1t )
+      life_DrawPatt( cName )
+      life_Redraw()
+      life_GoHome()
+   ENDIF
+
    RETURN Nil
 
 STATIC FUNCTION life_Save()
 
    LOCAL i, j, nSkipY, nSkipX
-   LOCAL s := "", cName
+   LOCAL s := "", s1, cName
 
    nSkipY := 0
    FOR j := 1 TO nBoardHeight
       nSkipX := 0
+      s1 := ""
       FOR i := 1 TO nBoardWidth
          IF aBoard[j,i] == 1
             IF nSkipX > 0
-               s += Ltrim(Str( nSkipX ))
+               s1 += Ltrim(Str( nSkipX ))
                nSkipX := 0
             ENDIF
-            s += 'x'
+            s1 += 'x'
          ELSE
             nSkipX ++
          ENDIF
       NEXT
       IF nSkipX != nBoardWidth .AND. nSkipY > 0
-         s += 'y' + Ltrim(Str( nSkipY ))
+         s1 := 'y' + Ltrim(Str( nSkipY )) + ',' + s1
          nSkipY := 0
       ENDIF
-      IF j != nBoardHeight
-         IF nSkipX == nBoardWidth
-            nSkipY ++
-         ELSE
-            s += ','
+      IF nSkipX == nBoardWidth
+         nSkipY ++
+      ENDIF
+      IF !Empty( s1 )
+         IF !Empty( s )
+            s1 := ',' + s1
          ENDIF
+         s += s1
       ENDIF
    NEXT
 
@@ -450,17 +468,43 @@ STATIC FUNCTION life_Help()
 
    RETURN Nil
 
+STATIC FUNCTION life_OpenDlg()
+
+   LOCAL cScBuf := Savescreen( 09, 10, 14, 72 )
+   LOCAL oldc := SetColor( oLife:cColorSel+","+oLife:cColorMenu ), olddir := Curdir(), cName, nRes
+   LOCAL aGets := { {11,12,0,"",52}, ;
+      {11,64,2,"[^]",3,oLife:cColorSel,oLife:cColorMenu,{||mnu_FileList(oLife,aGets[1])}}, ;
+      {13,26,2,"[Open]",10,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,46,2,"[Cancel]",10,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+
+   hb_cdpSelect( "RU866" )
+   @ 09, 10, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   hb_cdpSelect( oLife:cp )
+   @ 10, 12 SAY "Open file"
+   SetColor( oLife:cColorMenu )
+
+   DirChange( cIniPath )
+   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+      cName := aGets[1,4]
+   ENDIF
+   DirChange( olddir )
+
+   Restscreen( 09, 10, 14, 72, cScBuf )
+   SetColor( oldc )
+
+   RETURN Iif( Empty( cName ) .OR. !File( cName ), Nil, cName )
+
 STATIC FUNCTION life_SaveDlg()
 
    LOCAL cName
    LOCAL cBuff, oldc := SetColor( oLife:cColorSel+","+oLife:cColorSel+",,"+oLife:cColorGet+","+oLife:cColorSel )
    LOCAL aGets := { {11,22,0,"",48,oLife:cColorMenu,oLife:cColorMenu}, ;
-      {14,25,2,"[Save]",8,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {14,58,2,"[Cancel]",10,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {13,25,2,"[Save]",8,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,58,2,"[Cancel]",10,oLife:cColorSel,oLife:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
-   cBuff := SaveScreen( 09, 20, 15, 72 )
+   cBuff := SaveScreen( 09, 20, 14, 72 )
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 15, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 09, 20, 14, 72 BOX "ÚÄ¿³ÙÄÀ³ "
    hb_cdpSelect( oLife:cp )
 
    @ 10,22 SAY "Save file as"
@@ -471,7 +515,7 @@ STATIC FUNCTION life_SaveDlg()
    ENDIF
 
    SetColor( oldc )
-   RestScreen( 09, 20, 15, 72, cBuff )
+   RestScreen( 09, 20, 14, 72, cBuff )
 
    RETURN cName
 
