@@ -390,7 +390,7 @@ STATIC FUNCTION life_GoHome()
 
 STATIC FUNCTION life_Load()
 
-   LOCAL cName
+   LOCAL cName, i, j
 
    IF Empty( cName := life_OpenDlg() )
       RETURN Nil
@@ -401,8 +401,19 @@ STATIC FUNCTION life_Load()
       life_Clear()
       DevPos( y1t, x1t )
       life_DrawPatt( cName )
-      life_Redraw()
-      life_GoHome()
+
+      FOR j := 1 TO nBoardHeight
+         FOR i := 1 TO nBoardWidth
+            IF aBoard[j,i] != 0
+               py0 := j - Int( nBoardHeight/2 ) - 5
+               px0 := i - Int( nBoardWidth/2 ) - 10
+               life_Redraw()
+               life_GoHome()
+               EXIT
+            ENDIF
+         NEXT
+      NEXT
+
    ENDIF
 
    RETURN Nil

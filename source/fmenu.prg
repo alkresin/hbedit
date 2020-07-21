@@ -8,13 +8,15 @@
 #include "inkey.ch"
 #include "setcurs.ch"
 
+#define CTRL_PRESSED  0x020000
+
 STATIC lSea, cSea, aSea
 
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
    LOCAL cScBuf
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
-   LOCAL i, j, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
+   LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
    LOCAL nFirst := 1, nHeight
 
@@ -85,7 +87,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
          DevOut( cSea )
       ENDIF
       SetColor( clrMenu )
-      nKeyMapped := nKey := Inkey( 0, INKEY_ALL )
+      nKeyExt := Inkey( 0, INKEY_ALL + HB_INKEY_EXT )
+      nKeyMapped := nKey := hb_keyStd( nKeyExt )
       IF nKey == K_MOUSEMOVE .OR. nKey == K_NCMOUSEMOVE
          LOOP
       ENDIF
@@ -170,6 +173,11 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                ENDIF
             ENDIF
             lDo := .F.
+         ENDIF
+
+      ELSEIF (nKey == K_CTRL_INS .OR. nKey == 3) .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+         IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LUTF8" )
+            edi_2cb( obj,, AllTrim( arr[i + nFirst - 1] ) )
          ENDIF
 
       ELSEIF nKey == K_BS
