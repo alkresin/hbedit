@@ -2,6 +2,7 @@
 set HB_INSTALL_BIN=c:\harbour\bin
 
 cd source\plugins
+harbour plug_1c_spis.prg -n -gh
 harbour plug_c_spis.prg -n -gh
 harbour plug_go_spis.prg -n -gh
 harbour plug_go_fmt.prg -n -gh
