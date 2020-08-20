@@ -151,6 +151,9 @@ FUNCTION Main( ... )
       ENDIF
    ELSE
       FOR i := 1 TO Len( aFiles )
+         IF hb_cdpSelect() != "UTF8"
+            aFiles[i] := hb_Utf8ToStr( aFiles[i], hb_cdpSelect() )
+         ENDIF
          TEdit():New( Iif(!Empty(aFiles[i]),Memoread(aFiles[i]),""), aFiles[i], 0, 0, nScreenH-1, nScreenW-1 )
          IF lRO
             ATail(TEdit():aWindows):lReadOnly := .T.
@@ -254,3 +257,9 @@ STATIC FUNCTION ReadIni( cIniName, cDefCP )
    ENDIF
 
    RETURN Nil
+
+INIT PROCEDURE FInit
+
+   hb_cdpSelect( "UTF8" )
+
+   RETURN
