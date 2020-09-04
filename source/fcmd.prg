@@ -8,6 +8,10 @@
 #include "inkey.ch"
 #include "setcurs.ch"
 
+#ifndef __PLATFORM__UNIX
+STATIC aCmds := { "call", "cd", "copy", "del", "dir", "echo", "find", "md", "move", "ver" }
+#endif
+
 STATIC aCommands := { ;
    { "bn", @cmd_Buff() },     ;
    { "bnext", @cmd_Buff() },  ;
@@ -171,19 +175,28 @@ STATIC FUNCTION fSea( oEdit, s )
 
 STATIC FUNCTION cmdExec( oEdit, sCmd )
 
-   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", cBuff
+   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", s
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
    ELSEIF Left( sCmd, 1 ) == '!'
       IF ( nPos := At( '%', sCmd ) ) > 0
-         sCmd := Left( sCmd,nPos-1 ) + oEdit:cFileName + Substr( sCmd,nPos+1 )
+         s := Iif( Substr( sCmd,nPos+1,1 ) == 'f', oEdit:cFileName, ;
+            Iif( Substr( sCmd,nPos+1,1 ) == 'p', hb_fnameDir( oEdit:cFileName ), "" ) )
+         sCmd := Left( sCmd,nPos-1 ) + s + Substr( sCmd,nPos+2 )
       ENDIF
+      cCmdLine := Substr( sCmd,2 )
+#ifndef __PLATFORM__UNIX
+      s := Iif( ( nPos := At( ' ', cCmdLine ) ) > 0, Left( cCmdLine,nPos-1 ), cCmdLine )
+      IF Ascan( aCmds, Lower(s) ) != 0
+         cCmdLine := "cmd /C " + cCmdLine
+      ENDIF
+#endif
       FErase( cFileOut )
       Scroll( oEdit:y2 + 1, oEdit:x1, oEdit:y2 + 1, oEdit:x2 )
       DevPos( oEdit:y2 + 1, oEdit:x1 )
       DevOut( "Wait..." )
-      cedi_RunConsoleApp( cCmdLine := Substr( sCmd,2 ), cFileOut )
+      cedi_RunConsoleApp( cCmdLine, cFileOut )
       cFileAdd := cFileOut
       lEnd := .T.
    ELSE
