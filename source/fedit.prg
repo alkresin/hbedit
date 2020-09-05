@@ -232,7 +232,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
 METHOD SetText( cText, cFileName ) CLASS TEdit
 
-   LOCAL i, arr, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
+   LOCAL i, j, arr, cFile_utf8, cExt, cFullPath, cBom := e"\xef\xbb\xbf"
    LOCAL nEol := hb_hGetDef( TEdit():options,"eol", 0 )
    LOCAL lT2Sp := hb_hGetDef( TEdit():options,"tabtospaces", .F. )
    LOCAL dDateMod, cTimeMod
@@ -304,7 +304,8 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
    IF hb_hGetDef( TEdit():options, "syntax", .F. ) .AND. !Empty( cFileName )
       cExt := Lower( hb_fnameExt(cFileName) )
       FOR i := 1 TO Len(aLangExten)
-         IF cExt $ aLangExten[i,2] .AND. hb_hHaskey(aLangs,aLangExten[i,1])
+         IF ( j := At( cExt, aLangExten[i,2] ) ) > 0 .AND. !isAlpha( Substr( aLangExten[i,2],j+Len(cExt),1 ) ) ;
+            .AND. hb_hHaskey(aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
             EXIT
          ENDIF

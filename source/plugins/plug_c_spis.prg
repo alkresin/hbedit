@@ -65,7 +65,9 @@ Function plug_C_Spis( oEdit )
       cLinePrev := cLine
    NEXT
 
-   IF !Empty( arrfnc )
+   IF Empty( arrfnc )
+      edi_Alert( "Nothing found..." )
+   ELSE
       oEdit:TextOut()
       n := oEdit:nLine
       FOR i := 1 TO Len( arrfnc )
