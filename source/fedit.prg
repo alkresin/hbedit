@@ -1477,6 +1477,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_TAB
                IF ::nMode == 0 .AND. !::lReadOnly .AND. ::lIns
+                  IF hb_hGetDef( TEdit():options,"autocomplete", .F. )
+                     IF ::nPos > 1 .AND. cp_Substr( ::lUtf8, ::aText[n], ::nPos, 1 ) <= ' ' .AND. ;
+                        cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) > ' '
+                        edi_DoAuC( Self )
+                        EXIT
+                     ENDIF
+                  ENDIF
                   IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )
                      ::InsText( n, ::nPos, cTabStr, .F. )
                   ELSE
@@ -2621,7 +2628,7 @@ FUNCTION s_cb2t()
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F.
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lAutoComplete := .F.
    LOCAL lTab2Spaces := .F., lPathInHead := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
    LOCAL hHili
@@ -2654,6 +2661,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "autoindent" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lAutoIndent := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "autocomplete" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lAutoComplete := ( Lower(cTemp) == "on" )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "trimspaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lTrimSpaces := ( Lower(cTemp) == "on" )
@@ -2910,6 +2920,7 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["tabtospaces"] := lTab2Spaces
    TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
+   TEdit():options["autocomplete"] := lAutoComplete
    TEdit():options["syntax"] := lSyntax
    TEdit():options["pathinhead"] := lPathInHead
    cTabStr := Space( TEdit():nTablen )
@@ -4256,7 +4267,7 @@ STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
 
    RETURN nx
 
-STATIC FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
+FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
    LOCAL lUtf8 := oEdit:lUtf8
    LOCAL ch, lAlphaNum
 
