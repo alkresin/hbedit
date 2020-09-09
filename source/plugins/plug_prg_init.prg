@@ -41,6 +41,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
+   oEdit:bAutoC := {|o| _prg_AutoC(o)}
 
    RETURN Nil
 
@@ -229,6 +230,29 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
       mnu_ToBuf( oEdit, nPos )
    ELSE
       edi_AddWindow( oEdit, cBuff, cAddW, 2, 10, "UTF8" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _prg_AutoC( oEdit )
+
+   LOCAL hTrieLang
+   LOCAL arr := { "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }, i, nPos
+
+   IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
+      hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create()
+      FOR i := 1 TO Len( arr )
+         trie_Add( hTrieLang, arr[i] )
+      NEXT
+
+      arr := _f_get_dict( 1 )
+      FOR i := 1 TO Len( arr )
+         IF ( nPos := At( ")", arr[i] ) ) > 0
+            trie_Add( hTrieLang, Left( arr[i], nPos ) )
+         ENDIF
+      NEXT
+
+      //edi_Alert( "_prg_AutoC " + Iif( Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) ), "F","T" ) )
    ENDIF
 
    RETURN Nil

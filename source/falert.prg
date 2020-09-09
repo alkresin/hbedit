@@ -11,6 +11,7 @@
 
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
+   LOCAL oy := Row(), ox := Col()
    LOCAL aText := hb_aTokens( cText, ";" ), i
    LOCAL aGets := { {,,2," Ok ",4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc, bufsc
@@ -55,6 +56,7 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    i := edi_Read( aGets )
    Restscreen( y1, x1, y1+Len(aText)+3, x1+nLen, bufsc )
+   DevPos( oy, ox )
 
    RETURN i
 

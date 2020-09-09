@@ -153,6 +153,7 @@ CLASS TEdit
    DATA   funSave
    DATA   bStartEdit, bEndEdit
    DATA   bOnKey, bWriteTopPane
+   DATA   bAutoC
    DATA   oHili
    DATA   hBookMarks
    DATA   npy1, npx1, npy2, npx2
@@ -2365,6 +2366,15 @@ METHOD OnExit() CLASS TEdit
       ENDIF
 #endif
       hb_MemoWrit( IIf( nSaveHis==1, cHisDir, "" ) + "hbedit.his", s )
+   ENDIF
+
+   IF !Empty( aLangs )
+      FOR EACH i IN aLangs
+         IF !Empty( j := hb_hGetDef( i, "htrie", Nil ) )
+            trie_Close( j )
+            //edi_Alert( i:__enumkey + " trie_Close" )
+         ENDIF
+      NEXT
    ENDIF
    //edi_SetPalette( , "default" )
 

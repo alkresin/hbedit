@@ -57,6 +57,7 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
       {
          trie->iPages += TRIE_PAGES_ADD;
          trie->pages = (TRIEPAGE **) realloc( (void*)trie->pages, trie->iPages * sizeof( TRIEITEM** ) );
+         memset( trie->pages + trie->iPages - TRIE_PAGES_ADD, NULL, TRIE_PAGES_ADD * sizeof( TRIEITEM** ) );
       }
       trie->pages[trie->iLastPage] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
       trie->iLastItem = 0;

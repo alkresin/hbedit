@@ -1948,6 +1948,7 @@ REQUEST __XSAVESCR
 REQUEST __XSAVESCREEN
 
 REQUEST CEDI_RUNCONSOLEAPP, CEDI_REDIRON, CEDI_REDIROFF, CEDI_GETLASTPOS, CEDI_PEEK, CEDI_SUBSTR
+REQUEST TRIE_CREATE, TRIE_CLOSE, TRIE_ADD, TRIE_LIST, TRIE_COUNT, TRIE_EXIST
 #ifndef __PLATFORM__UNIX
 REQUEST WIN_OLECREATEOBJECT
 #endif
@@ -1959,3 +1960,4 @@ REQUEST sqlite3_column_int, sqlite3_column_text, sqlite3_column_int64, sqlite3_c
 REQUEST sqlite3_bind_text, sqlite3_bind_int, sqlite3_bind_int64, sqlite3_bind_blob
 REQUEST sqlite3_column_type, sqlite3_clear_bindings, sqlite3_finalize, sqlite3_errcode
 #endif
+
