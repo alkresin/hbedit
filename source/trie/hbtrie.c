@@ -13,7 +13,7 @@
 HB_FUNC( TRIE_CREATE )
 {
 
-   hb_retptr( ( void * ) trie_Create() );
+   hb_retptr( ( void * ) trie_Create( (HB_ISNIL(1))? 1 : hb_parl(1) ) );
 }
 
 HB_FUNC( TRIE_CLOSE )

@@ -97,6 +97,23 @@ FUNCTION edi_DoAuC( oEdit )
             lRedraw := .T.
          ENDIF
 
+      ELSEIF nKey == K_PGUP
+         nFirst := Max( 1, nFirst-(h-2) )
+         lRedraw := .T.
+
+      ELSEIF nKey == K_PGDN
+         nFirst := Min( nFirst+h-2, Len(arr)-nSel+1 )
+         lRedraw := .T.
+
+      ELSEIF nKey == K_HOME
+         nSel := nFirst := 1
+         lRedraw := .T.
+
+      ELSEIF nKey == K_END
+         nSel := h-2
+         nFirst := Len(arr) - nSel + 1
+         lRedraw := .T.
+
       ELSEIF nKey == K_ENTER
          RestScreen( y1, x1, y2, x2, bufc )
          Replace( oEdit, ny, nx1, nx2, arr[nFirst-1+nSel] )
@@ -109,7 +126,9 @@ FUNCTION edi_DoAuC( oEdit )
    RestScreen( y1, x1, y2, x2, bufc )
    DevPos( oy, ox )
    IF lPassKey
+      TEdit():options["autocomplete"] := .F.
       oEdit:onKey( nKeyExt )
+      TEdit():options["autocomplete"] := .T.
    ENDIF
 
    RETURN Nil

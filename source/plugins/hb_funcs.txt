@@ -1,6 +1,6 @@
 AAdd( <aArray>, [<xValue>] )
 Abs( <nNumber> )
-accelerator
+Accelerator( oGetList, nKey, aMsg )
 AChoice( <nTop>, <nLeft>, <nBottom>, <nRight>, <acMenuItems>,...
 AClone( <aSource> )
 ACopy( <aSource>, <aTarget>, [<nStart>], [<nCount>], [<nTarge...
@@ -14,8 +14,8 @@ Alert( <xMessage>, [<aOptions>], [<cColorNorm>], [<nDelay>] )
 Alias( [<nWorkArea>] )
 AllTrim( <cString> )
 ALTD([<nAction>])
-ampm
-applydefau
+Ampm( cTime )
+ApplyDefau( cColor, xClr1, xClr2, xClr3, xClr4, xClr5, xClr6, xClr7, xClr8 )
 Array( <nElements>[, <nElements>...] )
 Asc( <cCharacter> )
 AScan( <aArray>, <xSearch>, [<nStart>], [<nCount>] )
@@ -36,7 +36,7 @@ checkdefco
 Chr( <nAsciiNum> )
 CMonth( <dDate> )
 Col()
-COLORSELECT(<nColorIndex>)
+ColorSelect(<nColorIndex>)
 combodefco
 CToD( <cDateString> )
 CurDir( [<cDrive>] )
@@ -45,8 +45,8 @@ Day( <cDate> )
 Days( <nSecs> )
 dbAppend( [<lLock>] )
 dbClearFilter()
-DBCLEARINDEX()
-DBCLEARRELATION()
+dbClearIndex()
+dbClearRelation()
 dbCloseAll()
 dbCloseArea()
 dbCommit()
@@ -60,33 +60,33 @@ dbEval( <bBlock>, [<bFor>], [<bWhile>],
 dbexists
 Dbf()
 dbfblob
-DBFIELDINFO(<nInfoType>, <nFieldPos>, [<expNewSetting>])
-DBFILEGET(<nFieldPos>, <cTargetFile>, <nMode>)
-DBFILEPUT(<nFieldPos>, <cSourceFile>)
+dbFieldInfo(<nInfoType>, <nFieldPos>, [<expNewSetting>])
+dbFileGet(<nFieldPos>, <cTargetFile>, <nMode>)
+dbFilePut(<nFieldPos>, <cSourceFile>)
 dbFilter()
 dbGoBottom()
 dbGoto( <xRecordNumber> )
 dbGoTop()
 dbgshadow
-DBINFO(<nInfoType>, [<expNewSetting>])
-DBORDERINFO(<nInfoType>,   [<cIndexFile>], [<cOrder> | <nPosi...
+dbInfo(<nInfoType>, [<expNewSetting>])
+dbOrderInfo(<nInfoType>,   [<cIndexFile>], [<cOrder> | <nPosi...
 dbRecall()
-DBRECORDINFO(<nInfoType>, [<nRecord>], [<expNewSetting>])
-DBREINDEX()
-DBRELATION(<nRelation>)
+dbRecordInfo(<nInfoType>, [<nRecord>], [<expNewSetting>])
+dbReindex()
+dbRelation(<nRelation>)
 dbrename
 dbRLock( [<xIdentity>] )
 dbrlocklis
 dbRLockList()
-DBRSELECT(<nRelation>)
+dbRSelect(<nRelation>)
 dbRUnlock( [<xIdentity>] )
 dbSeek( <expKey>, [<lSoftSeek>], [<lFindLast>] )
 dbSelectArea( <xArea> ) -
 dbSetDriver( [<cDriver>] )
 dbSetFilter( <bCondition>, [<cCondition>] )
-DBSETINDEX(<cOrderBagName>)
+dbSetIndex(<cOrderBagName>)
 dbsetorder
-DBSETRELATION(<nArea> | <cAlias>, <bExpr>, <cExpr>)
+dbSetRelation(<nArea> | <cAlias>, <bExpr>, <cExpr>)
 dbSkip( [<nRecords>] )
 dbStruct()
 dbtableext
@@ -96,23 +96,23 @@ dbUseArea( [<lNewArea>], [<cDriver>], <cName>, [<xcAlias>], [...
 defpath
 Deleted()
 Descend( <xExp> )
-DEVOUT(<exp>, [<cColorString>])
+DevOut(<exp>, [<cColorString>])
 DevOutPict( <xExp>, <cPicture>, [<cColorString>] )
-DEVPOS(<nRow>, <nCol>)
+DevPos(<nRow>, <nCol>)
 DirChange( <cDirectory> )
-DIRECTORY(<cDirSpec>, [<cAttributes>])
+Directory(<cDirSpec>, [<cAttributes>])
 DirRemove( <cDirectory> )
-DISKCHANGE(<cDrive>)
-DISKNAME()
+DiskChange(<cDrive>)
+DiskName()
 DiskSpace( [<nDrive>] )
-DISPBEGIN()
-DISPBOX(<nTop>, <nLeft>, <nBottom>, <nRight>, [<cnBoxString>]...
-DISPCOUNT()
-DISPEND()
-DISPOUT(<exp>, [<cColorString>])
+DispBegin()
+DispBox(<nTop>, <nLeft>, <nBottom>, <nRight>, [<cnBoxString>]...
+DispCount()
+DispEnd()
+DispOut(<exp>, [<cColorString>])
 dispoutat
 Do( <xFuncProc> [, <xArguments...>] )
-DOSERROR([<nNewOsCode>])
+DoSError([<nNewOsCode>])
 DoW( <dDate> )
 DToC( <dDateString> )
 DToS( <dDateString> )

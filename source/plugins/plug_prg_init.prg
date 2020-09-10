@@ -237,20 +237,23 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 STATIC FUNCTION _prg_AutoC( oEdit )
 
    LOCAL hTrieLang
-   LOCAL arr := { "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }, i, nPos
+   LOCAL arr := { "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }, i, nPos, iCou := 0
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
-      hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create()
+      hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create( .F. )
       FOR i := 1 TO Len( arr )
          trie_Add( hTrieLang, arr[i] )
       NEXT
 
       arr := _f_get_dict( 1 )
       FOR i := 1 TO Len( arr )
-         IF ( nPos := At( ")", arr[i] ) ) > 0
+         IF ( nPos := At( "(", arr[i] ) ) > 0
             trie_Add( hTrieLang, Left( arr[i], nPos ) )
+            iCou++
          ENDIF
       NEXT
+      edi_Alert( "Added: "+Str(iCou)+" " + ;
+         Iif(trie_Exist( trie, "hb_FName" ),"T","F") + Iif(trie_Exist( trie, "dbU" ),"T","F") )
 
       //edi_Alert( "_prg_AutoC " + Iif( Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) ), "F","T" ) )
    ENDIF

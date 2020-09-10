@@ -28,9 +28,11 @@ typedef struct trieBASE
    int                iPages;
    int             iLastPage;
    int             iLastItem;
+   int                 bUtf8;
+   int                 bCase;
 } TRIE;
 
-extern TRIE * trie_Create( void );
+extern TRIE * trie_Create( int bCase );
 extern void trie_Close( TRIE * trie );
 extern void trie_Add( TRIE * trie, char * szWord );
 extern int trie_Count( TRIE * trie, char * szWord );

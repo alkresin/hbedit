@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "trie.h"
 
 #include "hbapifs.h"
@@ -81,7 +82,7 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
    return p;
 }
 
-TRIE * trie_Create( void )
+TRIE * trie_Create( int bCase )
 {
    TRIE * trie = (TRIE*) malloc( sizeof(TRIE) );
    int iPages = TRIE_PAGES_ADD;
@@ -91,6 +92,8 @@ TRIE * trie_Create( void )
    trie->iPages = iPages;
    trie->iLastPage = 0;
    trie->iLastItem = 0;
+   trie->bUtf8 = 0;
+   trie->bCase = bCase;
 
    trie->pages[0] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
 
@@ -120,49 +123,42 @@ static void Add2Buff( char **pBuff, int *piBuffLen, int *piPos, char *szWord )
    //_writelog( "ac.log", 0, "2buf: %d %d %s\r\n", *piPos, iLen, szWord );
    (*piPos) += iLen;
    (*pBuff)[*piPos] = '\n';
-   //_writelog( "ac.log", 0, "2buf> %s\r\n", *pBuff );
    (*piPos) ++;
 }
 
-static int ListItems( TRIEITEM * p, char **cBuff, int *piBuffLen, int *piPos, char *szWord )
+static int ListItems( TRIEITEM * p, char **cBuff, int *piBuffLen, int *piPos, char *szWord, int iLevel )
 {
-   int i = 0, iLen = strlen( szWord );
+   int iCou = 0, iLen = strlen( szWord );
    char szBuff[MAX_WORD_LEN];
 
+   //_writelog( "ac.log", 0, "li0> %d %s\r\n", iLevel, szWord );
    while( 1 )
    {
       if( p->suffix[0] )
       {
-         i ++;
          memcpy( szBuff, szWord, iLen );
+         iCou ++;
          szBuff[iLen] = p->letter;
          szBuff[iLen+1] = szBuff[iLen+1+SUFFIX_LEN] = '\0';
          if( p->suffix[0] != '\n' )
             memcpy( szBuff+iLen+1, p->suffix, SUFFIX_LEN );
-         //_writelog( "ac.log", 0, "li1> %s\r\n", szWord );
-         //_writelog( "ac.log", 0, "li1> %s\r\n", szBuff );
+         //_writelog( "ac.log", 0, "li1> %d %c %s\r\n", iLevel, p->letter, szBuff );
          Add2Buff( cBuff, piBuffLen, piPos, szBuff );
       }
-      /*else
-      {
-         szBuff[0] = p->letter;
-         szBuff[1] = '\0';
-         Add2Buff( cBuff, piBuffLen, piPos, szBuff );
-      } */
       if( p->next )
       {
          memcpy( szBuff, szWord, iLen );
          szBuff[iLen] = p->letter;
          szBuff[iLen+1] = '\0';
          //_writelog( "ac.log", 0, "li2> %s\r\n", szBuff );
-         i += ListItems( p->next, cBuff, piBuffLen, piPos, szBuff );
+         iCou += ListItems( p->next, cBuff, piBuffLen, piPos, szBuff, iLevel );
       }
       if( p->right )
          p = p->right;
       else
          break;
    }
-   return i;
+   return iCou;
 
 }
 
@@ -194,21 +190,22 @@ void trie_Trace( TRIE * trie, char * szWord )
    memset( s, 0, 512 );
    for( i=0; i<iLen; i++ )
    {
-      c = szWord[i];
+      c = (trie->bCase)? szWord[i] : tolower(szWord[i]);
       while( 1 )
       {
-         if( c == p->letter )
+         if( c == ( (trie->bCase)? p->letter : tolower(p->letter) ) )
          {
             if( i > 0 )
                _writelog( "trace.log", 0, "%s|\r\n", s );
             if( p->suffix[0] && p->suffix[0] != '\n' )
-               _writelog( "trace.log", 0, "%s%c %c%c%c%c\r\n", s, c, p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3] );
+               _writelog( "trace.log", 0, "%s%c %c%c%c%c\r\n", s, szWord[i], p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3] );
             else
-               _writelog( "trace.log", 0, "%s%c\r\n", s, c );
+               _writelog( "trace.log", 0, "%s%c\r\n", s, szWord[i] );
             break;
          }
          else if( !p->right )
          {
+            _writelog( "trace.log", 0, "%s====\r\n", s );
             return;
          }
          else
@@ -231,35 +228,49 @@ void trie_Trace( TRIE * trie, char * szWord )
 
 static int FindItem( TRIE * trie, char * szWord, TRIEITEM ** pp )
 {
-   int iLen = strlen( szWord ), i;
+   int iLen = strlen( szWord ), i = 0, iSuffLen;
    TRIEITEM * p = **(trie->pages);
    char c;
 
-   for( i=0; i<iLen; i++ )
+   while( 1 )
    {
-      c = szWord[i];
+      c = (trie->bCase)? szWord[i] : tolower(szWord[i]);
       while( 1 )
       {
-         if( c == p->letter )
+         if( c == ( (trie->bCase)? p->letter : tolower(p->letter) ) )
          {
             break;
          }
          else if( !p->right )
          {
+            //_writelog( "ac.log", 0, "fi1> %d %s\r\n", i, szWord );
             *pp = NULL;
             return -1;
          }
          else
             p = p->right;
       }
-      if( p->next )
+      if( ++i < iLen && p->next )
          p = p->next;
       else
-      {
-         i ++;
          break;
+   }
+
+   if( p->suffix[0] )
+   {
+      iSuffLen = (p->suffix[SUFFIX_LEN-1])? SUFFIX_LEN : strlen(p->suffix);
+      if( iSuffLen < ( iLen = strlen( szWord+i ) ) ||
+         ( ( (trie->bCase)? memcmp( p->suffix, szWord+i, iLen ) :
+         strncmpi( p->suffix, szWord+i, iLen ) ) != 0 ) )
+      {
+         //_writelog( "ac.log", 0, "fi> %d %d %d %c%c%c%c %s %s\r\n", i, iSuffLen, iLen,
+         //   p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3], szWord+i, szWord );
+         *pp = NULL;
+         return -1;
       }
    }
+
+   //_writelog( "ac.log", 0, "fiOK> %d %s\r\n", i, szWord );
    *pp = p;
    return i;
 }
@@ -273,10 +284,10 @@ static int AddItem( TRIE * trie, char * szWord )
    //_writelog( "trace.log", 0, ">>%s\r\n", szWord );
    for( i=0; i<iLen; i++ )
    {
-      c = szWord[i];
+      c = (trie->bCase)? szWord[i] : tolower(szWord[i]);
       while( 1 )
       {
-         if( c == p->letter )
+         if( c == ( (trie->bCase)? p->letter : tolower(p->letter) ) )
          {
             break;
          }
@@ -337,7 +348,7 @@ int trie_Count( TRIE * trie, char * szWord )
 char * trie_List( TRIE * trie, char * szWord, int * iCount )
 {
 
-   int iLen = strlen( szWord ), i, iCou = 0, iBuffLen = LIST_BUFF_LEN, iPos = 0;
+   int i, iCou = 0, iBuffLen = LIST_BUFF_LEN, iPos = 0;
    TRIEITEM * p;
    char * cBuff;
    char szBuff[MAX_WORD_LEN];
@@ -348,21 +359,20 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
       return NULL;
 
    cBuff = (char*) malloc( iBuffLen );
-
-   memcpy( szBuff, szWord, iLen );
-   szBuff[iLen] = p->letter;
-   iLen ++;
-   szBuff[iLen] = szBuff[iLen+SUFFIX_LEN] = '\0';
+   //_writelog( "ac.log", 0, "\r\n-- tl0> %d %s --\r\n", i, szWord );
 
    if( p->suffix[0] )
    {
+      memcpy( szBuff, szWord, i );
       iCou ++;
+      szBuff[i] = szBuff[i+SUFFIX_LEN] = '\0';
       if( p->suffix[0] != '\n' )
-         memcpy( szBuff+iLen, p->suffix, SUFFIX_LEN );
+         memcpy( szBuff+i, p->suffix, SUFFIX_LEN );
+      //_writelog( "ac.log", 0, "tl1> %d %s %s\r\n", i, szBuff, szWord );
       Add2Buff( &cBuff, &iBuffLen, &iPos, szBuff );
    }
    if( p->next )
-      iCou += ListItems( p->next, &cBuff, &iBuffLen, &iPos, szBuff );
+      iCou += ListItems( p->next, &cBuff, &iBuffLen, &iPos, szWord, i );
 
    cBuff[iPos-1] = '\0';
    *iCount = iCou;
@@ -377,20 +387,9 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
 int trie_Exist( TRIE * trie, char * szWord )
 {
 
-   int iLen = strlen( szWord ), i, iSuffLen;
+   int i, iSuffLen;
    TRIEITEM * p;
 
    i = FindItem( trie, szWord, &p );
-   //_writelog( "ac.log", 0, "ex: %d %d \r\n", i, iLen );
-   if( i < 0 )
-      return 0;
-   else if( i == iLen )
-      return 1;
-   else if( p->suffix[0] )
-   {
-      iSuffLen = (p->suffix[SUFFIX_LEN-1])? SUFFIX_LEN : strlen(p->suffix);
-      if( iSuffLen <= ( iLen = strlen( szWord+i ) ) )
-         return ( memcmp( p->suffix, szWord+i, iLen ) == 0 );
-   }
-   return 0;
+   return ( i >= 0 );
 }
