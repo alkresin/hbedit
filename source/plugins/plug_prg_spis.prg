@@ -1,6 +1,6 @@
-Function plug_prg_Spis( oEdit )
+FUNCTION plug_prg_Spis( oEdit )
 
-   Local i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F., cItem
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
 
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
@@ -12,8 +12,7 @@ Function plug_prg_Spis( oEdit )
             ( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "function" .OR. ;
             cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
          Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
-      ENDIF
-      IF cfirst == "class" .or. ( cfirst == "create" .AND. ;
+      ELSEIF cfirst == "class" .or. ( cfirst == "create" .AND. ;
             ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "class" )
          IF cfirst == "create" .OR. ( !( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "var" ) ;
                .AND. !( cSecond == "data" ) )

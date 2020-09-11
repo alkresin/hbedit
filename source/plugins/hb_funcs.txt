@@ -29,15 +29,15 @@ Bin2W( <cBuffer> )
 Bof()
 Break( <xExp> )
 Browse( [<nTop>, <nLeft>, <nBottom>, <nRight>] )
-buttndefco
+ButtnDefCo( cColor )
 CDoW( <dDate> )
-checkbox
-checkdefco
+CheckBox( nRow, nCol, cCaption )
+CheckDefCo( cColor )
 Chr( <nAsciiNum> )
 CMonth( <dDate> )
 Col()
 ColorSelect(<nColorIndex>)
-combodefco
+ComboDefCo( cColor )
 CToD( <cDateString> )
 CurDir( [<cDrive>] )
 Date()
@@ -54,12 +54,12 @@ dbCommitAll()
 dbCreate( <cDatabase>, <aStruct>, [<cDriver>], [<lOpen>], [<c...
 dbcreateindex
 dbDelete()
-dbdrop
+dbDrop()
 dbEdit( [<nTop>], [<nLeft>], [<nBottom>], [<nRight>], [<acCol...
 dbEval( <bBlock>, [<bFor>], [<bWhile>],
-dbexists
+dbExists()
 Dbf()
-dbfblob
+dbfBlob()
 dbFieldInfo(<nInfoType>, <nFieldPos>, [<expNewSetting>])
 dbFileGet(<nFieldPos>, <cTargetFile>, <nMode>)
 dbFilePut(<nFieldPos>, <cSourceFile>)
@@ -85,7 +85,7 @@ dbSelectArea( <xArea> ) -
 dbSetDriver( [<cDriver>] )
 dbSetFilter( <bCondition>, [<cCondition>] )
 dbSetIndex(<cOrderBagName>)
-dbsetorder
+dbSetOrder( nOrderNum )
 dbSetRelation(<nArea> | <cAlias>, <bExpr>, <cExpr>)
 dbSkip( [<nRecords>] )
 dbStruct()
@@ -93,7 +93,7 @@ dbtableext
 dbUnlock()
 dbUnlockAll()
 dbUseArea( [<lNewArea>], [<cDriver>], <cName>, [<xcAlias>], [...
-defpath
+DefPath()
 Deleted()
 Descend( <xExp> )
 DevOut(<exp>, [<cColorString>])
@@ -122,8 +122,8 @@ Eof()
 erasegetmsg
 ERRORBLOCK([<bErrorHandler>])
 errorinhandler
-ERRORLEVEL([<nNewReturnCode>])
-errornew
+ErrorLevel([<nNewReturnCode>])
+ErrorNew()
 ErrorSys()
 Eval( <bBlock> [, <xVal> [,...] ] )
 Exp( <nNumber> )
@@ -133,13 +133,13 @@ FCreate( <cFile>, [<nAttribute>] )
 FErase( <cFile> )
 FError()
 FieldBlock( <cFieldName> )
-fielddec
+FieldDec( <nField> )
 FieldGet( <nField> )
-fieldlen
+FieldLen( <nField> )
 FieldName()/Field( <nPosition> )
 FieldPos( <cFieldName> )
 FieldPut( <nField>, <expAssign> )
-fieldtype
+FieldType( <nField> )
 FieldWBlock( <cFieldName>, <nWorkArea> )
 File( <cFileSpec> )
 FKLABEL(<nFunctionKey>)
@@ -153,8 +153,8 @@ FRename( <cOldFile>, <cNewFile> )
 FSeek( <nHandle>, <nOffset>, [<nOrigin>] )
 fsetdevmod
 FWrite( <nHandle>, <cBuffer>, [<nBytes>] )
-GETACTIVE([<oGet>])
-GETAPPLYKEY(<oGet>, <nKey>, <GetList>, <oMenu>, <nMsgRow>, <n...
+GetActive([<oGet>])
+GetApplyKey(<oGet>, <nKey>, <GetList>, <oMenu>, <nMsgRow>, <n...
 getclrback
 getclrfore
 getclrpair
@@ -166,7 +166,7 @@ getpairlen
 getpairpos
 getpostvalidate
 getprevalidate
-GETREADER(<oGet>, <GetList>, <oMenu>, <nMsgRow>, <nMsgLeft>, ...
+GetReader(<oGet>, <GetList>, <oMenu>, <nMsgRow>, <nMsgLeft>, ...
 guiapplykey
 guipostvalidate
 guiprevalidate

@@ -68,6 +68,7 @@ STATIC cTab := e"\x9", cTabStr
 STATIC nLastMacro
 STATIC aLastSeleOper
 STATIC aLastOper, lLastOper_Ended := .T., lDoLastOper := .F., lAddLast
+STATIC nLastKey := 0
 
 CLASS TEdit
 
@@ -659,6 +660,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             IF (nKey >= 97 .AND. nKey <= 122) .OR. nKey == 42 .OR. nKey == 45
                // a...z, -
                nLastReg := nKey
+               nLastKey := nKeyExt
                RETURN Nil
             ENDIF
             EXIT
@@ -994,6 +996,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Alert( "Set file name" )
                      ::lShow := .F.
                      ::nCurr := i
+                     nLastKey := nKeyExt
                      RETURN Nil
                   ENDIF
                NEXT
@@ -1478,9 +1481,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_TAB
                IF ::nMode == 0 .AND. !::lReadOnly .AND. ::lIns
-                  IF hb_hGetDef( TEdit():options,"autocomplete", .F. )
+                  IF hb_hGetDef( TEdit():options,"autocomplete", .F. ) .AND. hb_keyStd(nLastKey) != K_TAB
                      IF ::nPos > 1 .AND. cp_Substr( ::lUtf8, ::aText[n], ::nPos, 1 ) <= ' ' .AND. ;
-                        cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) > ' '
+                        cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) >= ' '
                         edi_DoAuC( Self )
                         EXIT
                      ENDIF
@@ -1588,6 +1591,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         x:nPos := x:ColToPos(x:LineToRow(x:nLine),nCol)
                      ENDIF
                   ELSE
+                     nLastKey := nKeyExt
                      RETURN Nil
                   ENDIF
                ENDIF
@@ -1708,6 +1712,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       lLastOper_Ended := .T.
    ENDIF
    ::WriteTopPane()
+   nLastKey := nKeyExt
 
    RETURN Nil
 
@@ -3227,13 +3232,19 @@ FUNCTION mnu_Save( oEdit, lAs )
 
 FUNCTION mnu_View( oEdit )
 
-   LOCAL aMenu := { "Set wrap "+Iif(oEdit:lWrap,"Off","On") }
+   LOCAL lAutoC := TEdit():options["autocomplete"], lAutoI := TEdit():options["autoindent"]
+   LOCAL aMenu := { "Set wrap "+Iif(oEdit:lWrap,"Off","On"), "Set autocomplete "+Iif(lAutoC,"Off","On"), ;
+      "Set autoindent "+Iif(lAutoI,"Off","On") }
    LOCAL y1 := Row(), x1 := Col()-6, i
 
    i := FMenu( oEdit, aMenu, y1, x1 )
    IF i == 1
       oEdit:lWrap := !oEdit:lWrap
       oEdit:lTextOut := .T.
+   ELSEIF i == 2
+      TEdit():options["autocomplete"] := !lAutoC
+   ELSEIF i == 2
+      TEdit():options["autoindent"] := !lAutoI
    ENDIF
 
    RETURN Nil

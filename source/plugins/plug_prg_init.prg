@@ -41,7 +41,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
-   oEdit:bAutoC := {|o| _prg_AutoC(o)}
+   oEdit:bAutoC := {|o,s| _prg_AutoC(o,s)}
 
    RETURN Nil
 
@@ -234,10 +234,11 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 
    RETURN Nil
 
-STATIC FUNCTION _prg_AutoC( oEdit )
+STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
-   LOCAL hTrieLang
-   LOCAL arr := { "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }, i, nPos, iCou := 0
+   LOCAL hTrieLang, hTrie
+   LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }
+   LOCAL i, nPos, iCou := 0
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
       hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create( .F. )
@@ -252,10 +253,103 @@ STATIC FUNCTION _prg_AutoC( oEdit )
             iCou++
          ENDIF
       NEXT
-      edi_Alert( "Added: "+Str(iCou)+" " + ;
-         Iif(trie_Exist( trie, "hb_FName" ),"T","F") + Iif(trie_Exist( trie, "dbU" ),"T","F") )
 
-      //edi_Alert( "_prg_AutoC " + Iif( Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) ), "F","T" ) )
+      //edi_Alert( "Added: "+Str(iCou)+" " + ;
+      //   Iif(trie_Exist( trie, "hb_FName" ),"T","F") + Iif(trie_Exist( trie, "dbU" ),"T","F") )
    ENDIF
 
-   RETURN Nil
+   IF !Empty( arr := _prg_KeyWords( oEdit, Lower( cPrefix ) ) )
+      hTrie := trie_Create( .F. )
+      FOR i := 1 TO Len( arr )
+         IF Len( arr[i] ) >= 4
+            trie_Add( hTrie, arr[i] )
+            //edi_Alert( "Add " + arr[i] )
+         ENDIF
+      NEXT
+      //edi_Alert( cPrefix + " :" + str(Len(arr)) )
+   ENDIF
+
+   RETURN hTrie
+
+STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
+
+   LOCAL i, nPos, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}, aTmp
+   LOCAL lGlob := .T., lClassDef := .F., lNewF, nPrefLen := Len( cPrefix )
+
+   FOR i := 1 TO Len( aText )
+      cLine := Ltrim( aText[i] )
+      nSkip := 0
+      lNewF := .F.
+      cfirst := Lower( hb_TokenPtr( cLine, @nSkip ) )
+      IF i < oEdit:nLine
+         IF cfirst == "#define"
+            IF Lower( Left( cSecond := hb_TokenPtr( cLine, @nSkip ), nPrefLen) ) == cPrefix
+               Aadd( aWords, cSecond )
+            ENDIF
+            LOOP
+         ELSEIF ( cfirst == "static" .AND. ;
+            !( ( cSecond := Lower( hb_TokenPtr( cLine, nSkip ) ) ) == "function" .OR. ;
+            cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) ) .OR. ;
+            cfirst == "local"
+            DO WHILE !Empty( cSecond := AllTrim( hb_TokenPtr( cLine, @nSkip, ',', .T. ) ) )
+               IF Lower( Left(cSecond,nPrefLen) ) == cPrefix
+                  IF ( nPos := At( ":", cSecond ) ) > 0
+                     cSecond := Trim( Left( cSecond, nPos-1 ) )
+                  ENDIF
+                  IF lGlob
+                     Aadd( aWords, cSecond )
+                  ELSEIF aTmp != Nil
+                     Aadd( aTmp, cSecond )
+                  ENDIF
+               ENDIF
+            ENDDO
+            LOOP
+         ELSEIF cfirst == "memvar"
+            DO WHILE !Empty( AllTrim( cSecond := hb_TokenPtr( cLine, @nSkip, ',' ) ) )
+               IF Lower( Left(cSecond,nPrefLen) ) == cPrefix
+                  IF lGlob
+                     Aadd( aWords, cSecond )
+                  ELSEIF aTmp != Nil
+                     Aadd( aTmp, cSecond )
+                  ENDIF
+               ENDIF
+            ENDDO
+            LOOP
+         ENDIF
+      ENDIF
+      IF cfirst == "function" .OR. cfirst == "procedure" .OR. ;
+            ( cfirst == "method" .AND. (!lClassDef .OR. " inline " $ cLine .OR. " block " $ cLine )) ;
+            .OR. cfirst == "func" .OR. cfirst == "proc" .OR. ( cfirst == "static" .AND. ;
+            ( ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "function" .OR. ;
+            cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
+         cSecond := hb_TokenPtr( cLine, @nSkip )
+         IF Lower( Left(cSecond,nPrefLen) ) == cPrefix
+            IF ( nPos := At( "(", cSecond ) ) > 0
+               cSecond := Left( cSecond, nPos )
+            ENDIF
+            Aadd( aWords, cSecond )
+         ENDIF
+         lNewF := .T.
+      ELSEIF cfirst == "class" .or. ( cfirst == "create" .AND. ;
+            ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "class" )
+         IF cfirst == "create" .OR. ( !( ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "var" ) ;
+               .AND. !( cSecond == "data" ) )
+            lClassDef := .T.
+         ENDIF
+         lNewF := .T.
+      ELSEIF cfirst == "end" .or. cfirst == "endclass"
+         lClassDef := .F.
+      ENDIF
+      IF lNewF
+         IF i < oEdit:nLine
+            aTmp := {}
+         ENDIF
+         lGlob := .F.
+      ENDIF
+   NEXT
+   IF !Empty( aTmp )
+      aWords := ASize( aWords, Len(aWords) + Len(aTmp) )
+      ACopy( aTmp, aWords,,, Len(aWords) - Len(aTmp) + 1 )
+   ENDIF
+
+   RETURN aWords

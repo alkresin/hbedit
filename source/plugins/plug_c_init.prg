@@ -1,11 +1,11 @@
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
-   oEdit:bAutoC := {|o| _c_AutoC(o)}
+   oEdit:bAutoC := {|o,s| _c_AutoC(o,s)}
 
    RETURN Nil
 
-STATIC FUNCTION _c_AutoC( oEdit )
+STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, o := oEdit:oHili
    LOCAL arr, i, nPos

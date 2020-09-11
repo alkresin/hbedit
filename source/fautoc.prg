@@ -10,24 +10,29 @@
 FUNCTION edi_DoAuC( oEdit )
 
    LOCAL oy, ox
-   LOCAL ny := oEdit:nLine, nx2 := oEdit:nPos
-   LOCAL nx1 := edi_PrevWord( oEdit, .T., .F., .T., ny, nx2-1 ), cPrefix
+   LOCAL ny := oEdit:nLine, nx1, nx2 := oEdit:nPos
+   LOCAL cPrefix
    LOCAL arr, hTrieLang, hTrie
    LOCAL x1, y1, x2, y2, h, w, nSel, nFirst
    LOCAL bufc, cColor, cColorSel
    LOCAL nKeyExt, nKey, lPassKey, lRedraw, lRecalc := .T.
 
+   IF Substr( oEdit:aText[ny], nx2-1, 1 ) == ' '
+      RETURN Nil
+   ENDIF
+   nx1 := edi_PrevWord( oEdit, .T., .F., .T., ny, nx2-1 )
    IF nx2 - nx1 <= 1
       RETURN Nil
    ENDIF
 
    IF !Empty( oEdit:bAutoC )
-      hTrie := Eval( oEdit:bAutoC, oEdit )
+      hTrie := Eval( oEdit:bAutoC, oEdit, Substr( oEdit:aText[ny], nx1, nx2-nx1 ) )
    ENDIF
    hTrieLang := hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil )
 
    DO WHILE .T.
 
+      lPassKey := .F.
       IF lRecalc
          oy := Row()
          ox := Col()
@@ -35,12 +40,13 @@ FUNCTION edi_DoAuC( oEdit )
          cPrefix := Substr( oEdit:aText[ny], nx1, nx2-nx1 )
          arr := MakeArr( hTrieLang, hTrie, cPrefix )
 
+         bufc := Nil
          IF Empty( arr )
             //edi_Alert( "No result" )
-            RETURN Nil
+            EXIT
          ELSEIF Len( arr ) == 1
             Replace( oEdit, ny, nx1, nx2, arr[1] )
-            RETURN Nil
+            EXIT
          ENDIF
 
          h := Min( Len( arr ),12 ) + 2
@@ -59,7 +65,7 @@ FUNCTION edi_DoAuC( oEdit )
          DrawArr( arr, y1, x1, y2, x2, nFirst, nSel, oEdit:cColor, oEdit:cColorSel )
       ENDIF
 
-      lPassKey := lRedraw := lRecalc := .F.
+      lRedraw := lRecalc := .F.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
       nKey := hb_keyStd(nKeyExt)
 
@@ -98,11 +104,19 @@ FUNCTION edi_DoAuC( oEdit )
          ENDIF
 
       ELSEIF nKey == K_PGUP
+         IF nFirst == 1
+            nSel := 1
+         ENDIF
          nFirst := Max( 1, nFirst-(h-2) )
          lRedraw := .T.
 
       ELSEIF nKey == K_PGDN
-         nFirst := Min( nFirst+h-2, Len(arr)-nSel+1 )
+         IF nFirst+h-2 <= Len(arr)-(h-2)+1
+            nFirst := nFirst + h - 2
+         ELSE
+            nSel := h-2
+            nFirst := Len(arr) - nSel + 1
+         ENDIF
          lRedraw := .T.
 
       ELSEIF nKey == K_HOME
@@ -116,26 +130,30 @@ FUNCTION edi_DoAuC( oEdit )
 
       ELSEIF nKey == K_ENTER
          RestScreen( y1, x1, y2, x2, bufc )
+         bufc := Nil
          Replace( oEdit, ny, nx1, nx2, arr[nFirst-1+nSel] )
-         RETURN Nil
+         EXIT
 
       ENDIF
 
    ENDDO
 
-   RestScreen( y1, x1, y2, x2, bufc )
+   IF !Empty( bufc )
+      RestScreen( y1, x1, y2, x2, bufc )
+   ENDIF
+   IF !Empty( hTrie )
+      trie_Close( hTrie )
+   ENDIF
    DevPos( oy, ox )
    IF lPassKey
-      TEdit():options["autocomplete"] := .F.
       oEdit:onKey( nKeyExt )
-      TEdit():options["autocomplete"] := .T.
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
 
-   LOCAL arr, cList
+   LOCAL arr, cList, arr1
 
    IF !Empty( hTrieLang )
       IF !Empty( cList := trie_List( hTrieLang, cPrefix ) )
@@ -146,6 +164,15 @@ STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
       arr := { Dtoc( Date() ), Time() }
    ENDIF
    IF !Empty( hTrie )
+      IF !Empty( cList := trie_List( hTrie, cPrefix ) )
+         arr1 := hb_ATokens( cList, Chr(10) )
+         IF Empty( arr )
+            arr := arr1
+         ELSE
+            arr := ASize( arr, Len(arr) + Len(arr1) )
+            ACopy( arr1, arr,,, Len(arr) - Len(arr1) + 1 )
+         ENDIF
+      ENDIF
    ENDIF
 
    RETURN arr
