@@ -46,6 +46,16 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
    }
 }
 
+static int scmpi( char * sz1, char * sz2, int iLen )
+{
+   int i;
+
+   for( i=0; i<iLen; i++ )
+      if( tolower( sz1[1] ) != tolower( sz2[i] ) )
+         return 1;
+   return 0;
+}
+
 static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
 {
    TRIEITEM * p;
@@ -261,7 +271,7 @@ static int FindItem( TRIE * trie, char * szWord, TRIEITEM ** pp )
       iSuffLen = (p->suffix[SUFFIX_LEN-1])? SUFFIX_LEN : strlen(p->suffix);
       if( iSuffLen < ( iLen = strlen( szWord+i ) ) ||
          ( ( (trie->bCase)? memcmp( p->suffix, szWord+i, iLen ) :
-         strncmpi( p->suffix, szWord+i, iLen ) ) != 0 ) )
+         scmpi( p->suffix, szWord+i, iLen ) ) != 0 ) )
       {
          //_writelog( "ac.log", 0, "fi> %d %d %d %c%c%c%c %s %s\r\n", i, iSuffLen, iLen,
          //   p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3], szWord+i, szWord );
