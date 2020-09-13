@@ -51,8 +51,10 @@ static int scmpi( char * sz1, char * sz2, int iLen )
    int i;
 
    for( i=0; i<iLen; i++ )
-      if( tolower( sz1[1] ) != tolower( sz2[i] ) )
+   {
+      if( tolower( sz1[i] ) != tolower( sz2[i] ) )
          return 1;
+   }
    return 0;
 }
 
@@ -68,7 +70,7 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
       {
          trie->iPages += TRIE_PAGES_ADD;
          trie->pages = (TRIEPAGE **) realloc( (void*)trie->pages, trie->iPages * sizeof( TRIEITEM** ) );
-         memset( trie->pages + trie->iPages - TRIE_PAGES_ADD, NULL, TRIE_PAGES_ADD * sizeof( TRIEITEM** ) );
+         memset( trie->pages + trie->iPages - TRIE_PAGES_ADD, 0, TRIE_PAGES_ADD * sizeof( TRIEITEM** ) );
       }
       trie->pages[trie->iLastPage] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
       trie->iLastItem = 0;
@@ -98,7 +100,7 @@ TRIE * trie_Create( int bCase )
    int iPages = TRIE_PAGES_ADD;
 
    trie->pages = (TRIEPAGE **) malloc( iPages * sizeof( TRIEITEM** ) );
-   memset( trie->pages, NULL, iPages * sizeof( TRIEITEM** ) );
+   memset( trie->pages, 0, iPages * sizeof( TRIEITEM** ) );
    trie->iPages = iPages;
    trie->iLastPage = 0;
    trie->iLastItem = 0;
@@ -207,8 +209,10 @@ void trie_Trace( TRIE * trie, char * szWord )
          {
             if( i > 0 )
                _writelog( "trace.log", 0, "%s|\r\n", s );
-            if( p->suffix[0] && p->suffix[0] != '\n' )
-               _writelog( "trace.log", 0, "%s%c %c%c%c%c\r\n", s, szWord[i], p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3] );
+            if( p->suffix[0] )
+               _writelog( "trace.log", 0, "%s%c+%c%c%c%c\r\n", s, szWord[i],
+                  (p->suffix[0]&&p->suffix[0]!='\n')? p->suffix[0]:' ', (p->suffix[1])? p->suffix[1]:' ',
+                  (p->suffix[2])? p->suffix[2]:' ',(p->suffix[3])? p->suffix[3]:' ' );
             else
                _writelog( "trace.log", 0, "%s%c\r\n", s, szWord[i] );
             break;
@@ -304,29 +308,51 @@ static int AddItem( TRIE * trie, char * szWord )
          else if( !p->right )
          {
             p->right = CreateTrieItem( trie, szWord + i );
+            //_writelog( "ac.log", 0, "A1>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
             return -1;
          }
          else
             p = p->right;
       }
-      if( p->next )
-         p = p->next;
-      else
+      if( i+1 < iLen )
       {
-         if( p->suffix[0] && p->suffix[0] != '\n' )
-         {
-            i ++;
-            memcpy( cTemp, p->suffix, SUFFIX_LEN );
-            cTemp[SUFFIX_LEN] = '\0';
-            p->next = CreateTrieItem( trie, cTemp );
-            memset( p->suffix, 0, sizeof( p->suffix ) );
-            AddItem( trie, szWord );
-         }
+         if( p->next )
+            p = p->next;
          else
-            p->next = CreateTrieItem( trie, szWord + i );
-         return i;
+         {
+            if( p->suffix[0] && p->suffix[0] != '\n' )
+            {
+               i ++;
+               memcpy( cTemp, p->suffix, SUFFIX_LEN );
+               cTemp[SUFFIX_LEN] = '\0';
+               p->next = CreateTrieItem( trie, cTemp );
+               //_writelog( "ac.log", 0, "A2>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
+               memset( p->suffix, 0, sizeof( p->suffix ) );
+               AddItem( trie, szWord );
+            }
+            else
+            {
+               p->next = CreateTrieItem( trie, szWord + i + 1 );
+               //_writelog( "ac.log", 0, "A3>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i+1 );
+            }
+            return i;
+         }
       }
    }
+   if( p->suffix[0] )
+   {
+      if( p->suffix[0] != '\n' )
+      {
+         memcpy( cTemp, p->suffix, SUFFIX_LEN );
+         cTemp[SUFFIX_LEN] = '\0';
+         p->next = CreateTrieItem( trie, cTemp );
+         //_writelog( "ac.log", 0, "A4>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
+         memset( p->suffix, 0, sizeof( p->suffix ) );
+         AddItem( trie, szWord );
+      }
+   }
+   else
+      p->suffix[0] = '\n';
    return i;
 }
 
@@ -397,7 +423,7 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
 int trie_Exist( TRIE * trie, char * szWord )
 {
 
-   int i, iSuffLen;
+   int i;
    TRIEITEM * p;
 
    i = FindItem( trie, szWord, &p );

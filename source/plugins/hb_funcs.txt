@@ -120,7 +120,7 @@ ElapTime( <cStartTime>, <cEndTime> )
 Empty( <xExp> )
 Eof()
 erasegetmsg
-ERRORBLOCK([<bErrorHandler>])
+ErrorBlock([<bErrorHandler>])
 errorinhandler
 ErrorLevel([<nNewReturnCode>])
 ErrorNew()
@@ -142,8 +142,8 @@ FieldPut( <nField>, <expAssign> )
 FieldType( <nField> )
 FieldWBlock( <cFieldName>, <nWorkArea> )
 File( <cFileSpec> )
-FKLABEL(<nFunctionKey>)
-FKMAX()
+FKLabel(<nFunctionKey>)
+FKMax()
 FLock()
 FOpen( <cFile>, [<nMode>] )
 Found()
@@ -158,7 +158,7 @@ GetApplyKey(<oGet>, <nKey>, <GetList>, <oMenu>, <nMsgRow>, <n...
 getclrback
 getclrfore
 getclrpair
-GETDOSETKEY(<bKeyBlock>, <oGet>)
+GetDoSetKey(<bKeyBlock>, <oGet>)
 GetE( <cEnviroment> )
 GetEnv( <cEnviroment> )
 getnew
@@ -1424,7 +1424,6 @@ __mvClear()
 __mvDbgInfo( <nScope> [, <nPosition> [, @<cVarName>] ] )
 __mvExist( <cVarName> )
 __mvGet( <cVarName> )
-__mvGet( cVarName ) 
 __mvPrivate( <variable_name> )
 __mvPublic( <variable_name> )
 __mvPut( <cVarName> [, <xValue>] )

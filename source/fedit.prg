@@ -3233,8 +3233,8 @@ FUNCTION mnu_Save( oEdit, lAs )
 FUNCTION mnu_View( oEdit )
 
    LOCAL lAutoC := TEdit():options["autocomplete"], lAutoI := TEdit():options["autoindent"]
-   LOCAL aMenu := { "Set wrap "+Iif(oEdit:lWrap,"Off","On"), "Set autocomplete "+Iif(lAutoC,"Off","On"), ;
-      "Set autoindent "+Iif(lAutoI,"Off","On") }
+   LOCAL aMenu := { {"Wrap ",,,Iif(!oEdit:lWrap,"Off","On")}, {"Autocomplete ",,,Iif(!lAutoC,"Off","On")}, ;
+      {"Autoindent ",,,Iif(!lAutoI,"Off","On")} }
    LOCAL y1 := Row(), x1 := Col()-6, i
 
    i := FMenu( oEdit, aMenu, y1, x1 )

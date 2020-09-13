@@ -1,9 +1,19 @@
 FUNCTION plug_prg_Spis( oEdit )
 
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
+   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
+      IF i > 1 .AND. !Empty( aDop )
+         IF aDop[i-1] == 1
+            IF ( n := At( "*/", cLine ) ) > 0
+               cLine := Ltrim( Substr( cLine,n+2 ) )
+            ELSE
+               LOOP
+            ENDIF
+         ENDIF
+      ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF cfirst == "function" .OR. cfirst == "procedure" .OR. ;
