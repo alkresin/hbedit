@@ -237,7 +237,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie
-   LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", "RETURN", "ELSEIF", "DO WHILE"+Chr(13)+"ENDDO" }
+   LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }
    LOCAL i, nPos, iCou := 0
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
@@ -268,9 +268,32 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    RETURN hTrie
 
-STATIC FUNCTION _prg_AddVar( cLine, cPrefix, nSkip, arr )
+STATIC FUNCTION _prg_AddVar( oEdit, cLine, cPrefix, nSkip, arr, lLocal )
 
-   LOCAL lComm := .F., cWord, nPos, nPrefLen := Len( cPrefix )
+   LOCAL lComm := .F., cWord, nPos, nPos2, nPrefLen := Len( cPrefix )
+   LOCAL b1 := "([{", b2 := ")]}", c1, c2, i, np
+
+   IF lLocal
+      //edi_Alert( "1>"+cLine )
+      DO WHILE ( nPos := edi_FindChNext( oEdit, cLine, nSkip, "(", "[", "{" ) ) > 0
+         np := 0
+         nPos2 := nPos
+         c1 := cp_Substr( oEdit:lUtf8, cLine, nPos, 1 )
+         i := At( c1, b1 )
+         c2 := Substr( b2,i,1 )
+         DO WHILE ( nPos2 := edi_FindChNext( oEdit, cLine, nPos2, c1, c2 ) ) > 0
+            IF cp_Substr( oEdit:lUtf8, cLine, nPos2, 1 ) == c1
+               np ++
+            ELSEIF np > 0
+               np --
+            ELSE
+               EXIT
+            ENDIF
+         ENDDO
+         cLine := Left( cLine,nPos-1 ) + Iif( nPos2>0, Substr( cLine, nPos2+1 ), "" )
+      ENDDO
+      //edi_Alert( "2>"+cLine )
+   ENDIF
 
    DO WHILE !lComm .AND. !Empty( cWord := AllTrim( hb_TokenPtr( cLine, @nSkip, ',', .T. ) ) )
       IF ( nPos := At( "//", cWord ) ) > 0 .OR. ( nPos := At( "/*", cWord ) ) > 0
@@ -281,9 +304,7 @@ STATIC FUNCTION _prg_AddVar( cLine, cPrefix, nSkip, arr )
          IF ( nPos := At( ":", cWord ) ) > 0
             cWord := Trim( Left( cWord, nPos-1 ) )
          ENDIF
-         IF arr != Nil
-            Aadd( arr, cWord )
-         ENDIF
+         Aadd( arr, cWord )
       ENDIF
    ENDDO
 
@@ -295,8 +316,8 @@ STATIC FUNCTION _prg_AddVar( cLine, cPrefix, nSkip, arr )
  */
 STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
 
-   LOCAL i, nPos, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}, aTmp
-   LOCAL lGlob := .T., lClassDef := .F., nPrefLen := Len( cPrefix )
+   LOCAL i, nPos, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
+   LOCAL lGlob := .T., lClassDef := .F., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( aText )
@@ -313,27 +334,24 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
       ENDIF
       nSkip := 0
       cfirst := Lower( hb_TokenPtr( cLine, @nSkip ) )
-      IF i < oEdit:nLine
+      IF i < nLineCurr
          IF cfirst == "#define"
             IF Lower( Left( cSecond := hb_TokenPtr( cLine, @nSkip ), nPrefLen) ) == cPrefix
                Aadd( aWords, cSecond )
             ENDIF
             LOOP
-         ELSEIF ( cfirst == "static" .AND. ;
-            !( ( cSecond := Lower( hb_TokenPtr( cLine, nSkip ) ) ) == "function" .OR. ;
-            cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) ) .OR. ;
-            cfirst == "local"
-            DO WHILE Right( cLine, 1 ) == ";"
-               cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
-            ENDDO
-            _prg_AddVar( cLine, cPrefix, nSkip, Iif( lGlob, aWords, aTmp ) )
-            LOOP
-         ELSEIF cfirst == "memvar"
-            DO WHILE Right( cLine, 1 ) == ";"
-               cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
-            ENDDO
-            _prg_AddVar( cLine, cPrefix, nSkip, Iif( lGlob, aWords, aTmp ) )
-            LOOP
+         ENDIF
+         IF lGlob
+            IF ( cfirst == "static" .AND. ;
+               !( ( cSecond := Lower( hb_TokenPtr( cLine, nSkip ) ) ) == "function" .OR. ;
+               cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) ) .OR. ;
+               cfirst == "memvar"
+               DO WHILE Right( cLine, 1 ) == ";"
+                  cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
+               ENDDO
+               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
+               LOOP
+            ENDIF
          ENDIF
       ENDIF
       IF cfirst == "function" .OR. cfirst == "procedure" .OR. ;
@@ -342,8 +360,8 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
             ( ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "function" .OR. ;
             cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
          cSecond := hb_TokenPtr( cLine, @nSkip )
-         IF i < oEdit:nLine
-            aTmp := {}
+         IF i < nLineCurr
+            nLine0 := i
          ENDIF
          lGlob := .F.
          IF Lower( Left(cSecond,nPrefLen) ) == cPrefix
@@ -352,33 +370,53 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
             ENDIF
             Aadd( aWords, cSecond )
          ENDIF
-         IF ( nPos := At( "(", cLine ) ) > 0
-            nSkip := nPos + 1
-            DO WHILE Right( cLine, 1 ) == ";"
-               cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
-            ENDDO
-            IF ( nPos := At( ")", cLine ) ) > 0
-               cLine := Left( cLine, nPos-1 )
-            ENDIF
-            _prg_AddVar( cLine, cPrefix, nSkip, Iif( lGlob, aWords, aTmp ) )
-         ENDIF
       ELSEIF cfirst == "class" .or. ( cfirst == "create" .AND. ;
             ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "class" )
          IF cfirst == "create" .OR. ( !( ( cSecond := Lower( hb_TokenPtr( cLine, @nSkip ) ) ) == "var" ) ;
                .AND. !( cSecond == "data" ) )
             lClassDef := .T.
          ENDIF
-         IF i < oEdit:nLine
-            aTmp := {}
-         ENDIF
          lGlob := .F.
       ELSEIF cfirst == "end" .or. cfirst == "endclass"
          lClassDef := .F.
       ENDIF
    NEXT
-   IF !Empty( aTmp )
-      aWords := ASize( aWords, Len(aWords) + Len(aTmp) )
-      ACopy( aTmp, aWords,,, Len(aWords) - Len(aTmp) + 1 )
+   IF !Empty( nLine0 )
+      FOR i := nLine0 TO nLineCurr - 1
+         cLine := Ltrim( aText[i] )
+         IF i > 1 .AND. !Empty( aDop )
+            // Checks if a line is commented with /* */ operators, using a hilight object
+            IF aDop[i-1] == 1
+               IF ( nPos := At( "*/", cLine ) ) > 0
+                  cLine := Ltrim( Substr( cLine,nPos+2 ) )
+               ELSE
+                  LOOP
+               ENDIF
+            ENDIF
+         ENDIF
+         nSkip := 0
+         IF i == nLine0
+            IF ( nPos := At( "(", cLine ) ) > 0
+               nSkip := nPos + 1
+               DO WHILE Right( cLine, 1 ) == ";"
+                  cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
+               ENDDO
+               IF ( nPos := At( ")", cLine ) ) > 0
+                  cLine := Left( cLine, nPos-1 )
+               ENDIF
+               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
+            ENDIF
+         ELSE
+            cfirst := Lower( hb_TokenPtr( cLine, @nSkip ) )
+            IF cfirst == "static" .OR. cfirst == "local" .OR. cfirst == "memvar"
+               DO WHILE Right( cLine, 1 ) == ";"
+                  cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
+               ENDDO
+               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, ( cfirst == "local" ) )
+               LOOP
+            ENDIF
+         ENDIF
+      NEXT
    ENDIF
 
    RETURN aWords

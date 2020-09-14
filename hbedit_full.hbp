@@ -10,4 +10,5 @@
 {win&mingw}-ldflag=-Wall -gui
 
 source/*.c
+source/trie/*.c
 source/*.prg

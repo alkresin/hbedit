@@ -4480,10 +4480,10 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
    ENDIF
    nyInit := ny
    IF ( i := At( c, b1 ) ) > 0
-      IF edi_InQuo( oEdit, ny, nx ) == 0
+      IF edi_InQuo( oEdit, oEdit:aText[ny], nx ) == 0
          nPos := nx
          DO WHILE ny <= Len( oEdit:aText )
-            DO WHILE ( nPos := edi_FindChNext( oEdit, ny, nPos, c, Substr( b2,i,1 ) ) ) > 0
+            DO WHILE ( nPos := edi_FindChNext( oEdit, oEdit:aText[ny], nPos, c, Substr( b2,i,1 ) ) ) > 0
                IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
                   np ++
                ELSEIF np > 0
@@ -4500,10 +4500,10 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
          ENDDO
       ENDIF
    ELSEIF ( i := At( c, b2 ) ) > 0
-      IF edi_InQuo( oEdit, ny, nx ) == 0
+      IF edi_InQuo( oEdit, oEdit:aText[ny], nx ) == 0
          nPos := nx
          DO WHILE ny > 0
-            DO WHILE ( nPos := edi_FindChPrev( oEdit, ny, nPos, c, Substr( b1,i,1 ) ) ) > 0
+            DO WHILE ( nPos := edi_FindChPrev( oEdit, oEdit:aText[ny], nPos, c, Substr( b1,i,1 ) ) ) > 0
                IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nPos, 1 ) == c
                   np ++
                ELSEIF np > 0
@@ -4521,8 +4521,8 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
          ENDDO
       ENDIF
    ELSEIF Empty( lPairOnly )
-      IF edi_InQuo( oEdit, ny, nx ) == 0
-         nPos := edi_FindChNext( oEdit, ny, nx, ")", "]", "}" )
+      IF edi_InQuo( oEdit, oEdit:aText[ny], nx ) == 0
+         nPos := edi_FindChNext( oEdit, oEdit:aText[ny], nx, ")", "]", "}" )
       ENDIF
    ENDIF
    IF Empty( lCalcOnly ) .AND. nPos > 0
@@ -4531,9 +4531,9 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
 
    RETURN Iif( !Empty(lCalcOnly), Iif( ny==nyInit .OR. nPos==0, nPos, {ny,nPos} ), Nil )
 
-STATIC FUNCTION edi_FindChNext( oEdit, nLine, nPos, ch1, ch2, ch3 )
+FUNCTION edi_FindChNext( oEdit, s, nPos, ch1, ch2, ch3 )
 
-   LOCAL c, s := oEdit:aText[nLine], cQuo, lQuo := .F., nLen := cp_Len( oEdit:lUtf8,s )
+   LOCAL c, cQuo, lQuo := .F., nLen := cp_Len( oEdit:lUtf8,s )
 
    DO WHILE ++nPos <= nLen
       c := cp_Substr( oEdit:lUtf8, s, nPos, 1 )
@@ -4553,9 +4553,9 @@ STATIC FUNCTION edi_FindChNext( oEdit, nLine, nPos, ch1, ch2, ch3 )
 
    RETURN 0
 
-STATIC FUNCTION edi_FindChPrev( oEdit, nLine, nPos, ch1, ch2, ch3 )
+STATIC FUNCTION edi_FindChPrev( oEdit, s, nPos, ch1, ch2, ch3 )
 
-   LOCAL c, s := oEdit:aText[nLine], cQuo, lQuo := .F., nPosQuo := edi_InQuo( oEdit, nLine, nPos )
+   LOCAL c, cQuo, lQuo := .F., nPosQuo := edi_InQuo( oEdit, s, nPos )
 
    IF nPosQuo > 0
       IF ( ( c := cp_Substr( oEdit:lUtf8, s, nPos, 1 ) ) == ch1 ;
@@ -4583,9 +4583,9 @@ STATIC FUNCTION edi_FindChPrev( oEdit, nLine, nPos, ch1, ch2, ch3 )
 
    RETURN 0
 
-FUNCTION edi_InQuo( oEdit, nLine, nPos )
+FUNCTION edi_InQuo( oEdit, s, nPos )
 
-   LOCAL i := 0, c, s := oEdit:aText[nLine], cQuo, lQuo := .F., nPosQuo := 0
+   LOCAL i := 0, c, cQuo, lQuo := .F., nPosQuo := 0
 
    DO WHILE ++i < nPos
       c := cp_Substr( oEdit:lUtf8, s, i,1 )

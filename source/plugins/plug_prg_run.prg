@@ -11,7 +11,7 @@ Function plug_prg_run( oEdit )
    acmd[1] := oEdit:ToString()
    acmd[2] := "harbour"
    acmd[3] := "-n2"
-   acmd[4] := "-q2"
+   acmd[4] := "-q"
    acmd[5] := "-w"
 
    cedi_rediron( 2, cFileRes )
