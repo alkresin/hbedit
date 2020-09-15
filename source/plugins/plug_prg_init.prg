@@ -237,7 +237,8 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie
-   LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", "RETURN", "ELSEIF", "DO WHILE" }
+   LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", ;
+      "RETURN", "ELSEIF", "DO WHILE", "#define", "ifdef", "ifndef", "#else", "#endif" }
    LOCAL i, nPos, iCou := 0
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )

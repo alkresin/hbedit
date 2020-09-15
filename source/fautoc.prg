@@ -28,7 +28,7 @@ FUNCTION edi_DoAuC( oEdit )
    IF !Empty( oEdit:bAutoC )
       hTrie := Eval( oEdit:bAutoC, oEdit, Substr( oEdit:aText[ny], nx1, nx2-nx1 ) )
    ENDIF
-   hTrieLang := hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil )
+   hTrieLang := Iif( !Empty(oEdit:oHili), hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ), Nil )
 
    DO WHILE .T.
 
@@ -44,9 +44,11 @@ FUNCTION edi_DoAuC( oEdit )
          IF Empty( arr )
             //edi_Alert( "No result" )
             EXIT
+         /*
          ELSEIF Len( arr ) == 1
             Replace( oEdit, ny, nx1, nx2, arr[1] )
             EXIT
+         */
          ENDIF
 
          h := Min( Len( arr ),12 ) + 2
@@ -161,7 +163,7 @@ STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
       ENDIF
    ENDIF
    IF Empty( hTrie ) .AND. Empty( hTrieLang )
-      arr := { Dtoc( Date() ), Time() }
+      //arr := { " "+Dtoc( Date() ), " "+Time() }
    ENDIF
    IF !Empty( hTrie )
       IF !Empty( cList := trie_List( hTrie, cPrefix ) )
