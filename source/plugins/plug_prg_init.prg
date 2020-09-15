@@ -238,7 +238,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie
    LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", ;
-      "RETURN", "ELSEIF", "DO WHILE", "#define", "ifdef", "ifndef", "#else", "#endif" }
+      "RETURN", "ELSEIF", "DO WHILE", "FIELD", "REQUEST", "#define", "#ifdef", "#ifndef", "#else", "#endif", "#include" }
    LOCAL i, nPos, iCou := 0
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
@@ -346,7 +346,7 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
             IF ( cfirst == "static" .AND. ;
                !( ( cSecond := Lower( hb_TokenPtr( cLine, nSkip ) ) ) == "function" .OR. ;
                cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) ) .OR. ;
-               cfirst == "memvar"
+               cfirst == "memvar" .OR. cfirst == "field"
                DO WHILE Right( cLine, 1 ) == ";"
                   cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
                ENDDO
@@ -409,7 +409,7 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
             ENDIF
          ELSE
             cfirst := Lower( hb_TokenPtr( cLine, @nSkip ) )
-            IF cfirst == "static" .OR. cfirst == "local" .OR. cfirst == "memvar"
+            IF cfirst == "static" .OR. cfirst == "local" .OR. cfirst == "memvar" .OR. cfirst == "field"
                DO WHILE Right( cLine, 1 ) == ";"
                   cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
                ENDDO

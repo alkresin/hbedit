@@ -1484,6 +1484,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   IF hb_hGetDef( TEdit():options,"autocomplete", .F. ) .AND. hb_keyStd(nLastKey) != K_TAB
                      IF ::nPos > 1 .AND. cp_Substr( ::lUtf8, ::aText[n], ::nPos, 1 ) <= ' ' .AND. ;
                         cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) >= ' '
+                        nLastKey := nKeyExt
                         edi_DoAuC( Self )
                         EXIT
                      ENDIF

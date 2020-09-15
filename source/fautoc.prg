@@ -21,6 +21,9 @@ FUNCTION edi_DoAuC( oEdit )
       RETURN Nil
    ENDIF
    nx1 := edi_PrevWord( oEdit, .T., .F., .T., ny, nx2-1 )
+   IF nx1 > 1 .AND. ( ( cPrefix := Substr( oEdit:aText[ny], nx1-1, 1 ) ) == '#' .OR. cPrefix == '<' )
+      nx1 --
+   ENDIF
    IF nx2 - nx1 <= 1
       RETURN Nil
    ENDIF
@@ -50,7 +53,7 @@ FUNCTION edi_DoAuC( oEdit )
             EXIT
          */
          ENDIF
-
+	
          h := Min( Len( arr ),12 ) + 2
          w := 0
          AEval( arr, {|s|w := Max( w, Len(s) )} )
@@ -81,10 +84,12 @@ FUNCTION edi_DoAuC( oEdit )
          lRecalc := .T.
 
       ELSEIF nKey == K_ESC
+         DevPos( oy, ox )
          EXIT
 
       ELSEIF nKey == K_TAB
          lPassKey := .T.
+         DevPos( oy, ox )
          EXIT
 
       ELSEIF nKey == K_UP
@@ -146,7 +151,6 @@ FUNCTION edi_DoAuC( oEdit )
    IF !Empty( hTrie )
       trie_Close( hTrie )
    ENDIF
-   DevPos( oy, ox )
    IF lPassKey
       oEdit:onKey( nKeyExt )
    ENDIF
