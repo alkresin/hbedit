@@ -47,9 +47,14 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
          IF Empty( arr )
             //edi_Alert( "No result" )
             EXIT
-         ELSEIF Len( arr ) == 1 .AND. lAuto
-            Replace( oEdit, ny, nx1, nx2, arr[1] )
-            EXIT
+         ELSEIF Len( arr ) == 1
+            //edi_writelog( str(nx2-nx1+1)+" "+str(cp_Len( oEdit:lUtf8, arr[1] )) +" /"+arr[1]+"/" )
+            IF nx2-nx1 == cp_Len( oEdit:lUtf8, arr[1] )
+               EXIT
+            ELSEIF lAuto
+               Replace( oEdit, ny, nx1, nx2, arr[1] )
+               EXIT
+            ENDIF
          ENDIF
 	
          h := Min( Len( arr ),12 ) + 2

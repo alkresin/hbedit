@@ -18,6 +18,8 @@
 #endif
 #endif
 
+#define HBEDIT_VERSION  "v2.0"
+
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
 #define ALT_PRESSED   0x040000
@@ -3064,15 +3066,20 @@ FUNCTION edi_ReadIni( xIni )
 
 FUNCTION mnu_Help( oEdit )
 
-   LOCAL cFullPath := edi_FindPath( "hbedit.help" ), oHelp
+   LOCAL cFullPath := edi_FindPath( "hbedit.help" ), oHelp, nCurr := TEdit():nCurr
+   LOCAL cHelp
 
    IF !Empty( cFullPath )
-      oHelp := TEdit():New( MemoRead( cFullPath ), "$Help", ;
+      cHelp := MemoRead( cFullPath )
+      cHelp := "HbEdit - " + HBEDIT_VERSION + Chr(10) + ;
+         "Copyright (C) 2019-2020  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + Chr(10) + cHelp
+      oHelp := TEdit():New( cHelp, "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
       oHelp:lReadOnly := .T.
       oHelp:lCtrlTab  := .F.
       oHelp:Edit()
+      TEdit():nCurr := nCurr
    ENDIF
 
    RETURN Nil
@@ -5205,6 +5212,9 @@ STATIC FUNCTION _FIdle()
 
    IF nLastSec > 0 .AND. !lRun .AND. ( nDelay := hb_hGetDef( TEdit():options,"autodelay", 0 ) ) > 0 ;
       .AND. Seconds() > (nLastSec + nDelay) .AND. Seconds() < (nLastSec + nDelay*2)
+      IF Empty( TEdit():aWindows ) .OR. TEdit():nCurr == 0 .OR. TEdit():nCurr > Len(TEdit():aWindows)
+         RETURN Nil
+      ENDIF
       oEdit := TEdit():aWindows[TEdit():nCurr]
       IF ( (nKey := hb_keyStd(nLastKey)) >= K_SPACE .AND. nKey <= 255 ) .OR. ( oEdit:lUtf8 .AND. nKey > 3000 )
          IF oEdit:nPos > 1 .AND. oEdit:nPos == cp_Len( oEdit:lUtf8,oEdit:aText[oEdit:nLine] ) + 1 ;
