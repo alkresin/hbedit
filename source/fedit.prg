@@ -68,7 +68,8 @@ STATIC cTab := e"\x9", cTabStr
 STATIC nLastMacro
 STATIC aLastSeleOper
 STATIC aLastOper, lLastOper_Ended := .T., lDoLastOper := .F., lAddLast
-STATIC nLastKey := 0
+STATIC nLastKey := 0, nLastSec := 0
+STATIC hIdle
 
 CLASS TEdit
 
@@ -1484,8 +1485,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   IF hb_hGetDef( TEdit():options,"autocomplete", .F. ) .AND. hb_keyStd(nLastKey) != K_TAB
                      IF ::nPos > 1 .AND. cp_Substr( ::lUtf8, ::aText[n], ::nPos, 1 ) <= ' ' .AND. ;
                         cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) >= ' '
+                        nLastSec := Seconds()
                         nLastKey := nKeyExt
-                        edi_DoAuC( Self )
+                        edi_DoAuC( Self, .T. )
                         EXIT
                      ENDIF
                   ENDIF
@@ -1592,6 +1594,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         x:nPos := x:ColToPos(x:LineToRow(x:nLine),nCol)
                      ENDIF
                   ELSE
+                     nLastSec := Seconds()
                      nLastKey := nKeyExt
                      RETURN Nil
                   ENDIF
@@ -1713,6 +1716,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       lLastOper_Ended := .T.
    ENDIF
    ::WriteTopPane()
+   nLastSec := Seconds()
    nLastKey := nKeyExt
 
    RETURN Nil
@@ -2382,6 +2386,10 @@ METHOD OnExit() CLASS TEdit
          ENDIF
       NEXT
    ENDIF
+   IF !Empty( hIdle )
+      hb_IdleDel( hIdle )
+      hIdle := Nil
+   ENDIF
    //edi_SetPalette( , "default" )
 
    RETURN Nil
@@ -2646,7 +2654,7 @@ FUNCTION edi_ReadIni( xIni )
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lAutoComplete := .F.
    LOCAL lTab2Spaces := .F., lPathInHead := .F.
-   LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0
+   LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0, nAutoDelay := 0
    LOCAL hHili
    LOCAL aHiliOpt := { "keywords1","keywords2","keywords3","keywords4","keywords5","quotes","scomm","startline","mcomm","block" }
 
@@ -2680,6 +2688,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "autocomplete" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lAutoComplete := ( Lower(cTemp) == "on" )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "autodelay" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  nAutoDelay := Val( cTemp )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "trimspaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lTrimSpaces := ( Lower(cTemp) == "on" )
@@ -2937,6 +2948,10 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["autocomplete"] := lAutoComplete
+   IF nAutoDelay > 0
+      TEdit():options["autodelay"] := nAutoDelay
+      hIdle := hb_IdleAdd( {|| _FIdle() } )
+   ENDIF
    TEdit():options["syntax"] := lSyntax
    TEdit():options["pathinhead"] := lPathInHead
    cTabStr := Space( TEdit():nTablen )
@@ -3244,6 +3259,14 @@ FUNCTION mnu_View( oEdit )
       oEdit:lTextOut := .T.
    ELSEIF i == 2
       TEdit():options["autocomplete"] := !lAutoC
+      IF lAutoC
+         IF hb_hGetDef( TEdit():options,"autodelay", 0 ) > 0
+            hIdle := hb_IdleAdd( {|| _FIdle() } )
+         ENDIF
+      ELSEIF !Empty( hIdle )
+         hb_IdleDel( hIdle )
+         hIdle := Nil
+      ENDIF
    ELSEIF i == 2
       TEdit():options["autoindent"] := !lAutoI
    ENDIF
@@ -5174,3 +5197,24 @@ FUNCTION cp_Lower( lUtf8, cString )
 FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cedi_utf8_Upper( cString ); ENDIF
    RETURN Upper( cString )
+
+STATIC FUNCTION _FIdle()
+
+   LOCAL nDelay, nKey, oEdit
+   STATIC lRun := .F.
+
+   IF nLastSec > 0 .AND. !lRun .AND. ( nDelay := hb_hGetDef( TEdit():options,"autodelay", 0 ) ) > 0 ;
+      .AND. Seconds() > (nLastSec + nDelay) .AND. Seconds() < (nLastSec + nDelay*2)
+      oEdit := TEdit():aWindows[TEdit():nCurr]
+      IF ( (nKey := hb_keyStd(nLastKey)) >= K_SPACE .AND. nKey <= 255 ) .OR. ( oEdit:lUtf8 .AND. nKey > 3000 )
+         IF oEdit:nPos > 1 .AND. oEdit:nPos == cp_Len( oEdit:lUtf8,oEdit:aText[oEdit:nLine] ) + 1 ;
+            .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[oEdit:nLine], oEdit:nPos-1, 1 ) >= ' '
+            lRun := .T.
+            edi_DoAuC( oEdit, .F. )
+            nLastSec := 0
+            lRun := .F.
+         ENDIF
+      ENDIF
+   ENDIF
+
+   RETURN Nil

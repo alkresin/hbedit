@@ -7,7 +7,7 @@
 
 #include "inkey.ch"
 
-FUNCTION edi_DoAuC( oEdit )
+FUNCTION edi_DoAuC( oEdit, lAuto )
 
    LOCAL oy, ox
    LOCAL ny := oEdit:nLine, nx1, nx2 := oEdit:nPos
@@ -47,11 +47,9 @@ FUNCTION edi_DoAuC( oEdit )
          IF Empty( arr )
             //edi_Alert( "No result" )
             EXIT
-         /*
-         ELSEIF Len( arr ) == 1
+         ELSEIF Len( arr ) == 1 .AND. lAuto
             Replace( oEdit, ny, nx1, nx2, arr[1] )
             EXIT
-         */
          ENDIF
 	
          h := Min( Len( arr ),12 ) + 2
