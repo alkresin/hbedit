@@ -3797,11 +3797,12 @@ FUNCTION mnu_GoTo( oEdit )
 
 FUNCTION mnu_Plugins( oEdit )
 
-   LOCAL aMenu := {}, i
+   LOCAL aMenu := {}, i, nPos
 
    FOR i := 1 TO Len( TEdit():aPlugins )
       IF Empty( TEdit():aPlugins[i,3] ) .OR. TEdit():aPlugins[i,3] == oEdit:cSyntaxType
-         AAdd( aMenu, { TEdit():aPlugins[i,2], Nil, i} )
+         nPos := At( ",", TEdit():aPlugins[i,2] )
+         AAdd( aMenu, { Iif( nPos==0, TEdit():aPlugins[i,2], Left(TEdit():aPlugins[i,2],nPos-1) ), Nil, i, Iif( nPos==0, Nil, Ltrim(Substr(TEdit():aPlugins[i,2],nPos+1)) ) } )
       ENDIF
    NEXT
    IF !Empty( aMenu )

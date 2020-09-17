@@ -24,16 +24,16 @@ Function plug_C_Spis( oEdit )
       DO WHILE nPos <= nLen
          IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
             IF ( nPos := cp_At( lUtf8, c, cLine, nPos + 1 ) ) == 0
-               nPos := nLen + 1
+               EXIT
             ENDIF
 
          ELSEIF c == '/'
             IF ( c := cp_Substr( lUtf8, cLine, nPos+1, 1 ) ) == '/'
-               nPos := nLen + 1
+               EXIT
             ELSEIF c == '*'
                IF ( nPos := cp_At( lUtf8, "*/", cLine, nPos + 2 ) ) == 0
-                  nPos := nLen + 1
                   lComm := .T.
+                  EXIT
                ENDIF
                nPos += 2
             ENDIF
@@ -41,16 +41,20 @@ Function plug_C_Spis( oEdit )
          ELSEIF c == '{'
             IF nLevel == 0
                IF nPos == 1
-                  IF !( '(' $ cLinePrev ) .AND. !( Left(cLinePrev,8) == "typedef " )
-                     FOR j := i-2 TO 1 STEP -1
-                        IF '(' $ arr[j]
-                           cLinePrev := AllTrim( arr[j] )
-                           EXIT
-                        ENDIF
-                     NEXT
+                  IF !( Left(cLinePrev,8) == "typedef " ) .AND. !( Left(cLinePrev,8) == "#define " ) ;
+                     .AND. !( Right(cLinePrev,1) == '\' )
+                     IF !( '(' $ cLinePrev )
+                        FOR j := i-2 TO 1 STEP -1
+                           IF '(' $ arr[j]
+                              cLinePrev := AllTrim( arr[j] )
+                              EXIT
+                           ENDIF
+                        NEXT
+                     ENDIF
+                     Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, i } )
                   ENDIF
-                  Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, i } )
-               ELSE
+               ELSEIF !( Left(cLine,8) == "typedef " ) .AND. !( Left(cLine,8) == "#define " ) ;
+                     .AND. !( Right(cLinePrev,1) == '\' )
                   Aadd( arrfnc, { cp_Left( lUtf8, cLine, Min(64,nPos-1) ), Nil, i } )
                ENDIF
             ENDIF
