@@ -1,4 +1,3 @@
-
 /*
  * Text editor
  *
@@ -10,15 +9,8 @@
 #include "inkey.ch"
 #include "setcurs.ch"
 #include "hbgtinfo.ch"
-#ifdef _FULL
-#include "hbfuncsfull.ch"
-#else
-#ifndef _SMALL
-#include "hbfuncs.ch"
-#endif
-#endif
 
-#define HBEDIT_VERSION  "v2.0"
+#include "fedit.ch"
 
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
@@ -1489,8 +1481,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         cp_Substr( ::lUtf8, ::aText[n], ::nPos-1, 1 ) >= ' '
                         nLastSec := Seconds()
                         nLastKey := nKeyExt
-                        edi_DoAuC( Self, .T. )
-                        EXIT
+                        IF edi_DoAuC( Self, .T. )
+                           EXIT
+                        ENDIF
                      ENDIF
                   ENDIF
                   IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )

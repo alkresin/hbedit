@@ -10,17 +10,26 @@
 #include "hbapiitm.h"
 #include "trie.h"
 
+/*
+ * hTrie := trie_Create( [lCase] )
+ */
 HB_FUNC( TRIE_CREATE )
 {
 
    hb_retptr( ( void * ) trie_Create( (HB_ISNIL(1))? 1 : hb_parl(1) ) );
 }
 
+/*
+ * trie_Close( hTrie )
+ */
 HB_FUNC( TRIE_CLOSE )
 {
    trie_Close( (TRIE *) hb_parptr( 1 ) );
 }
 
+/*
+ * trie_Add( hTrie, cWord )
+ */
 HB_FUNC( TRIE_ADD )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );
@@ -28,18 +37,27 @@ HB_FUNC( TRIE_ADD )
    trie_Add( trie, (char *) hb_parc( 2 ) );
 }
 
+/*
+ * lExist := trie_Exist( hTrie, cWord )
+ */
 HB_FUNC( TRIE_EXIST )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );
    hb_retl( trie_Exist( trie, (char *) hb_parc( 2 ) ) );
 }
 
+/*
+ * nCount := trie_Count( hTrie, cWord )
+ */
 HB_FUNC( TRIE_COUNT )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );
    hb_retni( trie_Count( trie, (char *) hb_parc( 2 ) ) );
 }
 
+/*
+ * cList := trie_List( hTrie, cWord [,@nCount] )
+ */
 HB_FUNC( TRIE_LIST )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );
@@ -54,6 +72,9 @@ HB_FUNC( TRIE_LIST )
    }
 }
 
+/*
+ * trie_Trace( hTrie, cWord )
+ */
 HB_FUNC( TRIE_TRACE )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );

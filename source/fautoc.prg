@@ -18,20 +18,23 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
    LOCAL nKeyExt, nKey, lPassKey, lRedraw, lRecalc := .T.
 
    IF Substr( oEdit:aText[ny], nx2-1, 1 ) == ' '
-      RETURN Nil
+      RETURN .F.
    ENDIF
    nx1 := edi_PrevWord( oEdit, .T., .F., .T., ny, nx2-1 )
    IF nx1 > 1 .AND. ( ( cPrefix := Substr( oEdit:aText[ny], nx1-1, 1 ) ) == '#' .OR. cPrefix == '<' )
       nx1 --
    ENDIF
    IF nx2 - nx1 <= 1
-      RETURN Nil
+      RETURN .T.
    ENDIF
 
    IF !Empty( oEdit:bAutoC )
       hTrie := Eval( oEdit:bAutoC, oEdit, Substr( oEdit:aText[ny], nx1, nx2-nx1 ) )
    ENDIF
    hTrieLang := Iif( !Empty(oEdit:oHili), hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ), Nil )
+   IF Empty( hTrieLang ) .AND. Empty( oEdit:bAutoC )
+      RETURN .F.
+   ENDIF
 
    DO WHILE .T.
 
@@ -158,7 +161,7 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
       oEdit:onKey( nKeyExt )
    ENDIF
 
-   RETURN Nil
+   RETURN .T.
 
 STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
 
@@ -168,9 +171,6 @@ STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
       IF !Empty( cList := trie_List( hTrieLang, cPrefix ) )
          arr := hb_ATokens( cList, Chr(10) )
       ENDIF
-   ENDIF
-   IF Empty( hTrie ) .AND. Empty( hTrieLang )
-      //arr := { " "+Dtoc( Date() ), " "+Time() }
    ENDIF
    IF !Empty( hTrie )
       IF !Empty( cList := trie_List( hTrie, cPrefix ) )
