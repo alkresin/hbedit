@@ -2,22 +2,25 @@ Function plug_C_Spis( oEdit )
 
    LOCAL i, j, n, arr := oEdit:aText, nLen, cLine, nPos, nPos2, c, cLinePrev := "", arrfnc := {}
    LOCAL lComm := .F., lUtf8 := oEdit:lUtf8, cQuotes := ['"], nLevel := 0
+   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( arr )
       cLine := AllTrim( arr[i] )
+      IF i > 1 .AND. !Empty( aDop )
+         // Checks if a line is commented with /* */ operators, using a hilight object
+         IF aDop[i-1] == 1
+            IF ( nPos := At( "*/", cLine ) ) > 0
+               cLine := Ltrim( Substr( cLine,nPos+2 ) )
+            ELSE
+               LOOP
+            ENDIF
+         ENDIF
+      ENDIF
       IF Empty( cLine )
          LOOP
       ENDIF
-      nLen := cp_Len( lUtf8, cLine )
 
-      IF !Empty( lComm )
-         IF ( nPos := At( "*/", cLine ) ) == 0
-            LOOP
-         ELSE
-            cLine := cp_Substr( lUtf8,cLine,nPos+2 )
-            lComm := .F.
-         ENDIF
-      ENDIF
+      nLen := cp_Len( lUtf8, cLine )
       nPos := 1
 
       DO WHILE nPos <= nLen
@@ -26,23 +29,10 @@ Function plug_C_Spis( oEdit )
                EXIT
             ENDIF
 
-         ELSEIF c == '/'
-            IF ( c := cp_Substr( lUtf8, cLine, nPos+1, 1 ) ) == '/'
-               cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) )
-               EXIT
-            ELSEIF c == '*'
-               IF ( nPos2 := cp_At( lUtf8, "*/", cLine, nPos + 2 ) ) == 0
-                  cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) )
-                  lComm := .T.
-                  EXIT
-               ENDIF
-               cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) + cp_Substr( lUtf8,cLine,nPos2+2 ) )
-            ENDIF
-
          ELSEIF c == '{'
             IF nLevel == 0
                IF nPos == 1
-                  IF Right( cLinePrev, 1 ) == ")"
+                  IF Right( _C_DropComments( oEdit, cLinePrev ), 1 ) == ")"
                      _C_AddF( lUtf8, arrfnc, arr, i, cLinePrev )
                   ENDIF
                ELSE
@@ -100,3 +90,27 @@ STATIC FUNCTION _C_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev )
    Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, nLine } )
 
    RETURN Nil
+
+STATIC FUNCTION _C_DropComments( oEdit, cLine )
+
+   LOCAL nPos := 1, nPos2
+
+   DO WHILE ( nPos := hb_At( "//", cLine, nPos ) ) > 0
+      IF !edi_InQuo( oEdit, cLine, nPos )
+         cLine := Trim( Left( cLine, nPos-1 ) )
+         EXIT
+      ENDIF
+      nPos += 2
+   ENDDO
+
+   nPos := 1
+   DO WHILE ( nPos := hb_At( "/*", cLine, nPos ) ) > 0
+      IF !edi_InQuo( oEdit, cLine, nPos )
+         nPos2 := hb_At( "*/", cLine, nPos+2 )
+         cLine := Trim( Left( cLine, nPos-1 ) ) + Iif( nPos2==0, "", Substr( cLine, nPos2+2 ) )
+      ELSE
+         nPos += 2
+      ENDIF
+   ENDDO
+
+   RETURN cLine
