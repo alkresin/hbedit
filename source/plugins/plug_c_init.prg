@@ -8,7 +8,7 @@ FUNCTION Plug_c_Init( oEdit, cPath )
 STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie, o := oEdit:oHili
-   LOCAL arr, i, nPos
+   LOCAL arr, i, nPos, nLen, nPrefLen := Len( cPrefix )
 
    IF Empty( hb_hGetDef( o:hHili, "htrie", Nil ) )
       arr := hb_ATokens( Iif(Empty(o:cKeywords1),"",o:cKeywords1) + " " + ;
@@ -23,9 +23,11 @@ STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
    ENDIF
 
    IF !Empty( arr := _c_KeyWords( oEdit, cPrefix ) )
-      hTrie := trie_Create( .T. )
       FOR i := 1 TO Len( arr )
-         IF Len( arr[i] ) >= 4
+         IF ( nLen := Len( arr[i] ) ) >= 4 .AND. nLen > nPrefLen
+            IF Empty( hTrie )
+               hTrie := trie_Create( .F. )
+            ENDIF
             trie_Add( hTrie, arr[i] )
             //edi_Alert( "Add " + arr[i] )
          ENDIF

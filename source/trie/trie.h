@@ -28,6 +28,7 @@ typedef struct trieBASE
    int                iPages;
    int             iLastPage;
    int             iLastItem;
+   unsigned int       iItems;
    int                 bUtf8;
    int                 bCase;
 } TRIE;

@@ -1,6 +1,6 @@
 Function plug_C_Spis( oEdit )
 
-   LOCAL i, j, n, arr := oEdit:aText, nLen, cLine, nPos, c, cLinePrev := "", arrfnc := {}
+   LOCAL i, j, n, arr := oEdit:aText, nLen, cLine, nPos, nPos2, c, cLinePrev := "", arrfnc := {}
    LOCAL lComm := .F., lUtf8 := oEdit:lUtf8, cQuotes := ['"], nLevel := 0
 
    FOR i := 1 TO Len( arr )
@@ -14,12 +14,11 @@ Function plug_C_Spis( oEdit )
          IF ( nPos := At( "*/", cLine ) ) == 0
             LOOP
          ELSE
+            cLine := cp_Substr( lUtf8,cLine,nPos+2 )
             lComm := .F.
-            nPos += 2
          ENDIF
-      ELSE
-         nPos := 1
       ENDIF
+      nPos := 1
 
       DO WHILE nPos <= nLen
          IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
@@ -29,33 +28,29 @@ Function plug_C_Spis( oEdit )
 
          ELSEIF c == '/'
             IF ( c := cp_Substr( lUtf8, cLine, nPos+1, 1 ) ) == '/'
+               cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) )
                EXIT
             ELSEIF c == '*'
-               IF ( nPos := cp_At( lUtf8, "*/", cLine, nPos + 2 ) ) == 0
+               IF ( nPos2 := cp_At( lUtf8, "*/", cLine, nPos + 2 ) ) == 0
+                  cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) )
                   lComm := .T.
                   EXIT
                ENDIF
-               nPos += 2
+               cLine := Trim( cp_Left( lUtf8,cLine,nPos-1 ) + cp_Substr( lUtf8,cLine,nPos2+2 ) )
             ENDIF
 
          ELSEIF c == '{'
             IF nLevel == 0
                IF nPos == 1
-                  IF !( Left(cLinePrev,8) == "typedef " ) .AND. !( Left(cLinePrev,8) == "#define " ) ;
-                     .AND. !( Right(cLinePrev,1) == '\' )
-                     IF !( '(' $ cLinePrev )
-                        FOR j := i-2 TO 1 STEP -1
-                           IF '(' $ arr[j]
-                              cLinePrev := AllTrim( arr[j] )
-                              EXIT
-                           ENDIF
-                        NEXT
-                     ENDIF
-                     Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, i } )
+                  IF Right( cLinePrev, 1 ) == ")"
+                     _C_AddF( lUtf8, arrfnc, arr, i, cLinePrev )
                   ENDIF
-               ELSEIF !( Left(cLine,8) == "typedef " ) .AND. !( Left(cLine,8) == "#define " ) ;
-                     .AND. !( Right(cLinePrev,1) == '\' )
-                  Aadd( arrfnc, { cp_Left( lUtf8, cLine, Min(64,nPos-1) ), Nil, i } )
+               ELSE
+                  j := nPos
+                  DO WHILE ( c := cp_Substr( lUtf8,cLine,--j,1 ) ) == ' ' .AND. j > 1; ENDDO
+                  IF c == ')'
+                     _C_AddF( lUtf8, arrfnc, arr, i, cLine )
+                  ENDIF
                ENDIF
             ENDIF
             nLevel ++
@@ -66,7 +61,9 @@ Function plug_C_Spis( oEdit )
          ENDIF
          nPos := cp_NextPos( lUtf8, cLine, nPos )
       ENDDO
-      cLinePrev := cLine
+      IF !Empty( cLine )
+         cLinePrev := cLine
+      ENDIF
    NEXT
 
    IF Empty( arrfnc )
@@ -85,5 +82,21 @@ Function plug_C_Spis( oEdit )
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _C_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev )
+
+   LOCAL j
+
+   IF !( '(' $ cLinePrev )
+      FOR j := nLine-2 TO 1 STEP -1
+         IF '(' $ arr[j]
+            cLinePrev := AllTrim( arr[j] )
+            EXIT
+         ENDIF
+      NEXT
+   ENDIF
+   Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, nLine } )
 
    RETURN Nil

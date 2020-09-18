@@ -78,6 +78,7 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
 
    p = **(trie->pages + trie->iLastPage) + trie->iLastItem;
    trie->iLastItem ++;
+   trie->iItems ++;
    p->letter = *szWord;
    p->right = NULL;
    p->next = NULL;
@@ -102,12 +103,12 @@ TRIE * trie_Create( int bCase )
    trie->pages = (TRIEPAGE **) malloc( iPages * sizeof( TRIEITEM** ) );
    memset( trie->pages, 0, iPages * sizeof( TRIEITEM** ) );
    trie->iPages = iPages;
-   trie->iLastPage = 0;
-   trie->iLastItem = 0;
+   trie->iLastPage = trie->iLastItem = trie->iItems = 0;
    trie->bUtf8 = 0;
    trie->bCase = bCase;
 
    trie->pages[0] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
+   memset( trie->pages[0], 0, TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
 
    return trie;
 }
@@ -199,6 +200,8 @@ void trie_Trace( TRIE * trie, char * szWord )
    char c;
    char s[512];
 
+   if( !trie->iItems )
+      return;
    memset( s, 0, 512 );
    for( i=0; i<iLen; i++ )
    {
@@ -369,6 +372,8 @@ int trie_Count( TRIE * trie, char * szWord )
    int i, iCou = 0;
    TRIEITEM * p;
 
+   if( !trie->iItems )
+      return 0;
    i = FindItem( trie, szWord, &p );
    if( i < 0 )
       return 0;
@@ -390,6 +395,8 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
    char szBuff[MAX_WORD_LEN];
 
    *iCount = 0;
+   if( !trie->iItems )
+      return NULL;
    i = FindItem( trie, szWord, &p );
    if( i < 0 )
       return NULL;
@@ -426,6 +433,8 @@ int trie_Exist( TRIE * trie, char * szWord )
    int i;
    TRIEITEM * p;
 
+   if( !trie->iItems )
+      return 0;
    i = FindItem( trie, szWord, &p );
    return ( i >= 0 );
 }

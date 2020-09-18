@@ -239,7 +239,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
    LOCAL hTrieLang, hTrie
    LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", ;
       "RETURN", "ELSEIF", "DO WHILE", "FIELD", "REQUEST", "#define", "#ifdef", "#ifndef", "#else", "#endif", "#include" }
-   LOCAL i, nPos, iCou := 0
+   LOCAL i, nPos, nLen, nPrefLen := Len( cPrefix )
 
    IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
       hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create( .F. )
@@ -251,15 +251,16 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
       FOR i := 1 TO Len( arr )
          IF ( nPos := At( "(", arr[i] ) ) > 0
             trie_Add( hTrieLang, Left( arr[i], nPos ) )
-            iCou++
          ENDIF
       NEXT
    ENDIF
 
    IF !Empty( arr := _prg_KeyWords( oEdit, Lower( cPrefix ) ) )
-      hTrie := trie_Create( .F. )
       FOR i := 1 TO Len( arr )
-         IF Len( arr[i] ) >= 4
+         IF ( nLen := Len( arr[i] ) ) >= 4 .AND. nLen > nPrefLen
+            IF Empty( hTrie )
+               hTrie := trie_Create( .F. )
+            ENDIF
             trie_Add( hTrie, arr[i] )
             //edi_Alert( "Add " + arr[i] )
          ENDIF
