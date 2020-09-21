@@ -26,7 +26,7 @@ STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
       FOR i := 1 TO Len( arr )
          IF ( nLen := Len( arr[i] ) ) >= 4 .AND. nLen > nPrefLen
             IF Empty( hTrie )
-               hTrie := trie_Create( .F. )
+               hTrie := trie_Create( .T. )
             ENDIF
             trie_Add( hTrie, arr[i] )
             //edi_Alert( "Add " + arr[i] )
@@ -44,7 +44,7 @@ STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
 STATIC FUNCTION _c_KeyWords( oEdit, cPrefix )
 
    LOCAL i, nPos, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
-   LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLineCurr := oEdit:nLine
+   LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( aText )
@@ -72,5 +72,8 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix )
          ENDIF
       ENDIF
    NEXT
+
+   IF !Empty( nLine0 )
+   ENDIF
 
    RETURN aWords

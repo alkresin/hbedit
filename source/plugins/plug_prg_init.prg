@@ -270,7 +270,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    RETURN hTrie
 
-STATIC FUNCTION _prg_AddVar( oEdit, cLine, cPrefix, nSkip, arr, lLocal )
+STATIC FUNCTION _prg_AddVars( oEdit, cLine, cPrefix, nSkip, arr, lLocal )
 
    LOCAL lComm := .F., cWord, nPos, nPos2, nPrefLen := Len( cPrefix )
    LOCAL b1 := "([{", b2 := ")]}", c1, c2, i, np
@@ -349,9 +349,9 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
                cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) ) .OR. ;
                cfirst == "memvar" .OR. cfirst == "field"
                DO WHILE Right( cLine, 1 ) == ";"
-                  cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
+                  cLine := Left( cLine, Len(cLine)-1 ) + " " + Alltrim( aText[++i] )
                ENDDO
-               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
+               _prg_AddVars( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
                LOOP
             ENDIF
          ENDIF
@@ -406,7 +406,7 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
                IF ( nPos := At( ")", cLine ) ) > 0
                   cLine := Left( cLine, nPos-1 )
                ENDIF
-               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
+               _prg_AddVars( oEdit, cLine, cPrefix, nSkip, aWords, .F. )
             ENDIF
          ELSE
             cfirst := Lower( hb_TokenPtr( cLine, @nSkip ) )
@@ -414,7 +414,7 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
                DO WHILE Right( cLine, 1 ) == ";"
                   cLine := Left( cLine, Len(cLine)-1 ) + " " + Ltrim( aText[++i] )
                ENDDO
-               _prg_AddVar( oEdit, cLine, cPrefix, nSkip, aWords, ( cfirst == "local" ) )
+               _prg_AddVars( oEdit, cLine, cPrefix, nSkip, aWords, ( cfirst == "local" ) )
                LOOP
             ENDIF
          ENDIF
