@@ -1,7 +1,88 @@
 
+#define ALT_PRESSED   0x040000
+#define K_ALT_I   279
+
+STATIC cIniPath
+
 FUNCTION Plug_go_Init( oEdit, cPath )
 
+   LOCAL bOnKeyOrig
+   LOCAL bOnKey := {|o,n|
+      LOCAL nRes := _go_Init_OnKey(o,n)
+      IF bOnKeyOrig != Nil .AND. nRes >= 0
+         nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
+      ENDIF
+      RETURN nRes
+   }
+
+   cIniPath := cPath
    oEdit:bAutoC := {|o,s| _go_AutoC(o,s)}
+
+   IF !Empty( oEdit:bOnKey )
+      bOnKeyOrig := oEdit:bOnKey
+   ENDIF
+   oEdit:bOnKey := bOnKey
+
+   RETURN Nil
+
+FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cPackage, cWord
+   LOCAL ny, nx1, nx2
+
+   IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+      IF nKey == K_ALT_I
+         ny := oEdit:nLine
+         nx2 := oEdit:nPos
+         IF nx2 > 1 .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
+            nx2 --
+         ENDIF
+         IF nx2 == 1 .OR. isAlpha( cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2-1, 1 ) )
+            nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx2 )
+         ELSE
+            nx1 := nx2
+         ENDIF
+         IF nx1 > 1 .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx1-1, 1 ) == '.'
+            nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx1-2 )
+         ENDIF
+         nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2 )
+         IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
+            nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2+1 )
+         ENDIF
+         cWord := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx1, nx2-nx1 )
+         _go_GetFuncInfo( oEdit, cWord )
+         DevPos( nRow, nCol )
+         oEdit:TextOut()
+         RETURN -1
+      ENDIF
+   ENDIF
+
+   RETURN 0
+
+STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
+
+   LOCAL nx1, cPackage, cBuff, cFileOut := "hbedit.out", o, nPos, cAddW := "$FuncInfo"
+
+   IF ( nx1 := At( '.', cWord ) ) > 0
+      cPackage := cp_Left( oEdit:lUtf8, cWord, nx1 - 1 )
+      cWord := cp_Substr( oEdit:lUtf8, cWord, nx1 + 1 )
+      // edi_Alert( cPackage + " " + cWord )
+
+      FErase( cFileOut )
+      cedi_RunConsoleApp( 'godoc ' + cPackage + ' ' + cWord, cFileOut )
+      IF Empty( cBuff := MemoRead( cFileOut ) )
+         edi_Alert( "Error" )
+         RETURN Nil
+      ENDIF
+
+      IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
+         o := oEdit:aWindows[nPos]
+         o:SetText( cBuff, cAddW )
+         mnu_ToBuf( oEdit, nPos )
+      ELSE
+         edi_AddWindow( oEdit, cBuff, cAddW, 2, 10, "UTF8" )
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
@@ -38,36 +119,160 @@ STATIC FUNCTION _go_AutoC( oEdit, cPrefix )
 
    RETURN hTrie
 
+STATIC FUNCTION _go_DropComments( cLine, lMultiComm )
+
+   LOCAL nPos := 1, nPos2
+
+   lMultiComm := .F.
+   IF ( nPos := hb_At( "//", cLine, nPos ) ) > 0
+      cLine := Trim( Left( cLine, nPos-1 ) )
+   ENDIF
+
+   nPos := 1
+   DO WHILE ( nPos := hb_At( "/*", cLine, nPos ) ) > 0
+      lMultiComm := ( ( nPos2 := hb_At( "*/", cLine, nPos+2 ) ) == 0 )
+      cLine := Trim( Left( cLine, nPos-1 ) ) + Iif( lMultiComm, "", Substr( cLine, nPos2+2 ) )
+   ENDDO
+
+   RETURN cLine
+
+STATIC FUNCTION _go_GetImpNames( cFileName )
+
+   LOCAL arr, cRes := "", cEol := Chr(10), cLine, lMultiComm := .F., nPos, i
+   LOCAL nSkip, cfirst
+
+   IF !Empty( arr := MemoRead( cFileName ) )
+      IF ( i := At( cEol, arr ) ) > 1 .AND. Substr( arr, i-1, 1 ) == Chr(13)
+         cEol := Chr(13) + cEol
+      ENDIF
+      arr := hb_ATokens( arr, cEol )
+      FOR i := 1 TO Len( arr )
+         cLine := arr[i]
+
+         IF !Empty( lMultiComm )
+            IF ( nPos := At( "*/", cLine ) ) == 0
+               LOOP
+            ELSE
+               lMultiComm := .F.
+               cLine := Trim( Substr( cLine, nPos + 2 ) )
+            ENDIF
+         ENDIF
+
+         cLine := AllTrim( _go_DropComments( cLine, @lMultiComm ) )
+
+         IF Empty( cLine )
+            LOOP
+         ENDIF
+
+         nSkip := 0
+         cfirst := hb_TokenPtr( cLine, @nSkip )
+         IF cfirst == "func"
+            IF Left( cfirst := hb_TokenPtr( cLine, @nSkip ), 1 ) == '('
+               /*
+               IF ( nSkip := At( ')', cLine ) ) > 0
+                  nSkip ++
+                  cfirst := hb_TokenPtr( cLine, @nSkip )
+               ELSE
+                  LOOP
+               ENDIF
+               */
+               LOOP
+            ENDIF
+            IF ( nSkip := At( '(', cfirst ) ) > 0
+               cfirst := Left( cfirst, nSkip - 1 )
+            ENDIF
+            IF isUpper( cfirst )
+               cRes += " " + cfirst
+            ENDIF
+         ENDIF
+
+      NEXT
+   ENDIF
+
+   RETURN cRes
+
+STATIC FUNCTION _go_AddFromImp( aImp, aWords, cPrefix )
+
+   LOCAL cRes, cBuff, arr, cFileName := "golang.dat", cEol := Chr(10), i, nSkip, nPrefLen := Len( cPrefix )
+   LOCAL lFou := .F., cGoPath, cWord
+
+   IF !Empty( cBuff := MemoRead( cIniPath + cFileName ) )
+      IF ( i := At( cEol, cBuff ) ) > 1 .AND. Substr( cBuff, i-1, 1 ) == Chr(13)
+         cEol := Chr(13) + cEol
+      ENDIF
+      arr := hb_ATokens( cBuff, cEol )
+      FOR i := 1 TO Len( arr )
+         nSkip := 0
+         IF aImp[2] == hb_TokenPtr( arr[i], @nSkip )
+            cRes := Ltrim( Substr( arr[i], nSkip ) )
+            lFou := .T.
+            EXIT
+         ENDIF
+      NEXT
+   ENDIF
+
+   IF !lFou
+      cGoPath := hb_getEnv( "GOROOT" ) + hb_ps() + "src" + hb_ps() + aImp[2]
+      IF !hb_DirExists( cGoPath )
+         cGoPath := hb_getEnv( "GOPATH" ) + hb_ps() + "src" + hb_ps() + aImp[2]
+         IF !hb_DirExists( cGoPath )
+            RETURN Nil
+         ENDIF
+      ENDIF
+      arr := Directory( cGoPath + hb_ps() + "*.go" )
+      cRes := ""
+      FOR i := 1 TO Len( arr )
+         IF !( "test" $ arr[i,1] )
+            cRes += _go_GetImpNames( cGoPath + hb_ps() + arr[i,1] )
+         ENDIF
+      NEXT
+      IF Empty( cBuff )
+         cBuff := ""
+      ELSE
+         cBuff += cEol
+      ENDIF
+      cBuff += aImp[2] + cRes
+      hb_MemoWrit( cIniPath + cFileName, cBuff )
+   ENDIF
+
+   nSkip := 0
+   DO WHILE !Empty( cWord := hb_TokenPtr( cRes, @nSkip ) )
+      IF nPrefLen > 0 .AND. !( Left( cWord, nPrefLen ) == cPrefix )
+         LOOP
+      ENDIF
+      Aadd( aWords, aImp[1] + '.' + cWord )
+   ENDDO
+
+   RETURN Nil
+
 STATIC FUNCTION _go_AddImp( cLine, cWord, nSkip, cPrefix, aWords, aImport )
 
-   LOCAL nPos
+   LOCAL nPos, arr := { Nil, Nil }
 
-   edi_Writelog( cLine )
-   Aadd( aImport, { Nil, Nil } )
    IF Left( cWord, 1 ) != '"'
-      ATail( aImport )[1] := cWord
+      arr[1] := cWord
       cWord := hb_TokenPtr( cLine, @nSkip )
    ENDIF
    IF Left( cWord, 1 ) == '"'
       cWord := Substr( cWord, 2, Len(cWord)-2 )
    ENDIF
-   ATail( aImport )[2] := cWord
+   arr[2] := cWord
    IF ( nPos := Rat( "/", cWord ) ) > 0
       cWord := Substr( cWord, nPos + 1 )
    ENDIF
-   IF Empty( ATail( aImport )[1] )
-      ATail( aImport )[1] := Left( cWord, Len(cWord)-1 )
+   IF Empty( arr[1] )
+      arr[1] := cWord  //Left( cWord, Len(cWord)-1 )
    ENDIF
-   edi_Writelog( cWord )
    IF Left( cWord, Len(cPrefix) ) == cPrefix
       Aadd( aWords, cWord + "." )
+      Aadd( aImport, arr )
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION _go_AddVars( oEdit, cLine, cPrefix, nSkip, arr )
 
-   LOCAL lComm := .F., cWord, nPos, nPos2, nPrefLen := Len( cPrefix )
+   LOCAL cWord, nPos, nPos2, nPrefLen := Len( cPrefix )
    LOCAL b1 := "([{", b2 := ")]}", c1, c2, i, np
 
    DO WHILE ( nPos := edi_FindChNext( oEdit, cLine, nSkip, "(", "[", "{" ) ) > 0
@@ -88,15 +293,14 @@ STATIC FUNCTION _go_AddVars( oEdit, cLine, cPrefix, nSkip, arr )
       cLine := Left( cLine,nPos-1 ) + Iif( nPos2>0, Substr( cLine, nPos2+1 ), "" )
    ENDDO
 
-   DO WHILE !lComm .AND. !Empty( cWord := AllTrim( hb_TokenPtr( cLine, @nSkip, ',', .T. ) ) )
-      IF ( nPos := At( "//", cWord ) ) > 0 .OR. ( nPos := At( "/*", cWord ) ) > 0
-         cWord := Trim( Left( cWord, nPos - 1 ) )
-         lComm := .T.
-      ENDIF
-      IF Lower( Left(cWord,nPrefLen) ) == cPrefix
+   cLine := _go_DropComments( cLine )
+   DO WHILE !Empty( cWord := AllTrim( hb_TokenPtr( cLine, @nSkip, ',', .T. ) ) )
+      IF Left(cWord,nPrefLen) == cPrefix
          IF ( nPos := At( "=", cWord ) ) > 0
             Aadd( arr, Trim( Left( cWord, nPos-1 ) ) )
             EXIT
+         ELSEIF ( nPos := At( " ", cWord ) ) > 0
+            Aadd( arr, Trim( Left( cWord, nPos-1 ) ) )
          ELSE
             Aadd( arr, cWord )
          ENDIF
@@ -114,7 +318,13 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
    LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
-   LOCAL aImport := {}
+   LOCAL aImport := {}, cPref2, lDot := .F.
+
+   IF ( nPos := At( '.', cPrefix ) ) != 0
+      lDot := .T.
+      cPref2 := SubStr( cPrefix, nPos + 1 )
+      cPrefix := Left( cPrefix, nPos-1 )
+   ENDIF
 
    FOR i := 1 TO Len( aText )
       cLine := Ltrim( aText[i] )
@@ -170,19 +380,21 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
             nLine0 := i
          ENDIF
          lGlob := .F.
-         IF Left( cSecond := hb_TokenPtr( cLine, @nSkip ), 1 ) == '('
-            IF ( nSkip := At( ')', cLine ) ) > 0
-               nSkip ++
-               cSecond := hb_TokenPtr( cLine, @nSkip )
-            ELSE
-               LOOP
+         IF !lDot
+            IF Left( cSecond := hb_TokenPtr( cLine, @nSkip ), 1 ) == '('
+               IF ( nSkip := At( ')', cLine ) ) > 0
+                  nSkip ++
+                  cSecond := hb_TokenPtr( cLine, @nSkip )
+               ELSE
+                  LOOP
+               ENDIF
             ENDIF
-         ENDIF
-         IF Left( cSecond, nPrefLen) == cPrefix
-            IF Right( cSecond,1 ) == ')'
-               cSecond := Left( cSecond, Len(cSecond) - 1 )
+            IF Left( cSecond, nPrefLen) == cPrefix
+               IF ( nSkip := At( '(', cLine ) ) > 0
+                  cSecond := Left( cSecond, nSkip - 1 )
+               ENDIF
+               Aadd( aWords, cSecond )
             ENDIF
-            Aadd( aWords, cSecond )
          ENDIF
          LOOP
       ENDIF
@@ -212,6 +424,12 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
             ENDIF
          ENDIF
       NEXT
+   ENDIF
+
+   IF lDot
+      IF ( i := Ascan( aImport, {|a|a[1]==cPrefix} ) ) > 0
+         _go_AddFromImp( aImport[i], aWords, cPref2 )
+      ENDIF
    ENDIF
 
    RETURN aWords

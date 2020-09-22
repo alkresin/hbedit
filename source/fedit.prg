@@ -4256,7 +4256,7 @@ STATIC FUNCTION edi_AlphaNum( nch )
    RETURN (nch >= 48 .AND. nch <= 57) .OR. (nch >= 65 .AND. nch <= 90) .OR. ;
       (nch >= 97 .AND. nch <= 122) .OR. nch == 95 .OR. nch >= 128
 
-STATIC FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
+FUNCTION edi_NextWord( oEdit, lBigW, lEndWord, lChgPos, ny, nx )
    LOCAL nInitPos := nx, nLen, lUtf8 := oEdit:lUtf8, ch, nch
    LOCAL lOk := .F., lAlphaNum
 

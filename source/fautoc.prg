@@ -20,10 +20,7 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
    IF Substr( oEdit:aText[ny], nx2-1, 1 ) == ' '
       RETURN .F.
    ENDIF
-   nx1 := edi_PrevWord( oEdit, .T., .F., .T., ny, nx2-1 )
-   IF nx1 > 1 .AND. ( ( cPrefix := Substr( oEdit:aText[ny], nx1-1, 1 ) ) == '#' .OR. cPrefix == '<' )
-      nx1 --
-   ENDIF
+   nx1 := edi_PrevWord( oEdit, .T., .F., .F., ny, nx2-1 )
    IF nx2 - nx1 <= 1
       RETURN .T.
    ENDIF
