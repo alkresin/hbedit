@@ -61,11 +61,16 @@ FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
 
-   LOCAL nx1, cPackage, cBuff, cFileOut := "hbedit.out", o, nPos, cAddW := "$FuncInfo"
+   LOCAL nx1, cBuff, cFileOut := hb_DirTemp() + "hbedit.out", o, nPos, cAddW := "$FuncInfo"
+   LOCAL aImport, cPackage, i
 
    IF ( nx1 := At( '.', cWord ) ) > 0
       cPackage := cp_Left( oEdit:lUtf8, cWord, nx1 - 1 )
       cWord := cp_Substr( oEdit:lUtf8, cWord, nx1 + 1 )
+      aImport := _go_KeyWords( oEdit, cPackage, .T. )
+      IF ( i := Ascan( aImport, {|a|a[1]==cPrefix} ) ) == 0
+         RETURN Nil
+      ENDIF
       // edi_Alert( cPackage + " " + cWord )
 
       FErase( cFileOut )
@@ -80,7 +85,7 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
          o:SetText( cBuff, cAddW )
          mnu_ToBuf( oEdit, nPos )
       ELSE
-         edi_AddWindow( oEdit, cBuff, cAddW, 2, 10, "UTF8" )
+         edi_AddWindow( oEdit, cBuff, cAddW, 2, 12, "UTF8" )
       ENDIF
    ENDIF
 
@@ -313,13 +318,14 @@ STATIC FUNCTION _go_AddVars( oEdit, cLine, cPrefix, nSkip, arr )
  * _go_KeyWords( oEdit, cPrefix )
  * Scans the text to find keywords to be included in a list for autocompetion
  */
-STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
+STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
 
    LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
    LOCAL aImport := {}, cPref2, lDot := .F.
 
+   IF Empty( lImports ); lImports := .F.; ENDIF
    IF ( nPos := At( '.', cPrefix ) ) != 0
       lDot := .T.
       cPref2 := SubStr( cPrefix, nPos + 1 )
@@ -341,7 +347,7 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF lGlob
-         IF cfirst == "import" .OR. cfirst == "const"
+         IF cfirst == "import" .OR. ( !lImports .AND. cfirst == "const" )
             IF Empty( cSecond := hb_TokenPtr( cLine, @nSkip ) ) .OR. Left( cSecond, 1 ) == '('
                DO WHILE ++i <= Len( aText )
                   IF !Empty( cLine := Alltrim( aText[i] ) ) .AND. Left( cLine,1 ) != '/' .AND. ;
@@ -368,7 +374,7 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
                ENDIF
             ENDIF
             LOOP
-         ELSEIF cfirst == "var"
+         ELSEIF !lImports .AND. cfirst == "var"
             DO WHILE ( c := Right( cLine, 1 ) ) == "," .OR. c == "="
                cLine := Left( cLine, Len(cLine)-1 ) + " " + Alltrim( aText[++i] )
             ENDDO
@@ -376,6 +382,9 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
          ENDIF
       ENDIF
       IF cfirst == "func"
+         IF lImports
+            EXIT
+         ENDIF
          IF i < nLineCurr
             nLine0 := i
          ENDIF
@@ -432,4 +441,4 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix )
       ENDIF
    ENDIF
 
-   RETURN aWords
+   RETURN Iif( lImports, aImport, aWords )

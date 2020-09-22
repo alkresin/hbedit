@@ -122,7 +122,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
 
    LOCAL aGets, nPos, arrf
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), nRes
-   LOCAL cFileRes := "hbedit_curl.out", cFileOut := "hbedit.out", cBuff, cAddW := "$FuncInfo", o
+   LOCAL cFileRes := hb_DirTemp() + "hbedit_curl.out", cBuff, cAddW := "$FuncInfo", o
 
    IF ( nPos := At( '(', sFunc ) ) > 0
       sFunc := AllTrim( Left( sFunc, nPos-1 ) )
@@ -188,7 +188,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
    IF Empty( cServAddr )
       FErase( cFileRes )
-      cedi_RunConsoleApp( "curl www.kresin.ru/php/getad.php -s -o" + cFileRes, cFileOut )
+      cedi_RunConsoleApp( "curl www.kresin.ru/php/getad.php -s -o" + cFileRes )
       IF Empty( cBuff := MemoRead( cFileRes ) ) .OR. Left( cBuff, 5 ) != "addr:"
          edi_Alert( "Error" )
          RETURN Nil
@@ -218,7 +218,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
    ENDIF
 
    FErase( cFileRes )
-   cedi_RunConsoleApp( 'curl "' + cServAddr + sFunc + '" -s -o' + cFileRes, cFileOut )
+   cedi_RunConsoleApp( 'curl "' + cServAddr + sFunc + '" -s -o' + cFileRes )
    IF Empty( cBuff := MemoRead( cFileRes ) )
       edi_Alert( "Error" )
       RETURN Nil
