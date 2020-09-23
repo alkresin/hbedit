@@ -241,7 +241,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
       "RETURN", "ELSEIF", "DO WHILE", "FIELD", "REQUEST", "#define", "#ifdef", "#ifndef", "#else", "#endif", "#include" }
    LOCAL i, nPos, nLen, nPrefLen := Len( cPrefix )
 
-   IF Empty( hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
+   IF Empty( hTrieLang := hb_hGetDef( oEdit:oHili:hHili, "htrie", Nil ) )
       hTrieLang := oEdit:oHili:hHili["htrie"] := trie_Create( .F. )
       FOR i := 1 TO Len( arr )
          trie_Add( hTrieLang, arr[i] )
@@ -255,7 +255,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
       NEXT
    ENDIF
 
-   IF !Empty( arr := _prg_KeyWords( oEdit, Lower( cPrefix ) ) )
+   IF !Empty( arr := _prg_KeyWords( oEdit, Lower( cPrefix ), hTrieLang ) )
       FOR i := 1 TO Len( arr )
          IF ( nLen := Len( arr[i] ) ) >= 4 .AND. nLen > nPrefLen
             IF Empty( hTrie )
@@ -316,16 +316,16 @@ STATIC FUNCTION _prg_AddVars( oEdit, cLine, cPrefix, nSkip, arr, lLocal )
  * _prg_KeyWords( oEdit, cPrefix )
  * Scans the text to find keywords to be included in a list for autocompetion
  */
-STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
+STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix, hTrieLang )
 
-   LOCAL i, nPos, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
+   LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., lClassDef := .F., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( aText )
       cLine := Ltrim( aText[i] )
       IF i > 1 .AND. !Empty( aDop )
-         // Checks if a line is commented with /* */ operators, using a hilight object
+         // Check if a line is commented with /* */ operators, using a hilight object
          IF aDop[i-1] == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,nPos+2 ) )
@@ -381,6 +381,24 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix )
          lGlob := .F.
       ELSEIF cfirst == "end" .or. cfirst == "endclass"
          lClassDef := .F.
+      ELSE
+         // Check for function calls
+         nPos := 1
+         DO WHILE ( nPos := hb_At( '(', cLine, nPos ) ) > 0
+            nSkip := nPos
+            DO WHILE nSkip > 1 .AND. ( ( ( c := Substr( cLine, nSkip-1, 1 ) ) >= '0' .AND. c <= '9' ) .OR. ;
+               ( c >= 'A' .AND. c <= 'Z' ) .OR. ( c >= 'a' .AND. c <= 'z' ) .OR. c == '_' )
+               nSkip --
+            ENDDO
+            IF nSkip < nPos
+               cSecond := Substr( cLine, nSkip, nPos-nSkip+1 )
+               IF Lower( Left(cSecond,nPrefLen) ) == cPrefix .AND. hb_Ascan(aWords,cSecond,,,.T.) == 0 ;
+                  .AND. !trie_Exist( hTrieLang, cSecond )
+                  Aadd( aWords, cSecond )
+               ENDIF
+            ENDIF
+            nPos ++
+         ENDDO
       ENDIF
    NEXT
    IF !Empty( nLine0 )

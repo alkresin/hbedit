@@ -68,9 +68,10 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
       cPackage := cp_Left( oEdit:lUtf8, cWord, nx1 - 1 )
       cWord := cp_Substr( oEdit:lUtf8, cWord, nx1 + 1 )
       aImport := _go_KeyWords( oEdit, cPackage, .T. )
-      IF ( i := Ascan( aImport, {|a|a[1]==cPrefix} ) ) == 0
+      IF ( i := Ascan( aImport, {|a|a[1]==cPackage} ) ) == 0
          RETURN Nil
       ENDIF
+      cPackage := aImport[i,2]
       // edi_Alert( cPackage + " " + cWord )
 
       FErase( cFileOut )
@@ -184,11 +185,18 @@ STATIC FUNCTION _go_GetImpNames( cFileName )
                LOOP
             ENDIF
             IF ( nSkip := At( '(', cfirst ) ) > 0
-               cfirst := Left( cfirst, nSkip - 1 )
+               cfirst := Left( cfirst, nSkip )
             ENDIF
             IF isUpper( cfirst )
                cRes += " " + cfirst
             ENDIF
+
+         ELSEIF cfirst == "type"
+            cfirst := hb_TokenPtr( cLine, @nSkip )
+            IF isUpper( cfirst )
+               cRes += " " + cfirst
+            ENDIF
+
          ENDIF
 
       NEXT
@@ -268,8 +276,8 @@ STATIC FUNCTION _go_AddImp( cLine, cWord, nSkip, cPrefix, aWords, aImport )
    IF Empty( arr[1] )
       arr[1] := cWord  //Left( cWord, Len(cWord)-1 )
    ENDIF
-   IF Left( cWord, Len(cPrefix) ) == cPrefix
-      Aadd( aWords, cWord + "." )
+   IF Left( arr[1], Len(cPrefix) ) == cPrefix
+      Aadd( aWords, arr[1] + "." )
       Aadd( aImport, arr )
    ENDIF
 
