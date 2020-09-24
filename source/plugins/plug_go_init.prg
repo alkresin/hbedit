@@ -28,28 +28,36 @@ FUNCTION Plug_go_Init( oEdit, cPath )
 FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cPackage, cWord
-   LOCAL ny, nx1, nx2
+   LOCAL ny, nx1, nx2, lUtf8 := oEdit:lUtf8
 
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_I
          ny := oEdit:nLine
          nx2 := oEdit:nPos
-         IF nx2 > 1 .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
-            nx2 --
-         ENDIF
-         IF nx2 == 1 .OR. isAlpha( cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2-1, 1 ) )
-            nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx2 )
+         IF ( nx1 := edi_InQuo( oEdit, oEdit:aText[ny], nx2 ) ) > 0
+            IF ( nx2 := cp_At( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx1,1), oEdit:aText[ny], nx1+1 ) ) > 0
+               nx2 ++
+            ELSE
+               RETURN -1
+            ENDIF
          ELSE
-            nx1 := nx2
+            IF nx2 > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
+               nx2 --
+            ENDIF
+            IF nx2 == 1 .OR. isAlpha( cp_Substr( lUtf8, oEdit:aText[ny], nx2-1, 1 ) )
+               nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx2 )
+            ELSE
+               nx1 := nx2
+            ENDIF
+            IF nx1 > 1 .AND. cp_Substr( lUtf8, oEdit:aText[ny], nx1-1, 1 ) == '.'
+               nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx1-2 )
+            ENDIF
+            nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2 )
+            IF cp_Substr( lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
+               nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2+1 )
+            ENDIF
          ENDIF
-         IF nx1 > 1 .AND. cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx1-1, 1 ) == '.'
-            nx1 := edi_PrevWord( oEdit, .F., .F., .F., ny, nx1-2 )
-         ENDIF
-         nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2 )
-         IF cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx2, 1 ) == '.'
-            nx2 := edi_NextWord( oEdit, .F., .F., .F., ny, nx2+1 )
-         ENDIF
-         cWord := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx1, nx2-nx1 )
+         cWord := cp_Substr( lUtf8, oEdit:aText[ny], nx1, nx2-nx1 )
          _go_GetFuncInfo( oEdit, cWord )
          DevPos( nRow, nCol )
          oEdit:TextOut()
@@ -64,7 +72,10 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
    LOCAL nx1, cBuff, cFileOut := hb_DirTemp() + "hbedit.out", o, nPos, cAddW := "$FuncInfo"
    LOCAL aImport, cPackage, i
 
-   IF ( nx1 := At( '.', cWord ) ) > 0
+   IF Left( cWord, 1 ) == '"'
+      cPackage := Substr( cWord, 2, Len(cWord) - 2 )
+      cWord := ""
+   ELSEIF ( nx1 := At( '.', cWord ) ) > 0
       cPackage := cp_Left( oEdit:lUtf8, cWord, nx1 - 1 )
       cWord := cp_Substr( oEdit:lUtf8, cWord, nx1 + 1 )
       aImport := _go_KeyWords( oEdit, cPackage, .T. )
@@ -72,22 +83,25 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
          RETURN Nil
       ENDIF
       cPackage := aImport[i,2]
-      // edi_Alert( cPackage + " " + cWord )
+   ELSE
+      RETURN Nil
+   ENDIF
 
-      FErase( cFileOut )
-      cedi_RunConsoleApp( 'godoc ' + cPackage + ' ' + cWord, cFileOut )
-      IF Empty( cBuff := MemoRead( cFileOut ) )
-         edi_Alert( "Error" )
-         RETURN Nil
-      ENDIF
+   // edi_Alert( cPackage + " " + cWord )
 
-      IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
-         o := oEdit:aWindows[nPos]
-         o:SetText( cBuff, cAddW )
-         mnu_ToBuf( oEdit, nPos )
-      ELSE
-         edi_AddWindow( oEdit, cBuff, cAddW, 2, 12, "UTF8" )
-      ENDIF
+   FErase( cFileOut )
+   cedi_RunConsoleApp( 'godoc ' + cPackage + ' ' + cWord, cFileOut )
+   IF Empty( cBuff := MemoRead( cFileOut ) )
+      edi_Alert( "Error" )
+      RETURN Nil
+   ENDIF
+
+   IF ( nPos := Ascan( oEdit:aWindows, {|o|o:cFileName==cAddW} ) ) > 0
+      o := oEdit:aWindows[nPos]
+      o:SetText( cBuff, cAddW )
+      mnu_ToBuf( oEdit, nPos )
+   ELSE
+      edi_AddWindow( oEdit, cBuff, cAddW, 2, 12, "UTF8" )
    ENDIF
 
    RETURN Nil
