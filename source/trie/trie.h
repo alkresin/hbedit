@@ -34,9 +34,11 @@ typedef struct trieBASE
 } TRIE;
 
 extern TRIE * trie_Create( int bCase );
+extern TRIE * trie_Open( char * szFileName );
 extern void trie_Close( TRIE * trie );
 extern void trie_Add( TRIE * trie, char * szWord );
 extern int trie_Count( TRIE * trie, char * szWord );
 extern char * trie_List( TRIE * trie, char * szWord, int * iCount );
 extern int trie_Exist( TRIE * trie, char * szWord );
 extern void trie_Trace( TRIE * trie, char * szWord );
+extern void trie_Save( TRIE * trie, char * szFileName );

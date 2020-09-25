@@ -8,42 +8,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include "trie.h"
 
-#include "hbapifs.h"
-static void _writelog( const char * sFile, int n, const char * s, ... )
+void _writelog( const char * sFile, const char * sTraceMsg, ... )
 {
+   FILE *hFile;
 
-   if( !sFile )
-      return;
+   hFile = fopen( sFile, "a" );
 
-   if( n )
+   if( hFile )
    {
-      HB_FHANDLE handle;
-      if( hb_fsFile( sFile ) )
-         handle = hb_fsOpen( sFile, FO_WRITE );
-      else
-         handle = hb_fsCreate( sFile, 0 );
-
-      hb_fsSeek( handle,0, SEEK_END );
-      hb_fsWrite( handle, s, n );
-      hb_fsWrite( handle, "\r\n", 2 );
-      hb_fsClose( handle );
-   }
-   else
-   {
-      FILE * hFile = hb_fopen( sFile, "a" );
-
       va_list ap;
-      if( hFile )
-      {
-         va_start( ap, s );
-         vfprintf( hFile, s, ap );
-         va_end( ap );
-         fclose( hFile );
-      }
+
+      va_start( ap, sTraceMsg );
+      vfprintf( hFile, sTraceMsg, ap );
+      va_end( ap );
+
+      fclose( hFile );
    }
+
 }
 
 static int scmpi( char * sz1, char * sz2, int iLen )
@@ -84,7 +69,7 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
    p->next = NULL;
    memset( p->suffix, 0, sizeof( p->suffix ) );
 
-   //_writelog( "ac.log", 0, "cr: %lu %d %c\r\n", &(p->letter), strlen(szWord), *szWord );
+   //_writelog( "ac.log", "cr: %lu %d %c\r\n", &(p->letter), strlen(szWord), *szWord );
    if( !iLen )
       p->suffix[0] = '\n';
    else if( iLen <= SUFFIX_LEN )
@@ -113,6 +98,49 @@ TRIE * trie_Create( int bCase )
    return trie;
 }
 
+TRIE * trie_Open( char * szFileName )
+{
+   TRIE * trie = (TRIE*) malloc( sizeof(TRIE) );
+   int iPages = TRIE_PAGES_ADD;
+   long lSize;
+   FILE *hFile;
+   char * cBuff;
+   int bCase;
+
+   hFile = fopen( szFileName, "rb" );
+   if( !hFile )
+      return NULL;
+
+   fseek( hFile, 0, SEEK_END );
+   lSize = ftell( hFile );
+   fseek( hFile, 0, SEEK_SET );
+
+   if( !lSize )
+   {
+      fclose( hFile );
+      return NULL;
+   }
+
+   cBuff = (char*) malloc( lSize+1 );
+   fwrite( cBuff, 1, lSize, hFile );
+
+   fclose( hFile );
+
+   trie->pages = (TRIEPAGE **) malloc( iPages * sizeof( TRIEITEM** ) );
+   memset( trie->pages, 0, iPages * sizeof( TRIEITEM** ) );
+   trie->iPages = iPages;
+   trie->iLastPage = trie->iLastItem = trie->iItems = 0;
+   trie->bUtf8 = 0;
+   trie->bCase = bCase;
+
+   trie->pages[0] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
+   memset( trie->pages[0], 0, TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
+
+   free( cBuff );
+
+   return trie;
+}
+
 void trie_Close( TRIE * trie )
 {
    int i;
@@ -133,7 +161,7 @@ static void Add2Buff( char **pBuff, int *piBuffLen, int *piPos, char *szWord )
       *pBuff = (char*) realloc( *pBuff, *piBuffLen );
    }
    memcpy( *pBuff+*piPos, szWord, iLen );
-   //_writelog( "ac.log", 0, "2buf: %d %d %s\r\n", *piPos, iLen, szWord );
+   //_writelog( "ac.log", "2buf: %d %d %s\r\n", *piPos, iLen, szWord );
    (*piPos) += iLen;
    (*pBuff)[*piPos] = '\n';
    (*piPos) ++;
@@ -144,7 +172,7 @@ static int ListItems( TRIEITEM * p, char **cBuff, int *piBuffLen, int *piPos, ch
    int iCou = 0, iLen = strlen( szWord );
    char szBuff[MAX_WORD_LEN];
 
-   //_writelog( "ac.log", 0, "li0> %d %s\r\n", iLevel, szWord );
+   //_writelog( "ac.log", "li0> %d %s\r\n", iLevel, szWord );
    while( 1 )
    {
       if( p->suffix[0] )
@@ -155,7 +183,7 @@ static int ListItems( TRIEITEM * p, char **cBuff, int *piBuffLen, int *piPos, ch
          szBuff[iLen+1] = szBuff[iLen+1+SUFFIX_LEN] = '\0';
          if( p->suffix[0] != '\n' )
             memcpy( szBuff+iLen+1, p->suffix, SUFFIX_LEN );
-         //_writelog( "ac.log", 0, "li1> %d %c %s\r\n", iLevel, p->letter, szBuff );
+         //_writelog( "ac.log", "li1> %d %c %s\r\n", iLevel, p->letter, szBuff );
          Add2Buff( cBuff, piBuffLen, piPos, szBuff );
       }
       if( p->next )
@@ -163,7 +191,7 @@ static int ListItems( TRIEITEM * p, char **cBuff, int *piBuffLen, int *piPos, ch
          memcpy( szBuff, szWord, iLen );
          szBuff[iLen] = p->letter;
          szBuff[iLen+1] = '\0';
-         //_writelog( "ac.log", 0, "li2> %s\r\n", szBuff );
+         //_writelog( "ac.log", "li2> %s\r\n", szBuff );
          iCou += ListItems( p->next, cBuff, piBuffLen, piPos, szBuff, iLevel );
       }
       if( p->right )
@@ -211,18 +239,18 @@ void trie_Trace( TRIE * trie, char * szWord )
          if( c == ( (trie->bCase)? p->letter : tolower(p->letter) ) )
          {
             if( i > 0 )
-               _writelog( "trace.log", 0, "%s|\r\n", s );
+               _writelog( "trace.log", "%s|\r\n", s );
             if( p->suffix[0] )
-               _writelog( "trace.log", 0, "%s%c+%c%c%c%c\r\n", s, szWord[i],
+               _writelog( "trace.log", "%s%c+%c%c%c%c\r\n", s, szWord[i],
                   (p->suffix[0]&&p->suffix[0]!='\n')? p->suffix[0]:' ', (p->suffix[1])? p->suffix[1]:' ',
                   (p->suffix[2])? p->suffix[2]:' ',(p->suffix[3])? p->suffix[3]:' ' );
             else
-               _writelog( "trace.log", 0, "%s%c\r\n", s, szWord[i] );
+               _writelog( "trace.log", "%s%c\r\n", s, szWord[i] );
             break;
          }
          else if( !p->right )
          {
-            _writelog( "trace.log", 0, "%s====\r\n", s );
+            _writelog( "trace.log", "%s====\r\n", s );
             return;
          }
          else
@@ -260,7 +288,7 @@ static int FindItem( TRIE * trie, char * szWord, TRIEITEM ** pp )
          }
          else if( !p->right )
          {
-            //_writelog( "ac.log", 0, "fi1> %d %s\r\n", i, szWord );
+            //_writelog( "ac.log", "fi1> %d %s\r\n", i, szWord );
             *pp = NULL;
             return -1;
          }
@@ -280,14 +308,14 @@ static int FindItem( TRIE * trie, char * szWord, TRIEITEM ** pp )
          ( ( (trie->bCase)? memcmp( p->suffix, szWord+i, iLen ) :
          scmpi( p->suffix, szWord+i, iLen ) ) != 0 ) )
       {
-         //_writelog( "ac.log", 0, "fi> %d %d %d %c%c%c%c %s %s\r\n", i, iSuffLen, iLen,
+         //_writelog( "ac.log", "fi> %d %d %d %c%c%c%c %s %s\r\n", i, iSuffLen, iLen,
          //   p->suffix[0], p->suffix[1], p->suffix[2], p->suffix[3], szWord+i, szWord );
          *pp = NULL;
          return -1;
       }
    }
 
-   //_writelog( "ac.log", 0, "fiOK> %d %s\r\n", i, szWord );
+   //_writelog( "ac.log", "fiOK> %d %s\r\n", i, szWord );
    *pp = p;
    return i;
 }
@@ -298,7 +326,7 @@ static int AddItem( TRIE * trie, char * szWord )
    TRIEITEM * p = **(trie->pages);
    char c, cTemp[SUFFIX_LEN+1];
 
-   //_writelog( "trace.log", 0, ">>%s\r\n", szWord );
+   //_writelog( "trace.log", ">>%s\r\n", szWord );
    for( i=0; i<iLen; i++ )
    {
       c = (trie->bCase)? szWord[i] : tolower(szWord[i]);
@@ -311,7 +339,7 @@ static int AddItem( TRIE * trie, char * szWord )
          else if( !p->right )
          {
             p->right = CreateTrieItem( trie, szWord + i );
-            //_writelog( "ac.log", 0, "A1>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
+            //_writelog( "ac.log", "A1>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
             return -1;
          }
          else
@@ -329,14 +357,14 @@ static int AddItem( TRIE * trie, char * szWord )
                memcpy( cTemp, p->suffix, SUFFIX_LEN );
                cTemp[SUFFIX_LEN] = '\0';
                p->next = CreateTrieItem( trie, cTemp );
-               //_writelog( "ac.log", 0, "A2>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
+               //_writelog( "ac.log", "A2>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
                memset( p->suffix, 0, sizeof( p->suffix ) );
                AddItem( trie, szWord );
             }
             else
             {
                p->next = CreateTrieItem( trie, szWord + i + 1 );
-               //_writelog( "ac.log", 0, "A3>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i+1 );
+               //_writelog( "ac.log", "A3>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i+1 );
             }
             return i;
          }
@@ -349,7 +377,7 @@ static int AddItem( TRIE * trie, char * szWord )
          memcpy( cTemp, p->suffix, SUFFIX_LEN );
          cTemp[SUFFIX_LEN] = '\0';
          p->next = CreateTrieItem( trie, cTemp );
-         //_writelog( "ac.log", 0, "A4>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
+         //_writelog( "ac.log", "A4>%c %d %s %s\r\n", p->letter, i, szWord, szWord+i );
          memset( p->suffix, 0, sizeof( p->suffix ) );
          AddItem( trie, szWord );
       }
@@ -374,21 +402,28 @@ int trie_Count( TRIE * trie, char * szWord )
 
    if( !trie->iItems )
       return 0;
-   i = FindItem( trie, szWord, &p );
-   if( i < 0 )
-      return 0;
 
-   if( p->suffix[0] )
-      iCou ++;
-   if( p->next )
-      iCou += CountItems( p->next );
+   if( !szWord )
+      szWord = "";
+   if( strlen( szWord ) > 0 )
+   {
+      i = FindItem( trie, szWord, &p );
+      if( i < 0 )
+         return 0;
+
+      if( p->suffix[0] )
+         iCou ++;
+      if( p->next )
+         iCou += CountItems( p->next );
+   }
+   else
+      iCou = CountItems( **(trie->pages) );
 
    return iCou;
 }
 
 char * trie_List( TRIE * trie, char * szWord, int * iCount )
 {
-
    int i, iCou = 0, iBuffLen = LIST_BUFF_LEN, iPos = 0;
    TRIEITEM * p;
    char * cBuff;
@@ -397,25 +432,38 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
    *iCount = 0;
    if( !trie->iItems )
       return NULL;
-   i = FindItem( trie, szWord, &p );
-   if( i < 0 )
-      return NULL;
+
+   if( !szWord )
+      szWord = "";
+   if( strlen( szWord ) == 0 )
+      i = 0;
+   else
+   {
+      i = FindItem( trie, szWord, &p );
+      if( i < 0 )
+         return NULL;
+   }
 
    cBuff = (char*) malloc( iBuffLen );
-   //_writelog( "ac.log", 0, "\r\n-- tl0> %d %s --\r\n", i, szWord );
+   //_writelog( "ac.log", "\r\n-- tl0> %d %s --\r\n", i, szWord );
 
-   if( p->suffix[0] )
+   if( i > 0 )
    {
-      memcpy( szBuff, szWord, i );
-      iCou ++;
-      szBuff[i] = szBuff[i+SUFFIX_LEN] = '\0';
-      if( p->suffix[0] != '\n' )
-         memcpy( szBuff+i, p->suffix, SUFFIX_LEN );
-      //_writelog( "ac.log", 0, "tl1> %d %s %s\r\n", i, szBuff, szWord );
-      Add2Buff( &cBuff, &iBuffLen, &iPos, szBuff );
+      if( p->suffix[0] )
+      {
+         memcpy( szBuff, szWord, i );
+         iCou ++;
+         szBuff[i] = szBuff[i+SUFFIX_LEN] = '\0';
+         if( p->suffix[0] != '\n' )
+            memcpy( szBuff+i, p->suffix, SUFFIX_LEN );
+         //_writelog( "ac.log", "tl1> %d %s %s\r\n", i, szBuff, szWord );
+         Add2Buff( &cBuff, &iBuffLen, &iPos, szBuff );
+      }
+      if( p->next )
+         iCou += ListItems( p->next, &cBuff, &iBuffLen, &iPos, szWord, i );
    }
-   if( p->next )
-      iCou += ListItems( p->next, &cBuff, &iBuffLen, &iPos, szWord, i );
+   else
+      iCou += ListItems( **(trie->pages), &cBuff, &iBuffLen, &iPos, szWord, i );
 
    cBuff[iPos-1] = '\0';
    *iCount = iCou;
@@ -425,6 +473,32 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
       cBuff = NULL;
    }
    return cBuff;
+}
+
+void trie_Save( TRIE * trie, char * szFileName )
+{
+   int iBuffLen = LIST_BUFF_LEN, iPos;
+   char * cBuff;
+   FILE *hFile;
+
+   cBuff = (char*) malloc( iBuffLen );
+
+   sprintf( cBuff, "hbtrie 1.0/%d/%d/%d/%d/\n", trie->iLastPage, trie->iItems, trie->bUtf8, trie->bCase );
+   iPos = strlen( cBuff );
+
+   if( trie->iItems )
+   {
+      ListItems( **(trie->pages), &cBuff, &iBuffLen, &iPos, "", 0 );
+      cBuff[iPos-1] = '\0';
+   }
+
+   hFile = fopen( szFileName, "wb" );
+   fwrite( cBuff, 1, iPos-1, hFile );
+   fclose( hFile );
+
+   free( cBuff );
+
+   return;
 }
 
 int trie_Exist( TRIE * trie, char * szWord )

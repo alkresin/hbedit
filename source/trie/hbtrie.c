@@ -19,6 +19,12 @@ HB_FUNC( TRIE_CREATE )
    hb_retptr( ( void * ) trie_Create( (HB_ISNIL(1))? 1 : hb_parl(1) ) );
 }
 
+
+HB_FUNC( TRIE_OPEN )
+{
+   hb_retptr( ( void * ) trie_Open( (char *) hb_parc( 1 ) ) );
+}
+
 /*
  * trie_Close( hTrie )
  */
@@ -79,4 +85,10 @@ HB_FUNC( TRIE_TRACE )
 {
    TRIE * trie = (TRIE *) hb_parptr( 1 );
    trie_Trace( trie, (char *) hb_parc( 2 ) );
+}
+
+HB_FUNC( TRIE_SAVE )
+{
+
+   trie_Save( (TRIE *) hb_parptr( 1 ), (char *) hb_parc( 2 ) );
 }
