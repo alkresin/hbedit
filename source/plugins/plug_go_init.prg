@@ -80,6 +80,7 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
       cWord := cp_Substr( oEdit:lUtf8, cWord, nx1 + 1 )
       aImport := _go_KeyWords( oEdit, cPackage, .T. )
       IF ( i := Ascan( aImport, {|a|a[1]==cPackage} ) ) == 0
+         edi_Alert( cPackage + " - is not an imported package" )
          RETURN Nil
       ENDIF
       cPackage := aImport[i,2]
