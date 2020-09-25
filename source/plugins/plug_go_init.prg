@@ -90,7 +90,7 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
    // edi_Alert( cPackage + " " + cWord )
 
    FErase( cFileOut )
-   cedi_RunConsoleApp( 'godoc ' + cPackage + ' ' + cWord, cFileOut )
+   cedi_RunConsoleApp( 'go doc ' + cPackage + ' ' + cWord, cFileOut )
    IF Empty( cBuff := MemoRead( cFileOut ) )
       edi_Alert( "Error" )
       RETURN Nil

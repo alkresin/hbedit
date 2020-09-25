@@ -2526,9 +2526,11 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       IF Chr(13) $ s
          s := Strtran( s, Chr(13), "" )
       ENDIF
-
       IF Len( s ) == 0
          RETURN Nil
+      ENDIF
+      IF !lVert .AND. hb_hGetDef( TEdit():options,"autovertical", .F. )
+         lVert := ( oEdit:nPos > 1 .AND. Chr(10) $ s )
       ENDIF
       IF lVert
          oEdit:Undo( oEdit:nLine, oEdit:nPos,,, UNDO_OP_START )
@@ -2647,7 +2649,7 @@ FUNCTION s_cb2t()
 FUNCTION edi_ReadIni( xIni )
 
    LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
-   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lAutoComplete := .F.
+   LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lAutoComplete := .F., lAutoVert := .F.
    LOCAL lTab2Spaces := .F., lPathInHead := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0, nAutoDelay := 0
    LOCAL hHili
@@ -2686,6 +2688,9 @@ FUNCTION edi_ReadIni( xIni )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "autodelay" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nAutoDelay := Val( cTemp )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "autovertical" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lAutoVert := ( Lower(cTemp) == "on" )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "trimspaces" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lTrimSpaces := ( Lower(cTemp) == "on" )
@@ -2947,6 +2952,7 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():options["autodelay"] := nAutoDelay
       hIdle := hb_IdleAdd( {|| _FIdle() } )
    ENDIF
+   TEdit():options["autovertical"] := lAutoVert
    TEdit():options["syntax"] := lSyntax
    TEdit():options["pathinhead"] := lPathInHead
    cTabStr := Space( TEdit():nTablen )
@@ -3248,9 +3254,9 @@ FUNCTION mnu_Save( oEdit, lAs )
 
 FUNCTION mnu_View( oEdit )
 
-   LOCAL lAutoC := TEdit():options["autocomplete"], lAutoI := TEdit():options["autoindent"]
+   LOCAL lAutoC := TEdit():options["autocomplete"], lAutoI := TEdit():options["autoindent"], lAutoVert := TEdit():options["autovertical"]
    LOCAL aMenu := { {"Wrap ",,,Iif(!oEdit:lWrap,"Off","On")}, {"Autocomplete ",,,Iif(!lAutoC,"Off","On")}, ;
-      {"Autoindent ",,,Iif(!lAutoI,"Off","On")} }
+      {"Autovertical ",,,Iif(!lAutoVert,"Off","On")}, {"Autoindent ",,,Iif(!lAutoI,"Off","On")} }
    LOCAL y1 := Row(), x1 := Col()-6, i
 
    i := FMenu( oEdit, aMenu, y1, x1 )
@@ -3267,7 +3273,9 @@ FUNCTION mnu_View( oEdit )
          hb_IdleDel( hIdle )
          hIdle := Nil
       ENDIF
-   ELSEIF i == 2
+   ELSEIF i == 3
+      TEdit():options["autovertical"] := !lAutoVert
+   ELSEIF i == 4
       TEdit():options["autoindent"] := !lAutoI
    ENDIF
 
