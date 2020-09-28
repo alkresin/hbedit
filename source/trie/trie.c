@@ -63,7 +63,6 @@ static TRIEITEM * CreateTrieItem( TRIE * trie, char * szWord )
 
    p = **(trie->pages + trie->iLastPage) + trie->iLastItem;
    trie->iLastItem ++;
-   trie->iItems ++;
    p->letter = *szWord;
    p->right = NULL;
    p->next = NULL;
@@ -88,7 +87,7 @@ TRIE * trie_Create( int bCase )
    trie->pages = (TRIEPAGE **) malloc( iPages * sizeof( TRIEITEM** ) );
    memset( trie->pages, 0, iPages * sizeof( TRIEITEM** ) );
    trie->iPages = iPages;
-   trie->iLastPage = trie->iLastItem = trie->iItems = 0;
+   trie->iLastPage = trie->iLastItem = trie->iWords = 0;
    trie->bUtf8 = 0;
    trie->bCase = bCase;
 
@@ -101,10 +100,10 @@ TRIE * trie_Create( int bCase )
 TRIE * trie_Open( char * szFileName )
 {
    TRIE * trie = (TRIE*) malloc( sizeof(TRIE) );
-   int iPages = TRIE_PAGES_ADD;
+   int iPages;
    long lSize;
    FILE *hFile;
-   char * cBuff;
+   char *cBuff, *p, *p2;
    int bCase;
 
    hFile = fopen( szFileName, "rb" );
@@ -122,19 +121,53 @@ TRIE * trie_Open( char * szFileName )
    }
 
    cBuff = (char*) malloc( lSize+1 );
-   fwrite( cBuff, 1, lSize, hFile );
+   fread( cBuff, 1, lSize, hFile );
+   cBuff[lSize] = '\0';
 
    fclose( hFile );
+
+   if( memcmp( cBuff, "hbtrie", 6 ) || ( (p = strchr( cBuff, '/' )) == NULL ) || ( p - cBuff > 15 ) )
+   {
+      free( cBuff );
+      return NULL;
+   }
+   iPages = atoi( ++p );
+   p = strchr( p, '/' );
+   if( p )
+   {
+      p = strchr( ++p, '/' );
+      if( p )
+      {
+         p = strchr( ++p, '/' );
+         bCase = atoi( ++p );
+         p = strchr( p, '/' );
+      }
+   }
+   if( !p )
+   {
+      free( cBuff );
+      return NULL;
+   }
 
    trie->pages = (TRIEPAGE **) malloc( iPages * sizeof( TRIEITEM** ) );
    memset( trie->pages, 0, iPages * sizeof( TRIEITEM** ) );
    trie->iPages = iPages;
-   trie->iLastPage = trie->iLastItem = trie->iItems = 0;
+   trie->iLastPage = trie->iLastItem = trie->iWords = 0;
    trie->bUtf8 = 0;
    trie->bCase = bCase;
 
    trie->pages[0] = (TRIEPAGE *) malloc( TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
    memset( trie->pages[0], 0, TRIE_PAGE_SIZE * sizeof( TRIEITEM ) );
+
+   p2 = p + 1;
+   while( p2 )
+   {
+      p = p2 + 1;
+      p2 = strchr( p, '\n' );
+      if( p2 )
+         *p2 = '\0';
+      trie_Add( trie, p );
+   }
 
    free( cBuff );
 
@@ -228,7 +261,7 @@ void trie_Trace( TRIE * trie, char * szWord )
    char c;
    char s[512];
 
-   if( !trie->iItems )
+   if( !trie->iWords )
       return;
    memset( s, 0, 512 );
    for( i=0; i<iLen; i++ )
@@ -389,10 +422,14 @@ static int AddItem( TRIE * trie, char * szWord )
 
 void trie_Add( TRIE * trie, char * szWord )
 {
+   if( !szWord || !szWord[0] )
+      return;
+
    if( !trie->iLastPage && !trie->iLastItem )
       CreateTrieItem( trie, szWord );
    else
       AddItem( trie, szWord );
+   trie->iWords ++;
 }
 
 int trie_Count( TRIE * trie, char * szWord )
@@ -400,7 +437,7 @@ int trie_Count( TRIE * trie, char * szWord )
    int i, iCou = 0;
    TRIEITEM * p;
 
-   if( !trie->iItems )
+   if( !trie->iWords )
       return 0;
 
    if( !szWord )
@@ -417,7 +454,7 @@ int trie_Count( TRIE * trie, char * szWord )
          iCou += CountItems( p->next );
    }
    else
-      iCou = CountItems( **(trie->pages) );
+      iCou = trie->iWords;
 
    return iCou;
 }
@@ -430,7 +467,7 @@ char * trie_List( TRIE * trie, char * szWord, int * iCount )
    char szBuff[MAX_WORD_LEN];
 
    *iCount = 0;
-   if( !trie->iItems )
+   if( !trie->iWords )
       return NULL;
 
    if( !szWord )
@@ -483,10 +520,10 @@ void trie_Save( TRIE * trie, char * szFileName )
 
    cBuff = (char*) malloc( iBuffLen );
 
-   sprintf( cBuff, "hbtrie 1.0/%d/%d/%d/%d/\n", trie->iLastPage, trie->iItems, trie->bUtf8, trie->bCase );
+   sprintf( cBuff, "hbtrie 1.0/%d/%d/%d/%d/\n", trie->iLastPage+1, trie->iWords, trie->bUtf8, trie->bCase );
    iPos = strlen( cBuff );
 
-   if( trie->iItems )
+   if( trie->iWords )
    {
       ListItems( **(trie->pages), &cBuff, &iBuffLen, &iPos, "", 0 );
       cBuff[iPos-1] = '\0';
@@ -507,7 +544,7 @@ int trie_Exist( TRIE * trie, char * szWord )
    int i;
    TRIEITEM * p;
 
-   if( !trie->iItems )
+   if( !trie->iWords )
       return 0;
    i = FindItem( trie, szWord, &p );
    return ( i >= 0 );
