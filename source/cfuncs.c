@@ -50,6 +50,24 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
 }
 */
 
+static int cedi_Utf8CharLen( unsigned char ucChar )
+{
+   int n;
+
+   if( ucChar >= 0xc0 )
+   {
+      if( ucChar < 0xe0 )
+         n = 2;
+      else if( ucChar < 0xf0 )
+         n = 3;
+      else if( ucChar < 0xf8 )
+         n = 4;
+   }
+   else
+      n = 1;
+   return n;
+}
+
 static HB_WCHAR hb_UTF8StringPeek( const char * pSrc, HB_SIZE nLen, HB_SIZE nPos )
 {
    nLastX = 0;
@@ -197,6 +215,102 @@ HB_FUNC( CEDI_SUBSTR )
       else
          hb_retc_null();
    }
+}
+
+HB_FUNC( CEDI_STRPBRK )
+{
+   const char * szFind = hb_parc( 1 );
+   const char * szString = hb_parc( 2 );
+   char * p1 = (char*) szString, * p2;
+
+   if( HB_ISNUM( 3 ) )
+      p1 += hb_parni( 3 ) - 1;
+
+   while( *p1 )
+   {
+      p2 = (char*) szFind;
+      while( *p2 )
+      {
+         if( *p2 == *p1 )
+         {
+            hb_retni( p1 - (char*)szString + 1 );
+            return;
+         }
+         p2 ++;
+      }
+      p1 ++;
+   }
+}
+
+HB_FUNC( CEDI_UTF8STRPBRK )
+{
+   const char * szFind = hb_parc( 1 );
+   const char * szString = hb_parc( 2 );
+   char * p1 = (char*) szString, * p2;
+   int iPos = ( HB_ISNUM( 4 ) )? hb_parni( 4 ) : 1;
+   int iLen;
+
+   if( HB_ISNUM( 3 ) )
+      p1 += hb_parni( 3 ) - 1;
+
+   while( *p1 )
+   {
+      iLen = cedi_Utf8CharLen( *p1 );
+      if( iLen > 1 )
+      {
+         do
+         {
+            p1 ++;
+            if( !(*p1) )
+            {
+               hb_retni( -2 );
+               return;
+            }
+         }
+         while( --iLen );
+      }
+      else
+      {
+         p2 = (char*) szFind;
+         while( *p2 )
+         {
+            if( *p2 == *p1 )
+            {
+               hb_storni( iPos, 4 );
+               hb_retni( p1 - (char*)szString + 1 );
+               return;
+            }
+            p2 ++;
+         }
+         p1 ++;
+      };
+      iPos ++;
+   }
+   hb_retni( -1 );
+}
+
+HB_FUNC( CEDI_UTF8POS )
+{
+   const char * szString = hb_parc( 1 );
+   int iLen = hb_parni( 2 ) - 1, i = 0;
+   int iPos = 0;
+
+   while( szString[i] && i <= iLen )
+   {
+      i += cedi_Utf8CharLen( szString[i] );
+      iPos ++;
+   }
+   hb_retni( iPos );
+}
+
+HB_FUNC( CEDI_STRSKIPCHARS )
+{
+   const char * szString = hb_parc( 1 );
+   int nFrom = hb_parns( 2 );
+
+   while( szString[nFrom] && ( szString[nFrom] == ' ' || szString[nFrom] == '\t' ) )
+      nFrom ++;
+   hb_retni( nFrom );
 }
 
 HB_FUNC( CEDI_REDIRON )

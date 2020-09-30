@@ -4724,7 +4724,7 @@ FUNCTION edi_ReplSelected( oEdit, s )
          arr := hb_ATokens( s, Chr(10) )
       ENDIF
       IF nby1 == nby2
-         IF arr == Nil .AND. Len(s) == (nbx2-nbx1)
+         IF arr == Nil .AND. cp_Len(oEdit:lUtf8,s) == (nbx2-nbx1)
             oEdit:InsText( nby1, nbx1, s, .T., .F. )
          ENDIF
       ELSE
@@ -4744,7 +4744,7 @@ FUNCTION edi_ReplSelected( oEdit, s )
                IF nvx1 > nvx2
                   j := nvx1; nvx1 := nvx2; nvx2 := j
                ENDIF
-               IF Len( arr[i-nby1+1] ) == nvx2 - nvx1
+               IF cp_Len( oEdit:lUtf8, arr[i-nby1+1] ) == nvx2 - nvx1
                   oEdit:InsText( i, nvx1, arr[i-nby1+1], .T., .F. )
                ELSE
                   oEdit:DelText( i, nvx1, i, nvx2-1 )
