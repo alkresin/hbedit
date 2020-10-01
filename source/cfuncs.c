@@ -243,7 +243,7 @@ HB_FUNC( CEDI_STRPBRK )
    hb_retni( -1 );
 }
 
-HB_FUNC( CEDI_UTF8STRPBRK )
+HB_FUNC( CEDI_UTF8PBRK )
 {
    const char * szFind = hb_parc( 1 );
    const char * szString = hb_parc( 2 );
