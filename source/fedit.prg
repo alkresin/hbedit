@@ -2929,6 +2929,8 @@ FUNCTION edi_ReadIni( xIni )
                         hHili["bra"] := ( Lower(cTemp) == "on" )
                      ELSEIF arr[i] == "palette"
                         hHili["palette"] := cTemp
+                     ELSEIF arr[i] == "quotes"
+                        hHili["quotes"] := cTemp
                      ENDIF
                   ENDIF
                NEXT
@@ -3066,12 +3068,15 @@ FUNCTION edi_ReadIni( xIni )
 FUNCTION mnu_Help( oEdit )
 
    LOCAL cFullPath := edi_FindPath( "hbedit.help" ), oHelp, nCurr := TEdit():nCurr
-   LOCAL cHelp
+   LOCAL cHelp, cPlugHelp
 
    IF !Empty( cFullPath )
       cHelp := MemoRead( cFullPath )
+      IF !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
+         cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
+      ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + Chr(10) + ;
-         "Copyright (C) 2019-2020  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + Chr(10) + cHelp
+         "Copyright (C) 2019-2020  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 

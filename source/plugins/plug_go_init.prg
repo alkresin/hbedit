@@ -7,6 +7,23 @@ STATIC cIniPath
 FUNCTION Plug_go_Init( oEdit, cPath )
 
    LOCAL bOnKeyOrig
+   LOCAL bStartEdit := {|o|
+      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col()
+      IF o:lTopPane
+         SetColor( o:cColorPane )
+         Scroll( y, o:x1 + 8, y, o:x2 )
+         DevPos( y, o:x1 + 8 )
+         DevOut( "Go plugin:  Alt-I Info" + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
+         SetColor( o:cColor )
+         DevPos( nRow, nCol )
+         oEdit:oHili:hHili["help"] := "Go plugin hotkeys:" + Chr(10) + ;
+            "  Alt-I - Get info about a function or package under cursor" + Chr(10) + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
+      ENDIF
+      o:bStartEdit := Nil
+      RETURN Nil
+   }
    LOCAL bOnKey := {|o,n|
       LOCAL nRes := _go_Init_OnKey(o,n)
       IF bOnKeyOrig != Nil .AND. nRes >= 0
@@ -18,6 +35,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
    cIniPath := cPath
    oEdit:bAutoC := {|o,s| _go_AutoC(o,s)}
 
+   oEdit:bStartEdit := bStartEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF

@@ -240,6 +240,7 @@ HB_FUNC( CEDI_STRPBRK )
       }
       p1 ++;
    }
+   hb_retni( -1 );
 }
 
 HB_FUNC( CEDI_UTF8STRPBRK )
@@ -306,11 +307,11 @@ HB_FUNC( CEDI_UTF8POS )
 HB_FUNC( CEDI_STRSKIPCHARS )
 {
    const char * szString = hb_parc( 1 );
-   int nFrom = hb_parns( 2 );
+   int nFrom = hb_parns( 2 ) - 1;
 
    while( szString[nFrom] && ( szString[nFrom] == ' ' || szString[nFrom] == '\t' ) )
       nFrom ++;
-   hb_retni( nFrom );
+   hb_retni( nFrom + 1 );
 }
 
 HB_FUNC( CEDI_REDIRON )

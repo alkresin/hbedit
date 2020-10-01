@@ -42,7 +42,7 @@ Function plug_prg_run( oEdit )
 
    RETURN Nil
 
-FUNCTION _prg_ErrWin_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _prg_ErrWin_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nRow, s, nPos, nLine
 

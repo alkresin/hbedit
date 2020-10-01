@@ -50,10 +50,11 @@ CLASS Hili INHERIT HiliBase
    DATA   cMcomm1, cMcomm2         // Start and end strings for multiline comments
 
    DATA   lMultiComm
+   DATA   cQuo  INIT cQuotes
    DATA   aDop, nDopChecked
 
    METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5, ;
-      cSComm, cSLeft, cMComm, lCase )
+      cSComm, cSLeft, cMComm, lCase, cQuo )
    METHOD SET( oEdit )
    METHOD DO( nLine, lCheck )
    METHOD UpdSource( nLine )  INLINE  ( ::nDopChecked := nLine - 1 )
@@ -62,7 +63,7 @@ CLASS Hili INHERIT HiliBase
 ENDCLASS
 
 METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
-      cSComm, cSLeft, cMComm, lCase ) CLASS Hili
+      cSComm, cSLeft, cMComm, lCase, cQuo ) CLASS Hili
    LOCAL nPos
 
    ::aLineStru := Array( 20, 3 )
@@ -78,6 +79,7 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
       cSLeft := hb_hGetDef( hHili, "startline", "" )
       cMComm := hb_hGetDef( hHili, "mcomm", "" )
       lCase := hb_hGetDef( hHili, "case", .F. )
+      cQuo := hb_hGetDef( hHili, "quotes", "" )
    ENDIF
    IF !Empty( cKeywords1 )
       ::cKeywords1 := " " + AllTrim( cKeywords1 ) + " "
@@ -111,6 +113,9 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
    ENDIF
    IF ValType( lCase ) == 'L'
       ::lCase := lCase
+   ENDIF
+   IF !Empty( cQuo )
+      ::cQuo := AllTrim( cQuo )
    ENDIF
 
    IF !::lCase
@@ -230,11 +235,10 @@ METHOD DO( nLine, lCheck ) CLASS Hili
       //DO WHILE nPos <= nLen .AND. cp_Substr( lUtf8, cLine, nPos, 1 ) $ cSpaces; nPos ++ ; ENDDO
       DO WHILE nPos <= nLen .AND. cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) $ cSpaces; nPos ++ ; ENDDO
       DO WHILE nPos <= nLen
-         //IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
          IF ( c := cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) ) == ""
             RETURN Nil
 
-         ELSEIF c $ cQuotes
+         ELSEIF c $ ::cQuo
             nPos1 := nPos
             IF ( nPos := cp_At( lUtf8, c, cLine, nPos1 + 1 ) ) == 0
                nPos := nLen

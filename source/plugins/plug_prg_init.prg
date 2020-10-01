@@ -19,9 +19,14 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Harbour plugin:  Alt-D Dictionary  Alt-I Info" )
+         DevOut( "Harbour plugin:  Alt-D Dictionary  Alt-I Info" + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
+         oEdit:oHili:hHili["help"] := "Harbour plugin hotkeys:" + Chr(10) + ;
+            "  Alt-D - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
+            "  Alt-I - Get info about a function under cursor" + Chr(10) + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
 
