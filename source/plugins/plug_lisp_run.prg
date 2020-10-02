@@ -3,19 +3,23 @@
 
 DYNAMIC LISP_EVAL
 
+STATIC hrbHandle
+
 Function plug_lisp_run( oEdit, cPath )
 
    LOCAL cHrb, cBuff, i, oNew
    LOCAL nRow, nCol
    LOCAL cLispRun := "lisp_run.hrb"
 
-   IF !File( cPath + cLispRun )
-      edi_Alert( cLispRun + " not found" )
-      RETURN Nil
-   ENDIF
+   IF Empty( hrbHandle )
+      IF !File( cPath + cLispRun )
+         edi_Alert( cLispRun + " not found" )
+         RETURN Nil
+      ENDIF
 
-   i := hb_hrbLoad( cPath + cLispRun )
-   hb_hrbDo( i )
+      hrbHandle := hb_hrbLoad( cPath + cLispRun )
+      hb_hrbDo( hrbHandle )
+   ENDIF
 
    nRow := Row(); nCol := Col()
    CLEAR SCREEN

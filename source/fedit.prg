@@ -4571,7 +4571,12 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
 
 FUNCTION edi_FindChNext( oEdit, s, nPos, ch1, ch2, ch3 )
 
+   LOCAL cQuotes := ["']
    LOCAL c, cQuo, lQuo := .F., nLen := cp_Len( oEdit:lUtf8,s )
+
+   IF !Empty( oEdit:oHili )
+      cQuotes := hb_hGetDef( oEdit:oHili:hHili, "quotes", cQuotes )
+   ENDIF
 
    DO WHILE ++nPos <= nLen
       c := cp_Substr( oEdit:lUtf8, s, nPos, 1 )
@@ -4582,7 +4587,7 @@ FUNCTION edi_FindChNext( oEdit, s, nPos, ch1, ch2, ch3 )
       ELSE
         IF c == ch1 .OR. c == ch2 .OR. c == ch3
             RETURN nPos
-        ELSEIF c $ ["']
+        ELSEIF c $ cQuotes
             lQuo := .T.
             cQuo := c
          ENDIF
@@ -4593,7 +4598,12 @@ FUNCTION edi_FindChNext( oEdit, s, nPos, ch1, ch2, ch3 )
 
 STATIC FUNCTION edi_FindChPrev( oEdit, s, nPos, ch1, ch2, ch3 )
 
+   LOCAL cQuotes := ["']
    LOCAL c, cQuo, lQuo := .F., nPosQuo := edi_InQuo( oEdit, s, nPos )
+
+   IF !Empty( oEdit:oHili )
+      cQuotes := hb_hGetDef( oEdit:oHili:hHili, "quotes", cQuotes )
+   ENDIF
 
    IF nPosQuo > 0
       IF ( ( c := cp_Substr( oEdit:lUtf8, s, nPos, 1 ) ) == ch1 ;
@@ -4612,7 +4622,7 @@ STATIC FUNCTION edi_FindChPrev( oEdit, s, nPos, ch1, ch2, ch3 )
       ELSE
         IF c == ch1 .OR. c == ch2 .OR. c == ch3
             RETURN nPos
-        ELSEIF c $ ["']
+        ELSEIF c $ cQuotes
             lQuo := .T.
             cQuo := c
          ENDIF
@@ -4623,7 +4633,12 @@ STATIC FUNCTION edi_FindChPrev( oEdit, s, nPos, ch1, ch2, ch3 )
 
 FUNCTION edi_InQuo( oEdit, s, nPos )
 
+   LOCAL cQuotes := ["']
    LOCAL i := 0, c, cQuo, lQuo := .F., nPosQuo := 0
+
+   IF !Empty( oEdit:oHili )
+      cQuotes := hb_hGetDef( oEdit:oHili:hHili, "quotes", cQuotes )
+   ENDIF
 
    DO WHILE ++i < nPos
       c := cp_Substr( oEdit:lUtf8, s, i,1 )
@@ -4633,7 +4648,7 @@ FUNCTION edi_InQuo( oEdit, s, nPos )
             nPosQuo := 0
          ENDIF
       ELSE
-         IF c $ ["']
+         IF c $ cQuotes
             lQuo := .T.
             cQuo := c
             nPosQuo := i
