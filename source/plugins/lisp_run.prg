@@ -12,9 +12,11 @@
 #define ERR_PAIRQUOTE      3
 #define ERR_BRA_EXPECTED   4
 #define ERR_LIST_EXPECTED  5
+#define ERR_LOGIC_EXPECTED 6
 
 STATIC nLispErr := 0
-STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start" }
+STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pair quote not found", ;
+   "Left bracket expected", "List expected", "Logical value expected" }
 
 FUNCTION lisp_Run()
    RETURN Nil
@@ -126,16 +128,13 @@ STATIC FUNCTION lisp_Error( s )
 
 FUNCTION lisp_EvalExpr( s, nType )
 
-   LOCAL nPos, nPos2, cmd, nGetType, cNext
+   LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, lRes
 
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
    IF Left( s, 1 ) == "'"
       cNext := lisp_GetNextExpr( s, nPos )
-      IF nLispErr > 0
-         nType := TYPE_ERR
-         RETURN Nil
-      ENDIF
+      IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
       nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
       RETURN cNext
 
@@ -145,11 +144,9 @@ FUNCTION lisp_EvalExpr( s, nType )
    ELSE
       nPos2 := cedi_strPBrk( " )", s, nPos+1 )
       cmd := Lower( Substr( s, nPos, nPos2-nPos ) )
-      cNext := lisp_GetNextExpr( s, @nPos2 )
-      IF nLispErr > 0
-         nType := TYPE_ERR
-         RETURN Nil
-      ENDIF
+      nPos := nPos2
+      cNext := lisp_GetNextExpr( s, @nPos )
+      IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
 
       SWITCH cmd
       CASE "quote"
@@ -170,10 +167,7 @@ FUNCTION lisp_EvalExpr( s, nType )
             cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nGetType == TYPE_LIST
                cNext := lisp_GetNextExpr( cNext, 2 )
-               IF nLispErr > 0
-                  nType := TYPE_ERR
-                  RETURN Nil
-               ENDIF
+               IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
                nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
                RETURN cNext
             ELSE
@@ -193,10 +187,7 @@ FUNCTION lisp_EvalExpr( s, nType )
             IF nGetType == TYPE_LIST
                nPos := 2
                lisp_GetNextExpr( cNext, @nPos )
-               IF nLispErr > 0
-                  nType := TYPE_ERR
-                  RETURN Nil
-               ENDIF
+               IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
                cNext := '(' + Substr( cNext, nPos )
                nPos := cedi_strSkipChars( cNext, 2 )
                IF Substr( cNext, nPos, 1 ) == ')'
@@ -218,18 +209,69 @@ FUNCTION lisp_EvalExpr( s, nType )
          ENDIF
 
       CASE "cond"
-         EXIT
+         DO WHILE .T.
+            nPos2 := 2
+            cExpr := lisp_GetNextExpr( cNext, @nPos2 )
+            IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+            lRes := lisp_EvalExpr( cExpr, @nGetType )
+            IF Valtype( lRes ) == "L"
+               IF lRes
+                  cExpr := lisp_GetNextExpr( cNext, @nPos2 )
+                  IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+                  RETURN lisp_EvalExpr( cExpr, @nGetType )
+               ENDIF
+            ELSE
+               nLispErr := ERR_LOGIC_EXPECTED
+               nType := TYPE_ERR
+               RETURN Nil
+            ENDIF
+            IF Empty( cNext := lisp_GetNextExpr( s, @nPos ) )
+               EXIT
+            ENDIF
+            IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+         ENDDO
+         nType := TYPE_ATOM
+         RETURN .F.
 
       CASE "cons"
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
-         ELSE
          ENDIF
-         EXIT
+
+         cExpr := lisp_GetNextExpr( s, @nPos )
+         IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+         IF Left( cExpr,1 ) $ "('"
+            cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
+         ENDIF
+
+         IF nGetType2 == TYPE_ATOM .AND. Valtype( cNext ) == "L"
+            cNext := Iif( cNext, "T", "()" )
+         ENDIF
+         IF nGetType2 == TYPE_LIST
+            RETURN "( " + cNext + Substr( cExpr, 2 )
+         ELSE
+            IF Valtype( cExpr ) == "L"
+               cExpr := Iif( cExpr, "T", "()" )
+            ENDIF
+            RETURN "( " + cNext + " " + cExpr + ")"
+         ENDIF
 
       CASE "eq"
       CASE "equal"
-         EXIT
+         IF Left( cNext,1 ) $ "('"
+            cNext := lisp_EvalExpr( cNext, @nGetType )
+         ENDIF
+         cExpr := lisp_GetNextExpr( s, @nPos )
+         IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+         IF Left( cExpr,1 ) $ "('"
+            cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
+         ENDIF
+         IF nGetType != nGetType2 .OR. Valtype( cNext ) != ValType( cExpr )
+            RETURN .F.
+         ELSE
+            RETURN ( cNext == cExpr )
+         ENDIF
+
       CASE "label"
          EXIT
       CASE "lambda"
