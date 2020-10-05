@@ -6,6 +6,7 @@
 #define TYPE_ATOM   1
 #define TYPE_LIST   2
 #define TYPE_EXPR   3
+#define TYPE_LAMBDA 4
 
 #define ERR_PAIRBRACKET    1
 #define ERR_WRONGSTARTCHAR 2
@@ -13,10 +14,11 @@
 #define ERR_BRA_EXPECTED   4
 #define ERR_LIST_EXPECTED  5
 #define ERR_LOGIC_EXPECTED 6
+#define ERR_WRONG_PARAM_NUMBER 7
 
 STATIC nLispErr := 0
 STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pair quote not found", ;
-   "Left bracket expected", "List expected", "Logical value expected" }
+   "Left bracket expected", "List expected", "Logical value expected", "Wrong number of parameters" }
 
 FUNCTION lisp_Run()
    RETURN Nil
@@ -129,6 +131,7 @@ STATIC FUNCTION lisp_Error( s )
 FUNCTION lisp_EvalExpr( s, nType )
 
    LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, lRes
+   LOCAL aLambda, i, c
 
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
@@ -139,6 +142,34 @@ FUNCTION lisp_EvalExpr( s, nType )
       nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
       //edi_Alert( "0a> " + ltrim(str(ntype))+"/"+ ltrim(str(npos))+"/"+cNext )
       RETURN cNext
+
+   ELSEIF Substr( s, nPos, 1 ) == '('
+      cNext := lisp_GetNextExpr( s, nPos )
+      IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+      cNext := lisp_EvalExpr( cNext, @nGetType )
+      IF nGetType == TYPE_LAMBDA
+         cExpr := cNext[1]
+         i := 1
+         DO WHILE !Empty( c := lisp_GetNextExpr( s, @nPos ) )
+            i ++
+            IF i > Len( aLambda )
+               nLispErr := ERR_WRONG_PARAM_NUMBER; nType := TYPE_ERR;  RETURN Nil
+            ENDIF
+            c := lisp_EvalExpr( c, @nGetType )
+            cExpr := hb_strReplace( cExpr, { ' '+aLambda[i]+' ', '('+aLambda[i]+' ', ;
+               ' '+aLambda[i]+')', '('+aLambda[i]+')' }, { ' '+c+' ', '('+c+' ', ;
+               ' '+c+')', '('+c+')' } )
+         ENDDO
+         IF i != Len( aLambda )
+            nLispErr := ERR_WRONG_PARAM_NUMBER; nType := TYPE_ERR;  RETURN Nil
+         ENDIF
+         c := lisp_EvalExpr( c, @nGetType )
+         IF Valtype( c ) == "L"
+            c := Iif( c, "T", "()" )
+         ENDIF
+         RETURN c
+      ELSE
+      ENDIF
 
    ELSEIF Substr( s, nPos, 1 ) == ')'
       nType := TYPE_ATOM
@@ -175,14 +206,10 @@ FUNCTION lisp_EvalExpr( s, nType )
                nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
                RETURN cNext
             ELSE
-               nLispErr := ERR_LIST_EXPECTED
-               nType := TYPE_ERR
-               RETURN Nil
+               nLispErr := ERR_LIST_EXPECTED; nType := TYPE_ERR; RETURN Nil
             ENDIF
          ELSE
-            nLispErr := ERR_BRA_EXPECTED
-            nType := TYPE_ERR
-            RETURN Nil
+            nLispErr := ERR_BRA_EXPECTED; nType := TYPE_ERR;  RETURN Nil
          ENDIF
 
       CASE "cdr"
@@ -202,14 +229,10 @@ FUNCTION lisp_EvalExpr( s, nType )
                   RETURN cNext
                ENDIF
             ELSE
-               nLispErr := ERR_LIST_EXPECTED
-               nType := TYPE_ERR
-               RETURN Nil
+               nLispErr := ERR_LIST_EXPECTED; nType := TYPE_ERR; RETURN Nil
             ENDIF
          ELSE
-            nLispErr := ERR_BRA_EXPECTED
-            nType := TYPE_ERR
-            RETURN Nil
+            nLispErr := ERR_BRA_EXPECTED; nType := TYPE_ERR; RETURN Nil
          ENDIF
 
       CASE "cond"
@@ -225,9 +248,7 @@ FUNCTION lisp_EvalExpr( s, nType )
                   RETURN lisp_EvalExpr( cExpr, @nGetType )
                ENDIF
             ELSE
-               nLispErr := ERR_LOGIC_EXPECTED
-               nType := TYPE_ERR
-               RETURN Nil
+               nLispErr := ERR_LOGIC_EXPECTED; nType := TYPE_ERR; RETURN Nil
             ENDIF
             IF Empty( cNext := lisp_GetNextExpr( s, @nPos ) )
                EXIT
@@ -281,10 +302,25 @@ FUNCTION lisp_EvalExpr( s, nType )
 
       CASE "label"
          EXIT
+
       CASE "lambda"
-         EXIT
+         IF Left( cNext,1 ) == "("
+            aLambda := { Nil }
+            nPos2 := 2
+            DO WHILE !Empty( c := lisp_GetNextExpr( cNext, @nPos2 ) )
+               Aadd( aLambda, c )
+            ENDDO
+         ELSE
+            nLispErr := ERR_BRA_EXPECTED; nType := TYPE_ERR; RETURN Nil
+         ENDIF
+         nType := TYPE_LAMBDA
+         aLambda[1] := lisp_GetNextExpr( s, @nPos )
+         IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
+         RETURN aLambda
+
       CASE "defun"
          EXIT
+
       OTHERWISE
       ENDSWITCH
    ENDIF
