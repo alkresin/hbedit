@@ -132,10 +132,12 @@ FUNCTION lisp_EvalExpr( s, nType )
 
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
+   //edi_Alert( "0> " + s )
    IF Left( s, 1 ) == "'"
       cNext := lisp_GetNextExpr( s, nPos )
       IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
       nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
+      //edi_Alert( "0a> " + ltrim(str(ntype))+"/"+ ltrim(str(npos))+"/"+cNext )
       RETURN cNext
 
    ELSEIF Substr( s, nPos, 1 ) == ')'
@@ -145,7 +147,9 @@ FUNCTION lisp_EvalExpr( s, nType )
       nPos2 := cedi_strPBrk( " )", s, nPos+1 )
       cmd := Lower( Substr( s, nPos, nPos2-nPos ) )
       nPos := nPos2
+      //edi_Alert( "1> " + ltrim(str(nPos))+"/"+s )
       cNext := lisp_GetNextExpr( s, @nPos )
+      //edi_Alert( "2> " + cNext )
       IF nLispErr > 0; nType := TYPE_ERR; RETURN Nil; ENDIF
 
       SWITCH cmd
@@ -234,6 +238,7 @@ FUNCTION lisp_EvalExpr( s, nType )
          RETURN .F.
 
       CASE "cons"
+         nType := TYPE_LIST
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
          ENDIF
@@ -244,7 +249,7 @@ FUNCTION lisp_EvalExpr( s, nType )
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
          ENDIF
 
-         IF nGetType2 == TYPE_ATOM .AND. Valtype( cNext ) == "L"
+         IF nGetType == TYPE_ATOM .AND. Valtype( cNext ) == "L"
             cNext := Iif( cNext, "T", "()" )
          ENDIF
          IF nGetType2 == TYPE_LIST
@@ -266,10 +271,12 @@ FUNCTION lisp_EvalExpr( s, nType )
          IF Left( cExpr,1 ) $ "('"
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
          ENDIF
+         nType := TYPE_ATOM
          IF nGetType != nGetType2 .OR. Valtype( cNext ) != ValType( cExpr )
             RETURN .F.
          ELSE
-            RETURN ( cNext == cExpr )
+            RETURN Iif( nGetType == TYPE_LIST, StrTran(cNext," ","") == StrTran(cExpr," ",""), ;
+               ( cNext == cExpr ) )
          ENDIF
 
       CASE "label"
@@ -311,6 +318,7 @@ STATIC FUNCTION lisp_GetNextExpr( s, nPos )
       ENDIF
 
    ELSEIF c == "'"
+      nPos ++
       s := lisp_GetNextExpr( s, @nPos )
       RETURN "'" + s
 
@@ -319,8 +327,13 @@ STATIC FUNCTION lisp_GetNextExpr( s, nPos )
 
    ELSE
       nPos2 := cedi_strPBrk( " )", s, nPos+1 )
+      IF nPos2 < 0
+         s := Substr( s, nPos )
+      ELSE
+         s := Substr( s, nPos, nPos2-nPos )
+      ENDIF
       nPos := nPos2
-      RETURN Substr( s, nPos, nPos2-nPos )
+      RETURN s
    ENDIF
 
    RETURN ""
