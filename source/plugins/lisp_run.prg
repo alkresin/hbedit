@@ -375,7 +375,7 @@ STATIC FUNCTION lisp_Lambda( s, nPos, cBody, cName )
       IF nLispErr > 0; RETURN Nil; ENDIF
 
       DO WHILE !Empty( cName := lisp_GetNextExpr( cBody, @nPos2 ) )
-         cNewName := '&' + cName
+         cNewName := '&' + cName + '&'
          Aadd( aLambda, cNewName )
          aLambda[1] := hb_strReplace( aLambda[1], { ' '+cName+' ', '('+cName+' ', ;
             ' '+cName+')', '('+cName+')' }, { ' '+cNewName+' ', '('+cNewName+' ', ;
@@ -399,9 +399,10 @@ STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
       ENDIF
       //cParam := lisp_EvalExpr( cParam, @nGetType )
       //edi_Alert( ltrim(str(i))+": "+valtype(aLambda[i])+valtype(cParam) )
-      cExpr := hb_strReplace( cExpr, { ' '+aLambda[i]+' ', '('+aLambda[i]+' ', ;
-         ' '+aLambda[i]+')', '('+aLambda[i]+')' }, { ' '+cParam+' ', '('+cParam+' ', ;
-         ' '+cParam+')', '('+cParam+')' } )
+      cExpr := StrTran( cExpr, aLambda[i], cParam )
+      //cExpr := hb_strReplace( cExpr, { ' '+aLambda[i]+' ', '('+aLambda[i]+' ', ;
+      //   ' '+aLambda[i]+')', '('+aLambda[i]+')' }, { ' '+cParam+' ', '('+cParam+' ', ;
+      //   ' '+cParam+')', '('+cParam+')' } )
    ENDDO
 
    IF i != Len( aLambda )
