@@ -5,6 +5,9 @@
  * www - http://www.kresin.ru
  */
 
+#ifndef _TRIE_API
+#define _TRIE_API
+
 #define SUFFIX_LEN         4
 #define TRIE_PAGE_SIZE   512
 #define TRIE_PAGES_ADD     8
@@ -42,3 +45,5 @@ extern char * trie_List( TRIE * trie, char * szWord, int * iCount );
 extern int trie_Exist( TRIE * trie, char * szWord );
 extern void trie_Trace( TRIE * trie, char * szWord );
 extern void trie_Save( TRIE * trie, char * szFileName );
+
+#endif
