@@ -224,6 +224,9 @@ FUNCTION lisp_EvalExpr( s, nType )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
                RETURN lisp_EvalRet( cNext )
+            ELSEIF cNext == cFalse
+               nType := TYPE_ATOM
+               RETURN lisp_EvalRet( cFalse )
             ELSE
                nType := lisp_Error( ERR_LIST_EXPECTED,s); RETURN Nil
             ENDIF
@@ -247,6 +250,9 @@ FUNCTION lisp_EvalExpr( s, nType )
                   nType := TYPE_LIST
                   RETURN lisp_EvalRet( cNext )
                ENDIF
+            ELSEIF cNext == cFalse
+               nType := TYPE_ATOM
+               RETURN lisp_EvalRet( cFalse )
             ELSE
                nType := lisp_Error( ERR_LIST_EXPECTED,s ); RETURN Nil
             ENDIF
@@ -265,7 +271,7 @@ FUNCTION lisp_EvalExpr( s, nType )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                cRes := lisp_EvalRet( lisp_EvalExpr( cExpr, @nGetType ) )
                nType := nGetType
-               RETURN cRes
+               RETURN lisp_EvalRet( cRes )
             ELSEIF cRes != cFalse
                nType := lisp_Error( ERR_LOGIC_EXPECTED,cExpr+Chr(10)+s ); RETURN Nil
             ENDIF
