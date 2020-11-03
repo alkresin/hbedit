@@ -3,7 +3,7 @@
 
 Function plug_prg_compile( oEdit )
 
-   LOCAL acmd := Array( 5 ), cHrb, i, cName := "", cTemp, nPos, cFile := "$hb_compile_err", oNew
+   LOCAL acmd := Array( 5 ), cHrb, i, ie, cName := "", cTemp, nPos, cFile := "$hb_compile_err", oNew
    LOCAL cFileRes := hb_DirTemp() + "hb_compile_err.out"
    LOCAL nRow := Row(), nCol := Col()
 
@@ -15,9 +15,11 @@ Function plug_prg_compile( oEdit )
    acmd[4] := "-q"
    acmd[5] := "-w"
 
-   cedi_rediron( 2, cFileRes )
+   i := cedi_rediron( 1, cFileRes )
+   ie := cedi_rediron( 2, cFileRes )
    cHrb := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
-   cedi_rediroff( 2 )
+   cedi_rediroff( 2, ie )
+   cedi_rediroff( 1, i )
    CLEAR SCREEN
 
    FOR i := 1 TO Len( oEdit:aText )

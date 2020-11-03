@@ -5,6 +5,11 @@
  * www - http://www.kresin.ru
  */
 
+#if defined(__linux__) || defined(__unix__)
+#include <unistd.h>
+#else
+#include <io.h>
+#endif
 #include <stdio.h>
 #include "hbapi.h"
 #include "hbapiitm.h"
@@ -317,21 +322,38 @@ HB_FUNC( CEDI_STRSKIPCHARS )
 HB_FUNC( CEDI_REDIRON )
 {
    int istd = ( HB_ISNIL( 1 ) ) ? 1 : hb_parni( 1 );
+   int fd;
 
+   fflush( ( istd == 1 ) ? stdout : stderr );
+   fd = dup( fileno( ( istd == 1 ) ? stdout : stderr ) );
    freopen( hb_parc( 2 ), "w", ( istd == 1 ) ? stdout : stderr );
+   hb_retni( fd );
 }
 
 HB_FUNC( CEDI_REDIROFF )
 {
    int istd = ( HB_ISNIL( 1 ) ) ? 1 : hb_parni( 1 );
-   fclose( ( istd == 1 ) ? stdout : stderr );
+   int fd;
+
+   fflush( ( istd == 1 ) ? stdout : stderr );
+
+   if( HB_ISNIL( 2 ) )
+   {
+      fclose( ( istd == 1 ) ? stdout : stderr );
+   }
+   else
+   {
+      fd = hb_parni( 2 );
+      dup2( fd, fileno( ( istd == 1 ) ? stdout : stderr ) );
+      close( fd );
+      clearerr( ( istd == 1 ) ? stdout : stderr );
+   }
 }
 
 #define BUFSIZE  4096
 
 #if defined(__linux__) || defined(__unix__)
 
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
