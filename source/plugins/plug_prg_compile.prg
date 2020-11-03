@@ -15,7 +15,7 @@ Function plug_prg_compile( oEdit )
    acmd[4] := "-q"
    acmd[5] := "-w"
 
-   i := cedi_rediron( 1, cFileRes )
+   i := cedi_rediron( 1, hb_DirTemp() + "hbcompile.out" )
    ie := cedi_rediron( 2, cFileRes )
    cHrb := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
    cedi_rediroff( 2, ie )
