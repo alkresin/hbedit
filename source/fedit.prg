@@ -70,6 +70,7 @@ CLASS TEdit
    CLASS VAR aCPages    SHARED  INIT {}
    CLASS VAR aWindows   SHARED                   // An array with all TEdit objects
    CLASS VAR nCurr      SHARED                   // A currently processed TEdit object number
+   CLASS VAR nCurrPrev  SHARED
    CLASS VAR cpInit     SHARED
    CLASS VAR cLauncher  SHARED  INIT ""
    CLASS VAR lReadIni   SHARED  INIT .F.         // If ini file have been read already
@@ -311,10 +312,14 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
 
    RETURN Nil
 
-METHOD Edit() CLASS TEdit
+METHOD Edit( lShowOnly ) CLASS TEdit
 
    LOCAL i, nKeyExt, cFile_utf8, n
 
+   IF !Empty( ::oParent ) .AND. ( Len( ::aWindows ) > ::nCurrPrev .OR. ;
+      !( ::aWindows[::nCurrPrev]:oParent == ::oParent ) )
+      ::oParent:Edit( .T. )
+   ENDIF
    hb_cdpSelect( ::cp )
    ::nCurr := Ascan( ::aWindows, {|o|o==Self} )
 
@@ -351,6 +356,11 @@ METHOD Edit() CLASS TEdit
    IF !Empty( ::bStartEdit )
       Eval( ::bStartEdit, Self )
    ENDIF
+
+   IF !Empty( lShowOnly )
+      RETURN Nil
+   ENDIF
+   ::nCurrPrev := ::nCurr
 
    ::nPosBack := ::nPos
    ::nLineBack := ::nLine
@@ -403,6 +413,9 @@ METHOD Edit() CLASS TEdit
    IF ::lClose
       IF Ascan( ::aWindows, {|o|o:oParent==Self} ) == 0
          edi_CloseWindow( Self )
+         IF ::nCurr > 1
+            ::nCurr --
+         ENDIF
       ELSEIF edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) == 1
          IF ( n := edi_WindowUpdated( Self ) ) > 0
             IF ( i := edi_Alert( "Some files are updated.", "Cancel", "GoTo", "Close anyway" ) ) <= 1
@@ -414,6 +427,9 @@ METHOD Edit() CLASS TEdit
             ENDIF
          ENDIF
          edi_CloseWindow( Self )
+         IF ::nCurr > 1
+            ::nCurr --
+         ENDIF
       ELSE
          ::lClose := .F.
       ENDIF
@@ -4806,6 +4822,7 @@ FUNCTION edi_FillSelected( oEdit, cChar )
 FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace, cp )
 
    LOCAL oNew, y1 := oEdit:y1, x1 := oEdit:x1, y2 := oEdit:y2, x2 := oEdit:x2, lv := .F.
+   LOCAL i, n
 
    IF nPlace == 0
       y2 := y1 + nSpace - 1
@@ -4835,7 +4852,21 @@ FUNCTION edi_AddWindow( oEdit, cText, cFileName, nPlace, nSpace, cp )
    ENDIF
    oNew:SetText( cText, cFileName )
    oNew:oParent := oEdit
-   mnu_ToBuf( oEdit, Len( TEdit():aWindows ) )
+   // Now we need to place new child window after a last child of oEdit
+   n := Len( TEdit():aWindows ) - 1
+   FOR i := n TO 1 STEP -1
+      IF ( TEdit():aWindows[i] == oEdit .OR. TEdit():aWindows[i]:oParent == oEdit )
+         IF i < n
+            AIns( TEdit():aWindows, i+1 )
+            TEdit():aWindows[i+1] := oNew
+            IF TEdit():nCurr > i
+               TEdit():nCurr ++
+            ENDIF
+            EXIT
+         ENDIF
+      ENDIF
+   NEXT
+   mnu_ToBuf( oEdit, oNew )
 
    RETURN oNew
 
