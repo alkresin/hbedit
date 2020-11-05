@@ -25,10 +25,8 @@ STATIC nLispErr := 0
 STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pair quote not found", ;
    "Left bracket expected", "List expected", "Atom expected", "Logical value expected", ;
    "Lanbda expected", "Wrong number of parameters", "Unknown function" }
-STATIC aLabels := {}
+STATIC aLabels, aDefuns
 STATIC cError := ""
-
-Memvar aDefuns
 
 FUNCTION lisp_Run()
    RETURN Nil
@@ -38,7 +36,8 @@ FUNCTION lisp_Eval( xText )
    LOCAL s, cEol := Chr(10), i, nPos, c, nLevel, cBuff
    LOCAL lIn := .F., lNeedNext
 
-   PUBLIC aDefuns := hb_Hash()
+   aLabels := {}
+   aDefuns := hb_Hash()
 
    IF Valtype( xText ) == "C"
       IF '(' $ xText
