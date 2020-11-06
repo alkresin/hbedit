@@ -313,9 +313,14 @@ HB_FUNC( CEDI_STRSKIPCHARS )
 {
    const char * szString = hb_parc( 1 );
    int nFrom = hb_parns( 2 ) - 1;
+   int bDesc = ( HB_ISNIL( 3 ) ) ? 1 : hb_parl( 3 );
 
-   while( szString[nFrom] && ( szString[nFrom] == ' ' || szString[nFrom] == '\t' ) )
-      nFrom ++;
+   if( bDesc )
+      while( szString[nFrom] && ( szString[nFrom] == ' ' || szString[nFrom] == '\t' ) )
+         nFrom ++;
+   else
+      while( szString[nFrom] && ( szString[nFrom] == ' ' || szString[nFrom] == '\t' ) )
+         nFrom --;
    hb_retni( nFrom + 1 );
 }
 
