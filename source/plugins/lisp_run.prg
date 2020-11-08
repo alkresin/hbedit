@@ -96,6 +96,11 @@ FUNCTION lisp_Eval( xText )
 
          lIn := .F.
          cBuff += LTrim( Left( s, nPos ) )
+         edi_Writelog( "Parse line" )
+         edi_Writelog( cBuff )
+         cBuff := lisp_Lambda_1( cBuff, .T. )
+         edi_Writelog( cBuff )
+         edi_Writelog( "Eval line" )
          ? lisp_EvalExpr( cBuff )
          lisp_ShowError()
 
@@ -404,41 +409,55 @@ STATIC FUNCTION lisp_Lambda( s, nPos, cBody, cName )
       aLambda := { lisp_GetNextExpr( s, @nPos ), cName }
       IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
 
+      /*
       edi_Writelog( "l1>" + aLambda[1] )
       cName := lisp_GetNextExpr( cBody, @nPos2 )
       IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
-         IF !Empty( cName )
-            DO WHILE !Empty( cName )
-               cNewName := '&' + cName + '&'
-               Aadd( aLambda, cNewName )
+      IF !Empty( cName )
+         DO WHILE !Empty( cName )
+            cNewName := '&' + cName + '&'
+            Aadd( aLambda, cNewName )
 
-               aLambda[1] := hb_strReplace( aLambda[1], { ' '+cName+' ', '('+cName+' ', ;
-                  ' '+cName+')', '('+cName+')' }, { ' '+cNewName+' ', '('+cNewName+' ', ;
-                  ' '+cNewName+')', '('+cNewName+')' } )
+            aLambda[1] := hb_strReplace( aLambda[1], { ' '+cName+' ', '('+cName+' ', ;
+               ' '+cName+')', '('+cName+')' }, { ' '+cNewName+' ', '('+cNewName+' ', ;
+               ' '+cNewName+')', '('+cNewName+')' } )
 
-               cName := lisp_GetNextExpr( cBody, @nPos2 )
-               IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
-            ENDDO
-         ENDIF
+            cName := lisp_GetNextExpr( cBody, @nPos2 )
+            IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDDO
       ENDIF
       edi_Writelog( "l2>" + aLambda[1] )
+      */
    ELSE
       lisp_Error( ERR_BRA_EXPECTED,cBody ); RETURN Nil
    ENDIF
 
    RETURN aLambda
 
-STATIC FUNCTION lisp_Lambda_1( s )
+STATIC FUNCTION lisp_Lambda_1( s, lStart )
 
    LOCAL nPos, nPos1, nPos2 := 1, nFromEnd, cName, cNewName, s1, s2
 
+   edi_Writelog( "ll1> " + s )
+   IF !lStart
+      nPos1 := nPos2 := hb_At( ')', s, 6 ) + 1
+   ENDIF
    DO WHILE ( nPos := hb_At( "lambda ", s, nPos2 ) ) > 0
-      IF nPos > 0 .AND. ( nPos := cedi_strSkipChars( s, nPos-1 ) ) > 0 .AND. Substr( s, nPos, 1 ) == '('
-         nPos2 := lisp_GetPairBracket( s, nPos, 0 )
-         nFromEnd := Len( s ) - nPos2
-         s := Left( s, nPos-1 ) + lisp_Lambda_1( SubStr( s, nPos, nPos2-nPos+1 ) ) + Substr( s, nPos2+1 )
-         nPos2 := Len( s ) - nFromEnd
+      IF nPos > 0
+         nPos := cedi_strSkipChars( s, nPos-1, .T. )
+         IF Substr( s, nPos, 1 ) == '('
+            nPos2 := lisp_GetPairBracket( s, nPos, 0 )
+            nFromEnd := Len( s ) - nPos2
+            s := Left( s, nPos-1 ) + lisp_Lambda_1( SubStr( s, nPos, nPos2-nPos+1 ), .F. ) + Substr( s, nPos2+1 )
+            nPos2 := Len( s ) - nFromEnd
+         ELSE
+            nPos2 := nPos + 6
+         ENDIF
+      ELSE
+         EXIT
       ENDIF
+   ENDDO
+   IF !lStart
       nPos := nPos1 := hb_At( '(', s, 6 ) + 1
       cName := lisp_GetNextExpr( s, @nPos )
       IF !Empty( cName )
@@ -457,8 +476,9 @@ STATIC FUNCTION lisp_Lambda_1( s )
          ENDDO
          s := Left( s, nPos1 ) + s2 + ")" + s1
       ENDIF
-   ENDDO
+   ENDIF
 
+   edi_Writelog( "ll2> " + s )
    RETURN s
 
 STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
