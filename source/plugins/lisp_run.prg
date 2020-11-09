@@ -90,6 +90,7 @@ FUNCTION lisp_Eval( xText )
                ENDIF
             ELSE
                lisp_ShowError( aErrTxt[ERR_WRONGSTARTCHAR] )
+               ? Substr( s, nPos, 1 )
                RETURN Nil
             ENDIF
          ENDIF
@@ -403,31 +404,15 @@ STATIC FUNCTION lisp_EvalRet( s )
 
 STATIC FUNCTION lisp_Lambda( s, nPos, cBody, cName )
 
-   LOCAL aLambda, nPos2 := 2, cNewName
+   LOCAL aLambda, nPos2 := 2
 
    IF Left( cBody,1 ) == "("
       aLambda := { lisp_GetNextExpr( s, @nPos ), cName }
       IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
 
-      /*
-      edi_Writelog( "l1>" + aLambda[1] )
-      cName := lisp_GetNextExpr( cBody, @nPos2 )
-      IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
-      IF !Empty( cName )
-         DO WHILE !Empty( cName )
-            cNewName := '&' + cName + '&'
-            Aadd( aLambda, cNewName )
-
-            aLambda[1] := hb_strReplace( aLambda[1], { ' '+cName+' ', '('+cName+' ', ;
-               ' '+cName+')', '('+cName+')' }, { ' '+cNewName+' ', '('+cNewName+' ', ;
-               ' '+cNewName+')', '('+cNewName+')' } )
-
-            cName := lisp_GetNextExpr( cBody, @nPos2 )
-            IF nLispErr > 0; lisp_Error( ,s ); RETURN Nil; ENDIF
-         ENDDO
-      ENDIF
-      edi_Writelog( "l2>" + aLambda[1] )
-      */
+      DO WHILE !Empty( cName := lisp_GetNextExpr( cBody, @nPos2 ) )
+         Aadd( aLambda, cName )
+      ENDDO
    ELSE
       lisp_Error( ERR_BRA_EXPECTED,cBody ); RETURN Nil
    ENDIF
@@ -440,7 +425,7 @@ STATIC FUNCTION lisp_Lambda_1( s, lStart )
 
    edi_Writelog( "ll1> " + s )
    IF !lStart
-      nPos1 := nPos2 := hb_At( ')', s, 6 ) + 1
+      nPos2 := hb_At( ')', s, 6 ) + 1
    ENDIF
    DO WHILE ( nPos := hb_At( "lambda ", s, nPos2 ) ) > 0
       IF nPos > 0
@@ -458,7 +443,8 @@ STATIC FUNCTION lisp_Lambda_1( s, lStart )
       ENDIF
    ENDDO
    IF !lStart
-      nPos := nPos1 := hb_At( '(', s, 6 ) + 1
+      nPos := nPos1 := hb_At( '(', s, 6 )
+      nPos ++
       cName := lisp_GetNextExpr( s, @nPos )
       IF !Empty( cName )
          nPos2 := hb_At( ')', s, nPos ) + 1
@@ -486,9 +472,10 @@ STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
    LOCAL cExpr := aLambda[1], i, cParam, nGetType
 
    i := 2
-   edi_Writelog( "Eval: " + Iif( aLambda[2]==Nil,"",aLambda[2] ) )
+   edi_Writelog( "Eval: " + Iif( aLambda[2]==Nil,"",aLambda[2] ) + " " + Ltrim(Str(Len(aLambda))) )
    edi_Writelog( "0>" + aLambda[1] )
    DO WHILE !Empty( cParam := lisp_GetNextExpr( s, @nPos ) )
+      edi_Writelog( cParam )
       i ++
       IF i > Len( aLambda )
          lisp_Error( ERR_WRONG_PARAM_NUMBER,aLambda[1] ); RETURN Nil
