@@ -4568,7 +4568,7 @@ STATIC FUNCTION edi_Bracket( oEdit, lCalcOnly, lPairOnly, c )
             ENDDO
             IF nPos == 0
                ny --
-               nPos := Iif( ny > 0, cp_Len( oEdit:lUtf8, oEdit:aText[ny] ) + 1, 1 )
+               nPos := Iif( ny > 0, cp_Len( oEdit:lUtf8, oEdit:aText[ny] ) + 1, 0 )
             ELSE
                EXIT
             ENDIF
