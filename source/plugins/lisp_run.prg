@@ -27,6 +27,7 @@ STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pai
    "Lanbda expected", "Wrong number of parameters", "Unknown function" }
 STATIC aLabels, aDefuns, nParamGlob
 STATIC cError := ""
+STATIC nEvalLevel
 
 FUNCTION lisp_Run()
    RETURN Nil
@@ -102,6 +103,7 @@ FUNCTION lisp_Eval( xText )
          cBuff := lisp_Lambda_1( cBuff, .T. )
          //edi_Writelog( cBuff )
          //edi_Writelog( "- Eval line -" )
+         nEvalLevel := 0
          ? lisp_EvalExpr( cBuff )
          lisp_ShowError()
 
@@ -143,6 +145,7 @@ STATIC FUNCTION lisp_Error( nError, s )
    IF !Empty( s )
       cError += s + Chr(10)
    ENDIF
+   nEvalLevel --
 
    RETURN TYPE_ERR
 
@@ -170,7 +173,8 @@ FUNCTION lisp_EvalExpr( s, nType )
    LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, cRes
    LOCAL aLambda, cName
 
-   edi_Writelog( "E>" + s )
+   edi_Writelog( Space(nEvalLevel*2) + "E>" + s )
+   nEvalLevel ++
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
    IF Left( s, 1 ) == "'"
@@ -310,13 +314,13 @@ FUNCTION lisp_EvalExpr( s, nType )
                         nType := TYPE_ATOM
                         RETURN lisp_EvalRet( cFalse )
                      ELSEIF cmd == "caddr"
-                        // !!Temporary !!
-                        //cNext := lisp_getCar( cNext, @nType )
-                        //IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                        cNext := lisp_getCar( cNext, @nType )
+                        IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
 
-                        cNext := lisp_GetNextExpr( cNext, 2 )
-                        IF nLispErr > 0; RETURN Nil; ENDIF
-                        nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
+                        // !!Temporary !!
+                        //cNext := lisp_GetNextExpr( cNext, 2 )
+                        //IF nLispErr > 0; RETURN Nil; ENDIF
+                        //nType := Iif( Left( cNext,1 ) $ "('", TYPE_LIST, TYPE_ATOM )
 
                         RETURN lisp_EvalRet( cNext )
                      ELSE
@@ -479,12 +483,15 @@ STATIC FUNCTION lisp_getCar( cNext, nType )
    cNext := lisp_GetNextExpr( cNext, 2 )
    IF nLispErr > 0; RETURN Nil; ENDIF
    // ? maybe wrong
+   /*
    IF Left( cNext,1 ) == "'"
       cNext := lisp_GetNextExpr( cNext, 2 )
       IF nLispErr > 0; RETURN Nil; ENDIF
    ENDIF
+   */
    // ---
-   nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
+   //nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
+   nType := Iif( Left( cNext,1 ) $ "('", TYPE_LIST, TYPE_ATOM )
    RETURN cNext
 
 STATIC FUNCTION lisp_getCdr( cNext, nType )
@@ -506,7 +513,8 @@ STATIC FUNCTION lisp_getCdr( cNext, nType )
 
 STATIC FUNCTION lisp_EvalRet( s )
 
-   edi_Writelog( "R>" + s )
+   nEvalLevel --
+   edi_Writelog( Space(nEvalLevel*2) + "R>" + s )
 
    RETURN s
 
