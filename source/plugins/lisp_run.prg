@@ -480,23 +480,28 @@ FUNCTION lisp_EvalExpr( s, nType )
 
 STATIC FUNCTION lisp_getCar( cNext, nType )
 
+   IF Left( cNext,1 ) == "'"
+      nType := TYPE_ATOM
+      RETURN "quote"
+   ENDIF
+
    cNext := lisp_GetNextExpr( cNext, 2 )
    IF nLispErr > 0; RETURN Nil; ENDIF
-   // ? maybe wrong
-   /*
-   IF Left( cNext,1 ) == "'"
-      cNext := lisp_GetNextExpr( cNext, 2 )
-      IF nLispErr > 0; RETURN Nil; ENDIF
-   ENDIF
-   */
-   // ---
-   //nType := Iif( Left( cNext,1 ) == '(', TYPE_LIST, TYPE_ATOM )
+
    nType := Iif( Left( cNext,1 ) $ "('", TYPE_LIST, TYPE_ATOM )
    RETURN cNext
 
 STATIC FUNCTION lisp_getCdr( cNext, nType )
 
    LOCAL nPos := 2
+
+   IF Left( cNext,1 ) == "'"
+      cNext := lisp_GetNextExpr( cNext, 2 )
+      IF nLispErr > 0; RETURN Nil; ENDIF
+
+      nType := TYPE_LIST
+      RETURN "(" + cNext + ")"
+   ENDIF
 
    lisp_GetNextExpr( cNext, @nPos )
    IF nLispErr > 0; RETURN Nil; ENDIF

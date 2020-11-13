@@ -1,8 +1,10 @@
 #define ALT_PRESSED   0x040000
-#define K_ALT_D   288
-#define K_ALT_I   279
-#define K_ENTER    13
-#define K_ESC      27
+#define CTRL_PRESSED  0x020000
+#define K_ALT_D    288
+#define K_ALT_I    279
+#define K_ENTER     13
+#define K_ESC       27
+#define K_CTRL_RIGHT 2
 
 STATIC cIniPath
 STATIC lIsCurl := .F., cServAddr
@@ -68,6 +70,61 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
          oEdit:TextOut()
          RETURN -1
       ENDIF
+   ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+      IF nKey == K_CTRL_RIGHT .AND. hb_keyVal( nKeyExt ) == 66 // Ctrl-B
+         RETURN _prg_GoMatched( oEdit )
+      ENDIF
+   ENDIF
+
+   RETURN 0
+
+STATIC FUNCTION _prg_GoMatched( oEdit )
+
+   LOCAL arr1 := { "IF", "WHILE", "DO WHILE", "FOR" }, arr2 := { "ENDIF", "ENDDO", "ENDDO", "NEXT" }
+   LOCAL i, j, n, s, i1, n1, nLev := 1
+
+   n := n1 := oEdit:nLine
+   i := edi_PrevWord( oEdit, .F., .F.,,, oEdit:nPos+1 )
+   j := edi_NextWord( oEdit, .F., .T., .F.,, oEdit:nPos-1 )
+   s := cp_Substr( oEdit:lUtf8, oEdit:aText[n], i, j-i+1 )
+
+   IF ( j := Ascan( arr1, Upper( s ) ) ) > 0
+      i := i1 := oEdit:nPos
+      DO WHILE oEdit:Search( arr2[j], .F., .T., .T., .F., @n, @i )
+         nLev --
+         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0
+            DO WHILE oEdit:Search( s, .F., .T., .T., .F., @n1, @i1 ) .AND. ;
+                  ( n1 < n .OR. (n1 == n) .AND. i1 < i )
+               nLev ++
+               i1 ++
+            ENDDO
+            i1 ++
+            IF nLev == 0
+               oEdit:GoTo( n, i, 0 )
+            ENDIF
+         ENDIF
+      ENDDO
+      RETURN -1
+   ELSEIF ( j := Ascan( arr2, Upper( s ) ) ) > 0
+      i --
+      i1 := i
+      DO WHILE oEdit:Search( arr1[j], .F., .F., .T., .F., @n, @i )
+         nLev --
+         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0
+            DO WHILE oEdit:Search( s, .F., .F., .T., .F., @n1, @i1 ) .AND. ;
+                  ( n1 > n .OR. (n1 == n) .AND. i1 > i )
+               nLev ++
+               i1 --
+            ENDDO
+            i1 --
+            IF nLev == 0
+               oEdit:GoTo( n, i, 0 )
+            ENDIF
+         ENDIF
+      ENDDO
+      RETURN -1
+   ELSE
+      RETURN 0
    ENDIF
 
    RETURN 0
