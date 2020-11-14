@@ -26,8 +26,9 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          oEdit:oHili:hHili["help"] := "Harbour plugin hotkeys:" + Chr(10) + ;
-            "  Alt-D - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
-            "  Alt-I - Get info about a function under cursor" + Chr(10) + ;
+            "  Alt-D  - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
+            "  Alt-I  - Get info about a function under cursor" + Chr(10) + ;
+            "  Ctrl-B - Go to a matched keyword (IF...ENDIF, etc.)" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -80,27 +81,43 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _prg_GoMatched( oEdit )
 
-   LOCAL arr1 := { "IF", "WHILE", "DO WHILE", "FOR" }, arr2 := { "ENDIF", "ENDDO", "ENDDO", "NEXT" }
-   LOCAL i, j, n, s, i1, n1, nLev := 1
+   LOCAL arr1 := { "IF", "IF", "IF", "WHILE", "DO WHILE", "FOR", "SWITCH", "SWITCH", "SWITCH" }
+   LOCAL arr2 := { "ENDIF", "ELSEIF", "ELSE", "ENDDO", "ENDDO", "NEXT", "ENDSWITCH", "CASE", "OTHERWISE" }
+   LOCAL i, j, n, s, i1, n1, n2, i2, nLev := 1
 
    n := n1 := oEdit:nLine
    i := edi_PrevWord( oEdit, .F., .F.,,, oEdit:nPos+1 )
    j := edi_NextWord( oEdit, .F., .T., .F.,, oEdit:nPos-1 )
    s := cp_Substr( oEdit:lUtf8, oEdit:aText[n], i, j-i+1 )
-
+   n2 := n1
+   i2 := i1 := oEdit:nPos
    IF ( j := Ascan( arr1, Upper( s ) ) ) > 0
       i := i1 := oEdit:nPos
       DO WHILE oEdit:Search( arr2[j], .F., .T., .T., .F., @n, @i )
-         nLev --
-         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0
+         edi_writelog( "1> "+ltrim(str(n))+" "+ltrim(str(i)) )
+         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0 .AND. ;
+            !_prg_IsCommented( oEdit, n, i )
+            nLev --
+            edi_writelog( "1a> "+ltrim(str(nLev)) )
             DO WHILE oEdit:Search( s, .F., .T., .T., .F., @n1, @i1 ) .AND. ;
                   ( n1 < n .OR. (n1 == n) .AND. i1 < i )
-               nLev ++
+               edi_writelog( "2> "+ltrim(str(n1))+" "+ltrim(str(i1)) )
+               IF edi_InQuo( oEdit, oEdit:aText[n1], i1 ) == 0 .AND. ;
+                  !_prg_IsCommented( oEdit, n1, i1 )
+                  nLev ++
+                  edi_writelog( "2a> "+ltrim(str(nLev)) )
+               ENDIF
                i1 ++
+               n2 := n1
+               i2 := i1
             ENDDO
+            n1 := n2
+            i1 := i2
             i1 ++
+            edi_writelog( "3> "+ltrim(str(nLev))+" "+ltrim(str(i1)) )
             IF nLev == 0
                oEdit:GoTo( n, i, 0 )
+               RETURN -1
             ENDIF
          ENDIF
       ENDDO
@@ -109,16 +126,25 @@ STATIC FUNCTION _prg_GoMatched( oEdit )
       i --
       i1 := i
       DO WHILE oEdit:Search( arr1[j], .F., .F., .T., .F., @n, @i )
-         nLev --
-         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0
+         IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0 .AND. ;
+            !_prg_IsCommented( oEdit, n, i )
+            nLev --
             DO WHILE oEdit:Search( s, .F., .F., .T., .F., @n1, @i1 ) .AND. ;
                   ( n1 > n .OR. (n1 == n) .AND. i1 > i )
-               nLev ++
+               IF edi_InQuo( oEdit, oEdit:aText[n1], i1 ) == 0 .AND. ;
+                  !_prg_IsCommented( oEdit, n1, i1 )
+                  nLev ++
+               ENDIF
                i1 --
+               n2 := n1
+               i2 := i1
             ENDDO
+            n1 := n2
+            i1 := i2
             i1 --
             IF nLev == 0
                oEdit:GoTo( n, i, 0 )
+               RETURN -1
             ENDIF
          ENDIF
       ENDDO
@@ -128,6 +154,50 @@ STATIC FUNCTION _prg_GoMatched( oEdit )
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION _prg_IsCommented( oEdit, nLine, nPos )
+
+   LOCAL nCol := oEdit:PosToCol( nLine, nPos ), s, n
+   LOCAL lUtf8 := oEdit:lUtf8, lRes := .F.
+   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+
+   oEdit:lUtf8 := .F.
+   s := oEdit:aText[nLine]
+
+   IF nLine > 1 .AND. !Empty( aDop )
+      // Check if a line is commented with /* */ operators, using a hilight object
+      IF aDop[nLine-1] == 1
+         IF ( n := ( At( "*/", s ) ) ) == 0 .OR. n > nCol
+            lRes := .T.
+         ENDIF
+      ENDIF
+   ENDIF
+
+   IF !lRes
+      n := nCol
+      DO WHILE ( n := hb_Rat( '//', s,, n ) ) > 0
+         IF edi_InQuo( oEdit, s, n ) == 0
+            lRes := .T.
+            EXIT
+         ENDIF
+         n --
+      ENDDO
+
+      IF !lRes
+         n := nCol
+         DO WHILE ( n := hb_Rat( '/*', s,, n ) ) > 0
+            IF edi_InQuo( oEdit, s, n ) == 0 .AND. hb_Rat( '*/', s, n+2, nCol ) == 0
+               lRes := .T.
+               EXIT
+            ENDIF
+            n --
+         ENDDO
+      ENDIF
+   ENDIF
+
+   oEdit:lUtf8 := lUtf8
+
+   RETURN lRes
 
 STATIC FUNCTION _f_get_dict( n )
 

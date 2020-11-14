@@ -134,7 +134,8 @@ CLASS TEdit
    DATA   lTabs       INIT .F.
 
    DATA   nPos, nLine
-   DATA   nPosBack, nLineBack
+   DATA   nPosBack    INIT 1
+   DATA   nLineBack   INIT 1
    DATA   lF3         INIT .F.
    DATA   nSeleMode   INIT  0
    DATA   nby1        INIT -1
@@ -362,8 +363,8 @@ METHOD Edit( lShowOnly ) CLASS TEdit
    ENDIF
    ::nCurrPrev := ::nCurr
 
-   ::nPosBack := ::nPos
-   ::nLineBack := ::nLine
+   //::nPosBack := ::nPos
+   //::nLineBack := ::nLine
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns==Nil, SC_NONE, Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) ) )
@@ -1931,7 +1932,7 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
       RETURN Nil
    ENDIF
 
-   IF Empty( lNoGo )
+   IF Empty( lNoGo ) .AND. ( ny != ::nLine .OR. nx != ::nPos )
       ::nPosBack := ::nPos
       ::nLineBack := ::nLine
    ENDIF
