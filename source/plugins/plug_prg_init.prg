@@ -81,8 +81,8 @@ FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _prg_GoMatched( oEdit )
 
-   LOCAL arr1 := { "IF", "IF", "IF", "WHILE", "DO WHILE", "FOR", "SWITCH", "SWITCH", "SWITCH" }
-   LOCAL arr2 := { "ENDIF", "ELSEIF", "ELSE", "ENDDO", "ENDDO", "NEXT", "ENDSWITCH", "CASE", "OTHERWISE" }
+   LOCAL arr1 := { "IF", "WHILE", "DO WHILE", "FOR", "SWITCH" }
+   LOCAL arr2 := { "ENDIF", "ENDDO", "ENDDO", "NEXT", "ENDSWITCH" }
    LOCAL i, j, n, s, i1, n1, n2, i2, nLev := 1
 
    n := n1 := oEdit:nLine
@@ -94,18 +94,18 @@ STATIC FUNCTION _prg_GoMatched( oEdit )
    IF ( j := Ascan( arr1, Upper( s ) ) ) > 0
       i := i1 := oEdit:nPos
       DO WHILE oEdit:Search( arr2[j], .F., .T., .T., .F., @n, @i )
-         edi_writelog( "1> "+ltrim(str(n))+" "+ltrim(str(i)) )
+         //edi_writelog( "1> "+ltrim(str(n))+" "+ltrim(str(i)) )
          IF edi_InQuo( oEdit, oEdit:aText[n], i ) == 0 .AND. ;
             !_prg_IsCommented( oEdit, n, i )
             nLev --
-            edi_writelog( "1a> "+ltrim(str(nLev)) )
+            //edi_writelog( "1a> "+ltrim(str(nLev)) )
             DO WHILE oEdit:Search( s, .F., .T., .T., .F., @n1, @i1 ) .AND. ;
                   ( n1 < n .OR. (n1 == n) .AND. i1 < i )
-               edi_writelog( "2> "+ltrim(str(n1))+" "+ltrim(str(i1)) )
+               //edi_writelog( "2> "+ltrim(str(n1))+" "+ltrim(str(i1)) )
                IF edi_InQuo( oEdit, oEdit:aText[n1], i1 ) == 0 .AND. ;
                   !_prg_IsCommented( oEdit, n1, i1 )
                   nLev ++
-                  edi_writelog( "2a> "+ltrim(str(nLev)) )
+                  //edi_writelog( "2a> "+ltrim(str(nLev)) )
                ENDIF
                i1 ++
                n2 := n1
@@ -114,7 +114,7 @@ STATIC FUNCTION _prg_GoMatched( oEdit )
             n1 := n2
             i1 := i2
             i1 ++
-            edi_writelog( "3> "+ltrim(str(nLev))+" "+ltrim(str(i1)) )
+            //edi_writelog( "3> "+ltrim(str(nLev))+" "+ltrim(str(i1)) )
             IF nLev == 0
                oEdit:GoTo( n, i, 0 )
                RETURN -1

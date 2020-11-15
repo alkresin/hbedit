@@ -20,6 +20,8 @@
 #define ERR_WRONG_PARAM_NUMBER 9
 #define ERR_UNKNOWN_FUNCTION 10
 
+#define __LOGGING__
+
 STATIC cFalse := "()", cTrue := "t"
 STATIC nLispErr := 0
 STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pair quote not found", ;
@@ -145,7 +147,9 @@ STATIC FUNCTION lisp_Error( nError, s )
    IF !Empty( s )
       cError += s + Chr(10)
    ENDIF
+#ifdef __LOGGING__
    nEvalLevel --
+#endif
 
    RETURN TYPE_ERR
 
@@ -173,8 +177,10 @@ FUNCTION lisp_EvalExpr( s, nType )
    LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, cRes
    LOCAL aLambda, cName
 
+#ifdef __LOGGING__
    edi_Writelog( Space(nEvalLevel*2) + "E>" + s )
    nEvalLevel ++
+#endif
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
    IF Left( s, 1 ) == "'"
@@ -518,9 +524,10 @@ STATIC FUNCTION lisp_getCdr( cNext, nType )
 
 STATIC FUNCTION lisp_EvalRet( s )
 
+#ifdef __LOGGING__
    nEvalLevel --
    edi_Writelog( Space(nEvalLevel*2) + "R>" + s )
-
+#endif
    RETURN s
 
 STATIC FUNCTION lisp_Lambda( s, nPos, cBody, cName )
