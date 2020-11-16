@@ -20,7 +20,7 @@
 #define ERR_WRONG_PARAM_NUMBER 9
 #define ERR_UNKNOWN_FUNCTION 10
 
-#define __LOGGING__
+//#define __LOGGING__
 
 STATIC cFalse := "()", cTrue := "t"
 STATIC nLispErr := 0
@@ -36,7 +36,7 @@ FUNCTION lisp_Run()
 
 FUNCTION lisp_Eval( xText )
 
-   LOCAL s, cEol := Chr(10), i, nPos, c, nLevel, cBuff
+   LOCAL s, cEol := Chr(10), i, nPos, c, nLevel, cBuff, xRes
    LOCAL lIn := .F., lNeedNext
 
    aLabels := {}
@@ -106,7 +106,9 @@ FUNCTION lisp_Eval( xText )
          //edi_Writelog( cBuff )
          //edi_Writelog( "- Eval line -" )
          nEvalLevel := 0
-         ? lisp_EvalExpr( cBuff )
+         IF Valtype( xRes := lisp_EvalExpr( cBuff ) ) != "A"
+            ? xRes
+         ENDIF
          lisp_ShowError()
 
          IF Empty ( s := AllTrim( Substr( s, nPos+1 ) ) )
@@ -231,36 +233,55 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "cadar"
       CASE "cdar"
       CASE "cddar"
+      CASE "caaar"
+      CASE "cdaar"
       CASE "caddar"
       CASE "car"
          IF Left( cNext,1 ) $ "('"
-            cNext := lisp_EvalExpr( cNext, @nGetType )
+            cNext := lisp_EvalExpr( cNext, @nType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-            IF nGetType == TYPE_LIST
+            IF nType == TYPE_LIST
                cNext := lisp_getCar( cNext, @nType )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                IF cmd == "car"
                   RETURN lisp_EvalRet( cNext )
-               ELSEIF cmd == "caar"
+               ELSEIF cmd == "caar" .OR. cmd == "caaar" .OR. cmd == "cdaar"
                   IF nType == TYPE_LIST
                      cNext := lisp_getCar( cNext, @nType )
                      IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-                     RETURN lisp_EvalRet( cNext )
+                     IF cmd == "caar"
+                        RETURN lisp_EvalRet( cNext )
+                     ELSE
+                        IF nType != TYPE_LIST
+                           nType := lisp_Error( ERR_LIST_EXPECTED,s); RETURN Nil
+                        ENDIF
+                        IF cmd == "caaar"
+                           cNext := lisp_getCar( cNext, @nType )
+                           IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                           RETURN lisp_EvalRet( cNext )
+                        ELSE   //IF cdaar
+                           cNext := lisp_getCdr( cNext, @nType )
+                           IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                           IF cNext == cFalse
+                              nType := TYPE_ATOM
+                           ENDIF
+                           RETURN lisp_EvalRet( cNext )
+                        ENDIF
+                     ENDIF
                   ELSE
                      nType := lisp_Error( ERR_LIST_EXPECTED,s); RETURN Nil
                   ENDIF
                ELSE //IF cmd == "cadar" .OR. cmd == "cdar" .OR. cmd == "cddar" .OR. cmd == "caddar"
                   IF nType == TYPE_LIST
-                     cNext := lisp_getCdr( cNext, @nGetType )
+                     cNext := lisp_getCdr( cNext, @nType )
                      IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                      IF cNext == cFalse
                         nType := TYPE_ATOM
                         RETURN lisp_EvalRet( cFalse )
                      ELSEIF cmd == "cdar"
-                        nType := TYPE_LIST
                         RETURN lisp_EvalRet( cNext )
                      ELSEIF cmd == "cddar" .OR. cmd == "caddar"
-                        cNext := lisp_getCdr( cNext, @nGetType )
+                        cNext := lisp_getCdr( cNext, @nType )
                         IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                         IF cNext == cFalse
                            nType := TYPE_ATOM
@@ -269,8 +290,7 @@ FUNCTION lisp_EvalExpr( s, nType )
                            cNext := lisp_getCar( cNext, @nType )
                            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                            RETURN lisp_EvalRet( cNext )
-                        ELSE
-                           nType := TYPE_LIST
+                        ELSE  //IF cmd == "cddar"
                            RETURN lisp_EvalRet( cNext )
                         ENDIF
                      ELSEIF cmd == "cadar"
@@ -293,44 +313,63 @@ FUNCTION lisp_EvalExpr( s, nType )
          ENDIF
 
       CASE "caddr"
+      CASE "caadr"
+      CASE "cdadr"
+      CASE "cdddr"
       CASE "cadr"
       CASE "cddr"
       CASE "cdr"
          IF Left( cNext,1 ) $ "('"
-            cNext := lisp_EvalExpr( cNext, @nGetType )
+            cNext := lisp_EvalExpr( cNext, @nType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-            IF nGetType == TYPE_LIST
-               cNext := lisp_getCdr( cNext, @nGetType )
+            IF nType == TYPE_LIST
+               cNext := lisp_getCdr( cNext, @nType )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-                IF cNext == cFalse
+               IF cNext == cFalse
                   nType := TYPE_ATOM
                   RETURN lisp_EvalRet( cFalse )
                ELSE
                   IF cmd == "cdr"
-                     nType := TYPE_LIST
                      RETURN lisp_EvalRet( cNext )
-                  ELSEIF cmd == "cadr"
+                  ELSEIF cmd == "cadr" .OR. cmd == "cdadr" .OR. cmd == "caadr"
                      cNext := lisp_getCar( cNext, @nType )
                      IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-                     RETURN lisp_EvalRet( cNext )
-                  ELSEIF cmd == "caddr" .OR. cmd == "cddr"
-                     cNext := lisp_getCdr( cNext, @nGetType )
+                     IF cmd == "cadr"
+                        RETURN lisp_EvalRet( cNext )
+                     ELSE
+                        IF nType != TYPE_LIST
+                           nType := lisp_Error( ERR_LIST_EXPECTED,s); RETURN Nil
+                        ENDIF
+                        IF cmd == "cdadr"
+                           cNext := lisp_getCdr( cNext, @nType )
+                           IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                           IF cNext == cFalse
+                              nType := TYPE_ATOM
+                              RETURN lisp_EvalRet( cFalse )
+                           ELSE
+                              RETURN lisp_EvalRet( cNext )
+                           ENDIF
+                        ELSE   //IF cmd == "caadr"
+                           cNext := lisp_getCar( cNext, @nType )
+                           IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                           RETURN lisp_EvalRet( cNext )
+                        ENDIF
+                     ENDIF
+                  ELSEIF cmd == "caddr" .OR. cmd == "cdddr" .OR. cmd == "cddr"
+                     cNext := lisp_getCdr( cNext, @nType )
                      IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
                      IF cNext == cFalse
                         nType := TYPE_ATOM
                         RETURN lisp_EvalRet( cFalse )
+                     ELSEIF cmd == "cdddr"
+                        cNext := lisp_getCdr( cNext, @nType )
+                        IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+                        RETURN lisp_EvalRet( cNext )
                      ELSEIF cmd == "caddr"
                         cNext := lisp_getCar( cNext, @nType )
                         IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-
-                        // !!Temporary !!
-                        //cNext := lisp_GetNextExpr( cNext, 2 )
-                        //IF nLispErr > 0; RETURN Nil; ENDIF
-                        //nType := Iif( Left( cNext,1 ) $ "('", TYPE_LIST, TYPE_ATOM )
-
                         RETURN lisp_EvalRet( cNext )
-                     ELSE
-                        nType := TYPE_LIST
+                     ELSE  //IF cmd == "cddr"
                         RETURN lisp_EvalRet( cNext )
                      ENDIF
                   ENDIF
@@ -351,12 +390,11 @@ FUNCTION lisp_EvalExpr( s, nType )
             cExpr := lisp_GetNextExpr( cNext, @nPos2 )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
 
-            IF cExpr == cTrue .OR. ( cRes := lisp_EvalExpr( cExpr, @nGetType ) ) == cTrue
+            IF cExpr == cTrue .OR. ( cRes := lisp_EvalExpr( cExpr, @nType ) ) == cTrue
                cExpr := lisp_GetNextExpr( cNext, @nPos2 )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-               cRes := lisp_EvalExpr( cExpr, @nGetType )
+               cRes := lisp_EvalExpr( cExpr, @nType )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-               nType := nGetType
                RETURN lisp_EvalRet( cRes )
             ELSEIF cRes != cFalse
                nType := lisp_Error( ERR_LOGIC_EXPECTED,cExpr+Chr(10)+s ); RETURN Nil
@@ -461,8 +499,8 @@ FUNCTION lisp_EvalExpr( s, nType )
          aLambda := lisp_Lambda( s, nPos, cNext, cName )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          aDefuns[aLambda[2]] := aLambda
-         nType := TYPE_ATOM
-         RETURN cTrue
+         nType := TYPE_LABEL
+         RETURN aLambda
 
       OTHERWISE
          nPos := nPos2
@@ -591,7 +629,7 @@ STATIC FUNCTION lisp_Lambda_1( s, lStart )
          s1 := Substr( s, nPos2 )
          s2 := ""
          DO WHILE !Empty( cName )
-            cNewName := '&' + Ltrim(Str(++nParamGlob)) + '&'
+            cNewName := '_' + Ltrim(Str(++nParamGlob)) + '_'
             s2 += cNewName + " "
 
             s1 := hb_strReplace( s1, { ' '+cName+' ', '('+cName+' ', ;
