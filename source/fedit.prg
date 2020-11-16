@@ -3089,7 +3089,7 @@ FUNCTION mnu_Help( oEdit )
 
    IF !Empty( cFullPath )
       cHelp := MemoRead( cFullPath )
-      IF !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
+      IF !Empty( oEdit:oHili ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + Chr(10) + ;
