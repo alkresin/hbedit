@@ -20,7 +20,7 @@
 #define ERR_WRONG_PARAM_NUMBER 9
 #define ERR_UNKNOWN_FUNCTION 10
 
-//#define __LOGGING__
+#define __LOGGING__
 
 STATIC cFalse := "()", cTrue := "t"
 STATIC nLispErr := 0
@@ -564,7 +564,7 @@ STATIC FUNCTION lisp_EvalRet( s )
 
 #ifdef __LOGGING__
    nEvalLevel --
-   edi_Writelog( Space(nEvalLevel*2) + "R>" + s )
+   edi_Writelog( Space(nEvalLevel*2) + "R>" + Iif( Valtype(s) == "C", s, "<<"+Valtype(s)+">>" ) )
 #endif
    RETURN s
 
