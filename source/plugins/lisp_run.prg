@@ -465,6 +465,28 @@ FUNCTION lisp_EvalExpr( s, nType )
          ENDDO
          RETURN lisp_EvalRet( Ltrim( Str( n ) ) )
 
+      CASE "max"
+         l := .T.
+      CASE "min"
+         l := !Empty( l )
+         nType := TYPE_ATOM
+         n := Nil
+         DO WHILE !Empty( cNext )
+            IF Left( cNext,1 ) $ "('"
+               cNext := lisp_EvalExpr( cNext, @nGetType )
+               IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+            ENDIF
+            cNext := Val( cNext )
+            IF l
+               n := Iif( n == Nil, cNext, Max( n, cNext ) )
+            ELSE
+               n := Iif( n == Nil, cNext, Min( n, cNext ) )
+            ENDIF
+            cNext := lisp_GetNextExpr( s, @nPos )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDDO
+         RETURN lisp_EvalRet( Ltrim( Str( n ) ) )
+
       CASE "-"
       CASE "/"
       CASE "%"
@@ -480,18 +502,24 @@ FUNCTION lisp_EvalExpr( s, nType )
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
+         IF nGetType != TYPE_ATOM .OR. nGetType2 != TYPE_ATOM
+            nType := lisp_Error( ERR_ATOM_EXPECTED,s ); RETURN Nil
+         ENDIF
+         IF cmd == "="
+            RETURN lisp_EvalRet( Iif(cNext == cExpr, cTrue, cFalse ) )
+         ENDIF
          cNext := Val( cNext ); cExpr := Val( cExpr )
          SWITCH cmd
          CASE "-"
-            RETURN EvalRet( Ltrim(Str( cNext - cExpr )) )
+            RETURN lisp_EvalRet( Ltrim(Str( cNext - cExpr )) )
          CASE "/"
-            RETURN EvalRet( Ltrim(Str( Int(cNext / cExpr) )) )
+            RETURN lisp_EvalRet( Ltrim(Str( Int(cNext / cExpr) )) )
          CASE "%"
-            RETURN EvalRet( Ltrim(Str( cNext % cExpr )) )
+            RETURN lisp_EvalRet( Ltrim(Str( cNext % cExpr )) )
          CASE ">"
-            RETURN EvalRet( Iif(cNext > cExpr, cTrue, cFalse ) )
+            RETURN lisp_EvalRet( Iif(cNext > cExpr, cTrue, cFalse ) )
          CASE "<"
-            RETURN EvalRet( Iif(cNext < cExpr, cTrue, cFalse ) )
+            RETURN lisp_EvalRet( Iif(cNext < cExpr, cTrue, cFalse ) )
          ENDSWITCH
 
       CASE "lambda"
