@@ -2,6 +2,9 @@
  * Lisp interpreter
  */
 
+#define SC_NONE         0
+#define SC_NORMAL       1
+
 #define TYPE_ERR   -1
 #define TYPE_ATOM   1
 #define TYPE_LIST   2
@@ -30,21 +33,25 @@ STATIC aErrtxt := { "Pair bracket not found", "Wrong char in a line start", "Pai
    "Lanbda expected", "Wrong number of parameters", "Unknown function", "Wrong list length" }
 STATIC aLabels, aDefuns, nParamGlob
 STATIC aGlobVars
+STATIC aFuncsHb
 STATIC cError := ""
 STATIC nEvalLevel
 
 FUNCTION lisp_Run()
    RETURN Nil
 
-FUNCTION lisp_Eval( xText )
+FUNCTION lisp_Eval( xText, lLoad )
 
    LOCAL s, cEol := Chr(10), i, nPos, c, nLevel, cBuff, xRes
    LOCAL lIn := .F., lNeedNext
 
-   aLabels := {}
-   aDefuns := hb_Hash()
-   nParamGlob := 0
-   aGlobVars := hb_Hash()
+   IF Empty( lLoad )
+      aLabels := {}
+      aDefuns := hb_Hash()
+      nParamGlob := 0
+      aGlobVars := hb_Hash()
+      aFuncsHb  := hb_Hash()
+   ENDIF
 
    IF Valtype( xText ) == "C"
       IF '(' $ xText
@@ -58,6 +65,9 @@ FUNCTION lisp_Eval( xText )
       ENDIF
    ENDIF
 
+   IF Empty( lLoad )
+      SetCursor( SC_NORMAL )
+   ENDIF
    FOR i := 1 TO Len( xText )
       s := xText[i]
       lNeedNext := .F.
@@ -109,7 +119,7 @@ FUNCTION lisp_Eval( xText )
          //edi_Writelog( cBuff )
          //edi_Writelog( "- Eval line -" )
          nEvalLevel := 0
-         IF Valtype( xRes := lisp_EvalExpr( cBuff ) ) != "A"
+         IF Valtype( xRes := lisp_EvalExpr( cBuff ) ) != "A" .AND. Empty( lLoad )
             ? xRes
          ENDIF
          lisp_ShowError()
@@ -119,6 +129,9 @@ FUNCTION lisp_Eval( xText )
          ENDIF
       ENDDO
    NEXT
+   IF Empty( lLoad )
+      SetCursor( SC_NONE )
+   ENDIF
 
    RETURN Nil
 
@@ -179,7 +192,7 @@ STATIC FUNCTION lisp_ShowError( s )
 
 FUNCTION lisp_EvalExpr( s, nType )
 
-   LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, cRes, nLen, l, n
+   LOCAL nPos, nPos2, cmd, nGetType, nGetType2, cNext, cExpr, cRes, nLen, l, n, c
    LOCAL aLambda, cName
 
 #ifdef __LOGGING__
@@ -215,9 +228,11 @@ FUNCTION lisp_EvalExpr( s, nType )
       nType := TYPE_ATOM
       RETURN lisp_EvalRet( cFalse )
    ELSE
-      nPos2 := cedi_strPBrk( " )", s, nPos+1 )
-      cmd := Lower( Substr( s, nPos, nPos2-nPos ) )
-      nPos := nPos2
+      // nPos2 := cedi_strPBrk( " )", s, nPos+1 )
+      // cmd := Lower( Substr( s, nPos, nPos2-nPos ) )
+      // nPos := nPos2
+      cmd := Lower( lisp_GetNextExpr( s, @nPos ) )
+      n := nPos
       cNext := lisp_GetNextExpr( s, @nPos )
       IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
 
@@ -564,18 +579,50 @@ FUNCTION lisp_EvalExpr( s, nType )
          nType := TYPE_LABEL
          RETURN aLambda
 
+      CASE "defunhb"
+
+         cExpr := lisp_GetNextExpr( s, @nPos )
+         IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         aFuncsHb[cNext] := cExpr
+
+         RETURN lisp_Evalret( cTrue )
+
+      CASE "load"
+         IF File( cNext )
+            lisp_Eval( cNext, .T. )
+            RETURN lisp_EvalRet( cTrue )
+         ELSE
+            RETURN lisp_EvalRet( cFalse )
+         ENDIF
+
       OTHERWISE
-         nPos := nPos2
          IF ( nPos2 := Ascan( aLabels, {|a|a[1]==cmd} ) ) > 0
-            cExpr := lisp_EvalLambda( aLabels[nPos2,2], s, nPos, @nGetType )
+            cExpr := lisp_EvalLambda( aLabels[nPos2,2], s, n, @nGetType )
             nType := nGetType
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
             RETURN lisp_EvalRet( cExpr )
          ELSEIF !Empty( aLambda := hb_hGetDef( aDefuns, cmd, Nil ) )
-            cExpr := lisp_EvalLambda( aLambda, s, nPos, @nGetType )
+            cExpr := lisp_EvalLambda( aLambda, s, n, @nGetType )
             nType := nGetType
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
             RETURN lisp_EvalRet( cExpr )
+         ELSEIF !Empty( cName := hb_hGetDef( aFuncsHb, cmd, Nil ) )
+            cRes := ""
+            n := 0
+            DO WHILE !Empty( cNext )
+               IF Left( cNext,1 ) $ "('"
+                  cNext := lisp_EvalExpr( cNext, @nGetType )
+                  IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+               ENDIF
+               n ++
+               cRes += Iif( n > 1, ",", "" ) + Iif( ( c := Substr(cName,n,1) ) == "N", cNext, ;
+                  Iif( c == "L", Iif( cNext == cTrue, ".T.", ".F." ), '"'+cNext+'"' ) )
+               cNext := lisp_GetNextExpr( s, @nPos )
+               IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+            ENDDO
+            cRes := &( cmd + "(" + cRes + ")" )
+            RETURN lisp_EvalRet( Iif( (c := Valtype(cRes)) == "N", Ltrim(Str(cRes)), ;
+               Iif( c == "L", Iif( cRes, cTrue, cFalse ), cRes ) ) )
          ELSE
             nType := lisp_Error( ERR_UNKNOWN_FUNCTION, cmd+Chr(10)+s ); RETURN Nil
          ENDIF
@@ -714,8 +761,10 @@ STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
    LOCAL cExpr := aLambda[1], i, cParam, nGetType
 
    i := 2
-   //edi_Writelog( "EvalLambda: " + Iif( aLambda[2]==Nil,"",aLambda[2] ) )
+   //edi_Writelog( "EvalLambda: " + Iif( aLambda[2]==Nil,"",aLambda[2] ) + " " + Ltrim(Str(Len(aLambda))) )
    //edi_Writelog( "0>" + aLambda[1] )
+   //edi_Writelog( "s>" + s )
+   //edi_Writelog( "n>" + Str(nPos) )
    DO WHILE !Empty( cParam := lisp_GetNextExpr( s, @nPos ) )
       //edi_Writelog( "p"+Ltrim(Str(i-1))+">" + cParam )
       i ++
