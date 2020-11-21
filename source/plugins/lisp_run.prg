@@ -397,12 +397,13 @@ FUNCTION lisp_EvalExpr( s, nType )
             IF l .AND. cNext == cFalse
                RETURN lisp_EvalRet( cFalse )
             ELSEIF !l .AND. cNext == cTrue
-               RETURN lisp_EvalRet( cTrue )
+               RETURN lisp_EvalRet( cNext )
             ENDIF
+            cExpr = cNext
             cNext := lisp_GetNextExpr( s, @nPos )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDDO
-         RETURN lisp_EvalRet( Iif( l, cTrue, cFalse ) )
+         RETURN lisp_EvalRet( Iif( l, cExpr, cFalse ) )
 
       CASE "not"
          cNext := lisp_EvalExpr( cNext, @nGetType )
@@ -459,6 +460,15 @@ FUNCTION lisp_EvalExpr( s, nType )
          aGlobVars[cName] := cExpr
          RETURN Lisp_EvalRet( cExpr )
 
+      CASE "length"
+         n := 0
+         DO WHILE !Empty( cNext )
+            n ++
+            cNext := lisp_GetNextExpr( s, @nPos )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDDO
+         RETURN lisp_EvalRet( Ltrim( Str( n ) ) )
+
       CASE "+"
          l := .T.
       CASE "*"
@@ -507,6 +517,7 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "%"
       CASE ">"
       CASE "<"
+      CASE "="
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
@@ -541,8 +552,14 @@ FUNCTION lisp_EvalExpr( s, nType )
          aLambda := lisp_Lambda( s, nPos, cNext )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          nType := TYPE_LAMBDA
-
          RETURN aLambda
+
+      CASE "numberp"
+         IF Left( cNext,1 ) $ "('"
+            cNext := lisp_EvalExpr( cNext, @nGetType )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDIF
+         RETURN lisp_evalRet( Iif( IsDigit(cNext), cTrue, cFalse ) )
 
       CASE "label"
          IF Left( cNext,1 ) $ "('"
@@ -550,7 +567,6 @@ FUNCTION lisp_EvalExpr( s, nType )
          ELSE
             cName := cNext
          ENDIF
-         //edi_Writelog( "label: " + cName )
          cNext := lisp_GetNextExpr( s, @nPos )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          IF Left( cNext,1 ) == "(" .AND. !Empty( aLambda := lisp_EvalExpr( cNext, @nGetType ) ) ;
