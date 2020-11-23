@@ -8,9 +8,8 @@
 #define TYPE_ERR   -1
 #define TYPE_ATOM   1
 #define TYPE_LIST   2
-#define TYPE_EXPR   3
-#define TYPE_LAMBDA 4
-#define TYPE_LABEL  5
+#define TYPE_LAMBDA 3
+#define TYPE_LABEL  4
 
 #define ERR_PAIRBRACKET    1
 #define ERR_WRONGSTARTCHAR 2
@@ -228,9 +227,6 @@ FUNCTION lisp_EvalExpr( s, nType )
       nType := TYPE_ATOM
       RETURN lisp_EvalRet( cFalse )
    ELSE
-      // nPos2 := cedi_strPBrk( " )", s, nPos+1 )
-      // cmd := Lower( Substr( s, nPos, nPos2-nPos ) )
-      // nPos := nPos2
       cmd := Lower( lisp_GetNextExpr( s, @nPos ) )
       n := nPos
       cNext := lisp_GetNextExpr( s, @nPos )

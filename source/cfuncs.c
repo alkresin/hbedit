@@ -222,16 +222,30 @@ HB_FUNC( CEDI_SUBSTR )
    }
 }
 
+/*
+ * cedi_strpbrk( szFind, szString[, iStartPos][, iEndPos] ) -> iFoundPos
+ * Returns a position of one of chars from szFind in szString (from iStartPos till iEndPos ).
+ */
 HB_FUNC( CEDI_STRPBRK )
 {
    const char * szFind = hb_parc( 1 );
    const char * szString = hb_parc( 2 );
    char * p1 = (char*) szString, * p2;
+   unsigned long int ulStart, ulEnd;
 
    if( HB_ISNUM( 3 ) )
-      p1 += hb_parni( 3 ) - 1;
+   {
+      ulStart = hb_parni( 3 ) - 1;
+      p1 += ulStart;
+   }
+   else
+      ulStart = 0;
+   if( HB_ISNUM( 4 ) )
+      ulEnd = hb_parni( 4 ) - 1;
+   else
+      ulEnd = 0;
 
-   while( *p1 )
+   while( *p1 && ( ulEnd==0 || ++ulStart <= ulEnd ) )
    {
       p2 = (char*) szFind;
       while( *p2 )
@@ -248,18 +262,33 @@ HB_FUNC( CEDI_STRPBRK )
    hb_retni( -1 );
 }
 
+/*
+ * cedi_strpbrk( szFind, szString[, iStartPos][, iEndPos][, iPos] ) -> iFoundPos
+ * Returns a position of one of chars from szFind in utf8 string szString (from iStartPos till iEndPos ).
+ */
+
 HB_FUNC( CEDI_UTF8PBRK )
 {
    const char * szFind = hb_parc( 1 );
    const char * szString = hb_parc( 2 );
    char * p1 = (char*) szString, * p2;
-   int iPos = ( HB_ISNUM( 4 ) )? hb_parni( 4 ) : 1;
+   unsigned long int ulStart, ulEnd;
+   int iPos = ( HB_ISNUM( 5 ) )? hb_parni( 5 ) : 1;
    int iLen;
 
    if( HB_ISNUM( 3 ) )
-      p1 += hb_parni( 3 ) - 1;
+   {
+      ulStart = hb_parni( 3 ) - 1;
+      p1 += ulStart;
+   }
+   else
+      ulStart = 0;
+   if( HB_ISNUM( 4 ) )
+      ulEnd = hb_parni( 4 ) - 1;
+   else
+      ulEnd = 0;
 
-   while( *p1 )
+   while( *p1 && ( ulEnd==0 || ++ulStart <= ulEnd ) )
    {
       iLen = cedi_Utf8CharLen( *p1 );
       if( iLen > 1 )
@@ -282,7 +311,7 @@ HB_FUNC( CEDI_UTF8PBRK )
          {
             if( *p2 == *p1 )
             {
-               hb_storni( iPos, 4 );
+               hb_storni( iPos, 5 );
                hb_retni( p1 - (char*)szString + 1 );
                return;
             }
