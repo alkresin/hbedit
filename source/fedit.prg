@@ -388,8 +388,8 @@ METHOD Edit( lShowOnly ) CLASS TEdit
                IF Valtype( i ) == "N"
                   SetCursor( SC_NONE )
                   edi_RunPlugin( Self, i )
+                  LOOP
                ENDIF
-               LOOP
             ENDIF
          ENDIF
       ENDIF
