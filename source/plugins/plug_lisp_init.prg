@@ -24,7 +24,7 @@ FUNCTION Plug_lisp_Init( oEdit, cPath )
             "Following functions are implemented:" + Chr(10) + ;
             "Basic: quote atom eq car cdr (and all cxyr like) cons cond lambda label defun." + Chr(10) + ;
             "Additional: null and not or append list pair length load numberp set setq" + Chr(10) + ;
-            "Arithmetic: + - * / % > < = max min" + Chr(10) + ;
+            "Arithmetic: + - * / % ** ++ -- > < = max min" + Chr(10) + ;
             "and a new one: defunhb, which allows to use Harbour functions in a Lisp code."
       ENDIF
       o:bStartEdit := Nil
