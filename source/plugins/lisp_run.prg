@@ -135,6 +135,9 @@ FUNCTION lisp_Eval( xText, lLoad )
             cBuffRes += hb_ValToStr( xRes ) + Chr(10)
             ? xRes
          ENDIF
+         IF nLispErr > 0
+            cBuffRes += aErrtxt[nLispErr] + Chr(10) + cError
+         ENDIF
          lisp_ShowError()
 
          IF Empty ( s := AllTrim( Substr( s, nPos+1 ) ) )
@@ -216,16 +219,20 @@ FUNCTION lisp_EvalExpr( s, nType )
 #endif
    nLispErr := 0
    nPos := cedi_strSkipChars( s, 2 )
-   IF Left( s, 1 ) == "'"
+   IF ( c := Left( s, 1 ) ) == "'"
       cNext := lisp_GetNext_A( s, nPos )
       IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
       nType := Iif( Left( cNext,1 ) $ "('" .AND. !(cNext == cFalse), TYPE_LIST, TYPE_ATOM )
       RETURN lisp_EvalRet( cNext )
 
+   ELSEIF IsDigit( c ) .OR. ( c == '-' .AND. IsDigit( Substr( s, 2, 1 ) ) )
+      RETURN lisp_EvalRet( lisp_GetNext_A( s, 1 ) )
+
    ELSEIF Substr( s, nPos, 1 ) == '('
       cNext := lisp_GetNext_A( s, @nPos )
       IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
       cNext := lisp_EvalExpr( cNext, @nGetType )
+      IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
       IF nGetType == TYPE_LAMBDA .OR. nGetType == TYPE_LABEL
          // Evaluate function: ((lambda... or ((label...
          cName := cNext[2]
@@ -458,6 +465,7 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "setq"
          IF cmd == "set"
             cName := lisp_EvalExpr( cNext, @nGetType )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ELSEIF Left( cNext,1 ) $ "('"
             nType := lisp_Error( ERR_ATOM_EXPECTED,s ); RETURN Nil
          ELSE
@@ -473,13 +481,27 @@ FUNCTION lisp_EvalExpr( s, nType )
          RETURN Lisp_EvalRet( cExpr )
 
       CASE "length"
-         n := 0
-         DO WHILE !Empty( cNext )
-            n ++
-            cNext := lisp_GetNext_A( s, @nPos )
+         IF Left( cNext,1 ) $ "('"
+            cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-         ENDDO
-         RETURN lisp_EvalRet( Ltrim( Str( n ) ) )
+         ENDIF
+         IF nGetType == TYPE_LIST
+            n := 0
+            nPos := 2
+            s := cNext
+            DO WHILE .T.
+               l := lisp_SkipNext( s, @nPos )
+               IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+               IF l
+                  n ++
+               ELSE
+                  EXIT
+               ENDIF
+            ENDDO
+            RETURN lisp_EvalRet( Ltrim( Str( n ) ) )
+         ELSE
+            nType := lisp_Error( ERR_LIST_EXPECTED,s ); RETURN Nil
+         ENDIF
 
       CASE "+"
          l := .T.
@@ -536,17 +558,22 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "<"
       CASE "="
          lInt := .T.
+         edi_writelog( "1> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
          cExpr := lisp_GetNext_A( s, @nPos )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         edi_writelog( "2> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cExpr,1 ) $ "('"
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
+         edi_writelog( "3> "+ltrim(str(nGetType))+" "+valtype(nGetType2) )
          IF nGetType != TYPE_ATOM .OR. nGetType2 != TYPE_ATOM
+            edi_writelog( "->"+cNext )
+            edi_writelog( "->"+cExpr )
             nType := lisp_Error( ERR_ATOM_EXPECTED,s ); RETURN Nil
          ENDIF
          IF cmd == "="
@@ -659,7 +686,7 @@ FUNCTION lisp_EvalExpr( s, nType )
             nType := nGetType
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
             RETURN lisp_EvalRet( cExpr )
-         ELSEIF !Empty( cName := hb_hGetDef( aFuncsHb, cmd, Nil ) )
+         ELSEIF !( ( cName := hb_hGetDef( aFuncsHb, cmd, Nil ) ) == Nil )
             cRes := ""
             n := 0
             DO WHILE !Empty( cNext )
@@ -669,13 +696,14 @@ FUNCTION lisp_EvalExpr( s, nType )
                ENDIF
                n ++
                cRes += Iif( n > 1, ",", "" ) + Iif( ( c := Substr(cName,n,1) ) == "N", cNext, ;
-                  Iif( c == "L", Iif( cNext == cTrue, ".T.", ".F." ), '"'+cNext+'"' ) )
+                  Iif( c == "L", Iif( cNext == cTrue, ".T.", ".F." ), Iif( c == "D", 'hb_Stod("'+cNext+'")','"'+cNext+'"' ) ) )
                cNext := lisp_GetNext_A( s, @nPos )
                IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
             ENDDO
+            //edi_Writelog( cmd + "(" + cRes + ")" )
             cRes := &( cmd + "(" + cRes + ")" )
             RETURN lisp_EvalRet( Iif( (c := Valtype(cRes)) == "N", lisp_Str(cRes,.F.), ;
-               Iif( c == "L", Iif( cRes, cTrue, cFalse ), cRes ) ) )
+               Iif( c == "L", Iif( cRes, cTrue, cFalse ), Iif( c == "D", Dtos(cRes), cRes ) ) ) )
          ELSE
             nType := lisp_Error( ERR_UNKNOWN_FUNCTION, cmd+Chr(10)+s ); RETURN Nil
          ENDIF
@@ -724,26 +752,21 @@ STATIC FUNCTION lisp_getCdr( cNext, nType )
 
    LOCAL nPos := 2
 
+   nType := TYPE_LIST
    IF Left( cNext,1 ) == "'"
       cNext := lisp_GetNext_A( cNext, 2 )
       IF nLispErr > 0; RETURN Nil; ENDIF
-
-      nType := TYPE_LIST
       RETURN "(" + cNext + ")"
    ENDIF
 
-   lisp_GetNext_A( cNext, @nPos )
-   IF nLispErr > 0; RETURN Nil; ENDIF
+   IF lisp_SkipNext( cNext, @nPos )
+      RETURN '(' + Substr( cNext, nPos )
 
-   cNext := '(' + Substr( cNext, nPos )
-   nPos := cedi_strSkipChars( cNext, 2 )
-   IF Substr( cNext, nPos, 1 ) == ')'
-      nType := TYPE_ATOM
-      RETURN cFalse
+   ELSEIF nLispErr > 0; RETURN Nil
    ENDIF
 
-   nType := TYPE_LIST
-   RETURN cNext
+   nType := TYPE_ATOM
+   RETURN cFalse
 
 STATIC FUNCTION lisp_EvalRet( s )
 
@@ -834,7 +857,7 @@ STATIC FUNCTION lisp_Lambda_1( s, lStart )
 
 STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
 
-   LOCAL cExpr := aLambda[1], i, cParam, nGetType
+   LOCAL cExpr := aLambda[1], i, cParam, nGetType, cTemp
 
    i := 2
    //edi_Writelog( "EvalLambda: " + Iif( aLambda[2]==Nil,"",aLambda[2] ) + " " + Ltrim(Str(Len(aLambda))) )
@@ -842,13 +865,15 @@ STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
    //edi_Writelog( "s>" + s )
    //edi_Writelog( "n>" + Str(nPos) )
    DO WHILE !Empty( cParam := lisp_GetNext_A( s, @nPos ) )
-      //edi_Writelog( "p"+Ltrim(Str(i-1))+">" + cParam )
+      //edi_Writelog( "pp"+Ltrim(Str(i-1))+">" + cParam )
       i ++
       IF i > Len( aLambda )
          lisp_Error( ERR_WRONG_PARAM_NUMBER,aLambda[1] ); RETURN Nil
       ENDIF
       IF Left( cParam, 1 ) == "("
-         cParam := "'" + lisp_EvalExpr( cParam )
+         cTemp := lisp_EvalExpr( cParam )
+         IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         cParam := "'" + cTemp
       ENDIF
       cExpr := StrTran( cExpr, aLambda[i], cParam )
    ENDDO
@@ -867,108 +892,59 @@ STATIC FUNCTION lisp_EvalLambda( aLambda, s, nPos, nType )
 
 STATIC FUNCTION lisp_GetNext_A( s, nPos )
 
-   LOCAL c, nPos2, n
+   LOCAL c, nStart, n
 
-   nPos := cedi_strSkipChars( s, nPos )
-   IF ( c := Substr( s, nPos, 1 ) ) == '('
-      IF ( nPos2 := lisp_GetPairBracket( s, nPos, 0 ) ) < 0
-         lisp_Error( ERR_PAIRBRACKET, SubStr(s,nPos) )
-         RETURN ""
-      ENDIF
-      nPos2 ++
-      s := Substr( s, nPos, nPos2-nPos )
-      nPos := nPos2
-      RETURN s
-
-   ELSEIF c == '"'
-      IF ( nPos2 := hb_At( '"', s, nPos+1 ) ) == 0
-         lisp_Error( ERR_PAIRQUOTE, SubStr(s,nPos) )
-         RETURN ""
-      ELSE
-         nPos2 ++
-         s := Substr( s, nPos, nPos2-nPos )
-         nPos := nPos2
+   IF lisp_SkipNext( s, @nPos, @nStart )
+      s := Substr( s, nStart, n := (nPos-nStart) )
+      IF ( c := Substr( s, nStart, 1 ) ) $ [("']
          RETURN s
-      ENDIF
-
-   ELSEIF c == "'"
-      nPos ++
-      s := lisp_GetNext_A( s, @nPos )
-      RETURN "'" + s
-
-   ELSEIF c == ')'
-      RETURN ""
-
-   ELSE
-      nPos2 := cedi_strPBrk( " )", s, nPos+1 )
-      IF nPos2 < 0
-         s := Substr( s, nPos )
-         nPos2 := Len( s ) + 1
-         n := nPos2 - nPos
       ELSE
-         s := Substr( s, nPos, n := (nPos2-nPos) )
+         RETURN Iif( n == 3 .AND. Lower(s) == "nil", cFalse, ;
+            Iif( ( c := hb_hGetDef( aGlobVars, s, Nil ) ) != Nil, c, s ) )
       ENDIF
-      nPos := nPos2
-      RETURN Iif( n == 3 .AND. Lower(s) == "nil", cFalse, ;
-         Iif( ( c := hb_hGetDef( aGlobVars, s, Nil ) ) != Nil, c, s ) )
    ENDIF
 
    RETURN ""
 
-STATIC FUNCTION lisp_GetNext_B( s, nPos, nStart, nEnd, nType )
+STATIC FUNCTION lisp_SkipNext( s, nPos, nStart )
 
-   LOCAL c, nPos2, n
+   LOCAL c, nPos2
 
-   nPos := cedi_strSkipChars( s, nPos )
+   nStart := nPos := cedi_strSkipChars( s, nPos )
    IF ( c := Substr( s, nPos, 1 ) ) == '('
       IF ( nPos2 := lisp_GetPairBracket( s, nPos, 0 ) ) < 0
          lisp_Error( ERR_PAIRBRACKET, SubStr(s,nPos) )
-         RETURN ""
+         RETURN .F.
       ENDIF
-      nStart := nPos; nEnd := nPos2
       nPos := nPos2 + 1
-      nType := TYPE_LIST
-      RETURN s
+      RETURN .T.
 
    ELSEIF c == '"'
       IF ( nPos2 := hb_At( '"', s, nPos+1 ) ) == 0
          lisp_Error( ERR_PAIRQUOTE, SubStr(s,nPos) )
-         RETURN ""
+         RETURN .F.
       ELSE
-         nStart := nPos; nEnd := nPos2
          nPos := nPos2 + 1
-         nType := TYPE_ATOM
-         RETURN s
+         RETURN .T.
       ENDIF
 
    ELSEIF c == "'"
-      nStart := nPos; nEnd := nPos2
       nPos ++
-      lisp_GetNext_B( s, @nPos,, @nEnd )
-      nType := TYPE_LIST
-      RETURN s
+      lisp_SkipNext( s, @nPos )
+      RETURN .T.
 
    ELSEIF c == ')'
-      RETURN ""
+      RETURN .F.
 
    ELSE
-      nStart := nPos
       nPos2 := cedi_strPBrk( " )", s, nPos+1 )
       IF nPos2 < 0
-         s := Substr( s, nPos )
-         nPos2 := Len( s ) + 1
+         nPos := Len( s ) + 1
+      ELSE
+         nPos := nPos2
       ENDIF
-      nPos := nPos2
-      n := nPos2 - nPos
-      s := Substr( s, nStart, n )
-      IF n == 3 .AND. Lower(s) == "nil"
-         s := cFalse
-      ELSEIF ( c := hb_hGetDef( aGlobVars, s, Nil ) ) != Nil
-         s := c
-      ENDIF
-      nStart := 1; nEnd := Len( s )
-      nType := TYPE_ATOM
-      RETURN s
+      RETURN .T.
    ENDIF
 
-   RETURN ""
+   RETURN .F.
+
