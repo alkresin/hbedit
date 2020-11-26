@@ -226,6 +226,7 @@ FUNCTION lisp_EvalExpr( s, nType )
       RETURN lisp_EvalRet( cNext )
 
    ELSEIF IsDigit( c ) .OR. ( c == '-' .AND. IsDigit( Substr( s, 2, 1 ) ) )
+      nType := TYPE_ATOM
       RETURN lisp_EvalRet( lisp_GetNext_A( s, 1 ) )
 
    ELSEIF Substr( s, nPos, 1 ) == '('
@@ -558,22 +559,22 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "<"
       CASE "="
          lInt := .T.
-         edi_writelog( "1> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
+         //edi_writelog( "1> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
          cExpr := lisp_GetNext_A( s, @nPos )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-         edi_writelog( "2> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
+         //edi_writelog( "2> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cExpr,1 ) $ "('"
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
-         edi_writelog( "3> "+ltrim(str(nGetType))+" "+valtype(nGetType2) )
+         //edi_writelog( "3> "+ltrim(str(nGetType))+" "+valtype(nGetType2) )
          IF nGetType != TYPE_ATOM .OR. nGetType2 != TYPE_ATOM
-            edi_writelog( "->"+cNext )
-            edi_writelog( "->"+cExpr )
+            //edi_writelog( "->"+cNext )
+            //edi_writelog( "->"+cExpr )
             nType := lisp_Error( ERR_ATOM_EXPECTED,s ); RETURN Nil
          ENDIF
          IF cmd == "="
