@@ -23,7 +23,7 @@ FUNCTION Plug_lisp_Init( oEdit, cPath )
          oEdit:oHili:hHili["help"] := "Alt-R  launches the interpreter, based on Lisp 1.5." + Chr(10) + ;
             "Following functions are implemented:" + Chr(10) + ;
             "Basic: quote atom eq car cdr (and all cxyr like) cons cond lambda label defun." + Chr(10) + ;
-            "Additional: null and not or append list pair length load numberp set setq" + Chr(10) + ;
+            "Additional: if null and not or append list pair length load numberp set setq" + Chr(10) + ;
             "Arithmetic: + - * / % ** ++ -- > < = max min" + Chr(10) + ;
             "and a new one: defunhb, which allows to use Harbour functions in a Lisp code."
       ENDIF

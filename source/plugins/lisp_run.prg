@@ -326,6 +326,25 @@ FUNCTION lisp_EvalExpr( s, nType )
          nType := TYPE_ATOM
          RETURN lisp_EvalRet( cFalse )
 
+      CASE "if"
+         IF Left( cNext,1 ) $ "('"
+            cNext := lisp_EvalExpr( cNext, @nType )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDIF
+         IF cNext == cFalse
+            lisp_SkipNext( s, @nPos )
+         ELSEIF cNext != cTrue
+            nType := lisp_Error( ERR_LOGIC_EXPECTED,cNext+Chr(10)+s ); RETURN Nil
+         ENDIF
+
+         cExpr := lisp_GetNext_A( s, @nPos )
+         IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         IF Left( cExpr,1 ) $ "('"
+            cExpr := lisp_EvalExpr( cExpr, @nType )
+            IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
+         ENDIF
+         RETURN lisp_EvalRet( cExpr )
+
       CASE "cons"
       CASE "append"
          nType := TYPE_LIST
@@ -559,22 +578,17 @@ FUNCTION lisp_EvalExpr( s, nType )
       CASE "<"
       CASE "="
          lInt := .T.
-         //edi_writelog( "1> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cNext,1 ) $ "('"
             cNext := lisp_EvalExpr( cNext, @nGetType )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
          cExpr := lisp_GetNext_A( s, @nPos )
          IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
-         //edi_writelog( "2> "+ltrim(str(nGetType))+" "+ltrim(str(nGetType2)) )
          IF Left( cExpr,1 ) $ "('"
             cExpr := lisp_EvalExpr( cExpr, @nGetType2 )
             IF nLispErr > 0; nType := lisp_Error( ,s ); RETURN Nil; ENDIF
          ENDIF
-         //edi_writelog( "3> "+ltrim(str(nGetType))+" "+valtype(nGetType2) )
          IF nGetType != TYPE_ATOM .OR. nGetType2 != TYPE_ATOM
-            //edi_writelog( "->"+cNext )
-            //edi_writelog( "->"+cExpr )
             nType := lisp_Error( ERR_ATOM_EXPECTED,s ); RETURN Nil
          ENDIF
          IF cmd == "="
@@ -588,7 +602,7 @@ FUNCTION lisp_EvalExpr( s, nType )
          CASE "/"
             RETURN lisp_EvalRet( lisp_Str( cNext / cExpr,lInt ) )
          CASE "%"
-            RETURN lisp_EvalRet( Ltrim(Str( cNext % cExpr )) )
+            RETURN lisp_EvalRet( lisp_Str( cNext % cExpr,.T. ) )
          CASE "**"
             RETURN lisp_EvalRet( lisp_Str( cNext ** cExpr,lInt ) )
          CASE ">"
