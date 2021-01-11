@@ -5,9 +5,9 @@
  * www - http://www.kresin.ru
  */
 
-FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
+FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2, cMask )
 
-   LOCAL aMenu := edi_Directory( cPath ), i, nPos, arr
+   LOCAL aMenu := edi_Directory( cPath, cMask ), i, nPos, arr
    LOCAL bSea := {|nop,cSea,cLine|
       LOCAL cBuff, n1, n2, n3, lCase
       IF nop == 0
@@ -57,11 +57,11 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
             IF aMenu[i,1] == ".."
                IF ( nPos := hb_Rat( hb_ps(), cPath,, Len(cPath)-1 ) ) > 0
                   cPath := Left( cPath, nPos )
-                  aMenu := edi_Directory( cPath )
+                  aMenu := edi_Directory( cPath, cMask )
                ENDIF
             ELSE
                cPath += aMenu[i,1] + hb_ps()
-               aMenu := edi_Directory( cPath )
+               aMenu := edi_Directory( cPath, cMask )
             ENDIF
          ENDIF
       ELSE
@@ -71,10 +71,10 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2 )
 
    RETURN Nil
 
-FUNCTION edi_Directory( cPath )
+FUNCTION edi_Directory( cPath, cMask )
 
    LOCAL aDirTmp := Directory( cPath, "HSD" ), aMenu
-   LOCAL i, l1 := .F., l2 := .F., nPos
+   LOCAL i, j, l1 := .F., l2 := .F., nPos
 
    FOR i := 1 TO Len( aDirTmp )
       IF Empty( aDirTmp[i] )
@@ -103,12 +103,23 @@ FUNCTION edi_Directory( cPath )
    ENDIF
    aDirTmp := ASort( aDirTmp,,, {|z,y|Lower(z[1]) < Lower(y[1])} )
    aMenu := Array( Len( aDirTmp ) )
+   j := 0
    FOR i := 1 TO Len( aDirTmp )
-      IF "D" $ aDirTmp[i,5] .AND. Left( aDirTmp[i,1],1 ) == " "
-         aDirTmp[i,1] := Substr( aDirTmp[i,1],2 )
+      IF "D" $ aDirTmp[i,5]
+         IF Left( aDirTmp[i,1],1 ) == " "
+            aDirTmp[i,1] := Substr( aDirTmp[i,1],2 )
+         ENDIF
+      ELSEIF !Empty( cMask )
+         IF !hb_filematch( aDirTmp[i,1], cMask )
+            LOOP
+         ENDIF
       ENDIF
-      aMenu[i] := { aDirTmp[i,1], Nil, Nil, Iif("D" $ aDirTmp[i,5], "<DIR>", Nil ) }
+      j ++
+      aMenu[j] := { aDirTmp[i,1], Nil, Nil, Iif("D" $ aDirTmp[i,5], "<DIR>", Nil ) }
    NEXT
+   IF j < Len( aMenu )
+      aMenu := ASize( aMenu, j )
+   ENDIF
 
    RETURN aMenu
 

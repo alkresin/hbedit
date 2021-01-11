@@ -1406,7 +1406,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i := ::nPos
-                     IF ::Search( s, .T., .T., .F., .F., @n, @i )
+                     IF ::Search( s, .T., .T., .T., .F., @n, @i )
                         ::GoTo( n, i, 0 )
                      ENDIF
                      EXIT
@@ -1415,7 +1415,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
                      s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
                      i --
-                     IF ::Search( s, .T., .F., .F., .F., @n, @i )
+                     IF ::Search( s, .T., .F., .T., .F., @n, @i )
                         ::GoTo( n, i, 0 )
                      ENDIF
                      EXIT

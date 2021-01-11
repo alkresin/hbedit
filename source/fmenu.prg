@@ -254,7 +254,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cScBuf )
    IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LINS" )
-      SetCursor( Iif( obj:lIns, SC_NORMAL, SC_SPECIAL1 ) )
+      SetCursor( Iif( obj:lIns==Nil.OR.obj:lIns, SC_NORMAL, SC_SPECIAL1 ) )
    ELSE
       SetCursor( SC_NORMAL )
    ENDIF
