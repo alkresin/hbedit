@@ -8,6 +8,7 @@
 
 #define K_ESC        27
 #define K_CTRL_TAB  404
+#define K_SH_TAB    271
 #define K_UP          5
 #define K_DOWN       24
 #define K_LEFT       19
@@ -199,9 +200,13 @@ FUNCTION _Tetris_OnKey( oEdit, nKeyExt )
       SetColor( BOARD_CLR )
       @ y1t+3, x2t+25 SAY Ltrim(Str(nStartLevel))
 
-   ELSEIF nKey == K_CTRL_TAB
+   ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oTetr:y1, oTetr:x1, oTetr:y2, oTetr:x2 )
-      RETURN 0
+      IF Len( oEdit:aWindows ) == 1
+         RETURN 0x41010004   // Shift-F4
+      ELSE
+         RETURN 0
+      ENDIF
 
    ELSEIF nKey == K_ESC
       cScreenBuff := Nil

@@ -10,6 +10,7 @@
 #define K_ENTER      13
 #define K_BS          8
 #define K_CTRL_TAB  404
+#define K_SH_TAB    271
 #define K_F1         28
 #define K_F2         -1
 #define K_F3         -2
@@ -152,9 +153,13 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_F8
       DoCmd( 8, aCmds[8] )
 
-   ELSEIF nKey == K_CTRL_TAB
+   ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
-      RETURN 0
+      IF Len( oEdit:aWindows ) == 1
+         RETURN 0x41010004   // Shift-F4
+      ELSE
+         RETURN 0
+      ENDIF
 
    ELSEIF nKey == K_F10
       EndOfTime()
