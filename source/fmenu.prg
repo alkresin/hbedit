@@ -42,10 +42,10 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       x2 := 0
       FOR i := 1 TO nLen
          IF lSingle
-            x2 := Max( x2, Len(aMenu[i]) )
+            x2 := Max( x2, cp_Len(lUtf8,aMenu[i]) )
          ELSE
-            x2 := Max( x2, Len(aMenu[i,1]) + ;
-               Iif(Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4])+1,0) )
+            x2 := Max( x2, cp_Len(lUtf8,aMenu[i,1]) + ;
+               Iif(Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), cp_Len(lUtf8,aMenu[i,4])+1,0) )
          ENDIF
       NEXT
       x2 := Min( MaxCol()-4, x1 + x2 + 6 )
@@ -295,12 +295,12 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
             cPrefix := Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " )
          ENDIF
          IF lSingle
-            arr[nLenArr] := PAdr( cPrefix + aMenu[i], nSize )
+            arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i], nSize )
          ELSE
-            IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), Len(aMenu[i,4]), 0 ) ) > 0
-               nDop := nSize - nDop - Len(aMenu[i,1]) - 3
+            IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), cp_Len(lUtf8,aMenu[i,4]), 0 ) ) > 0
+               nDop := nSize - nDop - cp_Len(lUtf8,aMenu[i,1]) - 3
             ENDIF
-            arr[nLenArr] := PAdr( cPrefix + aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
+            arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
          ENDIF
          l := .T.
       ENDIF
@@ -331,3 +331,18 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
    NEXT
 
    RETURN Nil
+
+FUNCTION cp_Padr( lUtf8, s, n )
+
+   LOCAL nLen
+
+   IF !lUtf8
+      RETURN Padr( s, n )
+   ENDIF
+   IF ( nLen := cp_Len( lUtf8, s ) ) < n
+      s += Space( n - nLen )
+   ELSEIF nLen > n
+      s := cp_Left( s, n )
+   ENDIF
+
+   RETURN s
