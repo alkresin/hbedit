@@ -524,6 +524,7 @@ STATIC FUNCTION DrawBoard()
 STATIC FUNCTION Check4Shah( aPos )
 
    LOCAL i, nFig, nKing, arr
+   STATIC ak := { 1,7,8,9 }
 
    nFig := Iif( lTurnBlack, 75, 107 )
    FOR i := 1 TO 64
@@ -535,9 +536,23 @@ STATIC FUNCTION Check4Shah( aPos )
    FOR i := 1 TO 64
       nFig := hb_bPeek( aCurrPos[POS_BOARD], i )
       IF (!lTurnBlack .AND. nFig >= 65 .AND. nFig <= 90) .OR. (lTurnBlack .AND. nFig >= 97 .AND. nFig <= 122)
-         arr := chess_GenMoves( aPos, i )
-         IF Ascan( arr,nKing ) > 0
-            RETURN .T.
+         IF nFig == 80  // 'P'
+            IF i == nKing+7 .OR. i == nKing+9
+               RETURN .T.
+            ENDIF
+         ELSEIF nFig == 112  // 'p'
+            IF i == nKing-7 .OR. i == nKing-9
+               RETURN .T.
+            ENDIF
+         ELSEIF nFig == 75 .OR. nFig == 107  // 'K','k'
+            IF Ascan( ak, Abs( nKing - i ) ) > 0
+               RETURN .T.
+            ENDIF
+         ELSE
+            arr := chess_GenMoves( aPos, i )
+            IF Ascan( arr,nKing ) > 0
+               RETURN .T.
+            ENDIF
          ENDIF
       ENDIF
    NEXT
@@ -588,8 +603,8 @@ STATIC FUNCTION Set_lb_lw( aPos, lBlack )
 
 STATIC FUNCTION MakeMove( nRow, nCol )
 
-   LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 1
-   LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 )
+   LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0
+   LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 ), cBoa16
 
    IF nMoveState == 0 .AND. ( (!lTurnBlack .AND. c >= 'A' .AND. c <= 'Z') .OR. ;
       (lTurnBlack .AND. c >= 'a' .AND. c <= 'z') )
@@ -603,11 +618,12 @@ STATIC FUNCTION MakeMove( nRow, nCol )
          DrawMove( {aMoveState[1], aMoveState[2], nMove} )
          nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
          IF !lTurnBlack
-            AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==aCurrPos[POS_BOARD],nCou+1,nCou)} )
+            cBoa16 := ATail(aHistory)[3]
+            AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
          ENDIF
          IF nSumm >= 50000
             GameOver( 1 )
-         ELSEIF !lTurnBlack .AND. nCou > 3
+         ELSEIF !lTurnBlack .AND. nCou >= 5
             GameOver( 3 )
          ELSE
             lTurnBlack := !lTurnBlack
@@ -795,7 +811,7 @@ STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lShah )
    IF lTurnBlack
       ATail( aHistory )[2] := arr
    ELSE
-      AAdd( aHistory, { arr, Nil, cBoard } )
+      AAdd( aHistory, { arr, Nil, board_64to32(cBoard) } )
    ENDIF
 
    RETURN Nil
@@ -994,8 +1010,8 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
 
 STATIC FUNCTION ii_MakeMove()
 
-   LOCAL cFig, nSec, nCou := 1, nKey
-   LOCAL aMaxOcen
+   LOCAL cFig, nSec, nCou := 0, nKey
+   LOCAL aMaxOcen, cBoa16
 
    DrawMove( {'@'} )
 
@@ -1013,11 +1029,12 @@ STATIC FUNCTION ii_MakeMove()
    ELSE
       DrawMove( {cFig := Substr( aCurrPos[POS_BOARD], aMaxOcen[1], 1 ), aMaxOcen[1], amaxOcen[2]} )
       IF !lTurnBlack
-         AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==aCurrPos[POS_BOARD],nCou+1,nCou)} )
+         cBoa16 := ATail(aHistory)[3]
+         AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
       ENDIF
       IF aMaxOcen[3] > 50000
          GameOver( 2 )
-      ELSEIF !lTurnBlack .AND. nCou > 3
+      ELSEIF !lTurnBlack .AND. nCou >= 5
          GameOver( 3 )
       ENDIF
    ENDIF
@@ -1045,6 +1062,29 @@ STATIC FUNCTION GameOver( nRes )
    lPlayGame := .F.
 
    RETURN Nil
+
+STATIC FUNCTION board_64to32( cBoard )
+
+   LOCAL cRes := "", i, cf := " prnbqkPRNBQK"
+
+   FOR i := 1 TO 63 STEP 2
+      cRes += Chr( At( Substr(cBoard,i,1), cf ) ) + ;
+         Chr( hb_BitShift( At( Substr(cBoard,i+1,1), cf ), 4 ) )
+   NEXT
+
+   RETURN cRes
+
+STATIC FUNCTION board_32to64( cBoard )
+
+   LOCAL cRes := "", i, n, cf := " prnbqkPRNBQK"
+
+   FOR i := 1 TO 32
+      n := Asc( Substr(cBoard,i,1) )
+      cRes += Substr( cf, hb_BitAnd( n, 0xf ), 1 ) + ;
+         Substr( cf, hb_bitShift( hb_BitAnd( n, 0xf0 ), -4 ), 1 )
+   NEXT
+
+   RETURN cRes
 
 STATIC FUNCTION pgn_ReadHead( cBuff, nPos, cTag )
 
