@@ -33,6 +33,7 @@ STATIC nLevel1, nLevel2, nMoveState, aMoveState := { Nil,Nil }
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
 STATIC lRussian := .T., lDrawUtf8 := .F.
+STATIC cOpenings, lOpenings
 
 STATIC cInitBoard := "rnbqkbnrpppppppp                                PPPPPPPPRNBQKBNR"
 STATIC aFigs := {' ','p','P','r','n','b','q','k','R','N','B','Q','K'}, ;
@@ -159,30 +160,6 @@ STATIC aCurrPos
 STATIC aHistory, aHisView
 STATIC lSetDiag := .F., lPlayGame, lViewGame, lDebug := .F.
 
-STATIC cFigures := "pnbrqk"
-#define N     -8
-#define E      1
-#define S      8
-#define W     -1
-STATIC aDirections := { { ;
-    { N, N+N, N+W, N+E }, ;
-    { N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W }, ;
-    { N+E, S+E, S+W, N+W }, ;
-    { N, E, S, W }, ;
-    { N, E, S, W, N+E, S+E, S+W, N+W }, ;
-    { N, E, S, W, N+E, S+E, S+W, N+W } }, ;
-    { ;
-    { -N, -N-N, -N-W, -N-E }, ;
-    { -N-N-E, -E-N-E, -E-S-E, -S-S-E, -S-S-W, -W-S-W, -W-N-W, -N-N-W }, ;
-    { -N-E, -S-E, -S-W, -N-W }, ;
-    { -N, -E, -S, -W }, ;
-    { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W }, ;
-    { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W } } }
-#undef N
-#undef E
-#undef S
-#undef W
-
 FUNCTION plug_gm_Chess( oEdit, cPath )
 
    LOCAL i, cName := "$Chess"
@@ -199,7 +176,10 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
 
    nLevel1 := 0; nLevel2 := 1
    lDrawUtf8 := !( "wind" $ Lower( Os() ) )
+
    IF Empty( cIniPath )
+      cIniPath := cPath
+      cOpenings := cIniPath + "chess" + hb_ps() + "chessopn.dbf"
       Read_Game_Ini( (cIniPath := cPath) + "chess.ini" )
    ENDIF
 
@@ -219,6 +199,7 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
    oGame:lUtf8 := .T.
    oGame:lIns := Nil
    aCurrPos := Array( POS_LEN )
+   dbOpn_Open()
 
    RETURN Nil
 
@@ -232,6 +213,38 @@ STATIC FUNCTION _Game_Start()
    ELSE
       RestScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2, cScreenBuff )
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION dbOpn_Open()
+
+   LOCAL bOldError := ErrorBlock( { |e|break( e ) } ), lRes := .T.
+
+   lOpenings := .F.
+   BEGIN SEQUENCE
+      dbUseArea( .T., "DBFCDX", cOpenings, "OPENINGS", .T., .F. )
+   RECOVER
+      lRes := .F.
+   END SEQUENCE
+
+   IF lRes
+      ordSetFocus( "BOARD" )
+      lOpenings := .T.
+   ENDIF
+   Errorblock( bOldError )
+
+   RETURN Nil
+
+STATIC FUNCTION _Game_Exit()
+
+   cScreenBuff := Nil
+   IF lOpenings
+      dbSelectArea( "OPENINGS" )
+      dbCloseArea()
+      lOpenings := .F.
+   ENDIF
+   Write_Game_Ini()
+   mnu_Exit( oGame )
 
    RETURN Nil
 
@@ -370,9 +383,7 @@ STATIC FUNCTION _Game_MainMenu()
    STATIC aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Set diagramm",,,"F5"}, {"Change players",,,"F6"}, {"Save",,,"F2"}, {"Load",,,"F4"}, {"Rus/Eng",,,"F8"} }
 
    IF ( nc := FMenu( oGame, Iif( lRussian, aMenuR, aMenuE ), y1t, x2t+2 ) ) == 1
-      cScreenBuff := Nil
-      Write_Game_Ini()
-      mnu_Exit( oGame )
+      _Game_Exit()
 
    ELSEIF nc == 2
       _Game_New( .F. )
@@ -486,9 +497,7 @@ STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
      ENDIF
 
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
-      cScreenBuff := Nil
-      Write_Game_Ini()
-      mnu_Exit( oEdit )
+      _Game_Exit()
 
    ENDIF
 
@@ -717,6 +726,29 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
    LOCAL cFig := Substr( aPos[POS_BOARD], nStart, 1 ), cFigU := Upper( cFig )
    LOCAL aMoves := {}, i, j, arr, nMove, nCol1, nCol2
    LOCAl lBlack := (cFig >= 'a' .AND. cFig <= 'z')
+   STATIC cFigures := "pnbrqk"
+#define N     -8
+#define E      1
+#define S      8
+#define W     -1
+   STATIC aDirections := { { ;
+      { N, N+N, N+W, N+E }, ;
+      { N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W }, ;
+      { N+E, S+E, S+W, N+W }, ;
+      { N, E, S, W }, ;
+      { N, E, S, W, N+E, S+E, S+W, N+W }, ;
+      { N, E, S, W, N+E, S+E, S+W, N+W } }, ;
+      { ;
+      { -N, -N-N, -N-W, -N-E }, ;
+      { -N-N-E, -E-N-E, -E-S-E, -S-S-E, -S-S-W, -W-S-W, -W-N-W, -N-N-W }, ;
+      { -N-E, -S-E, -S-W, -N-W }, ;
+      { -N, -E, -S, -W }, ;
+      { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W }, ;
+      { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W } } }
+#undef N
+#undef E
+#undef S
+#undef W
 
    arr := aDirections[Iif(lBlack,2,1), At( Lower(cFig), cFigures ) ]
    FOR i := 1 TO Len( arr )
@@ -1011,18 +1043,26 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
 STATIC FUNCTION ii_MakeMove()
 
    LOCAL cFig, nSec, nCou := 0, nKey
-   LOCAL aMaxOcen, cBoa16
+   LOCAL aMaxOcen, cBoa16, cMoves, n, lFromOpn := .F.
 
    DrawMove( {'@'} )
 
    nSec := Seconds()
-   IF Iif( lTurnBlack, nLevel2, nLevel1 ) == 1
-      aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
+   IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32(aCurrPos[POS_BOARD]) ))
+      cMoves := hb_strReplace( openings->MOVES, "z" )
+      n := hb_RandomInt( 1, Len(cMoves)/2 )
+      aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
+      lFromOpn := .T.
    ELSE
-      aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., 3 )
+      //edi_Alert( Iif( lOpenings,"T","F" ) )
+      IF Iif( lTurnBlack, nLevel2, nLevel1 ) == 1
+         aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
+      ELSE
+         aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., 3 )
+      ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 ))
+   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn,"©"," ")
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )
@@ -1068,8 +1108,8 @@ STATIC FUNCTION board_64to32( cBoard )
    LOCAL cRes := "", i, cf := " prnbqkPRNBQK"
 
    FOR i := 1 TO 63 STEP 2
-      cRes += Chr( At( Substr(cBoard,i,1), cf ) ) + ;
-         Chr( hb_BitShift( At( Substr(cBoard,i+1,1), cf ), 4 ) )
+      cRes += Chr( At( Substr(cBoard,i,1), cf ) + ;
+         hb_BitShift( At( Substr(cBoard,i+1,1), cf ), 4 ) )
    NEXT
 
    RETURN cRes
@@ -1452,6 +1492,9 @@ STATIC FUNCTION Read_Game_Ini( cIni )
                IF hb_hHaskey( aSect, cTemp := "drawutf8" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lDrawUtf8 := ( Lower( cTemp ) == "on" )
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "copenings" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cOpenings := cTemp
+               ENDIF
             ENDIF
          ENDIF
       NEXT
@@ -1469,6 +1512,7 @@ STATIC FUNCTION Write_Game_Ini()
    s += "clrbblack=" + clrbBlack + Chr(13)+Chr(10)
    s += "russian=" + Iif( lRussian, "On", "Off" ) + Chr(13)+Chr(10)
    s += "drawutf8=" + Iif( lDrawUtf8, "On", "Off" ) + Chr(13)+Chr(10)
+   s += "copenings=" + cOpenings + Chr(13)+Chr(10)
 
    hb_MemoWrit( cIniPath + "chess.ini", s )
 
