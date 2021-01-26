@@ -342,7 +342,7 @@ FUNCTION cp_Padr( lUtf8, s, n )
    IF ( nLen := cp_Len( lUtf8, s ) ) < n
       s += Space( n - nLen )
    ELSEIF nLen > n
-      s := cp_Left( s, n )
+      s := cp_Left( lUtf8, s, n )
    ENDIF
 
    RETURN s

@@ -195,7 +195,7 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
    oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
    oGame:bStartEdit := {|| _Game_Start() }
    //oGame:cp := Iif( lDrawUtf8, "UTF8",  "RU866" )
-   oGame:cp := "UTF8"
+   hb_cdpSelect( oGame:cp := "UTF8" )
    oGame:lUtf8 := .T.
    oGame:lIns := Nil
    aCurrPos := Array( POS_LEN )
@@ -1043,13 +1043,14 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
 STATIC FUNCTION ii_MakeMove()
 
    LOCAL cFig, nSec, nCou := 0, nKey
-   LOCAL aMaxOcen, cBoa16, cMoves, n, lFromOpn := .F.
+   LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F.
 
    DrawMove( {'@'} )
 
    nSec := Seconds()
-   IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32(aCurrPos[POS_BOARD]) ))
+   IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
       cMoves := hb_strReplace( openings->MOVES, "z" )
+      //hb_memoWrit( "a1.move", ltrim(str(openings->(recno())))+" "+cMoves )
       n := hb_RandomInt( 1, Len(cMoves)/2 )
       aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
       lFromOpn := .T.
@@ -1062,15 +1063,15 @@ STATIC FUNCTION ii_MakeMove()
       ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn,"©"," ")
+   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )
    ELSE
       DrawMove( {cFig := Substr( aCurrPos[POS_BOARD], aMaxOcen[1], 1 ), aMaxOcen[1], amaxOcen[2]} )
       IF !lTurnBlack
-         cBoa16 := ATail(aHistory)[3]
-         AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
+         cBoa := ATail(aHistory)[3]
+         AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
       ENDIF
       IF aMaxOcen[3] > 50000
          GameOver( 2 )
@@ -1126,14 +1127,17 @@ STATIC FUNCTION board_32to64( cBoard )
 
    RETURN cRes
 
-STATIC FUNCTION pgn_ReadHead( cBuff, nPos, cTag )
+STATIC FUNCTION pgn_ReadHead( cBuff, nPos, cTag, lCutoff )
 
    LOCAL cRes := "", nPos1, nPos2
 
-   IF ( nPos1 := hb_At( "["+cTag, cBuff, nPos ) ) > 0
+   IF ( nPos1 := hb_At( "["+cTag+" ", cBuff, nPos ) ) > 0
       nPos1 := cedi_strSkipChars( cBuff, nPos1+Len(cTag)+2 )
       nPos2 := cedi_strpbrk( "]", cBuff, nPos1 )
       cRes := Trim( StrTran( Substr( cBuff, nPos1, nPos2-nPos1 ), '"', '' ) )
+      IF !Empty(lCutoff) .AND. (nPos1 := At( ',',cRes )) > 0
+         cRes := Trim( Left( cRes, nPos1-1 ) )
+      ENDIF
    ENDIF
 
    RETURN cRes
@@ -1190,7 +1194,7 @@ STATIC FUNCTION chess_FEN2board( cFen, cTurn )
 
 STATIC FUNCTION pgnrec2Move( aPos, cRec, lBlack )
 
-   LOCAL aMove := Array( MOVE_LEN ), cPos, nPos := Len( cRec ), c, n, cFrom
+   LOCAL aMove := Array( MOVE_LEN ), cPos, nPos := Len( cRec ), c, n, cFrom, nFrom
    LOCAL i, nFig, arr
 
    aMove[4] := aMove[6] := ' '; aMove[5] := .F.
@@ -1226,8 +1230,13 @@ STATIC FUNCTION pgnrec2Move( aPos, cRec, lBlack )
       IF nPos > 1 .AND. ( c := Substr( cRec, nPos-1, 1 ) ) == 'x'
          nPos --
       ENDIF
-      IF nPos > 1 .AND. ( c := Substr( cRec, nPos-1, 1 ) ) >= 'a' .AND. c <= 'h'
-         cFrom := c
+      IF nPos > 1 .AND. ( ( ( c := Substr( cRec, nPos-1, 1 ) ) >= 'a' .AND. c <= 'h' ) ;
+         .OR. IsDigit(c) )
+         IF IsDigit( c )
+            nFrom := Val(c)
+         ELSE
+            cFrom := c
+         ENDIF
          nPos --
       ENDIF
       IF nPos > 1
@@ -1243,7 +1252,9 @@ STATIC FUNCTION pgnrec2Move( aPos, cRec, lBlack )
          nFig := hb_bPeek( aPos[POS_BOARD], i )
          IF nFig == Asc( aMove[1] )
             arr := chess_GenMoves( aPos, i )
-            IF Ascan( arr,aMove[3] ) > 0 .AND. ( Empty(cFrom) .OR. Chr(96 + Iif(i%8==0,8,i%8)) == cFrom )
+            //IF Ascan( arr,aMove[3] ) > 0 .AND. ( Empty(cFrom) .OR. Chr(96 + Iif(i%8==0,8,i%8)) == cFrom )
+            IF Ascan( arr,aMove[3] ) > 0 .AND. ( Empty(cFrom) .OR. Chr(96 + Iif(i%8==0,8,i%8)) == cFrom ) ;
+               .AND. ( Empty(nFrom) .OR. Int(9-i/8) == nFrom )
                aMove[2] := i
                EXIT
             ENDIF
@@ -1280,6 +1291,7 @@ STATIC FUNCTION chess_Load()
    LOCAL xFileName, nPos := 1, nPos2, cHea, cFen, cBoard, cTurn
    LOCAL cScBuf := Savescreen( y1t, x2t+2, y1t+10, x2t+40 ), cBuff, aMenu := {}, nc
    LOCAL nTurn, cRec, aPos, aMove, aHis, i
+   LOCAL cWhite, cBlack, cResult
 
    xFileName := edi_SeleFile( oGame, cIniPath, y1t, x2t+2, y1t+10, x2t+40, "*.pgn" )
    Restscreen( y1t, x2t+2, y1t+10, x2t+40, cScBuf )
@@ -1288,15 +1300,15 @@ STATIC FUNCTION chess_Load()
       RETURN Nil
    ENDIF
    cBuff := MemoRead( xFileName[1] )
-   DO WHILE ( nPos := hb_At( "[Event", cBuff, nPos ) ) > 0
-      cHea := pgn_ReadHead( cBuff, nPos, "Date" ) + " - " + pgn_ReadHead( cBuff, nPos, "White" ) + ;
-         " " + pgn_ReadHead( cBuff, nPos, "Black" )
+   DO WHILE ( nPos := hb_At( "[Event ", cBuff, nPos ) ) > 0
+      cHea := pgn_ReadHead( cBuff, nPos, "Date" ) + " - " + pgn_ReadHead( cBuff, nPos, "White", .T. ) + ;
+         " - " + pgn_ReadHead( cBuff, nPos, "Black", .T. )
       IF !Empty( cHea )
          AAdd( aMenu, { cHea, Nil, nPos } )
       ENDIF
       nPos ++
    ENDDO
-   IF !Empty( aMenu ) .AND. ( nPos := FMenu( oGame, aMenu, y1t, x2t+2, y1t+10, x2t+40,,,, .T. ) ) > 0
+   IF !Empty( aMenu ) .AND. ( nPos := FMenu( oGame, aMenu, y1t, x2t-12, y1t+10, x2t+40,,,, .T. ) ) > 0
       cBuff := Substr( cBuff, aMenu[nPos,3], ;
          Iif( nPos==Len(aMenu), Len(cBuff), aMenu[nPos+1,3] ) - aMenu[nPos,3] )
       IF Empty( cFen := pgn_ReadHead( cBuff, 1, "FEN" ) )
@@ -1304,6 +1316,9 @@ STATIC FUNCTION chess_Load()
          IF ( nPos := At( Chr(10)+"1.", cBuff ) ) == 0
             edi_Alert( "Error reading a game" )
          ELSE
+            cWhite := pgn_ReadHead( cBuff, 1, "White", .T. )
+            cBlack := pgn_ReadHead( cBuff, 1, "Black", .T. )
+            cResult:= pgn_ReadHead( cBuff, 1, "Result" )
             cBuff := Trim( hb_strReplace( Substr( cBuff,nPos+1 ), {Chr(10),Chr(13)}, {" ","" } ) )
             //edi_Writelog( cBuff )
             nTurn := 1
@@ -1333,7 +1348,8 @@ STATIC FUNCTION chess_Load()
                IF ( nPos2 := hb_At( ' ', cBuff, nPos ) ) == 0
                   nPos2 := Len( cBuff ) + 1
                ENDIF
-               IF !Empty( cRec := Substr( cBuff, nPos, nPos2-nPos ) ) .AND. !( cRec == "1-0" ) .AND. !( cRec == "0-1" )
+               IF !Empty( cRec := Substr( cBuff, nPos, nPos2-nPos ) ) .AND. ;
+                  !( cRec == "1-0" ) .AND. !( cRec == "0-1" ) .AND. !( cRec == "1/2-1/2" )
                   IF ( aMove := pgnrec2Move( aPos, cRec, .T. ) ) == Nil
                      edi_Alert( Ltrim(Str(nTurn-1))+'. ... '+cRec+" : Wrong data." )
                      RETURN Nil
@@ -1363,10 +1379,10 @@ STATIC FUNCTION chess_Load()
                _Game_New( .T. )
                lPlayGame := .F.
                lViewGame := .T.
-               @ y1t+10, x1t SAY "White: " + pgn_ReadHead( cBuff, 1, "White" )
-               @ y1t+11, x1t SAY "Black: " + pgn_ReadHead( cBuff, 1, "Black" )
-               IF !Empty( cRec := pgn_ReadHead( cBuff, 1, "Result" ) )
-                  @ y1t+12, x1t+7 SAY cRec
+               @ y1t+10, x1t SAY "White: " + cWhite
+               @ y1t+11, x1t SAY "Black: " + cBlack
+               IF !Empty( cResult )
+                  @ y1t+12, x1t+7 SAY cResult
                ENDIF
                @ y1t+14, x1t SAY "Press SPACE for a next turn"
             ELSE
