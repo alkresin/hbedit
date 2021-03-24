@@ -1,5 +1,6 @@
 #define K_ESC       27
 #define K_F5        -4
+#define K_F10       -9
 
 FUNCTION plug_Calculator( oEdit )
 
@@ -51,7 +52,7 @@ FUNCTION _Calcul_OnKey( oEdit, nKeyExt )
 
       RETURN -1
 
-   ELSEIF nKey == K_ESC
+   ELSEIF nKey == K_ESC .OR. nKey == K_F10
       oEdit:lUpdated := .F.
       mnu_Exit( oEdit )
       RETURN -1
