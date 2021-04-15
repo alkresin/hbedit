@@ -9,11 +9,12 @@ STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie, o := oEdit:oHili
    LOCAL arr, i, nPos, nLen, nPrefLen := Len( cPrefix )
+   STATIC cUsl := " #include #define #ifdef #ifndef #else #endif"
 
    IF Empty( hTrieLang := hb_hGetDef( o:hHili, "htrie", Nil ) )
       arr := hb_ATokens( Iif(Empty(o:cKeywords1),"",o:cKeywords1) + " " + ;
          Iif(Empty(o:cKeywords2),"",o:cKeywords2) + " " + Iif(Empty(o:cKeywords3),"",o:cKeywords3) + ;
-         " " + Iif(Empty(o:cKeywords4),"",o:cKeywords4), " " )
+         " " + Iif(Empty(o:cKeywords4),"",o:cKeywords4) + cUsl, " " )
       hTrieLang := o:hHili["htrie"] := trie_Create( .T. )
       FOR i := 1 TO Len( arr )
          IF Len( arr[i] ) > 3
