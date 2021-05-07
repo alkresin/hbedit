@@ -2492,7 +2492,11 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
    IF nLen == 1
       IF nReg == 1
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+         s := s_cb2t()
+#else
          s := TEdit():aCBoards[1,1]
+#endif
 #else
          s := s_cb2t()
 #endif
@@ -2625,6 +2629,9 @@ FUNCTION edi_2cb( oEdit, nReg, s )
       TEdit():aCBoards[nReg,1] := s
       IF nReg == 1
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+         s_t2cb( oEdit, s )
+#endif
 #else
          s_t2cb( oEdit, s )
 #endif
@@ -2996,6 +3003,11 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+   TEdit():aCBoards[1,1] := s_cb2t()
+   TEdit():aCBoards[1,2] := TEdit():cpInit
+   TEdit():aCBoards[1,3] := Nil
+#endif
 #else
    TEdit():aCBoards[1,1] := s_cb2t()
    TEdit():aCBoards[1,2] := TEdit():cpInit
@@ -3351,9 +3363,6 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
    IF !oEdit:lF3
       aMenu_CB := Array(MAX_EDIT_CBOARDS,3)
 
-      //TEdit():aCBoards[1,1] := s_cb2t()
-      //TEdit():aCBoards[1,2] := oEdit:cp
-      //TEdit():aCBoards[1,3] := Nil
       FOR i := 1 TO MAX_EDIT_CBOARDS
          cPref := Iif( i == 1, "0: ", Chr( i + 95 ) + ": " )
          aMenu_CB[i,1] := cPref + cp_Left( oEdit:lUtf8, TEdit():aCBoards[i,1], 32 )
@@ -3366,6 +3375,9 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
          edi_2cb( oEdit, i )
          IF i == 1
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+            s_t2cb( oEdit, TEdit():aCBoards[1,1] )
+#endif
 #else
             s_t2cb( oEdit, TEdit():aCBoards[1,1] )
 #endif
