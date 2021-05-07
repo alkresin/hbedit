@@ -123,27 +123,34 @@ FUNCTION _Tetris_OnKey( oEdit, nKeyExt )
    SetCursor( SC_NONE )
    IF nGameState == 1 .AND. !lPaused
       IF nKey == K_LEFT .OR. nKey == 104       // h
+         DispBegin()
          DrawFig( .F. )
          IF IsEmptyPos( nFigAngle, nyPos, nxPos-1 )
             nxPos --
          ENDIF
          DrawFig( .T. )
+         DispEnd()
 
       ELSEIF nKey == K_RIGHT .OR. nKey == 108  // l
+         DispBegin()
          DrawFig( .F. )
          IF IsEmptyPos( nFigAngle, nyPos, nxPos+1 )
             nxPos ++
          ENDIF
          DrawFig( .T. )
+         DispEnd()
 
       ELSEIF nKey == K_UP .OR. nKey == 107     // k
+         DispBegin()
          DrawFig( .F. )
          IF IsEmptyPos( Iif( nFigAngle == 4, 1, nFigAngle + 1 ), nyPos, nxPos )
             nFigAngle := Iif( nFigAngle == 4, 1, nFigAngle + 1 )
          ENDIF
          DrawFig( .T. )
+         DispEnd()
 
       ELSEIF nKey == K_DOWN .OR. nKey == 106   // j
+         DispBegin()
          DrawFig( .F. )
          IF IsEmptyPos( nFigAngle, nyPos+1, nxPos )
             nyPos ++
@@ -152,14 +159,17 @@ FUNCTION _Tetris_OnKey( oEdit, nKeyExt )
             DrawFig( .T. )
             LastRow()
          ENDIF
+         DispEnd()
 
       ELSEIF nKey == 32   // Space
+         DispBegin()
          DrawFig( .F. )
          DO WHILE IsEmptyPos( nFigAngle, nyPos+1, nxPos )
             nyPos ++
          ENDDO
          DrawFig( .T. )
          LastRow()
+         DispEnd()
       ENDIF
    ENDIF
 
@@ -228,6 +238,7 @@ FUNCTION _Tetr_Tf()
       IF nGameState == 0 .OR. lPaused
          RETURN Nil
       ENDIF
+      DispBegin()
       IF nCurrFig == 0
          nCurrFig := hb_RandomInt( 1, 7 )
          nFigAngle := 1
@@ -238,6 +249,7 @@ FUNCTION _Tetr_Tf()
             nGameState := 0
             SetColor( BOARD_CLR )
             @ y1t+7, x2t+8 SAY "GAME OVER"
+            DispEnd()
             RETURN Nil
          ENDIF
       ELSE
@@ -249,6 +261,7 @@ FUNCTION _Tetr_Tf()
       IF lLast
          LastRow()
       ENDIF
+      DispEnd()
    ENDIF
 
    RETURN Nil
@@ -275,6 +288,7 @@ STATIC FUNCTION DrawFig( lDraw )
             ENDIF
          ENDIF
       NEXT
+      SetPos( y1t+1, x2t+8 )
    ENDIF
    RETURN Nil
 
