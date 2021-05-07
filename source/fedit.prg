@@ -3083,12 +3083,14 @@ FUNCTION edi_ReadIni( xIni )
    ENDIF
 
 #ifdef __PLATFORM__UNIX
+#ifndef GTHWG
    IF File( cTemp := hb_DirBase() + "gtkclip" )
       cedi_RunConsoleApp( cTemp + ' -tm 2>/dev/null', "/dev/null" )
       IF !Empty( s := cedi_ShmRead() ) .AND. Left( s,1 ) == 'y'
          TEdit():cClipCmd := cTemp
       ENDIF
    ENDIF
+#endif
 #endif
 
    RETURN Nil
