@@ -188,8 +188,10 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
       RETURN oEdit:aWindows[i]
    ENDIF
 
+   //DispBegin()
    oGame := mnu_NewBuf( oEdit )
    edi_SetPalette( oGame, "default" )
+   //DispEnd()
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
    oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }

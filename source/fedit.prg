@@ -100,7 +100,9 @@ CLASS TEdit
    CLASS VAR hMacros    SHARED
    CLASS VAR hSelePlug  SHARED
 #ifdef __PLATFORM__UNIX
+#ifndef GTHWG
    CLASS VAR cClipCmd   SHARED
+#endif
 #endif
 
    DATA   aRect       INIT { 0,0,24,79 }
@@ -2636,10 +2638,14 @@ FUNCTION edi_2cb( oEdit, nReg, s )
 STATIC FUNCTION s_t2cb( oEdit, s )
 
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+   hwg_Copystringtoclipboard( s )
+#else
    IF !Empty( TEdit():cClipCmd )
       cedi_RunConsoleApp( TEdit():cClipCmd + ' -s "' + StrTran( s,'"','\"' ) + '" 2>/dev/null', "/dev/null" )
       RETURN Nil
    ENDIF
+#endif
 #endif
    hb_gtInfo( HB_GTI_CLIPBOARDDATA, s )
 
@@ -2649,6 +2655,9 @@ STATIC FUNCTION s_t2cb( oEdit, s )
 FUNCTION s_cb2t()
 
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+   RETURN hwg_Getclipboardtext()
+#else
    LOCAL s
    IF !Empty( TEdit():cClipCmd )
       cedi_RunConsoleApp( TEdit():cClipCmd + ' -gm 2>/dev/null', "/dev/null" )
@@ -2660,6 +2669,7 @@ FUNCTION s_cb2t()
    ELSE
       RETURN ""
    ENDIF
+#endif
 #endif
 
    RETURN hb_gtInfo( HB_GTI_CLIPBOARDDATA )
