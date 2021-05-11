@@ -104,7 +104,7 @@ FUNCTION Main( ... )
    REQUEST HB_GT_HWGUI
    REQUEST HB_GT_HWGUI_DEFAULT
 
-   gthwg_CreateMainWindow()
+   gthwg_CreateMainWindow( "HbEdit" )
 #endif
 
 #ifdef GTXWC
