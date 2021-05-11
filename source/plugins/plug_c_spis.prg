@@ -4,6 +4,9 @@ Function plug_C_Spis( oEdit )
    LOCAL lComm := .F., lUtf8 := oEdit:lUtf8, cQuotes := ['"], nLevel := 0
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
+   IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
+      oEdit:oHili:Do( Len(aDop ) )
+   ENDIF
    FOR i := 1 TO Len( arr )
       cLine := AllTrim( arr[i] )
       IF i > 1 .AND. !Empty( aDop )

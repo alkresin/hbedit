@@ -3,6 +3,9 @@ FUNCTION plug_prg_Spis( oEdit )
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
    LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
+   IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
+      oEdit:oHili:Do( Len(aDop ) )
+   ENDIF
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
       IF i > 1 .AND. !Empty( aDop )
