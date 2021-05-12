@@ -91,7 +91,7 @@ STATIC FUNCTION _C_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev )
       NEXT
    ENDIF
    IF ( j := At( '(', cLinePrev ) ) > 0
-      IF Trim( Left( cLinePrev, j-1 ) ) $ "if|while|for"
+      IF Trim( Left( cLinePrev, j-1 ) ) $ "if|while|for|switch"
          RETURN Nil
       ENDIF
       Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, nLine } )

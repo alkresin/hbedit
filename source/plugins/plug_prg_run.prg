@@ -1,18 +1,24 @@
 #define K_ENTER       13
 #define K_LDBLCLK     1006
 
-Function plug_prg_run( oEdit )
+STATIC cIniPath
+STATIC cPathInclude
 
-   LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, ie, oNew
+Function plug_prg_run( oEdit, cPath )
+
+   LOCAL acmd, cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, ie, oNew
    LOCAL nRow, nCol, cFileRes := hb_DirTemp() + "hb_compile_err.out"
+
+   IF Empty( cIniPath )
+      _prg_ReadIni( (cIniPath := cPath) + "lang_prg.ini" )
+   ENDIF
 
    edi_CloseWindow( cFile )
 
-   acmd[1] := oEdit:ToString()
-   acmd[2] := "harbour"
-   acmd[3] := "-n2"
-   acmd[4] := "-q"
-   acmd[5] := "-w"
+   acmd := { oEdit:ToString(), "harbour", "-n2", "-q", "-w" }
+   IF !Empty( cPathInclude )
+      AAdd( aCmd, "-I" + cPathInclude )
+   ENDIF
 
    i := cedi_rediron( 1, hb_DirTemp() + "hbcompile.out" )
    ie := cedi_rediron( 2, cFileRes )
@@ -70,3 +76,24 @@ STATIC FUNCTION _prg_ErrWin_OnKey( oEdit, nKeyExt )
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION _prg_ReadIni( cIni )
+
+   LOCAL hIni, aIni, nSect, aSect, cTemp
+   cPathInclude := ""
+
+   IF !Empty( cIni ) .AND. !Empty( hIni := edi_iniRead( cIni ) )
+      aIni := hb_hKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Upper(aIni[nSect]) == "MAIN"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTemp := "incpath" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cPathInclude := AllTrim( cTemp )
+               ENDIF
+            ENDIF
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN Nil
