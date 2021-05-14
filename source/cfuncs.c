@@ -263,10 +263,9 @@ HB_FUNC( CEDI_STRPBRK )
 }
 
 /*
- * cedi_strpbrk( szFind, szString[, iStartPos][, iEndPos][, iPos] ) -> iFoundPos
+ * cedi_utf8pbrk( szFind, szString[, iStartPos][, iEndPos][, iPos] ) -> iFoundPos
  * Returns a position of one of chars from szFind in utf8 string szString (from iStartPos till iEndPos ).
  */
-
 HB_FUNC( CEDI_UTF8PBRK )
 {
    const char * szFind = hb_parc( 1 );

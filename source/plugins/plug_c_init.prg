@@ -1,9 +1,203 @@
+#define ALT_PRESSED   0x040000
+#define K_ALT_L            294
+
+STATIC cIniPath
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
+   LOCAL bOnKeyOrig
+   LOCAL bStartEdit := {|o|
+      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col()
+      IF o:lTopPane
+         SetColor( o:cColorPane )
+         Scroll( y, o:x1 + 8, y, o:x2 )
+         DevPos( y, o:x1 + 8 )
+         DevOut( "C/C++ plugin:  Alt-L Functions list" + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
+         SetColor( o:cColor )
+         DevPos( nRow, nCol )
+         oEdit:oHili:hHili["help"] := "C/C++ plugin hotkeys:" + Chr(10) + ;
+            "  Alt-L  - Functions list" + Chr(10) + ;
+            Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
+      ENDIF
+      o:bStartEdit := Nil
+
+      RETURN Nil
+   }
+   LOCAL bOnKey := {|o,n|
+      LOCAL nRes := _c_Init_OnKey(o,n)
+      IF bOnKeyOrig != Nil .AND. nRes >= 0
+         nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
+      ENDIF
+      RETURN nRes
+   }
+
+   cIniPath := cPath
+   oEdit:bStartEdit := bStartEdit
+   IF !Empty( oEdit:bOnKey )
+      bOnKeyOrig := oEdit:bOnKey
+   ENDIF
+   oEdit:bOnKey := bOnKey
    oEdit:bAutoC := {|o,s| _c_AutoC(o,s)}
 
    RETURN Nil
+
+STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cWord
+
+   IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+      IF nKey == K_ALT_L
+         _c_Spis( oEdit )
+         RETURN -1
+      ENDIF
+   ENDIF
+
+   RETURN 0
+
+STATIC FUNCTION _c_Spis( oEdit )
+
+   LOCAL i, n, arrfnc
+   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+
+   IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
+      oEdit:oHili:Do( Len( oEdit:aText ) )
+   ENDIF
+
+   IF Empty( arrfnc := _c_Funcs( oEdit, aDop ) )
+      edi_Alert( "Nothing found..." )
+   ELSE
+      oEdit:TextOut()
+      n := oEdit:nLine
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+         oEdit:Goto( arrfnc[i,3] )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _c_Funcs( oEdit, aDop, nLineEnd )
+
+   LOCAL i, j, n, arr := oEdit:aText, cLine, nPos, nPos2, c, cLinePrev := "", arrfnc, lList := .F., nLast := 0
+   LOCAL lUtf8 := oEdit:lUtf8, cQuotes := ['"], cFind := ['"{}], nLevel := 0
+
+   IF Empty( nLineEnd )
+      nLineEnd := Len( arr )
+      lList := .T.
+      arrfnc := {}
+   ENDIF
+   FOR i := 1 TO nLineEnd
+      cLine := AllTrim( arr[i] )
+      IF i > 1 .AND. !Empty( aDop )
+         // Checks if a line is commented with /* */ operators, using a hilight object
+         IF aDop[i-1] == 1
+            IF ( nPos := At( "*/", cLine ) ) > 0
+               cLine := Ltrim( Substr( cLine,nPos+2 ) )
+            ELSE
+               LOOP
+            ENDIF
+         ENDIF
+      ENDIF
+      IF Empty( cLine )
+         LOOP
+      ENDIF
+
+      nPos := 1
+      DO WHILE ( nPos := Iif( lUtf8, cedi_utf8pbrk( cFind, cLine, nPos ), cedi_strpbrk( cFind, cLine, nPos ) ) ) != -1
+         IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
+            IF ( nPos := cp_At( lUtf8, c, cLine, nPos + 1 ) ) == 0
+               EXIT
+            ENDIF
+
+         ELSEIF c == '{'
+            IF nLevel == 0
+               IF nPos == 1
+                  IF Right( _C_DropComments( oEdit, cLinePrev ), 1 ) == ")"
+                     IF ( j := _C_AddF( lUtf8, arrfnc, arr, i, cLinePrev ) ) > 0
+                        nLast := j
+                     ENDIF
+                  ENDIF
+               ELSE
+                  j := nPos
+                  DO WHILE ( c := cp_Substr( lUtf8,cLine,--j,1 ) ) == ' ' .AND. j > 1; ENDDO
+                  IF c == ')'
+                     IF ( j := _C_AddF( lUtf8, arrfnc, arr, i, cLine ) ) > 0
+                        nLast := j
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+            nLevel ++
+
+         ELSEIF c == '}'
+            nLevel --
+
+         ENDIF
+         nPos := cp_NextPos( lUtf8, cLine, nPos )
+      ENDDO
+
+      IF !Empty( cLine )
+         cLinePrev := cLine
+      ENDIF
+   NEXT
+
+   RETURN Iif( lList, arrfnc, nLast )
+
+STATIC FUNCTION _C_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev )
+
+   LOCAL j
+
+   IF !( '(' $ cLinePrev )
+      FOR j := nLine-2 TO 1 STEP -1
+         IF '(' $ arr[j]
+            cLinePrev := AllTrim( arr[j] )
+            nLine := j
+            EXIT
+         ENDIF
+      NEXT
+   ENDIF
+   IF ( j := At( '(', cLinePrev ) ) > 0
+      IF Trim( Left( cLinePrev, j-1 ) ) $ "if|while|for|switch"
+         RETURN 0
+      ENDIF
+      IF arrfnc != Nil
+         Aadd( arrfnc, { cp_Left( lUtf8, cLinePrev, 64 ), Nil, nLine } )
+      ENDIF
+      RETURN nLine
+   ENDIF
+
+   RETURN 0
+
+STATIC FUNCTION _C_DropComments( oEdit, cLine )
+
+   LOCAL nPos := 1, nPos2
+
+   DO WHILE ( nPos := hb_At( "//", cLine, nPos ) ) > 0
+      IF !edi_InQuo( oEdit, cLine, nPos )
+         cLine := Trim( Left( cLine, nPos-1 ) )
+         EXIT
+      ENDIF
+      nPos += 2
+   ENDDO
+
+   nPos := 1
+   DO WHILE ( nPos := hb_At( "/*", cLine, nPos ) ) > 0
+      IF !edi_InQuo( oEdit, cLine, nPos )
+         nPos2 := hb_At( "*/", cLine, nPos+2 )
+         cLine := Trim( Left( cLine, nPos-1 ) ) + Iif( nPos2==0, "", Substr( cLine, nPos2+2 ) )
+      ELSE
+         nPos += 2
+      ENDIF
+   ENDDO
+
+   RETURN cLine
 
 STATIC FUNCTION _c_AutoC( oEdit, cPrefix )
 
