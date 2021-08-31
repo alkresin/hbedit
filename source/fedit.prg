@@ -3456,7 +3456,11 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
       {12,56,-1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {14,26,2,"[Open]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {14,46,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+   STATIC pKeys
 
+   IF Empty( pKeys )
+      pKeys := hb_Hash( K_CTRL_D, Chr(K_CTRL_HOME)+Chr(K_DOWN)+Chr(K_DOWN)+Chr(K_SPACE) )
+   ENDIF
    hb_cdpSelect( "RU866" )
    @ 09, 10, 15, 72 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 13, 20 SAY "Ã"
@@ -3472,7 +3476,7 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    ENDIF
    SetColor( oEdit:cColorMenu )
 
-   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+   IF ( nRes := edi_READ( aGets, pKeys ) ) > 0 .AND. nRes < Len(aGets)
       IF !Empty( cName := aGets[1,4] ) .AND. File( cName )
          IF aGets[6,4]
             IF ( cText := edi_MakeDiff( oEdit, cName ) ) == Nil
@@ -3792,6 +3796,11 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
       {y1+4,x1+21,2,"[Skip]",6,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+4,x1+30,2,"[Cancel]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL cSearch, cRepl, ny, nx
+   STATIC pKeys
+
+   IF Empty( pKeys )
+      pKeys := hb_Hash( Asc('s'), Chr(K_CTRL_END)+Chr(K_UP)+Chr(K_SPACE) )
+   ENDIF
 
    IF !Empty( TEdit():aSeaHis ) .AND. !Empty( TEdit():aReplHis )
       hb_cdpSelect( "RU866" )
@@ -3808,7 +3817,7 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
       @ y1+1,x1+2 SAY 'Replace "' + cSearch + '"'
       @ y1+2,x1+2 SAY 'With "' + cRepl + '"'
 
-      nRes := edi_Read( aGets )
+      nRes := edi_Read( aGets, pKeys )
       SetColor( oldc )
       edi_SetPos( oEdit )
    ENDIF

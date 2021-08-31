@@ -30,7 +30,7 @@
 STATIC aClrdef
 STATIC iChoic
 
-FUNCTION edi_READ( aGets )
+FUNCTION edi_READ( aGets, pKeys )
 
    LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
@@ -55,6 +55,10 @@ FUNCTION edi_READ( aGets )
    DO WHILE .T.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
       nKey := hb_keyStd( nKeyExt )
+      IF pKeys != Nil .AND. hb_hHaskey( pKeys, nKey )
+         KEYBOARD pKeys[nKey]
+         LOOP
+      ENDIF
       nx := Col()
       y := Row()
       x := nx - aGets[nCurr,G_X] + 1
@@ -174,6 +178,30 @@ FUNCTION edi_READ( aGets )
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
                EXIT
             ENDIF
+         ENDDO
+
+      ELSEIF nKey == K_CTRL_HOME
+         i := 1
+         DO WHILE i < Len( aGets )
+            IF aGets[i,G_TYPE] >= 0
+               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               nCurr := i
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               EXIT
+            ENDIF
+            i ++
+         ENDDO
+
+      ELSEIF nKey == K_CTRL_END
+         i := Len( aGets )
+         DO WHILE i > 0
+            IF aGets[i,G_TYPE] >= 0
+               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               nCurr := i
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               EXIT
+            ENDIF
+            i --
          ENDDO
 
       ELSEIF nKey == K_HOME
