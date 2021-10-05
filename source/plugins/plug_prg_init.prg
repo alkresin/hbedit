@@ -87,15 +87,17 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _prg_Spis( oEdit )
 
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
-   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+   LOCAL oHili := oEdit:oHili
+   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
-   IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
-      oEdit:oHili:Do( Len( oEdit:aText ) )
-   ENDIF
+   //IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
+   //   oEdit:oHili:Do( Len( oEdit:aText ) )
+   //ENDIF
+   oHili:CheckComm()
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1 .AND. !Empty( aDop )
-         IF aDop[i-1] == 1
+      IF i > 1 //.AND. !Empty( aDop )
+         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
             IF ( n := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,n+2 ) )
             ELSE
@@ -219,14 +221,14 @@ STATIC FUNCTION _prg_IsCommented( oEdit, nLine, nPos )
 
    LOCAL nCol := oEdit:PosToCol( nLine, nPos ), s, n
    LOCAL lUtf8 := oEdit:lUtf8, lRes := .F.
-   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    oEdit:lUtf8 := .F.
    s := oEdit:aText[nLine]
 
-   IF nLine > 1 .AND. !Empty( aDop )
+   IF nLine > 1 //.AND. !Empty( aDop )
       // Check if a line is commented with /* */ operators, using a hilight object
-      IF aDop[nLine-1] == 1
+      IF oEdit:oHili:IsComm( nLine-1 ) == 1 //aDop[nLine-1] == 1
          IF ( n := ( At( "*/", s ) ) ) == 0 .OR. n > nCol
             lRes := .T.
          ENDIF
@@ -513,13 +515,14 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix, hTrieLang )
 
    LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., lClassDef := .F., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
-   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+   LOCAL oHili := oEdit:oHili
+   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( aText )
       cLine := Ltrim( aText[i] )
-      IF i > 1 .AND. !Empty( aDop )
+      IF i > 1 //.AND. !Empty( aDop )
          // Check if a line is commented with /* */ operators, using a hilight object
-         IF aDop[i-1] == 1
+         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,nPos+2 ) )
             ELSE
@@ -597,9 +600,9 @@ STATIC FUNCTION _prg_KeyWords( oEdit, cPrefix, hTrieLang )
    IF !Empty( nLine0 )
       FOR i := nLine0 TO nLineCurr - 1
          cLine := Ltrim( aText[i] )
-         IF i > 1 .AND. !Empty( aDop )
+         IF i > 1 //.AND. !Empty( aDop )
             // Checks if a line is commented with /* */ operators, using a hilight object
-            IF aDop[i-1] == 1
+            IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
                IF ( nPos := At( "*/", cLine ) ) > 0
                   cLine := Ltrim( Substr( cLine,nPos+2 ) )
                ELSE

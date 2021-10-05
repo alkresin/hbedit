@@ -542,6 +542,77 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 }
 #endif
 
+typedef struct _bitarr_ {
+   unsigned int    uiLen;
+   unsigned char * szArr;
+} bitarr;
+
+bitarr * bitarr_Init( unsigned int uiLen )
+{
+   bitarr * pArr = (bitarr *) malloc( sizeof( bitarr ) );
+
+   pArr->uiLen = uiLen/8 + (uiLen%8 > 0)? 1 : 0;
+   pArr->szArr = ( unsigned char * ) malloc( pArr->uiLen );
+   memset( pArr->szArr, 0, pArr->uiLen );
+
+   return pArr;
+}
+
+void bitarr_Release( bitarr * pArr )
+{
+   free( pArr );
+}
+
+void bitarr_Set( bitarr *pArr, unsigned int uiBit, unsigned int uiValue )
+{
+
+   if( uiBit > pArr->uiLen * 8 )
+   {
+      unsigned int uiLenNew = uiBit/8 + ( (uiBit%8 > 0)? 1 : 0 ) + 32;
+      unsigned char *ptr, *ptrend;
+
+      pArr->szArr = ( unsigned char * ) realloc( pArr->szArr, uiLenNew );
+      ptr = pArr->szArr + pArr->uiLen;
+      ptrend = pArr->szArr + uiLenNew;
+      while( ptr < ptrend )
+         *ptr++ = '\0';
+      pArr->uiLen = uiLenNew;
+   }
+
+   if( uiValue == 0 )
+      *( pArr->szArr + (uiBit/8) ) &= ~( 0x80 >> (uiBit%8) );
+   else
+      *( pArr->szArr + (uiBit/8) ) |= ( 0x80 >> (uiBit%8) );
+   //_writelog( "_ac.log", 0, "%x %x %x\r\n", *pArr->szArr, *(pArr->szArr+1), *(pArr->szArr+2) );
+}
+
+int bitarr_Test( bitarr *pArr, unsigned int uiBit )
+{
+   if( uiBit > pArr->uiLen * 8 )
+      return 0;
+   return ( ( *( pArr->szArr + (uiBit/8) ) & ( 0x80 >> (uiBit%8) ) ) != 0 )? 1 : 0;
+}
+
+HB_FUNC( BITARR_INIT )
+{
+   hb_retptr( (void*) bitarr_Init( (unsigned int) hb_parni(1) ) );
+}
+
+HB_FUNC( BITARR_RELEASE )
+{
+   bitarr_Release( (bitarr*) hb_parptr(1) );
+}
+
+HB_FUNC( BITARR_SET )
+{
+   unsigned int uiValue = (unsigned int) ( (HB_ISLOG(3))? hb_parl(3) : hb_parni(3) );
+   bitarr_Set( (bitarr*) hb_parptr(1), (unsigned int) hb_parni(2)-1, uiValue );
+}
+
+HB_FUNC( BITARR_TEST )
+{
+   hb_retl( bitarr_Test( (bitarr*) hb_parptr(1), (unsigned int) hb_parni(2)-1 ) );
+}
 
 /*-
  * Copyright (c) 2008 - 2010 CAS Dev Team

@@ -363,7 +363,8 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
 
    LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
-   LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+   LOCAL oHili := oEdit:oHili
+   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
    LOCAL aImport := {}, cPref2, lDot := .F.
 
    IF Empty( lImports ); lImports := .F.; ENDIF
@@ -373,11 +374,12 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
       cPrefix := Left( cPrefix, nPos-1 )
    ENDIF
 
+   oHili:CheckComm()
    FOR i := 1 TO Len( aText )
       cLine := Ltrim( aText[i] )
-      IF i > 1 .AND. !Empty( aDop )
+      IF i > 1 //.AND. !Empty( aDop )
          // Checks if a line is commented with /* */ operators, using a hilight object
-         IF aDop[i-1] == 1
+         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,nPos+2 ) )
             ELSE
@@ -392,7 +394,7 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
             IF Empty( cSecond := hb_TokenPtr( cLine, @nSkip ) ) .OR. Left( cSecond, 1 ) == '('
                DO WHILE ++i <= Len( aText )
                   IF !Empty( cLine := Alltrim( aText[i] ) ) .AND. Left( cLine,1 ) != '/' .AND. ;
-                     aDop[i-1] != 1
+                     oHili:IsComm( i-1 ) != 1
                      IF Left( cLine, 1 ) == ')'
                         EXIT
                      ENDIF
@@ -453,9 +455,9 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
    IF !Empty( nLine0 )
       FOR i := nLine0 TO nLineCurr - 1
          cLine := Ltrim( aText[i] )
-         IF i > 1 .AND. !Empty( aDop )
+         IF i > 1 //.AND. !Empty( aDop )
             // Checks if a line is commented with /* */ operators, using a hilight object
-            IF aDop[i-1] == 1
+            IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
                IF ( nPos := At( "*/", cLine ) ) > 0
                   cLine := Ltrim( Substr( cLine,nPos+2 ) )
                ELSE

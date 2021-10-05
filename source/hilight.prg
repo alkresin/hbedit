@@ -51,7 +51,8 @@ CLASS Hili INHERIT HiliBase
 
    DATA   lMultiComm
    DATA   cQuo  INIT cQuotes
-   DATA   aDop, nDopChecked
+   DATA   aDop
+   DATA   nDopChecked  INIT 0
 
    METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5, ;
       cSComm, cSLeft, cMComm, lCase, cQuo )
@@ -59,6 +60,8 @@ CLASS Hili INHERIT HiliBase
    METHOD DO( nLine, lCheck )
    METHOD UpdSource( nLine )  INLINE  ( ::nDopChecked := nLine - 1 )
    METHOD AddItem( nPos1, nPos2, nType )
+   METHOD IsComm( nLine )
+   METHOD CheckComm( nLine )
 
 ENDCLASS
 
@@ -171,41 +174,28 @@ METHOD DO( nLine ) CLASS Hili
    cLine := aText[nLine]
    nLen := cp_Len( lUtf8, cLine )
 
-   IF Empty( ::aDop )
-      ::aDop := Array( Len( ::oEdit:aText ) )
-      ::nDopChecked := 0
-   ELSEIF Len( ::aDop ) < Len( aText )
-      ::aDop := ASize( ::aDop, Len( aText ) )
-   ENDIF
-
-   IF ::nDopChecked < nLine - 1 .AND. !Empty( ::cMcomm1 )
-      CheckMultiComm( Self, nLine )
-   ENDIF
-
-   IF ::nDopChecked < nLine
-      ::nDopChecked := nLine
-   ENDIF
-   ::aDop[nLine] := 0
-
    IF Empty( ::cMcomm1 )
       cm := ""
    ELSE
       cm := Left( ::cMcomm1, 1 )
       nLenM := Len( ::cMcomm1 )
-   ENDIF
 
-   IF nLine > 1 .AND. !Empty( ::aDop[nLine - 1] )
-      IF ( nPos := At( ::cMcomm2, cLine ) ) == 0
-         ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM )
-         ::lMultiComm := .T.
-         ::aDop[nLine] := 1
-         RETURN Nil
+      ::CheckComm( nLine )
+
+      ::aDop[nLine] := 0
+      IF nLine > 1 .AND. !Empty( ::aDop[nLine - 1] )
+         IF ( nPos := At( ::cMcomm2, cLine ) ) == 0
+            ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM )
+            ::lMultiComm := .T.
+            ::aDop[nLine] := 1
+            RETURN Nil
+         ELSE
+            ::AddItem( 1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
+            nPos += nLenM
+         ENDIF
       ELSE
-         ::AddItem( 1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
-         nPos += nLenM
+         nPos := 1
       ENDIF
-   ELSE
-      nPos := 1
    ENDIF
 
    IF Empty( ::cScomm )
@@ -299,6 +289,33 @@ METHOD AddItem( nPos1, nPos2, nType ) CLASS Hili
    ::aLineStru[::nItems,1] := nPos1
    ::aLineStru[::nItems,2] := nPos2
    ::aLineStru[::nItems,3] := nType
+
+   RETURN Nil
+
+METHOD IsComm( nLine ) CLASS Hili
+
+   RETURN Iif( !Empty(::aDop) .AND. Len(::aDop) >= nLine, ::aDop[nLine], 0 )
+
+METHOD CheckComm( nLine ) CLASS Hili
+
+   IF !Empty( ::cMcomm1 )
+      IF Empty( ::aDop )
+         ::aDop := Array( Len( ::oEdit:aText ) )
+         ::nDopChecked := 0
+      ELSEIF Len( ::aDop ) < Len( ::oEdit:aText )
+         ::aDop := ASize( ::aDop, Len( ::oEdit:aText ) )
+      ENDIF
+
+      IF nLine == Nil
+         nLine := Len( ::oEdit:aText )
+      ENDIF
+      IF ::nDopChecked < nLine - 1
+         CheckMultiComm( Self, nLine )
+      ENDIF
+      IF ::nDopChecked < nLine
+         ::nDopChecked := nLine
+      ENDIF
+   ENDIF
 
    RETURN Nil
 

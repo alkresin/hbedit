@@ -527,9 +527,9 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
          nLen := Col() - ::x1
 
          IF !Empty( ::oHili ) .AND. hb_hGetDef( TEdit():options, "syntax", .F. )
-            nDop := Iif( !Empty(::oHili:aDop) .AND. Len(::oHili:aDop) >= n, ::oHili:aDop[n], 0 )
+            nDop := ::oHili:IsComm( n )
             ::oHili:Do( n )
-            IF !Empty(::oHili:aDop) .AND. nDop != ::oHili:aDop[n]
+            IF nDop != ::oHili:IsComm( n )
                ::lTextOut := .T.
             ENDIF
             aStru := ::oHili:aLineStru
@@ -544,7 +544,6 @@ METHOD LineOut( nLine, lInTextOut ) CLASS TEdit
                         IF lTabs
                            nf1 := edi_ExpandTabs( Self, cp_Left( ::lUtf8, s, nx1 - nxPosFirst ), nf, .T. )
                            DevPos( y, ::x1 + nf + nf1 - ::nxFirst )
-                           //DevOut( cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ) )
                            DevOut( edi_ExpandTabs( Self, ;
                               cp_Substr( ::lUtf8, s, nx1-nxPosFirst+1, nx2-nx1+1 ), nf + nf1 ) )
                         ELSE
