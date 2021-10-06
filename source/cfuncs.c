@@ -560,6 +560,7 @@ bitarr * bitarr_Init( unsigned int uiLen )
 
 void bitarr_Release( bitarr * pArr )
 {
+   free( pArr->szArr );
    free( pArr );
 }
 
@@ -612,6 +613,70 @@ HB_FUNC( BITARR_SET )
 HB_FUNC( BITARR_TEST )
 {
    hb_retl( bitarr_Test( (bitarr*) hb_parptr(1), (unsigned int) hb_parni(2)-1 ) );
+}
+
+/*
+ * cedi_CheckMultiComm( pText, iFrom, iTo, pDop, cQuo, cScomm, cMcomm1, cMcomm2 )
+ */
+HB_FUNC( CEDI_CHECKMULTICOMM )
+{
+   PHB_ITEM pText = hb_param( 1, HB_IT_ARRAY );
+   int iFrom = hb_parni(2), iTo = hb_parni(3), i;
+   bitarr *pDop = (bitarr*) hb_parptr(4);
+   const char * pLine, *pEnd, *ptr;
+   const char * cQuo = hb_parc(5);
+   const char * cScomm = hb_parc(6);
+   const char * cMcomm1 = hb_parc(7);
+   const char * cMcomm2 = hb_parc(8);
+   char c;
+   int iLenM1 = strlen( cMcomm1 ), iLenM2 = strlen( cMcomm2 ), iLenS = strlen( cScomm );
+   int iMulti = 0;
+
+   for( i=iFrom; i<=iTo; i++ )
+   {
+      pLine = hb_arrayGetCPtr( pText, i );
+      pEnd = pLine + hb_arrayGetCLen( pText, i );
+      if( i > 1 && bitarr_Test( pDop, i-1 ) == 1 )
+      {
+         if( ( ptr = strstr( pLine, cMcomm2 ) ) == NULL )
+         {
+            bitarr_Set( pDop, i, 1 );
+            continue;
+         } else {
+            iMulti = 0;
+            pLine = ptr + iLenM2;
+         }
+      }
+      while( *pLine && ( *pLine == ' ' || *pLine == '\t' || *pLine == '\x9' ) ) pLine ++;
+      while( pLine < pEnd )
+      {
+         c = *pLine;
+         if( strchr( cQuo, c ) )
+         {
+            if( ( ptr = strchr( pLine+1, c ) ) == NULL )
+               pLine = pEnd;
+            else
+               pLine = ptr;
+         }
+         else if( c == *cScomm && strncmp( pLine, cScomm, iLenS ) == 0 )
+         {
+            pLine = pEnd;
+         }
+         else if( c == *cMcomm1 && strncmp( pLine, cMcomm1, iLenM1 ) == 0 )
+         {
+            if( ( ptr = strstr( pLine+iLenM1, cMcomm2 ) ) == NULL )
+            {
+               pLine = pEnd;
+               iMulti = 1;
+            }
+            pLine += iLenM1-1;
+         }
+         pLine ++;
+      }
+      bitarr_Set( pDop, i, iMulti );
+   }
+   hb_retni(0);
+   return;
 }
 
 /*-

@@ -4920,6 +4920,9 @@ FUNCTION edi_CloseWindow( xEdit, lClose )
 
    IF Valtype( oEdit ) == "O"
 
+      IF !Empty( oEdit:oHili )
+         oEdit:oHili:End()
+      ENDIF
       FOR i := Len( oEdit:aWindows ) TO 1 STEP -1
          IF oEdit:aWindows[i]:oParent == oEdit
             edi_CloseWindow( oEdit:aWindows[i] )
