@@ -313,7 +313,7 @@ METHOD CheckComm( nLine ) CLASS Hili
       ENDIF
    */
       IF Empty( ::pDop )
-         ::pDop := bitarr_Init( Len( ::oEdit:aText ) )
+         ::pDop := bitarr_Init( Len( ::oEdit:aText ) + 64 )
          ::nDopChecked := 0
       ENDIF
 
@@ -321,10 +321,10 @@ METHOD CheckComm( nLine ) CLASS Hili
          nLine := Len( ::oEdit:aText )
       ENDIF
       IF ::nDopChecked < nLine - 1
-         CheckMultiComm( Self, nLine )
+         //CheckMultiComm( Self, nLine )
          //edi_writelog( trim(str(len(::cScomm))) + ' ('+::cScomm+')  ' + trim(str(len(::cMcomm1))) + ' ('+::cMcomm1+')  ' + trim(str(len(::cMcomm2))) + ' ('+::cMcomm2+')  ' )
-         //cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop, ::cQuo, ;
-         //   Iif(Empty(::cScomm),"",::cScomm), Iif(Empty(::cMcomm1),"",::cMcomm1), Iif(Empty(::cMcomm2),"",::cMcomm2) )
+         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop, ::cQuo, ;
+            Iif(Empty(::cScomm),"",::cScomm), Iif(Empty(::cMcomm1),"",::cMcomm1), Iif(Empty(::cMcomm2),"",::cMcomm2) )
       ENDIF
       IF ::nDopChecked < nLine
          ::nDopChecked := nLine

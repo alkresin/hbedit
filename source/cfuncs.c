@@ -18,7 +18,7 @@
 static HB_SIZE nLastX, nLastPos;
 static char* shm_file_name = "hbedit_cb";
 
-/*
+
 #include "hbapifs.h"
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
@@ -53,7 +53,7 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
       }
    }
 }
-*/
+
 
 static int cedi_Utf8CharLen( unsigned char ucChar )
 {
@@ -543,17 +543,19 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 #endif
 
 typedef struct _bitarr_ {
-   unsigned int    uiLen;
    unsigned char * szArr;
+   unsigned int    uiLen;
 } bitarr;
 
 bitarr * bitarr_Init( unsigned int uiLen )
 {
    bitarr * pArr = (bitarr *) malloc( sizeof( bitarr ) );
 
-   pArr->uiLen = uiLen/8 + (uiLen%8 > 0)? 1 : 0;
+   //_writelog( "_ac.log", 0, "malloc %d\r\n", uiLen );
+   pArr->uiLen = uiLen/8 + ((uiLen%8 > 0)? 1 : 0);
    pArr->szArr = ( unsigned char * ) malloc( pArr->uiLen );
    memset( pArr->szArr, 0, pArr->uiLen );
+   //_writelog( "_ac.log", 0, "malloc-2 %d\r\n", pArr->uiLen );
 
    return pArr;
 }
@@ -572,12 +574,15 @@ void bitarr_Set( bitarr *pArr, unsigned int uiBit, unsigned int uiValue )
       unsigned int uiLenNew = uiBit/8 + ( (uiBit%8 > 0)? 1 : 0 ) + 32;
       unsigned char *ptr, *ptrend;
 
+      //_writelog( "_ac.log", 0, "realloc %d %d  ", pArr->uiLen, uiLenNew );
       pArr->szArr = ( unsigned char * ) realloc( pArr->szArr, uiLenNew );
+      //_writelog( "_ac.log", 0, "realloc2 %d  ", uiBit );
       ptr = pArr->szArr + pArr->uiLen;
       ptrend = pArr->szArr + uiLenNew;
       while( ptr < ptrend )
          *ptr++ = '\0';
       pArr->uiLen = uiLenNew;
+      //_writelog( "_ac.log", 0, "realloc3\r\n" );
    }
 
    if( uiValue == 0 )
