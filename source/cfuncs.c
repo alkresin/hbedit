@@ -635,19 +635,27 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
    const char * cMcomm2 = hb_parc(8);
    char c;
    int iLenM1 = strlen( cMcomm1 ), iLenM2 = strlen( cMcomm2 ), iLenS = strlen( cScomm );
-   int iMulti = 0;
+   int iMulti = ( (iFrom>1 && bitarr_Test(pDop,iFrom-1) == 1)? 1 : 0 );
 
+   //_writelog( "_ac.log", 0, "chk-0 %d %d\r\n", iFrom, iTo );
    for( i=iFrom; i<=iTo; i++ )
    {
       pLine = hb_arrayGetCPtr( pText, i );
       pEnd = pLine + hb_arrayGetCLen( pText, i );
-      if( i > 1 && bitarr_Test( pDop, i-1 ) == 1 )
+      if( pEnd == pLine )
+      {
+         bitarr_Set( pDop, i, iMulti );
+         continue;
+      }
+      //if( i > 1 && bitarr_Test( pDop, i-1 ) == 1 )
+      if( iMulti )
       {
          if( ( ptr = strstr( pLine, cMcomm2 ) ) == NULL )
          {
             bitarr_Set( pDop, i, 1 );
             continue;
          } else {
+            //_writelog( "_ac.log", 0, "chk-2 %d\r\n", i );
             iMulti = 0;
             pLine = ptr + iLenM2;
          }
