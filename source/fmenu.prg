@@ -14,7 +14,7 @@ STATIC lSea, cSea, aSea
 
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
-   LOCAL cScBuf
+   LOCAL cScBuf, nCursOld
    LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
    LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
@@ -29,13 +29,14 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    IF clrMenu == Nil; clrMenu := TEdit():cColorMenu; ENDIF
    IF clrMenuSel == Nil; clrMenuSel := TEdit():cColorMenuSel; ENDIF
    oldc := SetColor( clrMenu )
+   nCursOld := SetCursor( SC_NONE )
 
    IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LUTF8" )
       lUtf8 := obj:lUtf8
    ELSE
       lUtf8 := .F.
    ENDIF
-   SetCursor( SC_NONE )
+   
    nLen := Len( aMenu )
 
    IF x2 == Nil
@@ -253,11 +254,14 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cScBuf )
+   /*
    IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LINS" )
       SetCursor( Iif( obj:lIns==Nil.OR.obj:lIns, SC_NORMAL, SC_SPECIAL1 ) )
    ELSE
       SetCursor( SC_NORMAL )
    ENDIF
+   */
+   SetCursor( nCursOld )
    DevPos( nRow, nCol )
    aSea := Nil
 

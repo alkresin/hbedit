@@ -35,6 +35,7 @@ FUNCTION edi_READ( aGets, pKeys )
    LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
    LOCAL aOpt := Array( Len( aGets ) )
+   LOCAL nCursOld := SetCursor()
 
    AFill( aOpt, .T. )
    aClrdef := hb_aTokens( clrdef, ',' )
@@ -296,7 +297,7 @@ FUNCTION edi_READ( aGets, pKeys )
    ENDDO
 
    SetColor( clrdef )
-   SetCursor( SC_NORMAL )
+   SetCursor( nCursOld )
 
    RETURN nRes
 
