@@ -15,6 +15,7 @@ harbour plug_prg_init.prg -n -gh
 harbour plug_prg_run.prg -n -gh
 harbour plug_py_spis.prg -n -gh
 harbour plug_hbp_init.prg -n -gh
+harbour plug_java_init.prg -n -gh
 harbour plug_lisp_init.prg -n -gh
 harbour plug_selection.prg -n -gh
 harbour plug_chartable.prg -n -gh
