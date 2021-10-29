@@ -566,6 +566,12 @@ void bitarr_Release( bitarr * pArr )
    free( pArr );
 }
 
+/*
+  bitarr_Set( bitarr *pArr, unsigned int uiBit, unsigned int uiValue )
+  pArr - bit array pointer
+  uiBit - Bit number to set or reset, 0...
+  uiValue - 1 or 0
+ */
 void bitarr_Set( bitarr *pArr, unsigned int uiBit, unsigned int uiValue )
 {
 
@@ -592,6 +598,11 @@ void bitarr_Set( bitarr *pArr, unsigned int uiBit, unsigned int uiValue )
    //_writelog( "_ac.log", 0, "%x %x %x\r\n", *pArr->szArr, *(pArr->szArr+1), *(pArr->szArr+2) );
 }
 
+/*
+  bitarr_Test( bitarr *pArr, unsigned int uiBit )
+  pArr - bit array pointer
+  uiBit - Bit number to test, 0...
+ */
 int bitarr_Test( bitarr *pArr, unsigned int uiBit )
 {
    if( uiBit > pArr->uiLen * 8 )
@@ -609,12 +620,23 @@ HB_FUNC( BITARR_RELEASE )
    bitarr_Release( (bitarr*) hb_parptr(1) );
 }
 
+/*
+  bitarr_Set( pArr, nBit, nValue )
+  pArr - bit array pointer
+  nBit - Bit number to set or reset, 1...
+  nValue - 1 or 0
+ */
 HB_FUNC( BITARR_SET )
 {
    unsigned int uiValue = (unsigned int) ( (HB_ISLOG(3))? hb_parl(3) : hb_parni(3) );
    bitarr_Set( (bitarr*) hb_parptr(1), (unsigned int) hb_parni(2)-1, uiValue );
 }
 
+/*
+  bitarr_Test( pArr, nBit )
+  pArr - bit array pointer
+  nBit - Bit number to test, 1...
+ */
 HB_FUNC( BITARR_TEST )
 {
    hb_retl( bitarr_Test( (bitarr*) hb_parptr(1), (unsigned int) hb_parni(2)-1 ) );
