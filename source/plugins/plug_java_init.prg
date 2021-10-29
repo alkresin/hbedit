@@ -1,5 +1,6 @@
 #define ALT_PRESSED   0x040000
 #define K_ALT_L            294
+#define K_ALT_R            275
 
 STATIC cIniPath
 
@@ -12,12 +13,13 @@ FUNCTION Plug_java_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Java plugin:  Alt-L Functions list" + ;
+         DevOut( "Java plugin:  Alt-L Functions list  Alt-R Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          oEdit:oHili:hHili["help"] := "Java plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-R  - Run" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -49,6 +51,9 @@ STATIC FUNCTION _java_Init_OnKey( oEdit, nKeyExt )
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_L
          _java_Spis( oEdit )
+         RETURN -1
+      ELSEIF nKey == K_ALT_R
+         _java_Run( oEdit )
          RETURN -1
       ENDIF
    ENDIF
@@ -166,6 +171,27 @@ STATIC FUNCTION _java_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev, nLevel )
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION _java_Run( oEdit )
+
+   hb_MemoWrit( "tmp_hbedit.java", oEdit:ToString() )
+
+   IF hb_version(20)
+      CLEAR SCREEN
+      Devpos( 0,0 )
+      hb_MemoWrit( "tmp_hbedit.sh", "#!/bin/bash" + Chr(10) + ;
+         "java tmp_hbedit.java" + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
+      __Run( "chmod a+x tmp_hbedit.sh" )
+      __Run( "./tmp_hbedit.sh" )
+   ELSE
+      hb_MemoWrit( "tmp_hbedit.bat", + Chr(13) + Chr(10) + ;
+         "java tmp_hbedit.java" + Chr(13) + Chr(10) + "pause" )
+      __Run( "tmp_hbedit.bat" )
+   ENDIF
+
+   edi_Alert( "Done!" )
+
+   RETURN Nil
 
 STATIC FUNCTION _java_AutoC( oEdit, cPrefix )
 
