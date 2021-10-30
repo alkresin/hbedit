@@ -3,6 +3,7 @@
 #define K_ALT_R            275
 
 STATIC cIniPath
+STATIC cTerm
 
 FUNCTION Plug_java_Init( oEdit, cPath )
 
@@ -174,19 +175,46 @@ STATIC FUNCTION _java_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev, nLevel )
 
 STATIC FUNCTION _java_Run( oEdit )
 
-   hb_MemoWrit( "tmp_hbedit.java", oEdit:ToString() )
+   LOCAL cTmpDir := hb_DirTemp(), cTmpJava := cTmpDir + "tmp_hbedit.java", cTmpScr
+   LOCAL cFileRes, arr, i, cBuff
+
+   hb_MemoWrit( cTmpJava, oEdit:ToString() )
 
    IF hb_version(20)
-      hb_MemoWrit( "tmp_hbedit.sh", "#!/bin/bash" + Chr(10) + ;
-         "java tmp_hbedit.java" + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
-      __Run( "chmod a+x tmp_hbedit.sh" )
-      CLEAR SCREEN
-      Devpos( 0,0 )
-      __Run( "./tmp_hbedit.sh" )
+      cTmpScr := cTmpDir + "tmp_hbedit.sh"
+      hb_MemoWrit( cTmpScr, "#!/bin/bash" + Chr(10) + ;
+         "java " + cTmpJava + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
+      __Run( "chmod a+x " + cTmpScr )
+      IF hb_gtVersion() == "HWGUI"
+         IF Empty( cTerm )
+            arr := { "gnome-terminal", "x-terminal-emulator", "konsole", "xfce4-terminal" }
+            cFileRes := cTmpDir + "tmp_hbedit.out"
+            FOR i := 1 TO Len( arr )
+               cedi_RunConsoleApp( "which " + arr[i], cFileRes )
+               IF !Empty( cBuff := MemoRead( cFileRes ) )
+                  cBuff := StrTran( cBuff, Chr(10), "" )
+                  IF Substr( cBuff, Len(cBuff)-Len(arr[i])+1, Len(arr[i]) ) == arr[i]
+                     cTerm := arr[i]
+                     EXIT
+                  ENDIF
+               ENDIF
+            NEXT
+         ENDIF
+         IF Empty( cTerm )
+            edi_Alert( "Terminal program not found" )
+         ELSE
+            __Run( cTerm + " -e " + cTmpScr )
+         ENDIF
+      ELSE
+         CLEAR SCREEN
+         Devpos( 0,0 )
+         __Run( "./tmp_hbedit.sh" )
+      ENDIF
    ELSE
-      hb_MemoWrit( "tmp_hbedit.bat", + Chr(13) + Chr(10) + ;
-         "java tmp_hbedit.java" + Chr(13) + Chr(10) + "pause" )
-      __Run( "tmp_hbedit.bat" )
+      cTmpScr := cTmpDir + "tmp_hbedit.bat"
+      hb_MemoWrit( cTmpScr, + Chr(13) + Chr(10) + ;
+         "java " + cTmpJava + Chr(13) + Chr(10) + "pause" )
+      __Run( cTmpScr )
    ENDIF
 
    SetColor( oEdit:cColor )
