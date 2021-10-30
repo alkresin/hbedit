@@ -177,17 +177,21 @@ STATIC FUNCTION _java_Run( oEdit )
    hb_MemoWrit( "tmp_hbedit.java", oEdit:ToString() )
 
    IF hb_version(20)
-      CLEAR SCREEN
-      Devpos( 0,0 )
       hb_MemoWrit( "tmp_hbedit.sh", "#!/bin/bash" + Chr(10) + ;
          "java tmp_hbedit.java" + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
       __Run( "chmod a+x tmp_hbedit.sh" )
+      CLEAR SCREEN
+      Devpos( 0,0 )
       __Run( "./tmp_hbedit.sh" )
    ELSE
       hb_MemoWrit( "tmp_hbedit.bat", + Chr(13) + Chr(10) + ;
          "java tmp_hbedit.java" + Chr(13) + Chr(10) + "pause" )
       __Run( "tmp_hbedit.bat" )
    ENDIF
+
+   SetColor( oEdit:cColor )
+   oEdit:WriteTopPane()
+   oEdit:TextOut()
 
    edi_Alert( "Done!" )
 
