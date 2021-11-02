@@ -4,6 +4,7 @@
 
 STATIC cIniPath
 STATIC cTerm
+STATIC cClass := "class "
 
 FUNCTION Plug_java_Init( oEdit, cPath )
 
@@ -64,10 +65,9 @@ STATIC FUNCTION _java_Init_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _java_Spis( oEdit )
 
    LOCAL i, n, arrfnc
-   LOCAL oHili := oEdit:oHili
 
-   oHili:CheckComm()
-   IF Empty( arrfnc := _java_Funcs( oEdit, oHili ) )
+   oEdit:oHili:CheckComm()
+   IF Empty( arrfnc := _java_Funcs( oEdit ) )
       edi_Alert( "Nothing found..." )
    ELSE
       oEdit:TextOut()
@@ -86,21 +86,16 @@ STATIC FUNCTION _java_Spis( oEdit )
 
    RETURN Nil
 
-STATIC FUNCTION _java_Funcs( oEdit, oHili, nLineEnd )
+STATIC FUNCTION _java_Funcs( oEdit )
 
-   LOCAL i, j, n, arr := oEdit:aText, cLine, nPos, nPos2, c, cLinePrev := "", arrfnc, lList := .F., nLast := 0
+   LOCAL oHili := oEdit:oHili, i, n, arr := oEdit:aText, nLineEnd := Len( arr ), cLine
+   LOCAL nPos, nPos2, c, cLinePrev := "", arrfnc := {}
    LOCAL lUtf8 := oEdit:lUtf8, cQuotes := ['"], cFind := ['"{}], nLevel := 0
 
-   IF Empty( nLineEnd )
-      nLineEnd := Len( arr )
-      lList := .T.
-      arrfnc := {}
-   ENDIF
    FOR i := 1 TO nLineEnd
       cLine := AllTrim( arr[i] )
       IF i > 1
          // Checks if a line is commented with /* */ operators, using a hilight object
-         //edi_writelog( ltrim(str(i-1)) + ': ' + ltrim(str(oHili:IsComm( i-1 ))) )
          IF oHili:IsComm( i-1 ) == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,nPos+2 ) )
@@ -123,14 +118,9 @@ STATIC FUNCTION _java_Funcs( oEdit, oHili, nLineEnd )
          ELSEIF c == '{'
             IF nLevel == 0 .OR. nLevel == 1
                IF nPos == 1
-                  IF ( j := _java_AddF( lUtf8, arrfnc, arr, i, cLinePrev, nLevel ) ) > 0
-                     nLast := j
-                  ENDIF
+                  _java_AddF( lUtf8, arrfnc, arr, i, cLinePrev, nLevel )
                ELSE
-                  j := nPos
-                  IF ( j := _java_AddF( lUtf8, arrfnc, arr, i, cLine, nLevel ) ) > 0
-                     nLast := j
-                  ENDIF
+                  _java_AddF( lUtf8, arrfnc, arr, i, cLine, nLevel )
                ENDIF
             ENDIF
             nLevel ++
@@ -149,22 +139,22 @@ STATIC FUNCTION _java_Funcs( oEdit, oHili, nLineEnd )
       ENDIF
    NEXT
 
-   RETURN Iif( lList, arrfnc, nLast )
+   RETURN arrfnc
 
 STATIC FUNCTION _java_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev, nLevel )
 
    LOCAL j
 
-   IF !( '(' $ cLinePrev ) .AND. !( " class " $ cLinePrev )
+   IF !( '(' $ cLinePrev ) .AND. !( cClass $ cLinePrev )
       FOR j := nLine-2 TO 1 STEP -1
-         IF '(' $ arr[j] .OR. " class " $ arr[j]
+         IF '(' $ arr[j] .OR. cClass $ arr[j]
             cLinePrev := AllTrim( arr[j] )
             nLine := j
             EXIT
          ENDIF
       NEXT
    ENDIF
-   IF '(' $ cLinePrev .OR. " class " $ cLinePrev
+   IF '(' $ cLinePrev .OR. cClass $ cLinePrev
       IF arrfnc != Nil
          Aadd( arrfnc, { Iif( nLevel>0, "  ", "" ) + cp_Left( lUtf8, cLinePrev, 64 ), Nil, nLine } )
       ENDIF
@@ -177,6 +167,14 @@ STATIC FUNCTION _java_Run( oEdit )
 
    LOCAL cTmpDir := hb_DirTemp(), cTmpJava := cTmpDir + "tmp_hbedit.java", cTmpScr
    LOCAL cFileRes, arr, i, cBuff
+
+   IF Empty( arr := _java_Funcs( oEdit ) ) .OR. ( i := At( cClass, arr[1,1] ) ) == 0
+      edi_Alert( "No one class found" )
+      RETURN Nil
+   ENDIF
+   cBuff := hb_TokenPtr( arr[1,1], @i, " " )
+   edi_writelog( cBuff )
+   RETURN Nil
 
    hb_MemoWrit( cTmpJava, oEdit:ToString() )
 
