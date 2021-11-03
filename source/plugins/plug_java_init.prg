@@ -1,4 +1,5 @@
 #define ALT_PRESSED   0x040000
+#define K_ALT_C            302
 #define K_ALT_L            294
 #define K_ALT_R            275
 
@@ -15,12 +16,13 @@ FUNCTION Plug_java_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Java plugin:  Alt-L Functions list  Alt-R Run" + ;
+         DevOut( "Java plugin:  Alt-L Functions list  Alt-C Compile  Alt-R Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          oEdit:oHili:hHili["help"] := "Java plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-C  - Compile" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
@@ -56,6 +58,9 @@ STATIC FUNCTION _java_Init_OnKey( oEdit, nKeyExt )
          RETURN -1
       ELSEIF nKey == K_ALT_R
          _java_Run( oEdit )
+         RETURN -1
+      ELSEIF nKey == K_ALT_C
+         _java_Compile( oEdit )
          RETURN -1
       ENDIF
    ENDIF
@@ -163,6 +168,23 @@ STATIC FUNCTION _java_AddF( lUtf8, arrfnc, arr, nLine, cLinePrev, nLevel )
 
    RETURN 0
 
+STATIC FUNCTION _java_Compile( oEdit )
+
+   LOCAL cSrcName := TEdit():aWindows[TEdit():nCurr]:cFileName
+   LOCAL cFileRes := hb_DirTemp() + "tmp_hbedit.out", cFile := "$hb_compile_err", cBuff, oNew
+
+   edi_CloseWindow( cFile )
+
+   cedi_RunConsoleApp( "javac " + cSrcName, cFileRes )
+   IF Empty( cBuff := MemoRead( cFileRes ) )
+      edi_Alert( "Done!" )
+   ELSE
+      oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+   ENDIF
+
+   RETURN Nil
+
 STATIC FUNCTION _java_Run( oEdit )
 
    LOCAL cTmpDir := hb_DirTemp(), cTmpJava := cTmpDir + "tmp_hbedit.java", cTmpScr, cTmpClass
@@ -214,7 +236,7 @@ STATIC FUNCTION _java_Run( oEdit )
       ELSE
          cTmpScr := cTmpDir + "tmp_hbedit.bat"
          hb_MemoWrit( cTmpScr, + Chr(13) + Chr(10) + ;
-            "java -classpath " + cTmpDir + " " + cTmpClass + Chr(13) + Chr(10) + "pause" )
+            "@java -classpath " + cTmpDir + " " + cTmpClass + Chr(13) + Chr(10) + "@pause" )
          __Run( cTmpScr )
       ENDIF
    ELSE
