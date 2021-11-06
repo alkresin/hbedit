@@ -3,6 +3,7 @@ export HB_INS="/opt/harbour"
 
 cd source/plugins
 $HB_INS/bin/linux/gcc/harbour plug_1c_spis.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_bat_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_c_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_go_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_go_spis.prg -n -gh
@@ -17,6 +18,7 @@ $HB_INS/bin/linux/gcc/harbour plug_py_spis.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbp_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_java_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_lisp_init.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_sh_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_selection.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_chartable.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_calculator.prg -n -gh
