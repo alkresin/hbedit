@@ -54,12 +54,12 @@ FUNCTION _sh_Init_OnKey( oEdit, nKeyExt )
 FUNCTION _sh_init_run( oEdit, cPath )
 
    LOCAL cBuff, oNew, cDir := Curdir()
-   LOCAL cFileRes := hb_DirTemp() + "$hb_sh_result"
+   LOCAL cFileRes := hb_DirTemp() + "hb_sh_result"
 
    edi_CloseWindow( cFileRes )
 
    DirChange( hb_fnameDir( oEdit:cFileName ) )
-   cedi_RunConsoleApp( oEdit:cFileName, cFileRes )
+   cedi_RunConsoleApp( oEdit:cFileName + " >" + cFileRes + " 2>" + cFileRes )
    DirChange( cDir )
 
    IF Empty( cBuff := MemoRead( cFileRes ) )
