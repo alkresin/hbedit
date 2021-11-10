@@ -36,7 +36,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    ELSE
       lUtf8 := .F.
    ENDIF
-   
+
    nLen := Len( aMenu )
 
    IF x2 == Nil
@@ -109,7 +109,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             ENDIF
          ELSEIF nKey == K_ENTER
          ELSEIF lMulti .AND. nKey == K_SPACE
-            arr[i+nFirst-1] := Iif(Asc(arr[i+nFirst-1])==32,"x"," ") + cp_Substr( lUtf8, arr[i+nFirst-1], 2 )
+            IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+               arr[i+nFirst-1] := Iif(Asc(arr[i+nFirst-1])==32,"x"," ") + cp_Substr( lUtf8, arr[i+nFirst-1], 2 )
+            ENDIF
             LOOP
          ELSE
             IF lSea
@@ -155,7 +157,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             IF lMulti
                xRes := {}
                FOR j := 1 TO Len( arr )
-                  IF Asc( arr[j] ) != 32
+                  IF Left( arr[j],1 ) == 'x'
                      Aadd( xRes, Iif(!Empty(aSea) .AND. nLen < Len(aMenu), Ascan(aSea,j), j) )
                   ENDIF
                NEXT

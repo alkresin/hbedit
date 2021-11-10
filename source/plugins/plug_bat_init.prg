@@ -54,7 +54,7 @@ FUNCTION _bat_Init_OnKey( oEdit, nKeyExt )
 FUNCTION _bat_init_run( oEdit, cPath )
 
    LOCAL cBuff, oNew, cDir := Curdir()
-   LOCAL cFileRes := hb_DirTemp() + "$hb_bat_result"
+   LOCAL cFileRes := hb_DirTemp() + "hb_bat_result"
 
    edi_CloseWindow( cFileRes )
 

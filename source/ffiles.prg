@@ -40,6 +40,7 @@ FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2, cMask )
    }
 
    DO WHILE .T.
+      aMenu := hb_AIns( aMenu, 1, { "---" + PadC(NameShortcut(cPath,x2-x1-9),x2-x1-9) + "---","","","",""}, .T. )
       arr := FMenu( oEdit, aMenu, y1, x1, y2, x2,,,, .T., .T., bSea )
 
       IF !Empty( arr )
