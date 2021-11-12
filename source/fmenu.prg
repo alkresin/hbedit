@@ -80,6 +80,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
 
    DO WHILE lDo
+      IF Left( arr[i+nFirst-1], 3 ) == "---" .AND. i + nFirst - 1 < nLen
+         KEYBOARD Chr( K_DOWN )
+      ENDIF
       SetColor( clrMenuSel )
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
       IF lSea
