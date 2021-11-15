@@ -685,7 +685,7 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
       while( pLine < pEnd )
       {
          c = *pLine;
-         if( strchr( cQuo, c ) )
+         if( strchr( cQuo, c ) && !( pEnd-pLine>1 && *(pLine+1)==c && *(pLine+1)==c ) )
          {
             if( ( ptr = strchr( pLine+1, c ) ) == NULL )
                pLine = pEnd;

@@ -219,7 +219,8 @@ METHOD DO( nLine ) CLASS Hili
       IF ( c := cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) ) == ""
          RETURN Nil
 
-      ELSEIF c $ ::cQuo
+      ELSEIF c $ ::cQuo .AND. !( nLen - nPos > 1 .AND. ;
+         Substr( cLine,nPos+1,1 ) == c .AND. Substr( cLine,nPos+2,1 ) == c )
          nPos1 := nPos
          IF ( nPos := cp_At( lUtf8, c, cLine, nPos1 + 1 ) ) == 0
             nPos := nLen
@@ -345,6 +346,7 @@ STATIC FUNCTION IsLetter( c )
    RETURN Len( c ) > 1 .OR. ( c >= "A" .AND. c <= "Z" ) .OR. ( c >= "a" .AND. c <= "z" ) .OR. ;
       c == "_" .OR. Asc( c ) >= 128
 
+/*
 STATIC FUNCTION CheckMultiComm( oHili, nLine )
 
    LOCAL cLine, nLen, c, nPos, nStartOffs, nStartPos, lUtf8 := oHili:oEdit:lUtf8 //, aDop := oHili:aDop
@@ -414,3 +416,4 @@ STATIC FUNCTION CheckMultiComm( oHili, nLine )
    NEXT
 
    RETURN Nil
+*/
