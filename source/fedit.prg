@@ -1,7 +1,7 @@
 /*
  * Text editor
  *
- * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2019-2021 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
@@ -2001,13 +2001,14 @@ METHOD ToString( cEol, cp ) CLASS TEdit
 
 METHOD Save( cFileName ) CLASS TEdit
 
-   LOCAL dDateMod := ::dDateMod, cTimeMod := ::cTimeMod
+   LOCAL dDateMod := ::dDateMod, cTimeMod := ::cTimeMod, cPath
 
    IF cFileName == Nil
       cFileName := ::cFileName
    ENDIF
+   cPath := edi_CurrPath()
    IF Empty( cFileName )
-      cFileName := edi_SaveDlg( Self )
+      cFileName := edi_SaveDlg( Self, cPath )
       ::lTextOut := .T.
    ENDIF
 
@@ -2015,7 +2016,7 @@ METHOD Save( cFileName ) CLASS TEdit
       RETURN .F.
    ELSE
       IF Empty( hb_fnameDir( cFileName ) )
-         cFileName := edi_CurrPath() + cFileName
+         cFileName := cPath + cFileName
       ENDIF
       ::cFileName := cFileName
    ENDIF
@@ -3285,11 +3286,13 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    IF !Empty( lAs )
       oEdit:lTextOut := .T.
-      IF Empty( cFileName := edi_SaveDlg( oEdit ) )
+      IF Empty( cPath := hb_fnameDir(oEdit:cFileName) )
+         cPath := edi_CurrPath()
+      ENDIF
+      IF Empty( cFileName := edi_SaveDlg( oEdit, cPath ) )
          RETURN Nil
       ENDIF
-      IF !Empty( cFileName ) .AND. Empty( hb_fnameDir(cFileName) ) ;
-            .AND. !Empty( cPath := hb_fnameDir(oEdit:cFileName) )
+      IF Empty( hb_fnameDir(cFileName) ) // .AND. !Empty( cPath) )
          cFileName := cPath + cFileName
       ENDIF
    ENDIF
@@ -4432,46 +4435,48 @@ FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
 
    RETURN nx
 
-STATIC FUNCTION edi_SaveDlg( oEdit )
+STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    LOCAL cName
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
    LOCAL aGets := { {11,22,0,"",48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
-      {12,29,3,.T.,1}, {12,47,3,.F.,1}, {12,63,3,.F.,1} }
+      {13,22,0,cDir,48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+      {14,29,3,.T.,1}, {14,47,3,.F.,1}, {14,63,3,.F.,1} }
 
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 16, 72 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 14, 20 SAY "Ã"
-   @ 14, 72 SAY "´"
-   @ 14, 21 TO 14, 71
+   @ 09, 20, 17, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 15, 20 SAY "Ã"
+   @ 15, 72 SAY "´"
+   @ 15, 21 TO 14, 71
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Save file as"
-   @ 12, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
+   @ 12,22 SAY "in directory"
+   @ 14, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
    IF oEdit:lTabs
-      hb_AIns( aGets, 5, {13,47,1,.F.,1}, .T. )
-      @ 12, 46 SAY "[ ] Tabs to spaces"
+      hb_AIns( aGets, 6, {13,47,1,.F.,1}, .T. )
+      @ 14, 46 SAY "[ ] Tabs to spaces"
    ENDIF
-   Aadd( aGets, {15,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
-   Aadd( aGets, {15,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
+   Aadd( aGets, {16,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
+   Aadd( aGets, {16,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
-      hb_AIns( aGets, 5, {13,24,1,oEdit:lBom,1}, .T. )
+      hb_AIns( aGets, 6, {13,24,1,oEdit:lBom,1}, .T. )
       @ 13, 23 SAY "[ ] Add BOM"
    ENDIF
    SetColor( oEdit:cColorMenu )
 
    IF edi_READ( aGets ) > 0
       cName := aGets[1,4]
-      IF aGets[3,4]
+      IF aGets[4,4]
          oEdit:cEol := Chr(13) + Chr(10)
-      ELSEIF aGets[4,4]
+      ELSEIF aGets[5,4]
          oEdit:cEol := Chr(10)
       ENDIF
       IF oEdit:lUtf8
-         oEdit:lBom := aGets[5,4]
+         oEdit:lBom := aGets[6,4]
       ENDIF
       IF oEdit:lTabs
-         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[6,4], aGets[5,4] )
+         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[7,4], aGets[6,4] )
       ENDIF
    ENDIF
 
