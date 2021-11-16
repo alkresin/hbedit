@@ -3461,7 +3461,8 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    STATIC pKeys
 
    IF Empty( pKeys )
-      pKeys := hb_Hash( K_CTRL_D, Chr(K_CTRL_HOME)+Chr(K_DOWN)+Chr(K_DOWN)+Chr(K_SPACE) )
+      // 0x41020044 - Ctrl-D
+      pKeys := hb_Hash( 0x41020044, Chr(K_CTRL_HOME)+Chr(K_DOWN)+Chr(K_DOWN)+Chr(K_SPACE) )
    ENDIF
    hb_cdpSelect( "RU866" )
    @ 09, 10, 15, 72 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -4439,7 +4440,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    LOCAL cName
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
-   LOCAL aGets := { {11,22,0,"",48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+   LOCAL aGets := { {11,22,0,hb_fnameNameExt(oEdit:cFileName),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,22,0,cDir,48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {14,29,3,.T.,1}, {14,47,3,.F.,1}, {14,63,3,.F.,1} }
 
@@ -4447,7 +4448,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    @ 09, 20, 17, 72 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 15, 20 SAY "Ã"
    @ 15, 72 SAY "´"
-   @ 15, 21 TO 14, 71
+   @ 15, 21 TO 15, 71
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY "Save file as"
@@ -4467,6 +4468,10 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    IF edi_READ( aGets ) > 0
       cName := aGets[1,4]
+      cDir := AllTrim( aGets[2,4] )
+      IF !( Right( cDir, 1 ) $ "\/" )
+         cDir += hb_ps()
+      ENDIF
       IF aGets[4,4]
          oEdit:cEol := Chr(13) + Chr(10)
       ELSEIF aGets[5,4]
@@ -4483,7 +4488,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    SetColor( oldc )
    edi_SetPos( oEdit )
 
-   RETURN cName
+   RETURN Iif( Empty(cName), Nil, cDir + cName )
 
 STATIC FUNCTION edi_Indent( oEdit, lRight, nLines, lAddLast )
 

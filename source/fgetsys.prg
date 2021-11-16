@@ -19,6 +19,9 @@
 #define G_CB     8
 #define G_GROUP  9
 
+#define G2_OPT   1
+#define G2_FIRST 2
+
 #define G_TYPE_STRING  0
 #define G_TYPE_CHECK   1
 #define G_TYPE_BUTTON  2
@@ -32,53 +35,63 @@ STATIC iChoic
 
 FUNCTION edi_READ( aGets, pKeys )
 
-   LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s
+   LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s, nLen, xr
    LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
-   LOCAL aOpt := Array( Len( aGets ) )
+   LOCAL aOpt := Array( Len( aGets ), 2 )
    LOCAL nCursOld := SetCursor()
 
-   AFill( aOpt, .T. )
    aClrdef := hb_aTokens( clrdef, ',' )
    IF aClrdef[4] == "N/N"
       aClrdef[4] := ""
    ENDIF
    FOR i := 1 TO Len( aGets )
+      aOpt[i,G2_OPT] := .T.
+      aOpt[i,G2_FIRST] := 1
       IF aGets[i,G_TYPE] >= 0
-         ShowGetItem( aGets[i], .F., lUtf8 )
+         ShowGetItem( aGets[i], .F., lUtf8,, aOpt[i] )
       ENDIF
    NEXT
 
    DO WHILE aGets[nCurr,G_TYPE] < 0
       nCurr ++
    ENDDO
-   ShowGetItem( aGets[nCurr], .T., lUtf8, .T. )
+   ShowGetItem( aGets[nCurr], .T., lUtf8, .T., aOpt[nCurr] )
 
    DO WHILE .T.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
       nKey := hb_keyStd( nKeyExt )
-      IF pKeys != Nil .AND. hb_hHaskey( pKeys, nKey )
-         KEYBOARD pKeys[nKey]
+      IF pKeys != Nil .AND. hb_hHaskey( pKeys, nKeyExt )
+         KEYBOARD pKeys[nKeyExt]
          LOOP
       ENDIF
       nx := Col()
       y := Row()
       x := nx - aGets[nCurr,G_X] + 1
+      xr := x + aOpt[nCurr,G2_FIRST] - 1
 
       IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            IF aOpt[nCurr]
+            IF aOpt[nCurr,G2_OPT]
                nx := aGets[nCurr,G_X]
                x := 1
                aGets[nCurr,G_VALUE] := ""
-               aOpt[nCurr] := .F.
+               aOpt[nCurr,G2_OPT] := .F.
             ENDIF
-            IF x < aGets[nCurr,G_WIDTH] .AND. cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) < aGets[nCurr,G_WIDTH]
-               aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
-                     cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
-               Scroll( y, aGets[nCurr,G_X], y, aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1 )
-               DevPos( y, aGets[nCurr,G_X] )
-               DevOut( aGets[nCurr,G_VALUE] )
+            aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],xr-1 ) + ;
+                  cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],xr )
+            Scroll( y, aGets[nCurr,G_X], y, aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1 )
+            DevPos( y, aGets[nCurr,G_X] )
+            IF x < aGets[nCurr,G_WIDTH]
+               IF cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) < aGets[nCurr,G_WIDTH]
+                  DevOut( aGets[nCurr,G_VALUE] )
+               ELSE
+                  DevOut( cp_Substr( lUtf8,aGets[nCurr,G_VALUE],aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
+               ENDIF
                DevPos( y, ++nx )
+            ELSE
+               aOpt[nCurr,G2_FIRST]++
+               DevOut( cp_Substr( lUtf8,aGets[nCurr,G_VALUE],aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
+               DevPos( y, nx )
             ENDIF
          ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. aGets[nCurr,G_TYPE] == G_TYPE_RADIO
             IF nKey == K_SPACE
@@ -104,18 +117,18 @@ FUNCTION edi_READ( aGets, pKeys )
             IF nKey == K_SPACE
                IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
                   Eval( aGets[nCurr,G_CB] )
-                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+                  ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                ENDIF
             ENDIF
          ENDIF
 
       ELSEIF nKey == K_DEL
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            aOpt[nCurr] := .F.
+            aOpt[nCurr,G2_OPT] := .F.
             IF x <= cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-1 ) + ;
                   cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x+1 )
-               ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                DevPos( y, nx )
             ENDIF
          ENDIF
@@ -123,10 +136,10 @@ FUNCTION edi_READ( aGets, pKeys )
       ELSEIF nKey == K_BS
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF x > 1
-               aOpt[nCurr] := .F.
+               aOpt[nCurr,G2_OPT] := .F.
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-2 ) + ;
                   cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x )
-               ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                DevPos( y, --nx )
             ENDIF
          ENDIF
@@ -134,11 +147,16 @@ FUNCTION edi_READ( aGets, pKeys )
       ELSEIF nKey == K_LEFT
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             IF nx > aGets[nCurr,G_X]
-               IF aOpt[nCurr]
-                  aOpt[nCurr] := .F.
-                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               IF aOpt[nCurr,G2_OPT]
+                  aOpt[nCurr,G2_OPT] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                ENDIF
                DevPos( Row(), --nx )
+            ELSEIF aOpt[nCurr,G2_FIRST] > 1
+               aOpt[nCurr,G2_FIRST] --
+               aOpt[nCurr,G2_OPT] := .F.
+               ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
+               DevPos( Row(), nx )
             ENDIF
          ELSE
             __Keyboard( Chr(K_UP) )
@@ -146,12 +164,19 @@ FUNCTION edi_READ( aGets, pKeys )
 
       ELSEIF nKey == K_RIGHT
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            IF x < aGets[nCurr,G_WIDTH] .AND. x < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
-               IF aOpt[nCurr]
-                  aOpt[nCurr] := .F.
-                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+            IF xr < cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
+               IF xr < aGets[nCurr,G_WIDTH]
+                  IF aOpt[nCurr,G2_OPT]
+                     aOpt[nCurr,G2_OPT] := .F.
+                     ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
+                  ENDIF
+                  DevPos( Row(), ++nx )
+               ELSE
+                  aOpt[nCurr,G2_FIRST] ++
+                  aOpt[nCurr,G2_OPT] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
+                  DevPos( Row(), nx )
                ENDIF
-               DevPos( Row(), ++nx )
             ENDIF
          ELSE
             __Keyboard( Chr(K_DOWN) )
@@ -162,9 +187,9 @@ FUNCTION edi_READ( aGets, pKeys )
          DO WHILE i > 1
             i --
             IF aGets[i,G_TYPE] >= 0
-               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
                EXIT
             ENDIF
          ENDDO
@@ -174,9 +199,9 @@ FUNCTION edi_READ( aGets, pKeys )
          DO WHILE i < Len( aGets )
             i ++
             IF aGets[i,G_TYPE] >= 0
-               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
                EXIT
             ENDIF
          ENDDO
@@ -185,9 +210,9 @@ FUNCTION edi_READ( aGets, pKeys )
          i := 1
          DO WHILE i < Len( aGets )
             IF aGets[i,G_TYPE] >= 0
-               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
                EXIT
             ENDIF
             i ++
@@ -197,9 +222,9 @@ FUNCTION edi_READ( aGets, pKeys )
          i := Len( aGets )
          DO WHILE i > 0
             IF aGets[i,G_TYPE] >= 0
-               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
                EXIT
             ENDIF
             i --
@@ -207,31 +232,37 @@ FUNCTION edi_READ( aGets, pKeys )
 
       ELSEIF nKey == K_HOME
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-               IF aOpt[nCurr]
-                  aOpt[nCurr] := .F.
-                  ShowGetItem( aGets[nCurr], .T., lUtf8 )
+               IF aOpt[nCurr,G2_OPT] .OR. aOpt[nCurr,G2_FIRST] > 1
+                  aOpt[nCurr,G2_FIRST] := 1
+                  aOpt[nCurr,G2_OPT] := .F.
+                  ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                ENDIF
                DevPos( y, nx := aGets[nCurr,G_X] )
          ENDIF
 
       ELSEIF nKey == K_END
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            IF aOpt[nCurr]
-               aOpt[nCurr] := .F.
-               ShowGetItem( aGets[nCurr], .T., lUtf8 )
+            nLen := cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
+            IF nLen >= aGets[nCurr,G_WIDTH]
+               aOpt[nCurr,G2_FIRST] := nLen - aGets[nCurr,G_WIDTH] + 2
             ENDIF
-            DevPos( y, nx := ( aGets[nCurr,G_X] + cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) ) )
-            aOpt[nCurr] := .F.
+            IF aOpt[nCurr,G2_OPT] .OR. aOpt[nCurr,G2_FIRST] > 1
+               aOpt[nCurr,G2_OPT] := .F.
+               ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
+            ENDIF
+            DevPos( y, nx := ( aGets[nCurr,G_X] + cp_Len( lUtf8, ;
+               aGets[nCurr,G_VALUE] ) - aOpt[nCurr,G2_FIRST] + 1 ) )
+            aOpt[nCurr,G2_OPT] := .F.
          ENDIF
 
       ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
          ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            IF aOpt[nCurr]
+            IF aOpt[nCurr,G2_OPT]
                nx := aGets[nCurr,G_X]
                x := 1
                aGets[nCurr,G_VALUE] := ""
-               aOpt[nCurr] := .F.
+               aOpt[nCurr,G2_OPT] := .F.
             ENDIF
             s := s_cb2t() //hb_gtInfo( HB_GTI_CLIPBOARDDATA )
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
@@ -257,9 +288,9 @@ FUNCTION edi_READ( aGets, pKeys )
          FOR i := 1 TO Len(aGets)
             IF aGets[i,G_TYPE] >= 0 .AND. aGets[i,G_Y] == nRow .AND. ;
                   aGets[i,G_X] <= nCol .AND. aGets[i,G_X]+aGets[i,G_WIDTH] > nCol
-               ShowGetItem( aGets[nCurr], .F., lUtf8 )
+               ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
-               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr] )
+               ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
                IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. ;
                   ( aGets[nCurr,G_TYPE] == G_TYPE_RADIO .AND. !aGets[nCurr,G_VALUE] )
                   aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
@@ -279,7 +310,7 @@ FUNCTION edi_READ( aGets, pKeys )
                ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
                   IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
                      Eval( aGets[nCurr,G_CB] )
-                     ShowGetItem( aGets[nCurr], .T., lUtf8 )
+                     ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                   ENDIF
                ENDIF
             ENDIF
@@ -301,7 +332,7 @@ FUNCTION edi_READ( aGets, pKeys )
 
    RETURN nRes
 
-FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
+FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
    LOCAL x
 
@@ -321,7 +352,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst )
 
    IF aGet[G_TYPE] == G_TYPE_STRING
       @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
-         aGet[G_VALUE], cp_Left( lUtf8, aGet[G_VALUE], aGet[G_WIDTH] ) )
+         aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], aOpt[G2_FIRST], aGet[G_WIDTH] ) )
 
    ELSEIF aGet[G_TYPE] == G_TYPE_CHECK .OR. aGet[G_TYPE] == G_TYPE_RADIO
       @ aGet[G_Y], aGet[G_X] SAY Iif(aGet[G_VALUE],"x"," ")
