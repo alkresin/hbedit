@@ -37,21 +37,34 @@ A fullscreen console multiplatform text editor.
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
     + hwg_funcs.txt         - HwGUI functions list for plug_prg_init
-    + plug_c_spis.prg       - C functions list
+    + plug_1c_spis.prg      - 1C functions list
+    + plug_bat_init.prg     - a start plugin for .bat files
+    + plug_c_init.prg       - a start plugin for .c files
     + plug_calculator.prg   - Calculator
     + plug_chartable.prg    - Chartable
+    + plug_gm_chess.prg     - A Chess game
+    + plug_gm_life.prg      - A Life game
+    + plug_gm_sokoban.prg   - A Sokoban game
+    + plug_gm_strek.prg     - A Star Trek game
+    + plug_gm_tetris.prg    - A Tetris game
     + plug_go_build.prg     - Golang build project
     + plug_go_fmt.prg       - Golang formatting
+    + plug_go_init.prg      - a start plugin for .go files
     + plug_go_run.prg       - Golang run code
     + plug_go_spis.prg      - Golang functions list
     + plug_hbp_init.prg     - a start plugin for .hbp files
+    + plug_java_init.prg    - a start plugin for .java files
+    + plug_lisp_init.prg    - a start plugin for .lisp files
+    + plug_palette.prg      - a current palette viewer
+    + plug_php_init.prg     - a start plugin for .php files
     + plug_prg_compile.prg  - Harbour compiling
     + plug_prg_init.prg     - a start plugin for .prg files
+    + plug_py_spis.prg      - Python functions list
     + plug_prg_run.prg      - Harbour run
     + plug_prg_run1c.prg    - Harbour for 1c
-    + plug_prg_spis.prg     - Harbour functions list
     + plug_selection.prg    - Additional operations on selected region
-    + plug_tetris.prg       - A tetris game
+    + plug_sh_init.prg      - a start plugin for .sh files
+    + plug_vcs.prg          - a plugin to work with Git and Fossil
     + plug_webservices.prg  - Some web services access
 
 ### Usage
