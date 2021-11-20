@@ -352,7 +352,8 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
    IF aGet[G_TYPE] == G_TYPE_STRING
       @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
-         aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], aOpt[G2_FIRST], aGet[G_WIDTH] ) )
+         aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], ;
+         Iif( aOpt==Nil, 1, aOpt[G2_FIRST] ), aGet[G_WIDTH] ) )
 
    ELSEIF aGet[G_TYPE] == G_TYPE_CHECK .OR. aGet[G_TYPE] == G_TYPE_RADIO
       @ aGet[G_Y], aGet[G_X] SAY Iif(aGet[G_VALUE],"x"," ")
