@@ -187,8 +187,10 @@ STATIC FUNCTION _java_Compile( oEdit )
 
 STATIC FUNCTION _java_Run( oEdit )
 
-   LOCAL cTmpDir := hb_DirTemp(), cTmpJava := cTmpDir + "tmp_hbedit.java", cTmpScr, cTmpClass
-   LOCAL cFileRes, arr, i, cBuff
+   LOCAL cTmpDir := hb_DirTemp(), cTmpJava, cTmpScr, cTmpClass, lPublic
+   LOCAL cFileRes := cTmpDir + "tmp_hbedit.out", arr, i, cBuff, cFile := "$Results", oNew
+
+   edi_CloseWindow( cFile )
 
    IF Empty( arr := _java_Funcs( oEdit ) ) .OR. ( i := At( cClass, arr[1,1] ) ) == 0
       edi_Alert( "No one class found" )
@@ -197,21 +199,21 @@ STATIC FUNCTION _java_Run( oEdit )
    i += 5
    cTmpClass := hb_TokenPtr( arr[1,1], @i )
    //edi_Alert( cBuff )
-
+   lPublic := ( "public " $ Left( arr[1,1], i ) )
+   cTmpJava := cTmpDir + Iif( lPublic, cTmpClass, "tmp_hbedit" ) + ".java"
    hb_MemoWrit( cTmpJava, oEdit:ToString() )
 
-   cedi_RunConsoleApp( "javac " + cTmpJava )
+#ifdef __PLATFORM__WINDOWS
+   cedi_RunConsoleApp( "javac " + cTmpJava, cFileRes )
+#else
+   cedi_RunConsoleApp( "javac " + cTmpJava + " >" + cFileRes + " 2>" + cFileRes )
+#endif
    //edi_Alert( cTmpClass+".class" )
    IF File( cTmpDir + cTmpClass+".class" )
       IF hb_version(20)
-         cTmpScr := cTmpDir + "tmp_hbedit.sh"
-         hb_MemoWrit( cTmpScr, "#!/bin/bash" + Chr(10) + ;
-            "java -classpath " + cTmpDir + " " + cTmpClass + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
-         __Run( "chmod a+x " + cTmpScr )
          IF hb_gtVersion() == "HWGUI"
             IF Empty( cTerm )
                arr := { "gnome-terminal", "x-terminal-emulator", "konsole", "xfce4-terminal" }
-               cFileRes := cTmpDir + "tmp_hbedit.out"
                FOR i := 1 TO Len( arr )
                   cedi_RunConsoleApp( "which " + arr[i], cFileRes )
                   IF !Empty( cBuff := MemoRead( cFileRes ) )
@@ -226,12 +228,27 @@ STATIC FUNCTION _java_Run( oEdit )
             IF Empty( cTerm )
                edi_Alert( "Terminal program not found" )
             ELSE
+               cTmpScr := cTmpDir + "tmp_hbedit.sh"
+               hb_MemoWrit( cTmpScr, "#!/bin/bash" + Chr(10) + ;
+                  "java -classpath " + cTmpDir + " " + cTmpClass + Chr(10) + "echo ''" + Chr(10) + 'read -n 1 -p "Press any key"' )
+               __Run( "chmod a+x " + cTmpScr )
                __Run( cTerm + " -e " + cTmpScr )
             ENDIF
          ELSE
-            CLEAR SCREEN
-            Devpos( 0,0 )
-            __Run( "./tmp_hbedit.sh" )
+            //CLEAR SCREEN
+            //Devpos( 0,0 )
+            //__Run( "./tmp_hbedit.sh" )
+            //__Run( "java -classpath " + cTmpDir + " " + cTmpClass )
+            //Inkey(0)
+#ifdef __PLATFORM__WINDOWS
+            cedi_RunConsoleApp( "java -classpath " + cTmpDir + " " + cTmpClass, cFileRes )
+#else
+            cedi_RunConsoleApp( "java -classpath " + cTmpDir + " " + cTmpClass + " >" + cFileRes + " 2>" + cFileRes )
+#endif
+            IF !Empty( cBuff := Memoread( cFileRes ) )
+               oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
+               oNew:lReadOnly := .T.
+            ENDIF
          ENDIF
       ELSE
          cTmpScr := cTmpDir + "tmp_hbedit.bat"
@@ -239,8 +256,14 @@ STATIC FUNCTION _java_Run( oEdit )
             "@java -classpath " + cTmpDir + " " + cTmpClass + Chr(13) + Chr(10) + "@pause" )
          __Run( cTmpScr )
       ENDIF
+
+   ELSEIF !Empty( cBuff := Memoread( cFileRes ) )
+      oNew := edi_AddWindow( oEdit, cBuff, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+
    ELSE
       edi_Alert( "Compile error" )
+
    ENDIF
 
    SetColor( oEdit:cColor )
