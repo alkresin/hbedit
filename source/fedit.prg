@@ -3453,7 +3453,7 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorMenu ), cName, nRes, oNew, cText
    LOCAL aGets := { {11,12,0,Iif(Empty(cFile),"",cFile),52}, ;
       {11,64,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_FileList(oEdit,aGets[1])}}, ;
-      {11,68,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[1])}}, ;
+      {11,68,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[1],.F.)}}, ;
       {12,13,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, {12,28,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {12,56,-1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {14,26,2,"[Open]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
@@ -3548,7 +3548,7 @@ FUNCTION mnu_FileList( oEdit, aGet )
 
    RETURN Nil
 
-STATIC FUNCTION mnu_DirList( oEdit, aGet )
+STATIC FUNCTION mnu_DirList( oEdit, aGet, lDirOnly )
 
    LOCAL i, cDir, ny2 := oEdit:aRectFull[3]-2, cScBuf, aMenu := {}
 
@@ -3565,7 +3565,12 @@ STATIC FUNCTION mnu_DirList( oEdit, aGet )
 
    IF i != 0
       cLastDir := hb_fnameDir( oEdit:aEditHis[aMenu[i,3],1] )
-      mnu_FileList( oEdit, aGet )
+      IF lDirOnly
+         aGet[4] := cLastDir
+         ShowGetItem( aGet, .F., oEdit:lUtf8 )
+      ELSE
+         mnu_FileList( oEdit, aGet )
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -3802,7 +3807,7 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
    STATIC pKeys
 
    IF Empty( pKeys )
-      pKeys := hb_Hash( Asc('s'), Chr(K_CTRL_END)+Chr(K_UP)+Chr(K_SPACE) )
+      pKeys := hb_Hash( 0x42000073, Chr(K_CTRL_END)+Chr(K_UP)+Chr(K_SPACE) )
    ENDIF
 
    IF !Empty( TEdit():aSeaHis ) .AND. !Empty( TEdit():aReplHis )
@@ -4441,9 +4446,15 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    LOCAL cName
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
    LOCAL aGets := { {11,22,0,hb_fnameNameExt(oEdit:cFileName),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
-      {13,22,0,cDir,48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+      {13,22,0,cDir,46,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+      {13,69,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[2],.T.)}}, ;
       {14,29,3,.T.,1}, {14,47,3,.F.,1}, {14,63,3,.F.,1} }
+   STATIC pKeys
 
+   IF Empty( pKeys )
+      // 0x41020044 - Ctrl-D
+      pKeys := hb_Hash( 0x41020044, Chr(K_CTRL_HOME)+Chr(K_DOWN)+Chr(K_DOWN)+Chr(K_SPACE) )
+   ENDIF
    hb_cdpSelect( "RU866" )
    @ 09, 20, 17, 72 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 15, 20 SAY "Ã"
@@ -4455,33 +4466,33 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    @ 12,22 SAY "in directory"
    @ 14, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
    IF oEdit:lTabs
-      hb_AIns( aGets, 6, {13,47,1,.F.,1}, .T. )
+      hb_AIns( aGets, 7, {13,47,1,.F.,1}, .T. )
       @ 14, 46 SAY "[ ] Tabs to spaces"
    ENDIF
    Aadd( aGets, {16,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
    Aadd( aGets, {16,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
-      hb_AIns( aGets, 6, {13,24,1,oEdit:lBom,1}, .T. )
+      hb_AIns( aGets, 7, {13,24,1,oEdit:lBom,1}, .T. )
       @ 13, 23 SAY "[ ] Add BOM"
    ENDIF
    SetColor( oEdit:cColorMenu )
 
-   IF edi_READ( aGets ) > 0
+   IF edi_READ( aGets,pKeys ) > 0
       cName := aGets[1,4]
       cDir := AllTrim( aGets[2,4] )
       IF !( Right( cDir, 1 ) $ "\/" )
          cDir += hb_ps()
       ENDIF
-      IF aGets[4,4]
+      IF aGets[5,4]
          oEdit:cEol := Chr(13) + Chr(10)
-      ELSEIF aGets[5,4]
+      ELSEIF aGets[6,4]
          oEdit:cEol := Chr(10)
       ENDIF
       IF oEdit:lUtf8
-         oEdit:lBom := aGets[6,4]
+         oEdit:lBom := aGets[7,4]
       ENDIF
       IF oEdit:lTabs
-         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[7,4], aGets[6,4] )
+         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[8,4], aGets[7,4] )
       ENDIF
    ENDIF
 
