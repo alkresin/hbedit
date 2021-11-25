@@ -1,3 +1,7 @@
+{{1}} - project dir tree, something like org/harbour/myproject
+{{2}} - full project name, org.harbour.myproject
+{{3}} - short project name, myproject
+
 {{{bin/}}}
 {{{jni/}}}
 {{{lib/}}}
@@ -18,7 +22,7 @@
 
 @set APPNAME={{3}}
 @set PACKAGE={{2}}
-@set PACKAGE_PATH={{4}}
+@set PACKAGE_PATH={{1}}
 @set MAIN_CLASS=MainActivity
 @set DEV_HOME=%CD%
 
@@ -51,12 +55,13 @@ call %ADB% shell logcat Harbour:I *:S > log.txt
 {{{build.bat}}}
 @call setenv
 @call clear
+@set NDK_LIBS_OUT=lib
+@set PRG_FILES=src\main.prg
+@set SRC_FILES=main.c
 
-@%HRB_BIN%\harbour src\main.prg src\calc.prg src\browse.prg /q /i%HDROIDGUI%\src\include /i%HRB_INC% /ojni\
+@%HRB_BIN%\harbour %PRG_FILES% /q /i%HDROIDGUI%\src\include /i%HRB_INC% /ojni\
 @if errorlevel 1 goto end
 
-@set NDK_LIBS_OUT=lib
-@set SRC_FILES=main.c calc.c browse.c
 %NDK_HOME%\prebuilt\windows-x86_64\bin\make.exe -f %NDK_HOME%/build/core/build-local.mk %* >a1.out 2>a2.out
 @if exist lib\%NDK_TARGET%\libh4droid.so goto comp
 @echo Errors while compiling C sources
@@ -86,7 +91,6 @@ call %JAVA_HOME%/bin/keytool -genkey -v -keystore myrelease.keystore -alias key2
 call %JAVA_HOME%/bin/jarsigner -sigalg SHA1withRSA -digestalg SHA1 -keystore myrelease.keystore -storepass passfordemo -keypass passfordemo -signedjar bin/%APPNAME%.signed.apk bin/%APPNAME%.unsigned.apk key2
 %BUILD_TOOLS%/zipalign -v 4 bin/%APPNAME%.signed.apk bin/%APPNAME%.apk
 :end
-
 @pause
 
 {{{AndroidManifest.xml}}}

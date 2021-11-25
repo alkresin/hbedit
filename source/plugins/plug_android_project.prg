@@ -12,6 +12,7 @@
 #define K_SH_TAB    271
 #define K_F9         -8
 #define K_F10        -9
+#define K_F12       -41
 #define K_UP          5
 #define K_DOWN       24
 #define K_LEFT       19
@@ -23,6 +24,7 @@ STATIC cProjectsDir
 STATIC lIniUpd := .F.
 STATIC cScreenBuff
 STATIC cPrjName
+STATIC cFullProjectName := "", cProjectName
 
 FUNCTION plug_android_project( oEdit, cPath )
 
@@ -68,6 +70,9 @@ FUNCTION _AP_Start()
    IF Empty( cScreenBuff )
       Scroll( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
       IF AP_Menu()
+         DevPos( oAP:y1, oAP:x1+2 )
+         DevOut( "Project: " + cFullProjectName )
+
       ELSE
          //KEYBOARD Chr(K_ESC)
       ENDIF
@@ -90,6 +95,10 @@ FUNCTION _AP_OnKey( oEdit, nKeyExt )
          RETURN 0
       ENDIF
 
+   ELSEIF nKey == K_F12
+
+      RETURN 0
+
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
       cScreenBuff := Nil
       IF lIniUpd
@@ -103,20 +112,23 @@ FUNCTION _AP_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION AP_Menu()
 
-   LOCAL n
-   STATIC aMenuMain := { "Create project", "Open project" }
+   LOCAL n, lRes := .F.
+   STATIC aMenuMain := { "Create project with HDroidGUI", "Create project without HDroidGUI", "Open project" }
 
-   IF ( n := FMenu( oAP, aMenuMain, oAP:y1 + 4, oAP:x1 + Int( (oAP:x2-oAP:x1-18)/2 ) ) ) == 1
-      AP_Create()
+   IF ( n := FMenu( oAP, aMenuMain, oAP:y1 + 4, oAP:x1 + Int( (oAP:x2-oAP:x1-36)/2 ) ) ) == 1
+      lRes := AP_Create( 1 )
 
    ELSEIF n == 2
-      AP_Open()
+      lRes := AP_Create( 2 )
+
+   ELSEIF n == 3
+      lRes := AP_Open()
 
    ENDIF
 
-   RETURN .F.
+   RETURN lRes
 
-STATIC FUNCTION AP_Create()
+STATIC FUNCTION AP_Create( nType )
 
    LOCAL oldc := SetColor( oAP:cColorSel+","+oAP:cColorSel+",,"+oAP:cColorGet+","+oAP:cColorSel )
    LOCAL cBufScr := SaveScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
@@ -124,8 +136,9 @@ STATIC FUNCTION AP_Create()
       {08,22,0,"",48,oAP:cColorMenu,oAP:cColorMenu}, ;
       {16,25,2,"[Create]",10,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {16,58,2,"[Cancel]",10,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cFullProjectName, cProjectName, cSouDir, aSouDir, cNewProjectDir
+   LOCAL cSouDir, aSouDir, cNewProjectDir
    LOCAL cBuff, aBuff, cEol, i, j, cLine, nMode, sText, cSouName, cTemp, nPos
+   LOCAL lRes := .F.
 
    hb_cdpSelect( "RU866" )
    @ 04, 20, 17, 72 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -163,8 +176,9 @@ STATIC FUNCTION AP_Create()
       cProjectName := Substr( cFullProjectName, nPos+1 )
       cNewProjectDir := cProjectsDir + cProjectName + hb_ps()
 
-      IF Empty( cBuff := MemoRead( cIniPath + "ap.pt" ) )
-         edi_Alert( "Can't find pattern file: ap.pt" )
+      cTemp := Iif( nType==1,"ap1.pt","ap2.pt" )
+      IF Empty( cBuff := MemoRead( cIniPath + cTemp ) )
+         edi_Alert( "Can't find pattern file " + cTemp )
          EXIT
       ENDIF
       cEol := Iif( Chr(13) $ cBuff, Chr(13)+Chr(10), Chr(10) )
@@ -205,12 +219,12 @@ STATIC FUNCTION AP_Create()
             nPos := 0
             cLine := aBuff[i]
             DO WHILE ( nPos := hb_At( "{{", cLine, nPos ) ) > 0
-               IF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 2
+               IF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 1
+                  cLine := Left( cLine, nPos-1 ) + cSouDir + Substr( cLine, nPos+5 )
+               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 2
                   cLine := Left( cLine, nPos-1 ) + cFullProjectName + Substr( cLine, nPos+5 )
                ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 3
                   cLine := Left( cLine, nPos-1 ) + cProjectName + Substr( cLine, nPos+5 )
-               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 4
-                  cLine := Left( cLine, nPos-1 ) + cSouDir + Substr( cLine, nPos+5 )
                ENDIF
             ENDDO
             sText += cLine + cEol
@@ -223,15 +237,15 @@ STATIC FUNCTION AP_Create()
          ENDIF
          hb_MemoWrit( cNewProjectDir + cSouName, sText )
       ENDIF
+      lRes := .T.
       EXIT
    ENDDO
 
-   edi_Alert( "Done!" )
    SetColor( oldc )
    RestScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2, cBufScr )
    edi_SetPos( oAP )
 
-   RETURN Nil
+   RETURN lRes
 
 STATIC FUNCTION AP_Open()
 
@@ -240,7 +254,7 @@ STATIC FUNCTION AP_Open()
    LOCAL aGets := { {06,22,0,cProjectsDir,48,oAP:cColorMenu,oAP:cColorMenu}, ;
       {09,25,2,"[Ok]",4,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,58,2,"[Cancel]",10,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL arr, i
+   LOCAL arr, i, lRes
 
    hb_cdpSelect( "RU866" )
    @ 04, 20, 10, 72 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -272,7 +286,7 @@ STATIC FUNCTION AP_Open()
          arr[i] := arr[i,1]
       NEXT
       i := FMenu( oAP, arr, 04, 20, 12, 72 )
-
+      lRes := .T.
       EXIT
 
    ENDDO
@@ -282,7 +296,7 @@ STATIC FUNCTION AP_Open()
    RestScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2, cBufScr )
    edi_SetPos( oAP )
 
-   RETURN Nil
+   RETURN lRes
 
 STATIC FUNCTION AP_DirPrefix()
 #ifdef __PLATFORM__UNIX
