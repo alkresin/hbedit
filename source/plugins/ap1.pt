@@ -1,0 +1,202 @@
+{{{bin/}}}
+{{{jni/}}}
+{{{lib/}}}
+{{{libs/}}}
+{{{obj/}}}
+{{{res/}}}
+{{{res/drawable-hdpi/}}}
+{{{res/drawable-ldpi/}}}
+{{{res/drawable-mdpi/}}}
+{{{res/drawable-xhdpi/}}}
+{{{res/values/}}}
+{{{src/}}}
+{{{src/{{1}}/}}}
+
+{{{setenv.bat}}}
+@set HDROIDGUI=\android\projects\hdroidgui
+@call %HDROIDGUI%/setenv
+
+@set APPNAME={{3}}
+@set PACKAGE={{2}}
+@set PACKAGE_PATH={{4}}
+@set MAIN_CLASS=MainActivity
+@set DEV_HOME=%CD%
+
+{{{run.bat}}}
+@call setenv
+if "%1" == "1" goto run
+
+call %ADB% uninstall %PACKAGE%
+call %ADB% install bin/%APPNAME%.apk
+
+:run
+call %ADB% shell logcat -c
+call %ADB% shell am start -n %PACKAGE%/%PACKAGE%.%MAIN_CLASS%
+call %ADB% shell logcat Harbour:I *:S > log.txt
+
+{{{clear.bat}}}
+@call setenv
+@del src\%PACKAGE_PATH%\R.java
+@del /q assets\*.*
+@del /q *.out
+@rmdir /s /q bin
+@md bin
+@rmdir /s /q obj
+@md obj
+@rmdir /s /q lib
+@md lib
+@rmdir /s /q libs
+@md libs
+
+{{{build.bat}}}
+@call setenv
+@call clear
+
+@%HRB_BIN%\harbour src\main.prg src\calc.prg src\browse.prg /q /i%HDROIDGUI%\src\include /i%HRB_INC% /ojni\
+@if errorlevel 1 goto end
+
+@set NDK_LIBS_OUT=lib
+@set SRC_FILES=main.c calc.c browse.c
+%NDK_HOME%\prebuilt\windows-x86_64\bin\make.exe -f %NDK_HOME%/build/core/build-local.mk %* >a1.out 2>a2.out
+@if exist lib\%NDK_TARGET%\libh4droid.so goto comp
+@echo Errors while compiling C sources
+@goto end
+
+:comp
+call %BUILD_TOOLS%/aapt.exe package -f -m -S res -J src -M AndroidManifest.xml -I %ANDROID_JAR%
+@if errorlevel 1 goto end
+
+@rem compile, convert class dex
+@rem call %JAVA_HOME%/bin/javac -d obj -cp %ANDROID_JAR%;%HDROIDGUI%\hdroidgui.jar -sourcepath src src/%PACKAGE_PATH%/*.java
+call %JAVA_HOME%/bin/javac -d obj -cp %ANDROID_JAR%;%HDROIDGUI%\libs -sourcepath src src/%PACKAGE_PATH%/*.java
+@if errorlevel 1 goto end
+
+call %BUILD_TOOLS%/dx.bat --dex --output=bin/classes.dex obj %HDROIDGUI%\libs
+@if errorlevel 1 goto end
+
+@rem create APK
+call %BUILD_TOOLS%/aapt.exe package -f -M AndroidManifest.xml -S res -I %ANDROID_JAR% -F bin/%APPNAME%.unsigned.apk bin
+
+call %BUILD_TOOLS%/aapt.exe add %DEV_HOME%/bin/%APPNAME%.unsigned.apk lib/%NDK_TARGET%/libharbour.so
+@if errorlevel 1 goto end
+
+call %BUILD_TOOLS%/aapt.exe add %DEV_HOME%/bin/%APPNAME%.unsigned.apk lib/%NDK_TARGET%/libh4droid.so
+@rem sign APK
+call %JAVA_HOME%/bin/keytool -genkey -v -keystore myrelease.keystore -alias key2 -keyalg RSA -keysize 2048 -validity 10000 -storepass passfordemo -keypass passfordemo -dname "CN=Alex K, O=Harbour, C=RU"
+call %JAVA_HOME%/bin/jarsigner -sigalg SHA1withRSA -digestalg SHA1 -keystore myrelease.keystore -storepass passfordemo -keypass passfordemo -signedjar bin/%APPNAME%.signed.apk bin/%APPNAME%.unsigned.apk key2
+%BUILD_TOOLS%/zipalign -v 4 bin/%APPNAME%.signed.apk bin/%APPNAME%.apk
+:end
+
+@pause
+
+{{{AndroidManifest.xml}}}
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      package="{{2}}"
+      android:versionCode="1"
+      android:versionName="1.1">
+   <application android:label="{{3}}"
+         android:name="{{2}}.MainApp">
+      <activity android:name="MainActivity"
+         android:label="{{3}}">
+         <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+         </intent-filter>
+      </activity>
+      <activity android:name="{{2}}.DopActivity" android:label="2" />
+   </application>
+   <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
+
+{{{jni/Android.mk}}}
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := harbour
+LOCAL_SRC_FILES := $(HDROIDGUI)/lib/$(NDK_TARGET)/libharbour.so
+LOCAL_EXPORT_C_INCLUDES := $(HRB_INC)
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := h4droida
+LOCAL_SRC_FILES := $(HDROIDGUI)/lib/libh4droida.a
+include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+
+LOCAL_CFLAGS := -I$(HRB_INC)
+LOCAL_SHARED_LIBRARIES := harbour
+LOCAL_MODULE := h4droid
+LOCAL_SRC_FILES := $(SRC_FILES)
+LOCAL_STATIC_LIBRARIES := h4droida
+
+include $(BUILD_SHARED_LIBRARY)
+
+{{{jni/Application.mk}}}
+APP_ABI := $(NDK_TARGET)
+APP_PLATFORM := $(NDK_PLATFORM)
+
+{{{src/main.prg}}}
+#include "hdroidgui.ch"
+
+FUNCTION HDroidMain
+
+   RETURN NIL
+
+{{{src/{{1}}/MainApp.java}}}
+package {{2}};
+
+import android.app.Application;
+import su.harbour.hDroidGUI.*;
+
+public class MainApp extends Application {
+
+   public static Harbour harb;
+
+   @Override
+   public void onCreate() {
+      super.onCreate();
+
+      harb = new Harbour( this );
+
+      harb.Init( false );
+
+   }
+}
+
+{{{src/{{1}}/MainActivity.java}}}
+package {{2}};
+
+import android.app.Activity;
+import android.os.Bundle;
+import su.harbour.hDroidGUI.*;
+
+public class MainActivity extends HDActivity {
+
+   @Override
+   public void onCreate(Bundle savedInstanceState) {
+
+      bMain = true;
+      MainApp.harb.setDopClass( DopActivity.class );
+      super.onCreate(savedInstanceState);
+
+   }
+
+}
+
+{{{src/{{1}}/DopActivity.java}}}
+package {{2}};
+
+import android.app.Activity;
+import android.os.Bundle;
+import su.harbour.hDroidGUI.*;
+
+public class DopActivity extends HDActivity {
+
+   @Override
+   protected void onCreate(Bundle savedInstanceState) {
+      super.onCreate(savedInstanceState);
+
+   }
+
+}
