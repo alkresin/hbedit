@@ -3,6 +3,7 @@ set HB_INSTALL_BIN=c:\harbour\bin
 
 cd source\plugins
 harbour plug_1c_spis.prg -n -gh -q
+harbour plug_android_project.prg -n -gh -q
 harbour plug_c_init.prg -n -gh -q
 harbour plug_bat_init.prg -n -gh -q
 harbour plug_go_init.prg -n -gh -q

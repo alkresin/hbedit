@@ -1,3 +1,4 @@
+{{0}} - a full path to HDroidGUI directory, something like /Android/Projects/HDroidGUI
 {{1}} - project dir tree, something like org/harbour/myproject
 {{2}} - full project name, org.harbour.myproject
 {{3}} - short project name, myproject
@@ -17,7 +18,7 @@
 {{{src/{{1}}/}}}
 
 {{{setenv.bat}}}
-@set HDROIDGUI=\android\projects\hdroidgui
+@set HDROIDGUI={{0}}
 @call %HDROIDGUI%/setenv
 
 @set APPNAME={{3}}
@@ -207,7 +208,7 @@ public class DopActivity extends HDActivity {
 
 {{{setenv.sh}}}
 #!/bin/bash
-export HDROIDGUI=/home/alkresin/apps/android/projects/HDroidGUI
+export HDROIDGUI={{0}}
 . $HDROIDGUI/setenv.sh
 
 export APPNAME={{3}}
@@ -250,14 +251,14 @@ chmod a+w+r+x obj
 {{{build.sh}}}
 #!/bin/bash
 . ./setenv.sh
-
 ./clear.sh
+export NDK_LIBS_OUT=lib
+export PRG_FILES=src/main.prg
+export SRC_FILES="main.c"
 
-$HRB_BIN/harbour src/main.prg -q -i$HRB_INC -i$HDROIDGUI/src/include -i$HRB_INC -ojni/
+$HRB_BIN/harbour $PRG_FILES -q -i$HRB_INC -i$HDROIDGUI/src/include -i$HRB_INC -ojni/
 if [ "$?" -eq 0 ]
 then
-export NDK_LIBS_OUT=lib
-export SRC_FILES="main.c"
 $NDK_HOME/prebuilt/linux-x86_64/bin/make -f $NDK_HOME/build/core/build-local.mk "$@" >a1.out 2>a2.out
   if [ "$?" -eq 0 ]
   then

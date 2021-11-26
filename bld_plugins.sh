@@ -3,6 +3,7 @@ export HB_INS="/opt/harbour"
 
 cd source/plugins
 $HB_INS/bin/linux/gcc/harbour plug_1c_spis.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_android_project.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_bat_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_c_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_go_init.prg -n -gh

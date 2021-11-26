@@ -1,0 +1,223 @@
+{{1}} - project dir tree, something like org/harbour/myproject
+{{2}} - full project name, org.harbour.myproject
+{{3}} - short project name, myproject
+{{4}} - Android SDK directory
+{{5}} - Android Build Tools directory
+{{6}} - Android platform
+
+{{{bin/}}}
+{{{obj/}}}
+{{{res/}}}
+{{{res/drawable-hdpi/}}}
+{{{res/drawable-ldpi/}}}
+{{{res/drawable-mdpi/}}}
+{{{res/drawable-xhdpi/}}}
+{{{res/layout/}}}
+{{{res/values/}}}
+{{{src/}}}
+{{{src/{{1}}/}}}
+
+{{{setenv.bat}}}
+@set ANDROID_HOME={{4}}
+@set BUILD_TOOLS={{5}}
+@set NDK_PLATFORM={{6}}
+
+@set ADB=%ANDROID_HOME%\platform-tools\adb.exe
+@set ANDROID_JAR=%ANDROID_HOME%/platforms/%NDK_PLATFORM%/android.jar
+
+@set DEV_HOME=%CD%
+
+@set APPNAME={{3}}
+@set PACKAGE={{2}}
+@set PACKAGE_PATH={{1}}
+@set MAIN_CLASS=MyActivity
+
+{{{run.bat}}}
+@call setenv
+@call setenv
+
+@rem reinstall and start APK on device
+call %ADB% uninstall %PACKAGE%
+call %ADB% install %DEV_HOME%/bin/%APPNAME%.apk
+call %ADB% shell am start -n %PACKAGE%/%PACKAGE%.%MAIN_CLASS%
+@pause
+
+{{{clear.bat}}}
+@del src\su\ak\MyTestApp\R.java
+@del *.keystore
+@del /s /f /q bin\*.*
+@rmdir /s /q obj
+@md obj
+
+{{{build.bat}}}
+@call setenv
+@call clear
+
+@set PACKAGE_PATH={{1}}
+@set PACKAGE={{3}}
+@set MAIN_CLASS=MyActivity
+
+if not exist bin md bin
+
+@echo create R.java
+call %BUILD_TOOLS%/aapt.exe package -f -m -S %DEV_HOME%/res -J %DEV_HOME%/src -M %DEV_HOME%/AndroidManifest.xml -I %ANDROID_JAR%
+
+@echo compile, convert class dex and create APK
+call javac -d %DEV_HOME%/obj -cp %ANDROID_JAR% -sourcepath %DEV_HOME%/src %DEV_HOME%/src/%PACKAGE_PATH%/*.java
+call %BUILD_TOOLS%/dx.bat --dex --output=%DEV_HOME%/bin/classes.dex %DEV_HOME%/obj
+call %BUILD_TOOLS%/aapt.exe package -f -M %DEV_HOME%/AndroidManifest.xml -S %DEV_HOME%/res -I %ANDROID_JAR% -F %DEV_HOME%/bin/%PACKAGE%.unsigned.apk %DEV_HOME%/bin
+@if errorlevel 1 goto end
+call keytool -genkey -v -keystore myrelease.keystore -alias key2 -keyalg RSA -keysize 2048 -validity 10000 -storepass passkey1 -keypass passkey1 -dname "CN=Alex K, O=Harbour, C=RU"
+call jarsigner -sigalg SHA1withRSA -digestalg SHA1 -keystore %DEV_HOME%/myrelease.keystore -storepass passkey1 -keypass passkey1 -signedjar %DEV_HOME%/bin/%APPNAME%.signed.apk %DEV_HOME%/bin/%APPNAME%.unsigned.apk key2
+%BUILD_TOOLS%/zipalign -v 4 %DEV_HOME%/bin/%PACKAGE%.signed.apk %DEV_HOME%/bin/%PACKAGE%.apk
+:end
+@pause
+
+{{{AndroidManifest.xml}}}
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      package="{{2}}"
+      android:versionCode="1"
+      android:versionName="1.1">
+   <application android:label="{{3}}"
+         android:name="{{2}}.MainApp">
+      <activity android:name="MainActivity"
+         android:label="{{3}}">
+         <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+         </intent-filter>
+      </activity>
+   </application>
+   <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
+
+{{{res/values/strings.xml}}}
+<resources>
+   <string name="app_name">HelloWorld</string>
+   <string name="hello_world">Hello world!</string>
+   <string name="menu_settings">Settings</string>
+   <string name="title_activity_main">MainActivity</string>
+</resources>
+
+{{{res/layout/activity_main.xml}}}
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+   xmlns:tools="http://schemas.android.com/tools"
+   android:layout_width="match_parent"
+   android:layout_height="match_parent" >
+   
+   <TextView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_centerHorizontal="true"
+      android:layout_centerVertical="true"
+      android:text="@string/hello_world"
+      tools:context=".MainActivity" />    
+</RelativeLayout>
+
+{{{src/{{1}}/MainApp.java}}}
+package {{2}};
+
+import android.app.Application;
+
+public class MainApp extends Application {
+
+   @Override
+   public void onCreate() {
+      super.onCreate();
+
+   }
+}
+
+{{{src/{{1}}/MainActivity.java}}}
+package {{2}};
+
+import android.app.Activity;
+import android.os.Bundle;
+
+public class MainActivity extends Activity {
+   @Override
+   protected void onCreate(Bundle savedInstanceState) {
+      super.onCreate(savedInstanceState);
+      setContentView(R.layout.activity_main);
+   }
+}
+
+{{{setenv.sh}}}
+#!/bin/bash
+export ANDROID_HOME={{4}}
+export BUILD_TOOLS={{5}}
+export NDK_PLATFORM={{6}}
+
+export ADB=$ANDROID_HOME/platform-tools/adb
+export ANDROID_JAR=$ANDROID_HOME/platforms/$NDK_PLATFORM/android.jar
+
+export APPNAME={{3}}
+export PACKAGE={{2}}
+export PACKAGE_PATH={{1}}
+export MAIN_CLASS=MainActivity
+export DEV_HOME=`pwd`
+
+{{{run.sh}}}
+#!/bin/bash
+. ./setenv.sh
+
+$ADB uninstall $PACKAGE
+$ADB install bin/$APPNAME.apk
+
+$ADB shell logcat -c
+$ADB shell am start -n $PACKAGE/$PACKAGE.$MAIN_CLASS
+$ADB shell logcat Harbour:I *:S > log.txt
+
+{{{clear.sh}}}
+#!/bin/sh
+#!/bin/sh
+
+. ./setenv.sh
+
+rm -f src/$PACKAGE_PATH/R.java
+rm -f bin/*
+rm -f *.out
+rm -f -r lib
+mkdir lib
+chmod a+w+r+x lib
+rm -f -r obj
+mkdir obj
+chmod a+w+r+x obj
+
+{{{build.sh}}}
+#!/bin/bash
+
+if ! [ -e bin ]; then
+   mkdir bin
+   chmod a+w+r+x bin
+fi
+. ./setenv.sh
+
+./clear.sh
+
+    echo "compile java sources"
+    $BUILD_TOOLS/aapt package -f -m -S res -J src -M AndroidManifest.xml -I $ANDROID_JAR
+    javac -d obj -cp $ANDROID_JAR:$HDROIDGUI/hdroidgui.jar -sourcepath src src/$PACKAGE_PATH/*.java
+    if [ "$?" -eq 0 ]
+    then
+      echo "convert to .dex"
+      $BUILD_TOOLS/dx --dex --output=bin/classes.dex obj
+
+      if [ "$?" -eq 0 ]
+      then
+        $BUILD_TOOLS/aapt package -f -M AndroidManifest.xml -S res -I $ANDROID_JAR -F bin/$APPNAME.unsigned.apk bin
+        if [ "$?" -eq 0 ]
+        then
+          echo "sign APK"
+          keytool -genkey -v -keystore myrelease.keystore -alias key2 -keyalg RSA -keysize 2048 -validity 10000 -storepass passdbf -keypass passdbf -dname "CN=Alex K, O=Harbour, C=RU"
+          jarsigner -sigalg SHA1withRSA -digestalg SHA1 -keystore myrelease.keystore -storepass passdbf -keypass passdbf -signedjar bin/$APPNAME.signed.apk bin/$APPNAME.unsigned.apk key2
+          $BUILD_TOOLS/zipalign -v 4 bin/$APPNAME.signed.apk bin/$APPNAME.apk
+        fi
+      else
+        echo "error creating dex file"
+      fi
+    else
+      echo "java sources compiling error"
+    fi
+read -n1 -r -p "Press any key to continue..."

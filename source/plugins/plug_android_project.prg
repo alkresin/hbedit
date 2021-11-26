@@ -20,11 +20,12 @@
 
 STATIC cIniPath
 STATIC oAP
-STATIC cProjectsDir
+STATIC cProjectsDir, cHDroidDir
+STATIC cSDKDir, cToolsDir, cPlatform
 STATIC lIniUpd := .F.
 STATIC cScreenBuff
 STATIC cPrjName
-STATIC cFullProjectName := "", cProjectName
+STATIC cFullProjectName := "", cProjectName, cNewProjectDir, lHDroid
 
 FUNCTION plug_android_project( oEdit, cPath )
 
@@ -43,9 +44,25 @@ FUNCTION plug_android_project( oEdit, cPath )
 
    IF Empty( cIniPath )
       cIniPath := cPath
-      Read_AP_Ini( cIniPath + "ap.ini" )
+      Read_AP_Ini()
       IF Empty( cProjectsDir )
          cProjectsDir := AP_DirPrefix() + "Android" + hb_ps() + "Projects" + hb_ps()
+         lIniUpd := .T.
+      ENDIF
+      IF Empty( cHDroidDir )
+         cHDroidDir := cProjectsDir + "HDroidGUI"
+         lIniUpd := .T.
+      ENDIF
+      IF Empty( cSDKDir )
+         cSDKDir := AP_DirPrefix() + "Android" + hb_ps() + "sdk"
+         lIniUpd := .T.
+      ENDIF
+      IF Empty( cToolsDir )
+         cToolsDir := AP_DirPrefix() + "Android" + hb_ps() + "sdk" + hb_ps() + "build-tools" + hb_ps() + "27.0.3"
+         lIniUpd := .T.
+      ENDIF
+      IF Empty( cPlatform )
+         cPlatform := "android-19"
          lIniUpd := .T.
       ENDIF
    ENDIF
@@ -70,8 +87,7 @@ FUNCTION _AP_Start()
    IF Empty( cScreenBuff )
       Scroll( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
       IF AP_Menu()
-         DevPos( oAP:y1, oAP:x1+2 )
-         DevOut( "Project: " + cFullProjectName )
+         AP_Show()
 
       ELSE
          //KEYBOARD Chr(K_ESC)
@@ -136,7 +152,7 @@ STATIC FUNCTION AP_Create( nType )
       {08,22,0,"",48,oAP:cColorMenu,oAP:cColorMenu}, ;
       {16,25,2,"[Create]",10,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {16,58,2,"[Cancel]",10,oAP:cColorSel,oAP:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSouDir, aSouDir, cNewProjectDir
+   LOCAL cSouDir, aSouDir
    LOCAL cBuff, aBuff, cEol, i, j, cLine, nMode, sText, cSouName, cTemp, nPos
    LOCAL lRes := .F.
 
@@ -150,10 +166,22 @@ STATIC FUNCTION AP_Create( nType )
    @ 05,22 SAY "Projects directory"
    @ 07,22 SAY "Full project name (i.e. su.harbour.MyProject)"
 
+   IF nType == 1
+      hb_AIns( aGets, 3, {10,22,0,cHDroidDir,48,oAP:cColorMenu,oAP:cColorMenu}, .T. )
+      @ 09,22 SAY "HDroidGUI directory"
+   ELSE
+      hb_AIns( aGets, 3, {10,22,0,cSDKDir,48,oAP:cColorMenu,oAP:cColorMenu}, .T. )
+      hb_AIns( aGets, 4, {12,22,0,cToolsDir,48,oAP:cColorMenu,oAP:cColorMenu}, .T. )
+      hb_AIns( aGets, 5, {14,22,0,cPlatform,48,oAP:cColorMenu,oAP:cColorMenu}, .T. )
+      @ 09,22 SAY "Android SDK directory"
+      @ 11,22 SAY "Android Build Tools directory"
+      @ 13,22 SAY "NDK platform"
+   ENDIF
+
    DO WHILE edi_READ( aGets ) > 0
 
-      IF Empty( aGets[1,4] ) .OR. Empty( aGets[2,4] )
-         edi_Alert( "Field haven't filled" )
+      IF Empty( aGets[1,4] ) .OR. Empty( aGets[2,4] ) .OR. ( nType==1 .AND. Empty(aGets[3,4]) )
+         edi_Alert( "Fields haven't filled" )
          LOOP
       ENDIF
 
@@ -175,6 +203,26 @@ STATIC FUNCTION AP_Create( nType )
       cSouDir := StrTran( cFullProjectName, ".", hb_ps() )
       cProjectName := Substr( cFullProjectName, nPos+1 )
       cNewProjectDir := cProjectsDir + cProjectName + hb_ps()
+
+      IF nType == 1
+         IF !( cHDroidDir == Trim( aGets[3,4] ) )
+            cHDroidDir := Trim( aGets[3,4] )
+            lIniUpd := .T.
+         ENDIF
+      ELSE
+         IF !( cSDKDir == Trim( aGets[3,4] ) )
+            cSDKDir := Trim( aGets[3,4] )
+            lIniUpd := .T.
+         ENDIF
+         IF !( cToolsDir == Trim( aGets[4,4] ) )
+            cToolsDir := Trim( aGets[4,4] )
+            lIniUpd := .T.
+         ENDIF
+         IF !( cPlatform == Trim( aGets[5,4] ) )
+            cPlatform := Trim( aGets[5,4] )
+            lIniUpd := .T.
+         ENDIF
+      ENDIF
 
       cTemp := Iif( nType==1,"ap1.pt","ap2.pt" )
       IF Empty( cBuff := MemoRead( cIniPath + cTemp ) )
@@ -219,12 +267,20 @@ STATIC FUNCTION AP_Create( nType )
             nPos := 0
             cLine := aBuff[i]
             DO WHILE ( nPos := hb_At( "{{", cLine, nPos ) ) > 0
-               IF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 1
+               IF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 0
+                  cLine := Left( cLine, nPos-1 ) + cHDroidDir + Substr( cLine, nPos+5 )
+               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 1
                   cLine := Left( cLine, nPos-1 ) + cSouDir + Substr( cLine, nPos+5 )
                ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 2
                   cLine := Left( cLine, nPos-1 ) + cFullProjectName + Substr( cLine, nPos+5 )
                ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 3
                   cLine := Left( cLine, nPos-1 ) + cProjectName + Substr( cLine, nPos+5 )
+               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 4
+                  cLine := Left( cLine, nPos-1 ) + cSDKDir + Substr( cLine, nPos+5 )
+               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 5
+                  cLine := Left( cLine, nPos-1 ) + cToolsDir + Substr( cLine, nPos+5 )
+               ELSEIF ( j := Val( Substr( cLine,nPos+2,2 ) ) ) == 6
+                  cLine := Left( cLine, nPos-1 ) + cPlatform + Substr( cLine, nPos+5 )
                ENDIF
             ENDDO
             sText += cLine + cEol
@@ -237,6 +293,9 @@ STATIC FUNCTION AP_Create( nType )
          ENDIF
          hb_MemoWrit( cNewProjectDir + cSouName, sText )
       ENDIF
+#ifdef __PLATFORM__UNIX
+      cedi_RunConsoleApp( "chmod a+x " + cNewProjectDir + "*.sh" )
+#endif
       lRes := .T.
       EXIT
    ENDDO
@@ -282,21 +341,63 @@ STATIC FUNCTION AP_Open()
       ENDIF
 
       arr := Directory( cProjectsDir, "D" )
-      FOR i := 1 TO Len( arr )
-         arr[i] := arr[i,1]
+      FOR i := Len( arr ) TO 1 STEP -1
+         IF Left( arr[i,1],1 ) == '.'
+            hb_ADel( arr, i, .T. )
+         ELSE
+            arr[i] := arr[i,1]
+         ENDIF
       NEXT
       i := FMenu( oAP, arr, 04, 20, 12, 72 )
-      lRes := .T.
+      IF i > 0
+         lRes := .T.
+         cProjectName := arr[i]
+         cNewProjectDir := cProjectsDir + cProjectName
+      ENDIF
       EXIT
 
    ENDDO
 
-   edi_Alert( "Done!" )
    SetColor( oldc )
    RestScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2, cBufScr )
    edi_SetPos( oAP )
 
    RETURN lRes
+
+STATIC FUNCTION AP_Show()
+
+#ifdef __PLATFORM__UNIX
+   LOCAL cEnvName := "setenv.sh"
+#else
+   LOCAL cEnvName := "setenv.bat"
+#endif
+   LOCAL cBuff := MemoRead( cNewProjectDir + hb_ps() + cEnvName )
+   LOCAL i, nPos, nPos2
+   LOCAL aLayouts := Directory( cNewProjectDir + hb_ps() + "res" + hb_ps() + "layout" + hb_ps() + "*.xml", "HS" )
+   LOCAL aValues := Directory( cNewProjectDir + hb_ps() + "res" + hb_ps() + "values" + hb_ps() + "*.xml", "HS" )
+   LOCAL aJavaSrc
+   LOCAL aPrgSrc := Directory( cNewProjectDir + hb_ps() + "src" + hb_ps() + "*.prg", "HS" )
+
+   lHDroid := "HDROIDGUI" $ cBuff
+   IF ( nPos := At( "PACKAGE=", cBuff ) ) > 0
+      nPos += 8
+      nPos2 := hb_At( Chr(10), cBuff, nPos )
+      nPos2 := hb_Rat( '.', cBuff, nPos, nPos2 )
+      cFullProjectName := Substr( cBuff, nPos, nPos2-nPos+1 ) + cProjectName
+   ENDIF
+
+   aJavaSrc := Directory( cNewProjectDir + hb_ps() + "src" + hb_ps() + cFullProjectName + hb_ps() + ".java", "HS" )
+
+   @ oAP:y1, oAP:x1+2 SAY "Project: " + cFullProjectName + Iif( lHDroid, "  (HDroidGUI)", "" )
+   @ oAP:y1+2, oAP:x1+4 SAY "1. Android Manifest"
+   @ oAP:y1+3, oAP:x1+4 SAY "2. LayOuts: " + Ltrim(Str(Len(aLayouts)))
+   @ oAP:y1+4, oAP:x1+4 SAY "3. Values:" + Ltrim(Str(Len(aValues)))
+   @ oAP:y1+5, oAP:x1+4 SAY "4. Java sources:" + Ltrim(Str(Len(aJavaSrc)))
+   IF lHDroid
+      @ oAP:y1+6, oAP:x1+4 SAY "5. Harbour sources:" + Ltrim(Str(Len(aPrgSrc)))
+   ENDIF
+
+   RETURN Nil
 
 STATIC FUNCTION AP_DirPrefix()
 #ifdef __PLATFORM__UNIX
@@ -306,11 +407,11 @@ STATIC FUNCTION AP_DirPrefix()
 #endif
    RETURN cPrefix
 
-STATIC FUNCTION Read_AP_Ini( cIni )
+STATIC FUNCTION Read_AP_Ini()
 
    LOCAL hIni, aIni, nSect, cTemp, aSect
 
-   IF !Empty( cIni ) .AND. !Empty( hIni := edi_iniRead( cIni ) )
+   IF !Empty( hIni := edi_iniRead( cIniPath + "ap.ini" ) )
       aIni := hb_hKeys( hIni )
       FOR nSect := 1 TO Len( aIni )
          IF Upper(aIni[nSect]) == "MAIN"
@@ -318,6 +419,18 @@ STATIC FUNCTION Read_AP_Ini( cIni )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTemp := "projects" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   cProjectsDir := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "hdroidgui" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cHDroidDir := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "sdk" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cSDKDir := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "tools" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cToolsDir := cTemp
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "platform" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cPlatform := cTemp
                ENDIF
             ENDIF
          ENDIF
@@ -330,6 +443,10 @@ STATIC FUNCTION Write_AP_Ini()
    LOCAL s := "[MAIN]" + Chr(13)+Chr(10)
 
    s += "projects=" + cProjectsDir + Chr(13)+Chr(10)
+   s += "hdroidgui=" + cHDroidDir + Chr(13)+Chr(10)
+   s += "sdk=" + cSDKDir + Chr(13)+Chr(10)
+   s += "tools=" + cToolsDir + Chr(13)+Chr(10)
+   s += "platform=" + cPlatform + Chr(13)+Chr(10)
 
    hb_MemoWrit( cIniPath + "ap.ini", s )
 
