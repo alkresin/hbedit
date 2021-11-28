@@ -198,7 +198,7 @@ fi
 
     echo "compile java sources"
     $BUILD_TOOLS/aapt package -f -m -S res -J src -M AndroidManifest.xml -I $ANDROID_JAR
-    javac -d obj -cp $ANDROID_JAR:$HDROIDGUI/hdroidgui.jar -sourcepath src src/$PACKAGE_PATH/*.java
+    javac -d obj -cp $ANDROID_JAR -sourcepath src src/$PACKAGE_PATH/*.java
     if [ "$?" -eq 0 ]
     then
       echo "convert to .dex"

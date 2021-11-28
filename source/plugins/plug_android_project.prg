@@ -22,9 +22,8 @@ STATIC cIniPath
 STATIC oAP
 STATIC cProjectsDir, cHDroidDir
 STATIC cSDKDir, cToolsDir, cPlatform
-STATIC lIniUpd := .F.
+STATIC lIniUpd := .F., nCurrMode
 STATIC cScreenBuff
-STATIC cPrjName
 STATIC cFullProjectName := "", cProjectName, cNewProjectDir, lHDroid
 
 FUNCTION plug_android_project( oEdit, cPath )
@@ -34,9 +33,9 @@ FUNCTION plug_android_project( oEdit, cPath )
       LOCAL nCol := Col(), nRow := Row()
       IF Empty( l )
          DevPos( y, o:x1 )
-         DevOut( "Android Project" + Iif( Empty(cPrjName), "", ": "+cPrjName ) )
-         DevPos( y, o:x2-9 )
-         DevOut( "F9-menu" )
+         DevOut( "Android Project" + Iif( Empty(cFullProjectName), "", ": "+cFullProjectName ) )
+         //DevPos( y, o:x2-9 )
+         //DevOut( "F9-menu" )
       ENDIF
       DevPos( nRow, nCol )
       RETURN Nil
@@ -85,6 +84,7 @@ FUNCTION _AP_Start()
    LOCAL n
 
    IF Empty( cScreenBuff )
+      nCurrMode := 0
       Scroll( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
       IF AP_Menu()
          AP_Show()
@@ -101,7 +101,7 @@ FUNCTION _AP_Start()
 FUNCTION _AP_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt)
-   LOCAL n
+   LOCAL n, arr, cFile, nPos
 
    IF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
@@ -109,6 +109,26 @@ FUNCTION _AP_OnKey( oEdit, nKeyExt )
          RETURN 0x41010004   // Shift-F4
       ELSE
          RETURN 0
+      ENDIF
+
+   ELSEIF nKey >= 49 .AND. nKey <= 53   // 1...5
+      IF nCurrMode == 1
+         IF nKey == 49
+            mnu_NewBuf( oEdit, cNewProjectDir + hb_ps() + "AndroidManifest.xml" )
+         ELSEIF Empty( arr := AP_GetFilesList( nKey - 49, 2 ) )
+            AP_AddNewFile( nKey - 49 )
+         ELSE
+            hb_AIns( arr, 1, " + New file ", .T. )
+            n := FMenu( oEdit, arr, oAP:y1 + 4, oAP:x1 + Int( (oAP:x2-oAP:x1-24)/2 ) )
+            IF n == 1
+               AP_AddNewFile( nKey - 49 )
+            ELSEIF n > 0
+               cFile := AP_GetFilesList( nKey - 49, 0 )
+               nPos := Rat( '*', cFile )
+               cFile := Left( cFile, nPos-1 ) + arr[n]
+               mnu_NewBuf( oEdit,  + hb_ps() + cFile )
+            ENDIF
+         ENDIF
       ENDIF
 
    ELSEIF nKey == K_F12
@@ -373,11 +393,9 @@ STATIC FUNCTION AP_Show()
 #endif
    LOCAL cBuff := MemoRead( cNewProjectDir + hb_ps() + cEnvName )
    LOCAL i, nPos, nPos2
-   LOCAL aLayouts := Directory( cNewProjectDir + hb_ps() + "res" + hb_ps() + "layout" + hb_ps() + "*.xml", "HS" )
-   LOCAL aValues := Directory( cNewProjectDir + hb_ps() + "res" + hb_ps() + "values" + hb_ps() + "*.xml", "HS" )
-   LOCAL aJavaSrc
-   LOCAL aPrgSrc := Directory( cNewProjectDir + hb_ps() + "src" + hb_ps() + "*.prg", "HS" )
+   LOCAL aLayouts, aValues, aJavaSrc, aPrgSrc
 
+   nCurrMode := 1
    lHDroid := "HDROIDGUI" $ cBuff
    IF ( nPos := At( "PACKAGE=", cBuff ) ) > 0
       nPos += 8
@@ -385,19 +403,54 @@ STATIC FUNCTION AP_Show()
       nPos2 := hb_Rat( '.', cBuff, nPos, nPos2 )
       cFullProjectName := Substr( cBuff, nPos, nPos2-nPos+1 ) + cProjectName
    ENDIF
+   oAP:WriteTopPane()
 
-   aJavaSrc := Directory( cNewProjectDir + hb_ps() + "src" + hb_ps() + cFullProjectName + hb_ps() + ".java", "HS" )
+   aLayouts := AP_GetFilesList( 1,1 )
+   aValues := AP_GetFilesList( 2,1 )
+   aJavaSrc := AP_GetFilesList( 3,1 )
+   aPrgSrc := AP_GetFilesList( 4,1 )
 
-   @ oAP:y1, oAP:x1+2 SAY "Project: " + cFullProjectName + Iif( lHDroid, "  (HDroidGUI)", "" )
    @ oAP:y1+2, oAP:x1+4 SAY "1. Android Manifest"
    @ oAP:y1+3, oAP:x1+4 SAY "2. LayOuts: " + Ltrim(Str(Len(aLayouts)))
-   @ oAP:y1+4, oAP:x1+4 SAY "3. Values:" + Ltrim(Str(Len(aValues)))
-   @ oAP:y1+5, oAP:x1+4 SAY "4. Java sources:" + Ltrim(Str(Len(aJavaSrc)))
+   @ oAP:y1+4, oAP:x1+4 SAY "3. Values: " + Ltrim(Str(Len(aValues)))
+   @ oAP:y1+5, oAP:x1+4 SAY "4. Java sources: " + Ltrim(Str(Len(aJavaSrc)))
    IF lHDroid
-      @ oAP:y1+6, oAP:x1+4 SAY "5. Harbour sources:" + Ltrim(Str(Len(aPrgSrc)))
+      @ oAP:y1+6, oAP:x1+4 SAY "5. Harbour sources: " + Ltrim(Str(Len(aPrgSrc)))
    ENDIF
+   @ oAP:y1+8, oAP:x1+2 SAY "Press 1..5 to view list/edit/add new in an appropriate group"
 
    RETURN Nil
+
+STATIC FUNCTION AP_AddNewFile( n )
+   RETURN Nil
+
+STATIC FUNCTION AP_GetFilesList( nType, nToRet )
+
+   LOCAL cDir
+   LOCAL arr, i
+
+   IF nType == 1
+      cDir := cNewProjectDir + hb_ps() + "res" + hb_ps() + "layout" + hb_ps() + "*.xml"
+   ELSEIF nType == 2
+      cDir := cNewProjectDir + hb_ps() + "res" + hb_ps() + "values" + hb_ps() + "*.xml"
+   ELSEIF nType == 3
+      cDir := cNewProjectDir + hb_ps() + "src" + hb_ps() + StrTran( cFullProjectName, '.', hb_ps() ) + hb_ps() + "*.java"
+   ELSEIF nType == 4
+      cDir := cNewProjectDir + hb_ps() + "src" + hb_ps() + "*.prg"
+   ENDIF
+
+   IF nToRet == 0
+      RETURN cDir
+   ELSE
+      arr := Directory( cDir, "HS" )
+      IF nToRet == 2 .AND. !Empty( arr )
+         FOR i := 1 TO Len( arr )
+            arr[i] := arr[i,1]
+         NEXT
+      ENDIF
+   ENDIF
+
+   RETURN arr
 
 STATIC FUNCTION AP_DirPrefix()
 #ifdef __PLATFORM__UNIX
