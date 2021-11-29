@@ -533,9 +533,9 @@ STATIC FUNCTION AP_CompileHarbour()
    hb_MemoWrit( cFileScr, s )
    cedi_RunConsoleApp( cFileScr, cFileRes )
 #else
-   s := "#!/bin/bash" + Chr(10) + ". ./setenv.sh" + Chr(10) + "$HRB_BIN\harbour "
+   s := "#!/bin/bash" + Chr(10) + ". ./setenv.sh" + Chr(10) + "$HRB_BIN/harbour "
    FOR i := 1 TO Len( arr )
-      s += "src" + hb_ps() + arr[i] + " "
+      s += "src" + hb_ps() + arr[i,1] + " "
    NEXT
    s += "-q0 -i$HRB_INC -i$HDROIDGUI/src/include -i$HRB_INC -ojni/"
    hb_MemoWrit( cFileScr, s )
