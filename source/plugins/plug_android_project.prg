@@ -10,6 +10,8 @@
 #define K_ENTER      13
 #define K_CTRL_TAB  404
 #define K_SH_TAB    271
+#define K_F4         -3
+#define K_F5         -4
 #define K_F9         -8
 #define K_F10        -9
 #define K_F12       -41
@@ -25,6 +27,7 @@ STATIC cSDKDir, cToolsDir, cPlatform
 STATIC lIniUpd := .F., nCurrMode
 STATIC cScreenBuff
 STATIC cFullProjectName := "", cProjectName, cNewProjectDir, lHDroid
+STATIC cTmpDir, cFileRes, cFileScr
 
 FUNCTION plug_android_project( oEdit, cPath )
 
@@ -64,6 +67,12 @@ FUNCTION plug_android_project( oEdit, cPath )
          cPlatform := "android-19"
          lIniUpd := .T.
       ENDIF
+      cFileRes := ( cTmpDir := hb_DirTemp() ) + "ap_tmp.out"
+#ifdef __PLATFORM__WINDOWS
+      cFileScr := cTmpDir + "ap_tmp.bat"
+#else
+      cFileScr := cTmpDir + "ap_tmp.sh"
+#endif
    ENDIF
 
    IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cName} ) ) > 0
@@ -112,23 +121,34 @@ FUNCTION _AP_OnKey( oEdit, nKeyExt )
       ENDIF
 
    ELSEIF nKey >= 49 .AND. nKey <= 53   // 1...5
+      nKey -= 49
       IF nCurrMode == 1
-         IF nKey == 49
+         IF nKey == 0
             mnu_NewBuf( oEdit, cNewProjectDir + hb_ps() + "AndroidManifest.xml" )
-         ELSEIF Empty( arr := AP_GetFilesList( nKey - 49, 2 ) )
-            AP_AddNewFile( nKey - 49 )
-         ELSE
+         ELSEIF Empty( arr := AP_GetFilesList( nKey, 2 ) )
+            AP_AddNewFile( nKey )
+         ELSEIF lHDroid .OR. nKey < 4
             hb_AIns( arr, 1, " + New file ", .T. )
             n := FMenu( oEdit, arr, oAP:y1 + 4, oAP:x1 + Int( (oAP:x2-oAP:x1-24)/2 ) )
             IF n == 1
-               AP_AddNewFile( nKey - 49 )
+               AP_AddNewFile( nKey )
             ELSEIF n > 0
-               cFile := AP_GetFilesList( nKey - 49, 0 )
+               cFile := AP_GetFilesList( nKey, 0 )
                nPos := Rat( '*', cFile )
                cFile := Left( cFile, nPos-1 ) + arr[n]
                mnu_NewBuf( oEdit,  + hb_ps() + cFile )
             ENDIF
          ENDIF
+      ENDIF
+
+   ELSEIF nKey == K_F4
+      IF nCurrMode == 1
+         AP_CompileJava()
+      ENDIF
+
+   ELSEIF nKey == K_F5
+      IF nCurrMode == 1
+         AP_CompileHarbour()
       ENDIF
 
    ELSEIF nKey == K_F12
@@ -414,10 +434,13 @@ STATIC FUNCTION AP_Show()
    @ oAP:y1+3, oAP:x1+4 SAY "2. LayOuts: " + Ltrim(Str(Len(aLayouts)))
    @ oAP:y1+4, oAP:x1+4 SAY "3. Values: " + Ltrim(Str(Len(aValues)))
    @ oAP:y1+5, oAP:x1+4 SAY "4. Java sources: " + Ltrim(Str(Len(aJavaSrc)))
+   @ oAP:y1+5, oAP:x1+30 SAY "F4 - Compile" COLOR "N/BG"
    IF lHDroid
       @ oAP:y1+6, oAP:x1+4 SAY "5. Harbour sources: " + Ltrim(Str(Len(aPrgSrc)))
+      @ oAP:y1+6, oAP:x1+30 SAY "F5 - Compile" COLOR "N/BG"
    ENDIF
-   @ oAP:y1+8, oAP:x1+2 SAY "Press 1..5 to view list/edit/add new in an appropriate group"
+
+   @ oAP:y1+8, oAP:x1+2 SAY "Press 1..5 to browse/edit/add new in an appropriate group"
 
    RETURN Nil
 
@@ -459,6 +482,76 @@ STATIC FUNCTION AP_DirPrefix()
    LOCAL cPrefix := hb_curDrive() + ':\'
 #endif
    RETURN cPrefix
+
+STATIC FUNCTION AP_CompileJava()
+
+   LOCAL s, i, arr := AP_GetFilesList( 4,1 ), cBuff, cFile := "$Results", oNew
+
+   edi_CloseWindow( cFile )
+   FErase( cFileRes )
+   DirChange( cNewProjectDir )
+#ifdef __PLATFORM__WINDOWS
+   s := "@call setenv" + Chr(13)+Chr(10) + ;
+      "@call %BUILD_TOOLS%/aapt.exe package -f -m -S res -J src -M AndroidManifest.xml -I %ANDROID_JAR%" ;
+      + Chr(13)+Chr(10) + "@if errorlevel 1 goto end" + Chr(13)+Chr(10) + ;
+      "@call %JAVA_HOME%/bin/javac -d obj -cp %ANDROID_JAR%;%HDROIDGUI%\libs -sourcepath src src/%PACKAGE_PATH%/*.java" ;
+      + Chr(13)+Chr(10) + ":end"
+   hb_MemoWrit( cFileScr, s )
+   cedi_RunConsoleApp( cFileScr, cFileRes )
+#else
+   s := "#!/bin/bash" + Chr(10) + ". ./setenv.sh" + Chr(10) + ;
+      "$BUILD_TOOLS/aapt package -f -m -S res -J src -M AndroidManifest.xml -I $ANDROID_JAR" + Chr(10) + ;
+      "javac -d obj -cp $ANDROID_JAR:$HDROIDGUI/hdroidgui.jar -sourcepath src src/$PACKAGE_PATH/*.java"
+   hb_MemoWrit( cFileScr, s )
+   __Run( "chmod a+x " + cFileScr )
+   cedi_RunConsoleApp( cFileScr + " >" + cFileRes + " 2>" + cFileRes )
+#endif
+
+   IF !Empty( cBuff := Memoread( cFileRes ) )
+      cScreenBuff := SaveScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
+      oNew := edi_AddWindow( oAP, cBuff, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+   ELSE
+      edi_Alert( "Done!" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION AP_CompileHarbour()
+
+   LOCAL s, i, arr := AP_GetFilesList( 4,1 ), cBuff, cFile := "$Results", oNew
+
+   edi_CloseWindow( cFile )
+   FErase( cFileRes )
+   DirChange( cNewProjectDir )
+#ifdef __PLATFORM__WINDOWS
+   s := "@call setenv" + Chr(13)+Chr(10) + "@%HRB_BIN%\harbour "
+   FOR i := 1 TO Len( arr )
+      s += "src" + hb_ps() + arr[i,1] + " "
+   NEXT
+   s += "/q0 /i%HDROIDGUI%\src\include /i%HRB_INC% /ojni\"
+   hb_MemoWrit( cFileScr, s )
+   cedi_RunConsoleApp( cFileScr, cFileRes )
+#else
+   s := "#!/bin/bash" + Chr(10) + ". ./setenv.sh" + Chr(10) + "$HRB_BIN\harbour "
+   FOR i := 1 TO Len( arr )
+      s += "src" + hb_ps() + arr[i] + " "
+   NEXT
+   s += "-q0 -i$HRB_INC -i$HDROIDGUI/src/include -i$HRB_INC -ojni/"
+   hb_MemoWrit( cFileScr, s )
+   __Run( "chmod a+x " + cFileScr )
+   cedi_RunConsoleApp( cFileScr + " >" + cFileRes + " 2>" + cFileRes )
+#endif
+
+   IF !Empty( cBuff := Memoread( cFileRes ) )
+      cScreenBuff := SaveScreen( oAP:y1, oAP:x1, oAP:y2, oAP:x2 )
+      oNew := edi_AddWindow( oAP, cBuff, cFile, 2, 7 )
+      oNew:lReadOnly := .T.
+   ELSE
+      edi_Alert( "Done!" )
+   ENDIF
+
+   RETURN Nil
 
 STATIC FUNCTION Read_AP_Ini()
 
