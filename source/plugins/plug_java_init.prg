@@ -175,7 +175,11 @@ STATIC FUNCTION _java_Compile( oEdit )
 
    edi_CloseWindow( cFile )
 
+#ifdef __PLATFORM__WINDOWS
    cedi_RunConsoleApp( "javac " + cSrcName, cFileRes )
+#else
+   cedi_RunConsoleApp( "javac " + cSrcName + " >" + cFileRes + " 2>" + cFileRes )
+#endif
    IF Empty( cBuff := MemoRead( cFileRes ) )
       edi_Alert( "Done!" )
    ELSE
