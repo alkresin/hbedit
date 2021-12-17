@@ -192,7 +192,7 @@ STATIC FUNCTION _java_Compile( oEdit )
 STATIC FUNCTION _java_Run( oEdit )
 
    LOCAL cTmpDir := hb_DirTemp(), cTmpJava, cTmpScr, cTmpClass, lPublic
-   LOCAL cFileRes := cTmpDir + "tmp_hbedit.out", arr, i, cBuff, cFile := "$Results", oNew
+   LOCAL cFileRes := cTmpDir + "tmp_hbedit.out", arr, i, j, cBuff, cFile := "$Results", oNew
 
    edi_CloseWindow( cFile )
 
@@ -202,8 +202,15 @@ STATIC FUNCTION _java_Run( oEdit )
    ENDIF
    i += 5
    cTmpClass := hb_TokenPtr( arr[1,1], @i )
-   //edi_Alert( cBuff )
    lPublic := ( "public " $ Left( arr[1,1], i ) )
+
+   arr := Directory( cTmpDir + "*.class", "HS" )
+   IF !Empty( arr )
+      FOR j := 1 TO Len( arr )
+         FErase( cTmpDir + arr[j,1] )
+      NEXT
+   ENDIF
+
    cTmpJava := cTmpDir + Iif( lPublic, cTmpClass, "tmp_hbedit" ) + ".java"
    hb_MemoWrit( cTmpJava, oEdit:ToString() )
 
@@ -275,7 +282,7 @@ STATIC FUNCTION _java_Run( oEdit )
    oEdit:TextOut()
 
    edi_Alert( "Done!" )
-   FErase( cTmpDir + cTmpClass+".class" )
+   //FErase( cTmpDir + cTmpClass+".class" )
 
    RETURN Nil
 
