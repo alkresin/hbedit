@@ -370,7 +370,9 @@ METHOD Edit( lShowOnly ) CLASS TEdit
    ::lShow := .T.
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns==Nil, SC_NONE, Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) ) )
+      //edi_writelog( "ed-1a" )
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
+      //edi_writelog( "ed-2" )
       IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
          IF Valtype( i ) == "N"
             nKeyExt := i
@@ -609,7 +611,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       ENDIF
    ENDIF
 
-   //edi_writelog(str(nKey))
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE ;
       .OR. nKey == K_LBUTTONUP .OR. nKey == K_RBUTTONUP
       RETURN Nil
@@ -4409,8 +4410,8 @@ FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
          ENDIF
          RETURN nx
       ENDIF
-      DO WHILE --nx > 1 .AND. ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " ;
-         .OR. ch == cTab
+      DO WHILE --nx > 1 .AND. ( ( ch := cp_Substr( lUtf8, oEdit:aText[ny], nx, 1 ) ) == " " ;
+         .OR. ch == cTab )
       ENDDO
    ENDIF
 
@@ -4787,6 +4788,7 @@ FUNCTION edi_ExpandTabs( oEdit, s, nFirst, lCalcOnly, nAdd )
       ENDIF
       nPos1 := nPos2 + 1
    ENDDO
+
    IF lCalcOnly
       IF oEdit:lUtf8
          nLenNew += cp_Len( oEdit:lUtf8, Substr( s, nPos1 ) )
