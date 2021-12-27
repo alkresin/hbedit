@@ -175,7 +175,7 @@ STATIC FUNCTION fSea( oEdit, s )
 
 STATIC FUNCTION cmdExec( oEdit, sCmd )
 
-   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", s
+   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", s, lConsole := .T.
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
@@ -185,7 +185,12 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
             Iif( Substr( sCmd,nPos+1,1 ) == 'p', hb_fnameDir( oEdit:cFileName ), "" ) )
          sCmd := Left( sCmd,nPos-1 ) + s + Substr( sCmd,nPos+2 )
       ENDIF
-      cCmdLine := Substr( sCmd,2 )
+      IF Substr( sCmd,2,1 ) == '!'
+         lConsole := .F.
+         cCmdLine := Substr( sCmd,3 )
+      ELSE
+         cCmdLine := Substr( sCmd,2 )
+      ENDIF
 #ifndef __PLATFORM__UNIX
       s := Iif( ( nPos := At( ' ', cCmdLine ) ) > 0, Left( cCmdLine,nPos-1 ), cCmdLine )
       IF Ascan( aCmds, Lower(s) ) != 0
@@ -196,8 +201,13 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
       Scroll( oEdit:y2 + 1, oEdit:x1, oEdit:y2 + 1, oEdit:x2 )
       DevPos( oEdit:y2 + 1, oEdit:x1 )
       DevOut( "Wait..." )
-      cedi_RunConsoleApp( cCmdLine, cFileOut )
-      cFileAdd := cFileOut
+      IF lConsole
+         cedi_RunConsoleApp( cCmdLine, cFileOut )
+         cFileAdd := cFileOut
+      ELSE
+         cedi_RunApp( cCmdLine, 0 )
+         cFileAdd := ""
+      ENDIF
       lEnd := .T.
    ELSE
       acmd := hb_aTokens( sCmd )

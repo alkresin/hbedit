@@ -452,6 +452,11 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    hb_retni( iExitCode );
 }
 
+HB_FUNC( CEDI_RUNAPP )
+{
+   hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
+}
+
 #else
 
 #include <windows.h>
@@ -540,6 +545,12 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
    hb_retni( ( int ) dwExitCode );
 }
+
+HB_FUNC( CEDI_RUNAPP )
+{
+   hb_retni( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) );
+}
+
 #endif
 
 typedef struct _bitarr_ {
