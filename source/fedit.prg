@@ -133,7 +133,7 @@ CLASS TEdit
    DATA   lIns        INIT .T.
    DATA   lShiftKey   INIT .F.
 
-   DATA   lTabs       INIT .F.
+   //DATA   lTabs       INIT .F.
 
    DATA   nPos, nLine
    DATA   nPosBack    INIT 1
@@ -289,7 +289,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       FOR i := 1 TO Len( ::aText )
          IF lT2Sp .AND. cTab $ ::aText[i]
             ::aText[i] := Strtran( ::aText[i], cTab, cTabStr )
-            ::lTabs := .T.
+            //::lTabs := .T.
          ENDIF
          IF Right( ::aText[i],1 ) == Chr(13)
             ::aText[i] := Left( ::aText[i], Len( ::aText[i])-1 )
@@ -1992,9 +1992,11 @@ METHOD ToString( cEol, cp ) CLASS TEdit
          ::aText[i] := Trim( ::aText[i] )
       ENDIF
       IF cp != Nil .AND. !( cp == ::cp )
-         s += hb_strToUtf8( Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ), ::cp ) + cEol
+         //s += hb_strToUtf8( Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ), ::cp ) + cEol
+         s += hb_strToUtf8( ::aText[i], ::cp ) + cEol
       ELSE
-         s += Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ) + cEol
+         //s += Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ) + cEol
+         s += ::aText[i] + cEol
       ENDIF
    NEXT
 
@@ -2462,7 +2464,8 @@ FUNCTION edi_GetSelected( oEdit )
       ENDIF
    ENDIF
 
-   RETURN Iif( oEdit:lTabs, Strtran(s,cTabStr,cTab), s )
+   //RETURN Iif( oEdit:lTabs, Strtran(s,cTabStr,cTab), s )
+   RETURN s
 
 /*
  * cb2Text( oEdit, nReg, lToText, s, lVert )
@@ -2545,7 +2548,8 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
    IF Empty( lToText )
       RETURN s
    ELSE
-      IF oEdit:lTabs
+      //IF oEdit:lTabs
+      IF hb_hGetDef( TEdit():options,"tabtospaces", .F. )
          s := Strtran( s, cTab, cTabStr )
       ENDIF
       IF Chr(13) $ s
@@ -4466,10 +4470,10 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    @ 10,22 SAY "Save file as"
    @ 12,22 SAY "in directory"
    @ 14, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
-   IF oEdit:lTabs
-      hb_AIns( aGets, 7, {13,47,1,.F.,1}, .T. )
-      @ 14, 46 SAY "[ ] Tabs to spaces"
-   ENDIF
+   //IF oEdit:lTabs
+   //   hb_AIns( aGets, 7, {13,47,1,.F.,1}, .T. )
+   //   @ 14, 46 SAY "[ ] Tabs to spaces"
+   //ENDIF
    Aadd( aGets, {16,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
    Aadd( aGets, {16,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
@@ -4492,9 +4496,9 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
       IF oEdit:lUtf8
          oEdit:lBom := aGets[7,4]
       ENDIF
-      IF oEdit:lTabs
-         oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[8,4], aGets[7,4] )
-      ENDIF
+      //IF oEdit:lTabs
+      //   oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[8,4], aGets[7,4] )
+      //ENDIF
    ENDIF
 
    SetColor( oldc )

@@ -97,11 +97,11 @@ FUNCTION _plug_sele_surround( oEdit, cTextS )
 FUNCTION _plug_sele_align( oEdit, lLeft )
 
    LOCAL aMenu := { "Align Left", "Align Right" }, y1 := Row(), x1 := Col()-6
-   LOCAL i, s, arr, nLen, lTabs := oEdit:lTabs, nWidth := 0
+   LOCAL i, s, arr, nLen, nWidth := 0  //lTabs := oEdit:lTabs
 
-   oEdit:lTabs := .F.
+   //oEdit:lTabs := .F.
    s := edi_GetSelected( oEdit )
-   oEdit:lTabs := lTabs
+   //oEdit:lTabs := lTabs
    arr := hb_ATokens( s, Chr(10) )
    nLen := Len(arr)
    FOR i := 1 TO nLen

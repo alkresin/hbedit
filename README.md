@@ -37,6 +37,7 @@ A fullscreen console multiplatform text editor.
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
     + hwg_funcs.txt         - HwGUI functions list for plug_prg_init
+    + plug_android_project.prg - creating and maintaining java android projects
     + plug_1c_spis.prg      - 1C functions list
     + plug_bat_init.prg     - a start plugin for .bat files
     + plug_c_init.prg       - a start plugin for .c files
