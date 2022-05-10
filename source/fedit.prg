@@ -3400,8 +3400,13 @@ FUNCTION mnu_F4( oEdit, aXY )
    LOCAL aMenu := { {"New file",@mnu_NewBuf(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
 
    FOR i := 1 TO Len( oEdit:aEditHis )
-      AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 36,'~'), ;
-         @mnu_OpenRecent(),i } )
+      IF File( oEdit:aEditHis[i,1] )
+         AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 36,'~'), ;
+            @mnu_OpenRecent(),i } )
+      ELSE
+         hb_ADel( oEdit:aEditHis, i, .T. )
+         i --
+      ENDIF
    NEXT
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,,, .T. )
