@@ -3398,9 +3398,10 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
 FUNCTION mnu_F4( oEdit, aXY )
 
    LOCAL aMenu := { {"New file",@mnu_NewBuf(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
+   STATIC lChecked := .F.
 
    FOR i := 1 TO Len( oEdit:aEditHis )
-      IF File( oEdit:aEditHis[i,1] )
+      IF lChecked .OR. File( oEdit:aEditHis[i,1] )
          AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 36,'~'), ;
             @mnu_OpenRecent(),i } )
       ELSE
@@ -3408,6 +3409,7 @@ FUNCTION mnu_F4( oEdit, aXY )
          i --
       ENDIF
    NEXT
+   lChecked := .T.
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,,, .T. )
 
