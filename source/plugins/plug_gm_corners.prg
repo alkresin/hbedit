@@ -40,36 +40,27 @@ STATIC aFigs := {' ','p','P'}, ;
 
 //STATIC aFigValues := { 100, 479, 280, 320, 929, 60000 }
 STATIC aBoardValues := { ;
-    { 100, 100, 100, 100, 100, 100, 100, 100,  ;  //White
-      178, 183, 186, 173, 202, 182, 185, 190,  ;
-      107, 129, 121, 144, 140, 131, 144, 107,  ;
-      83, 116, 98, 115, 114, 100, 115, 87,     ;
-      74, 103, 110, 109, 106, 101, 100, 77,    ;
-      78, 109, 105, 89, 90, 98, 103, 81,       ;
-      69, 108, 93, 63, 64, 86, 103, 69,        ;
-      100, 100, 100, 100, 100, 100, 100, 100 },;
-    { 100, 100, 100, 100, 100, 100, 100, 100,  ;  //Black
-      69, 108, 93, 63, 64, 86, 103, 69,        ;
-      78, 109, 105, 89, 90, 98, 103, 81,       ;
-      74, 103, 110, 109, 106, 101, 100, 77,    ;
-      83, 116, 98, 115, 114, 100, 115, 87,     ;
-      107, 129, 121, 144, 140, 131, 144, 107,  ;
-      178, 183, 186, 173, 202, 182, 185, 190,  ;
-      100, 100, 100, 100, 100, 100, 100, 100 } }
+    { 14,13,12,11,10,9, 8, 7,  ;  //White
+      13,12,11,10,9, 8, 7, 6,  ;
+      12,11,10,9, 8, 7, 6, 5,  ;
+      11,10,9, 8, 7, 6, 5, 4,  ;
+      10,9, 8, 7, 6, 5, 4, 3,  ;
+      9, 8, 7, 6, 5, 4, 3, 2,  ;
+      8, 7, 6, 5, 4, 3, 2, 1,  ;
+      7, 6, 5, 4, 3, 2, 1, 0 },;
+    { 0, 1, 2, 3, 4, 5, 6, 7,  ;  //Black
+      1, 2, 3, 4, 5, 6, 7, 8,  ;
+      2, 3, 4, 5, 6, 7, 8, 9,  ;
+      3, 4, 5, 6, 7, 8, 9,10,  ;
+      4, 5, 6, 7, 8, 9,10,11,  ;
+      5, 6, 7, 8, 9,10,11,12,  ;
+      6, 7, 8, 9,10,11,12,13,  ;
+      7, 8, 9,10,11,12,13,14 } }
 
 STATIC lTurnBlack
 
-#define POS_LEN        10
+#define POS_LEN         1
 #define POS_BOARD       1
-#define POS_W00         2
-#define POS_W000        3
-#define POS_B00         4
-#define POS_B000        5
-#define POS_W_00        6
-#define POS_W_000       7
-#define POS_B_00        8
-#define POS_B_000       9
-#define POS_4P         10
 
 #define MOVE_LEN        6
 
@@ -144,7 +135,6 @@ STATIC FUNCTION _Game_New( lFirst )
    lPlayGame := .T.
    nMoveState := 0
    aCurrPos[POS_BOARD] := cInitBoard
-   aCurrPos[POS_W00] := aCurrPos[POS_W000] := aCurrPos[POS_B00] := aCurrPos[POS_B000] := .T.
    aHistory   := {}
    DrawBoard()
    nScrolled := 0
@@ -323,49 +313,6 @@ STATIC FUNCTION DrawBoard()
 
    RETURN Nil
 
-STATIC FUNCTION Set_lb_lw( aPos, lBlack )
-
-   LOCAL i, nFig, arr
-
-   aPos[POS_B_00] := aPos[POS_B00] ; aPos[POS_B_000] := aPos[POS_B000] ; aPos[POS_W_00] := aPos[POS_W00] ; aPos[POS_W_000] := aPos[POS_W000]
-   IF lBlack .AND. (aPos[POS_B00] .OR. aPos[POS_B000])
-      IF hb_BPeek( aPos[POS_BOARD],2 ) != 32
-         aPos[POS_B_000] := .F.
-      ENDIF
-      FOR i := 1 TO 64
-         IF ( nFig := hb_bPeek( aPos[POS_BOARD], i ) ) >= 65 .AND. nFig <= 90
-            arr := chess_GenMoves( aPos, i )
-            IF ( Ascan( arr,5 ) > 0 .OR. Ascan( arr,6 ) > 0 .OR. ;
-               Ascan( arr,5 ) > 0 .OR. Ascan( arr,5 ) > 0 )
-               aPos[POS_B_00] := .F.
-            ENDIF
-            IF ( Ascan( arr,1 ) > 0 .OR. Ascan( arr,2 ) > 0 .OR. ;
-               Ascan( arr,3 ) > 0 .OR. Ascan( arr,4 ) > 0 .OR. Ascan( arr,5 ) > 0 )
-               aPos[POS_B_000] := .F.
-            ENDIF
-         ENDIF
-      NEXT
-   ELSEIF !lBlack .AND. (aPos[POS_W00] .OR. aPos[POS_W000])
-      IF hb_BPeek( aPos[POS_BOARD],58 ) != 32
-         aPos[POS_W_000] := .F.
-      ENDIF
-      FOR i := 1 TO 64
-         IF ( nFig := hb_bPeek( aPos[POS_BOARD], i ) ) >= 97 .AND. nFig <= 122
-            arr := chess_GenMoves( aPos, i )
-            IF ( Ascan( arr,61 ) > 0 .OR. Ascan( arr,62 ) > 0 .OR. ;
-               Ascan( arr,63 ) > 0 .OR. Ascan( arr,64 ) > 0 )
-               aPos[POS_W_00] := .F.
-            ENDIF
-            IF ( Ascan( arr,57 ) > 0 .OR. Ascan( arr,58 ) > 0 .OR. ;
-               Ascan( arr,59 ) > 0 .OR. Ascan( arr,60 ) > 0 .OR. Ascan( arr,61 ) > 0 )
-               aPos[POS_W_000] := .F.
-            ENDIF
-         ENDIF
-      NEXT
-   ENDIF
-
-   RETURN Nil
-
 STATIC FUNCTION MakeMove( nRow, nCol )
 
    LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0
@@ -374,25 +321,21 @@ STATIC FUNCTION MakeMove( nRow, nCol )
    IF nMoveState == 0 .AND. ( (!lTurnBlack .AND. c == 'P') .OR. ;
       (lTurnBlack .AND. c == 'p') )
       nMoveFrom := nMove
+      DrawMove( nMoveFrom )
       nMoveState := 1
 
    ELSEIF nMoveState == 1
-      Set_lb_lw( aCurrPos, lTurnBlack )
       IF isMoveCorrect( nMove )
          DrawMove( nMoveFrom, nMove )
-         nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
-         IF !lTurnBlack
-            cBoa16 := ATail(aHistory)[3]
-            AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
-         ENDIF
-         IF nSumm >= 50000
+
+         //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
+         nSumm := ii_Ocenka( aCurrPos[POS_BOARD], lTurnBlack )
+         IF nSumm >= 108
             GameOver( 1 )
-         ELSEIF !lTurnBlack .AND. nCou >= 5
-            GameOver( 3 )
          ELSE
             lTurnBlack := !lTurnBlack
             IF Iif( lTurnBlack, nLevel2, nLevel1 ) > 0
-               ii_MakeMove()
+               //ii_MakeMove()
             ENDIF
          ENDIF
       ELSE
@@ -403,7 +346,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
 
    RETURN Nil
 
-STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
+STATIC FUNCTION MoveN2C( nStart, nEnd )
 
    LOCAL i1, cMove := ""
 
@@ -413,14 +356,17 @@ STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
    ENDIF
    IF !Empty( nEnd )
       i1 := Iif( nEnd%8 == 0, 8, nEnd%8 )
-      cMove += Iif( Empty(nStart),'',Iif( Empty(cFigBeat),'-',':' ) ) + Chr( 96+i1 ) + Ltrim(Str(Int(9-nEnd/8)))
+      cMove += Iif( Empty(nStart),'', '-' ) + Chr( 96+i1 ) + Ltrim(Str(Int(9-nEnd/8)))
    ENDIF
 
    RETURN cMove
 
 STATIC FUNCTION DrawMove( nStart, nEnd )
 
-   DevPos( y1t+10, x1t+2 )
+   LOCAL cFig
+
+   @ y1t+10, x1t+2 SAY Space( 24 )
+   DevPos( y1t+10, Iif( lTurnBlack, x1t+10, x1t+2 ) )
 
    IF nStart < 0
       IF lRussian
@@ -432,232 +378,106 @@ STATIC FUNCTION DrawMove( nStart, nEnd )
    ENDIF
 
    IF !Empty( nEnd )
-      //PostProcess( aCurrPos, aCurrPos[POS_BOARD], Asc(cFig), nStart, nEnd, ;
-      //   Iif( Len(aMove)>5.AND.!Empty(aMove[6]),Asc(aMove[6]),Nil ) )
+      cFig := Substr( aCurrPos[POS_BOARD], nStart, 1 )
+      aCurrPos[POS_BOARD] := hb_bPoke( hb_bPoke( aCurrPos[POS_BOARD], nStart, 32 ), nEnd, Asc(cFig) )
       DrawBoard()
-      AddHis( aCurrPos[POS_BOARD], nStart, nEnd, cFigBeat )
+      AddHis( nStart, nEnd )
    ENDIF
+
+   DevPos( y1t+10, Iif( lTurnBlack, x1t+10, x1t+2 ) )
+   DevOut( MoveN2C( nStart,nEnd ) )
 
    RETURN Nil
 
-STATIC FUNCTION chess_GenMoves( aPos, nStart )
+STATIC FUNCTION GenMoves( aPos, nStart, aMoves )
 
-   LOCAL cFig := Substr( aPos[POS_BOARD], nStart, 1 ), cFigU := Upper( cFig )
-   LOCAL aMoves := {}, i, j, arr, nMove, nCol1, nCol2
-   LOCAl lBlack := (cFig >= 'a' .AND. cFig <= 'z')
-   STATIC cFigures := "pnbrqk"
-#define N     -8
-#define E      1
-#define S      8
-#define W     -1
-   STATIC aDirections := { { ;
-      { N, N+N, N+W, N+E }, ;
-      { N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W }, ;
-      { N+E, S+E, S+W, N+W }, ;
-      { N, E, S, W }, ;
-      { N, E, S, W, N+E, S+E, S+W, N+W }, ;
-      { N, E, S, W, N+E, S+E, S+W, N+W } }, ;
-      { ;
-      { -N, -N-N, -N-W, -N-E }, ;
-      { -N-N-E, -E-N-E, -E-S-E, -S-S-E, -S-S-W, -W-S-W, -W-N-W, -N-N-W }, ;
-      { -N-E, -S-E, -S-W, -N-W }, ;
-      { -N, -E, -S, -W }, ;
-      { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W }, ;
-      { -N, -E, -S, -W, -N-E, -S-E, -S-W, -N-W } } }
-#undef N
-#undef E
-#undef S
-#undef W
+   STATIC arr := { -1, 1, -8, 8 }
+   LOCAL lFirst := .F., i, nMove, nCol1
 
-   arr := aDirections[Iif(lBlack,2,1), At( Lower(cFig), cFigures ) ]
+   IF aMoves == Nil
+      aMoves := {}
+      lFirst := .T.
+   ENDIF
    FOR i := 1 TO Len( arr )
       nMove := nStart
-      DO WHILE .T.
-         nCol1 := nMove % 8
-         IF nCol1 == 0; nCol1 := 8; ENDIF
-         nMove += arr[i]
-         nCol2 := nMove % 8
-         IF nCol2 == 0; nCol2 := 8; ENDIF
-         IF nMove < 0 .OR. nMove > 64 .OR. Abs( nCol2-nCol1 ) > 2
-            EXIT
-         ENDIF
-         cFig := Substr( aPos[POS_BOARD], nMove, 1 )
-         //IF cFigU == 'B'
-         //   edi_writelog( "    " + MoveN2C(nStart,nMove) + " " + cFig )
-         //ENDIF
-         IF cFigU == "P"
-            IF cFig == ' '
-               IF i > 1
-                  IF i >= 2
-                     IF nMove == aPos[POS_4P]
-                        Aadd( aMoves, nMove )
-                     ENDIF
-                  ENDIF
-                  EXIT
-               ELSEIF ( j := Abs( nStart - nMove ) ) < 10
-                  Aadd( aMoves, nMove )
-               ELSEIF j < 20 .AND. ( j := Int( (nStart-1)/8 ) ) == 1 .OR. j == 6
-                  Aadd( aMoves, nMove )
-                  EXIT
-               ELSE
-                  EXIT
-               ENDIF
-            ELSEIF (cFig >= 'a' .AND. cFig <= 'z') == lBlack
-               EXIT
-            ELSE
-               IF i <= 2
-                  EXIT
-               ELSE
-                  Aadd( aMoves, nMove )
-                  EXIT
-               ENDIF
-            ENDIF
-         ELSE
-            IF cFig == ' '
-               Aadd( aMoves, nMove )
-            ELSEIF (cFig >= 'a' .AND. cFig <= 'z') == lBlack
-               EXIT
-            ELSE
-               Aadd( aMoves, nMove )
-               EXIT
-            ENDIF
-         ENDIF
-         IF cFigu == "N"
-            EXIT
-         ELSEIF cFigu == "K"
-            IF ( nStart == 61 .AND. !lBlack .AND. ;
-               ( (nMove-nStart == 1 .AND. aPos[POS_W_00]) .OR. (nMove-nStart == -1 .AND. aPos[POS_W_000]) ) ) .OR. ;
-               ( nStart == 5 .AND. lBlack .AND. ;
-               ( (nMove-nStart == 1 .AND. aPos[POS_B_00]) .OR. (nMove-nStart == -1 .AND. aPos[POS_B_000]) ) )
-            ELSE
-               EXIT
-            ENDIF
-         ENDIF
-      ENDDO
-   NEXT
 
+      nCol1 := nMove % 8
+      nMove += arr[i]
+      IF nMove < 0 .OR. nMove > 64 .OR. ( nCol1==1 .AND. arr[i]==-1 ) .OR. ( nCol1==0 .AND. arr[i]==1 )
+         LOOP
+      ENDIF
+
+      IF Substr( aPos[POS_BOARD], nMove, 1 ) == ' '
+         IF lFirst
+            Aadd( aMoves, nMove )
+         ELSE
+            LOOP
+         ENDIF
+      ELSE
+         nCol1 := nMove % 8
+         nMove += arr[i]
+         IF nMove < 0 .OR. nMove > 64 .OR. ( nCol1==1 .AND. arr[i]==-1 ) .OR. ( nCol1==0 .AND. arr[i]==1 )
+            LOOP
+         ENDIF
+         IF Substr( aPos[POS_BOARD], nMove, 1 ) == ' '
+            IF Ascan( aMoves, nMove ) == 0
+               Aadd( aMoves, nMove )
+               GenMoves( aPos, nMove, aMoves )
+            ENDIF
+         ENDIF
+      ENDIF
+
+   NEXT
+/*
+   IF lFirst
+      for i := 1 to len(amoves)
+        edi_writelog( "= "+str(amoves[i]) )
+      next
+      edi_writelog( "" )
+   ENDIF
+*/
    RETURN aMoves
 
 STATIC FUNCTION isMoveCorrect( nMove )
 
-   LOCAL arr
-
    IF nMove == nMoveFrom
       RETURN .F.
    ENDIF
-   arr := chess_GenMoves( aCurrPos, nMoveFrom )
-   IF Ascan( arr, nMove ) == 0
+   IF Ascan( GenMoves( aCurrPos, nMoveFrom ), nMove ) == 0
       RETURN .F.
    ENDIF
 
    RETURN .T.
 
-STATIC FUNCTION AddHis( cBoard, nStart, nEnd, cFigBeat )
-/*
-   LOCAL arr := { nStart, nEnd, cFigBeat, lShah, "" }
+STATIC FUNCTION AddHis( nStart, nEnd )
 
-   IF cFig != Substr( aCurrPos[POS_BOARD], nEnd, 1 )
-      arr[6] := Substr( aCurrPos[POS_BOARD], nEnd, 1 )
-   ENDIF
+   LOCAL arr := { nStart, nEnd }
+
    IF lTurnBlack
       ATail( aHistory )[2] := arr
    ELSE
-      AAdd( aHistory, { arr, Nil, board_64to32(cBoard) } )
-   ENDIF
-*/
-   RETURN Nil
-
-STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig )
-
-   LOCAL j1 := nEnd - nStart, nPos4p := aPos[POS_4P]
-   STATIC aMenuR := { "ферзь", "ладья", "конь", "слон" }, aMenuE := { "queen", "rook", "knight", "bishop" }, aW := { 'Q', 'R', 'N', 'B' }, aB := { 'q', 'r', 'n', 'b' }
-
-   aPos[POS_BOARD] := hb_bPoke( hb_bPoke( cBoard, nStart, 32 ), nEnd, nFig )
-   aPos[POS_4P] := 0
-   IF nFig == 75   // 'K'
-      aPos[POS_W00] := aPos[POS_W000] := .F.
-      IF j1 == 2
-         aPos[POS_BOARD] := hb_bPoke( hb_bPoke( aPos[POS_BOARD], 64, 32 ), 62, 82 )
-      ELSEIF j1 == -2
-         aPos[POS_BOARD] := hb_bPoke( hb_bPoke( aPos[POS_BOARD], 57, 32 ), 60, 82 )
-      ENDIF
-   ELSEIF nFig == 107   // 'k'
-      aPos[POS_B00] := aPos[POS_B000] := .F.
-      IF j1 == 2
-         aPos[POS_BOARD] := hb_bPoke( hb_bPoke( aPos[POS_BOARD], 8, 32 ), 6, 114 )
-      ELSEIF j1 == -2
-         aPos[POS_BOARD] := hb_bPoke( hb_bPoke( aPos[POS_BOARD], 1, 32 ), 4, 114 )
-      ENDIF
-   ELSEIF nFig == 82   // 'R'
-      IF nStart == 64
-         aPos[POS_W00] := .F.
-      ELSEIF nStart == 57
-         aPos[POS_W000] := .F.
-      ENDIF
-   ELSEIF nFig == 114  // 'r'
-      IF nStart == 8
-         aCurrPos[POS_B00] := .F.
-      ELSEIF nStart == 1
-         aCurrPos[POS_B000] := .F.
-      ENDIF
-   ELSEIF nFig == 80  // 'P'
-      IF j1 == -16
-         IF hb_bPeek( aPos[POS_BOARD], nEnd-1 ) == 112 .OR. hb_bPeek( aPos[POS_BOARD], nEnd+1 ) == 112 // 'p'
-            aPos[POS_4P] := nEnd + 8
-         ENDIF
-      ELSEIF nEnd == nPos4p
-         aPos[POS_BOARD] := hb_bPoke( aPos[POS_BOARD], nEnd+8, 32 )
-      ELSEIF nEnd <= 8
-         IF Empty( nNewFig )
-            j1 := 1
-            IF nLevel1 == 0 .AND. ( j1 := FMenu( oGame, Iif(lRussian,aMenuR,aMenuE), y1t, x2t+2 ) ) == 0
-               j1 := 1
-            ENDIF
-            nNewFig := Asc( aW[j1] )
-         ENDIF
-         aPos[POS_BOARD] := hb_bPoke( aPos[POS_BOARD], nEnd, nNewFig )
-      ENDIF
-   ELSEIF nFig == 112  // 'p'
-      IF j1 == 16
-         IF hb_bPeek( aPos[POS_BOARD], nEnd-1 ) == 80 .OR. hb_bPeek( aPos[POS_BOARD], nEnd+1 ) == 80 // 'P'
-            aPos[POS_4P] := nEnd - 8
-         ENDIF
-      ELSEIF nEnd == nPos4p
-         aPos[POS_BOARD] := hb_bPoke( aPos[POS_BOARD], nEnd-8, 32 )
-      ELSEIF nEnd >= 57
-         IF Empty( nNewFig )
-            j1 := 1
-            IF nLevel2 == 0 .AND. ( j1 := FMenu( oGame, Iif(lRussian,aMenuR,aMenuE), y1t, x2t+2 ) ) == 0
-               j1 := 1
-            ENDIF
-            nNewFig := Asc( aB[j1] )
-         ENDIF
-         aPos[POS_BOARD] := hb_bPoke( aPos[POS_BOARD], nEnd, nNewFig )
-      ENDIF
+      AAdd( aHistory, { arr, Nil } )
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION ii_Ocenka( cBoard )
+STATIC FUNCTION ii_Ocenka( cBoard, lBlack )
 
-   LOCAL i, j, cFig, nSumm := 0
+   LOCAL i, cFig, nSumm := 0
 
-   FOR i := 1 TO 64
-      IF ( cFig := Substr( cBoard, i, 1 ) ) >= 'A'
-         j := Ascan( aFigs, Lower( cFig ) ) - 2
-         IF j == 0
-            j := 1
+   IF lBlack
+      FOR i := 1 TO 64
+         IF ( cFig := Substr( cBoard, i, 1 ) ) == 'p'
+            nSumm += aBoardValues[2,i]
          ENDIF
-         IF cFig >= 'a'
-            //nSumm -= aFigValues[j]
-            nSumm -= aBoardValues[2,j,i]
-         ELSE
-            //nSumm += aFigValues[j]
-            nSumm += aBoardValues[1,j,i]
+      NEXT
+   ELSE
+      FOR i := 1 TO 64
+         IF cFig == 'P'
+            nSumm += aBoardValues[1,i]
          ENDIF
-      ENDIF
-   NEXT
-
+      NEXT
+   ENDIF
    RETURN nSumm
 
 STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
@@ -666,16 +486,12 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
    LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
-   aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000]; aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]
-   aPosTemp[POS_4P] := aPos[POS_4P]
-   Set_lb_lw( aPos, lTurnBlack )
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
-         arr := chess_GenMoves( aPos, i )
+         arr := GenMoves( aPos, i )
          nLen := Len( arr )
          FOR j := 1 TO nLen
-            PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
             //IF !lReply
             //   edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
@@ -715,15 +531,12 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
    LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
-   aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000]; aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]
-   Set_lb_lw( aPos, lTurnBlack )
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
-         arr := chess_GenMoves( aPos, i )
+         arr := GenMoves( aPos, i )
          nLen := Len( arr )
          FOR j := 1 TO nLen
-            PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
             IF lDebug .AND. nDeep == 3
                edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
@@ -762,7 +575,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
 STATIC FUNCTION ii_MakeMove()
 
    LOCAL cFig, nSec, nCou := 0, nKey
-   LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F.
+   LOCAL aMaxOcen, cBoa, cMoves, n
 
    DrawMove( -2 )
 
@@ -773,20 +586,14 @@ STATIC FUNCTION ii_MakeMove()
       aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., 3 )
    ENDIF
    lDebug := .F.
-   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
+   @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 ))
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )
    ELSE
       DrawMove( aMaxOcen[1], amaxOcen[2] )
-      IF !lTurnBlack
-         cBoa := ATail(aHistory)[3]
-         AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
-      ENDIF
       IF aMaxOcen[3] > 50000
          GameOver( 2 )
-      ELSEIF !lTurnBlack .AND. nCou >= 5
-         GameOver( 3 )
       ENDIF
    ENDIF
 
@@ -814,44 +621,6 @@ STATIC FUNCTION GameOver( nRes )
 
    RETURN Nil
 
-STATIC FUNCTION board_64to32( cBoard )
-
-   LOCAL cRes := "", i, cf := " prnbqkPRNBQK"
-
-   FOR i := 1 TO 63 STEP 2
-      cRes += Chr( At( Substr(cBoard,i,1), cf ) + ;
-         hb_BitShift( At( Substr(cBoard,i+1,1), cf ), 4 ) )
-   NEXT
-
-   RETURN cRes
-
-STATIC FUNCTION board_32to64( cBoard )
-
-   LOCAL cRes := "", i, n, cf := " prnbqkPRNBQK"
-
-   FOR i := 1 TO 32
-      n := Asc( Substr(cBoard,i,1) )
-      cRes += Substr( cf, hb_BitAnd( n, 0xf ), 1 ) + ;
-         Substr( cf, hb_bitShift( hb_BitAnd( n, 0xf0 ), -4 ), 1 )
-   NEXT
-
-   RETURN cRes
-
-STATIC FUNCTION pgn_ReadHead( cBuff, nPos, cTag, lCutoff )
-
-   LOCAL cRes := "", nPos1, nPos2
-
-   IF ( nPos1 := hb_At( "["+cTag+" ", cBuff, nPos ) ) > 0
-      nPos1 := cedi_strSkipChars( cBuff, nPos1+Len(cTag)+2 )
-      nPos2 := cedi_strpbrk( "]", cBuff, nPos1 )
-      cRes := Trim( StrTran( Substr( cBuff, nPos1, nPos2-nPos1 ), '"', '' ) )
-      IF !Empty(lCutoff) .AND. (nPos1 := At( ',',cRes )) > 0
-         cRes := Trim( Left( cRes, nPos1-1 ) )
-      ENDIF
-   ENDIF
-
-   RETURN cRes
-
 STATIC FUNCTION chess_ReplayGame( aHis )
 
    LOCAL i, aMove
@@ -859,11 +628,9 @@ STATIC FUNCTION chess_ReplayGame( aHis )
    aHistory  := {}
    FOR i := 1 TO Len( aHis )
       aMove := aHis[i,1]
-      Set_lb_lw( aCurrPos, lTurnBlack )
       DrawMove( aMove[1], aMove[2] )
       lTurnBlack := .T.
       IF !Empty( aMove := aHis[i,2] )
-         Set_lb_lw( aCurrPos, lTurnBlack )
          DrawMove( aMove[1], aMove[2] )
          lTurnBlack := .F.
       ENDIF

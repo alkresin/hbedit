@@ -144,10 +144,10 @@ STATIC aBoardValues := { { ;
 STATIC lTurnBlack
 #define POS_LEN        10
 #define POS_BOARD       1
-#define POS_W00         2
-#define POS_W000        3
-#define POS_B00         4
-#define POS_B000        5
+#define POS_W00         2   // Is a short castling possible for white
+#define POS_W000        3   // Is a long castling possible for white
+#define POS_B00         4   // Is a short castling possible for black
+#define POS_B000        5   // Is a long castling possible for black
 #define POS_W_00        6
 #define POS_W_000       7
 #define POS_B_00        8
