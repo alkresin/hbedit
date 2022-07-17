@@ -48,16 +48,16 @@ STATIC aBoardValues := { ;
       9, 8, 7, 6, 5, 4, 3, 2,  ;
       8, 7, 6, 5, 4, 3, 2, 1,  ;
       7, 6, 5, 4, 3, 2, 1, 0 },;
-    { 0, 1, 2, 3, 4, 5, 6, 7,  ;  //Black
-      1, 2, 3, 4, 5, 6, 7, 8,  ;
-      2, 3, 4, 5, 6, 7, 8, 9,  ;
+    { 0, 1, 2, 3, 4, 4, 4, 4,  ;  //Black
+      1, 2, 3, 4, 5, 6, 6, 6,  ;
+      2, 3, 4, 5, 6, 7, 8, 8,  ;
       3, 4, 5, 6, 7, 8, 9,10,  ;
       4, 5, 6, 7, 8, 9,10,11,  ;
-      5, 6, 7, 8, 9,10,11,12,  ;
-      6, 7, 8, 9,10,11,12,13,  ;
-      7, 8, 9,10,11,12,13,14 } }
+      4, 6, 7, 8, 9,10,11,12,  ;
+      4, 6, 8, 9,10,11,12,13,  ;
+      4, 6, 8,10,11,12,13,14 } }
 
-STATIC lTurnBlack
+STATIC lTurnBlack, nSummWin
 
 #define POS_LEN         1
 #define POS_BOARD       1
@@ -104,6 +104,9 @@ FUNCTION plug_gm_Corners( oEdit, cPath )
    oGame:lUtf8 := .T.
    oGame:lIns := Nil
    aCurrPos := Array( POS_LEN )
+   nSummWin := aBoardValues[1,1] + aBoardValues[1,2] + aBoardValues[1,3] + ;
+               aBoardValues[1,9] + aBoardValues[1,10] + aBoardValues[1,11] + ;
+               aBoardValues[1,17] + aBoardValues[1,18] + aBoardValues[1,19]
 
    RETURN Nil
 
@@ -140,6 +143,30 @@ STATIC FUNCTION _Game_New( lFirst )
    nScrolled := 0
    lTurnBlack := .F.
    _Game_Players( !lFirst )
+
+   RETURN Nil
+
+STATIC FUNCTION _Game_Help()
+
+   LOCAL cBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
+   LOCAL oldc := SetColor( clrWhite+"/"+clrbBlack )
+
+   hb_cdpSelect( "RU866" )
+   @ y1t, x1t, y1t+12, x2t+36 BOX "\Uffffffff\Uffffffff\Uffffffff\Uffffffff3 "
+   hb_cdpSelect( oGame:cp )
+
+   @ y1t+1, x1t + 4 SAY Iif( lRussian, "\u0428\u0430\u0445\u043c\u0430\u0442\u044b", "Chess game" )
+   @ y1t+2, x1t + 4 SAY Iif( lRussian, "F9 - \u0413\u043b\u0430\u0432\u043d\u043e\u0435 \u043c\u0435\u043d\u044e", "F9 - Main menu" )
+   @ y1t+4, x1t + 4 SAY Iif( lRussian, "F3 - \u041d\u043e\u0432\u0430\u044f \u043f\u0430\u0440\u0442\u0438\u044f", "F3 - New game" )
+   @ y1t+5, x1t + 4 SAY Iif( lRussian, "F6 - \u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0438\u0433\u0440\u043e\u043a\u043e\u0432", "F6 - Change players order and level" )
+   @ y1t+5, x1t + 4 SAY Iif( lRussian, "F8 - Switch Russian/English notation", "F8 - \u041f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u044f\u0437\u044b\u043a (\u0420\u0443\u0441\u0441\u043a\u0438\u0439/\u0410\u043d\u0433\u043b\u0438\u0439\u0441\u043a\u0438\u0439)" )
+   @ y1t+6, x1t + 4 SAY Iif( lRussian, "Backspace - \u0412\u0435\u0440\u043d\u0443\u0442\u044c \u0445\u043e\u0434 \u043d\u0430\u0437\u0430\u0434", "Backspace - Turn back" )
+   @ y1t+7, x1t + 4 SAY Iif( lRussian, "Ctrl-N - \u041f\u0440\u0435\u0434\u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0443 \u043f\u0440\u0430\u0432\u043e \u0441\u0434\u0435\u043b\u0430\u0442\u044c \u0445\u043e\u0434", "Ctrl-N - Let computer make a turn" )
+   @ y1t+8, x1t + 4 SAY Iif( lRussian, "ESC, F10 - \u0412\u044b\u0445\u043e\u0434", "ESC, F10 - Exit" )
+
+   Inkey( 0 )
+   SetColor( oldc )
+   RestScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2, cBuff )
 
    RETURN Nil
 
@@ -244,7 +271,7 @@ STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
          arr := aHistory
          nCol := nLevel1; nRow := nLevel2; nLevel1 := nLevel2 := 0
          _Game_New( .T. )
-         chess_ReplayGame( arr )
+         ReplayGame( arr )
          nLevel1 := nCol; nLevel2 := nRow
       ENDIF
 
@@ -267,7 +294,7 @@ STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_F1
-      chess_Help()
+      _Game_Help()
 
    ELSEIF nKey == K_F9
      _Game_MainMenu()
@@ -330,12 +357,13 @@ STATIC FUNCTION MakeMove( nRow, nCol )
 
          //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
          nSumm := ii_Ocenka( aCurrPos[POS_BOARD], lTurnBlack )
-         IF nSumm >= 108
+         edi_writelog( str(nSumm)+" "+str(nSummWin) )
+         IF nSumm == nSummWin
             GameOver( 1 )
          ELSE
             lTurnBlack := !lTurnBlack
             IF Iif( lTurnBlack, nLevel2, nLevel1 ) > 0
-               //ii_MakeMove()
+               ii_MakeMove()
             ENDIF
          ENDIF
       ELSE
@@ -473,18 +501,18 @@ STATIC FUNCTION ii_Ocenka( cBoard, lBlack )
       NEXT
    ELSE
       FOR i := 1 TO 64
-         IF cFig == 'P'
+         IF ( cFig := Substr( cBoard, i, 1 ) ) == 'P'
             nSumm += aBoardValues[1,i]
          ENDIF
       NEXT
    ENDIF
    RETURN nSumm
 
-STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
+STATIC FUNCTION ii_ScanBoard_1( aPos, nLevel )
 
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nOcen := -1000000, nSumm
+   LOCAL i, j, i1, j1, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nOcen := -1000000, nSumm
    LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
-   LOCAL aPosTemp := Array(POS_LEN)
+   LOCAL aPosTemp := Array(POS_LEN), aPosT2 := Array(POS_LEN), cFig
 
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
@@ -492,29 +520,30 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
          arr := GenMoves( aPos, i )
          nLen := Len( arr )
          FOR j := 1 TO nLen
-            nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-            //IF !lReply
-            //   edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
-            //ENDIF
-            IF nSumm >= 50000
+            cFig := Substr( aCurrPos[POS_BOARD], i, 1 )
+            aPosTemp[POS_BOARD] := hb_bPoke( hb_bPoke( aCurrPos[POS_BOARD], i, 32 ), arr[j], Asc(cFig) )
+            nSumm := ii_Ocenka( aPosTemp[POS_BOARD], lTurnBlack )
+            IF nLevel > 1
+               FOR i1 := 1 TO 64
+                  IF ( nFig := hb_bPeek( cBoard, i1 ) ) >= 65 .AND. ;
+                     ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
+                     arr := GenMoves( aPos, i1 )
+                     nLen := Len( arr )
+                     FOR j1 := 1 TO nLen
+                        cFig := Substr( aCurrPos[POS_BOARD], i1, 1 )
+                     NEXT
+                  ENDIF
+               NEXT
+            ENDIF
+            IF nSumm == nSummWin
                lExit := .T.
                aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
                EXIT
             ENDIF
-            IF !lReply
-               lTurnBlack := !lTurnBlack
-               aReply := ii_ScanBoard_1( aPosTemp, .T. )
-               lTurnBlack := !lTurnBlack
-               IF aReply[3] >= 50000
-                  nSumm := nOcen - 1
-               ELSE
-                  nSumm := -aReply[3]
-               ENDIF
-            ENDIF
-            IF nSumm >= nOcen
+            IF nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 )
                aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
             ENDIF
-            //edi_writelog( Iif(lReply,"  ","") + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
+            //edi_writelog( MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
          NEXT
          IF lExit
             EXIT
@@ -522,53 +551,6 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
       ENDIF
    NEXT
    //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
-
-   RETURN aMaxOcen
-
-STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
-
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nOcen := -1000000, nSumm
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
-   LOCAL aPosTemp := Array(POS_LEN)
-
-   FOR i := 1 TO 64
-      IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
-         ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
-         arr := GenMoves( aPos, i )
-         nLen := Len( arr )
-         FOR j := 1 TO nLen
-            nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-            IF lDebug .AND. nDeep == 3
-               edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
-            ENDIF
-            IF nSumm >= 50000
-               lExit := .T.
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
-               EXIT
-            ENDIF
-            IF nDeep > 1
-               lTurnBlack := !lTurnBlack
-               aReply := ii_ScanBoard_2( aPosTemp, !lReply, nDeep-1 )
-               lTurnBlack := !lTurnBlack
-               IF !lReply
-                  nSumm := -aReply[3]
-               ENDIF
-            ENDIF
-            IF nSumm >= nOcen
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
-            ENDIF
-            IF lDebug
-               edi_writelog( Space( (3-nDeep)*2 ) + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
-            ENDIF
-         NEXT
-         IF lExit
-            EXIT
-         ENDIF
-      ENDIF
-   NEXT
-   IF lDebug
-      edi_writelog( Space( (3-nDeep)*2 ) + "= " + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
-   ENDIF
 
    RETURN aMaxOcen
 
@@ -580,11 +562,9 @@ STATIC FUNCTION ii_MakeMove()
    DrawMove( -2 )
 
    nSec := Seconds()
-   IF Iif( lTurnBlack, nLevel2, nLevel1 ) == 1
-      aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
-   ELSE
-      aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., 3 )
-   ENDIF
+   //IF Iif( lTurnBlack, nLevel2, nLevel1 ) == 1
+   aMaxOcen := ii_ScanBoard_1( aCurrPos, Iif( lTurnBlack, nLevel2, nLevel1 ) )
+   //ENDIF
    lDebug := .F.
    @ y1t+10, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 ))
 
@@ -621,7 +601,7 @@ STATIC FUNCTION GameOver( nRes )
 
    RETURN Nil
 
-STATIC FUNCTION chess_ReplayGame( aHis )
+STATIC FUNCTION ReplayGame( aHis )
 
    LOCAL i, aMove
 
@@ -635,30 +615,6 @@ STATIC FUNCTION chess_ReplayGame( aHis )
          lTurnBlack := .F.
       ENDIF
    NEXT
-
-   RETURN Nil
-
-STATIC FUNCTION chess_Help()
-
-   LOCAL cBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
-   LOCAL oldc := SetColor( clrWhite+"/"+clrbBlack )
-
-   hb_cdpSelect( "RU866" )
-   @ y1t, x1t, y1t+12, x2t+36 BOX "�Ŀ����� "
-   hb_cdpSelect( oGame:cp )
-
-   @ y1t+1, x1t + 4 SAY Iif( lRussian, "Шахматы", "Chess game" )
-   @ y1t+2, x1t + 4 SAY Iif( lRussian, "F9 - Главное меню", "F9 - Main menu" )
-   @ y1t+4, x1t + 4 SAY Iif( lRussian, "F3 - Новая партия", "F3 - New game" )
-   @ y1t+5, x1t + 4 SAY Iif( lRussian, "F6 - Изменить игроков", "F6 - Change players order and level" )
-   @ y1t+5, x1t + 4 SAY Iif( lRussian, "F8 - Switch Russian/English notation", "F8 - Переключить язык (Русский/Английский)" )
-   @ y1t+6, x1t + 4 SAY Iif( lRussian, "Backspace - Вернуть ход назад", "Backspace - Turn back" )
-   @ y1t+7, x1t + 4 SAY Iif( lRussian, "Ctrl-N - Предоставить компьютеру право сделать ход", "Ctrl-N - Let computer make a turn" )
-   @ y1t+8, x1t + 4 SAY Iif( lRussian, "ESC, F10 - Выход", "ESC, F10 - Exit" )
-
-   Inkey( 0 )
-   SetColor( oldc )
-   RestScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2, cBuff )
 
    RETURN Nil
 
