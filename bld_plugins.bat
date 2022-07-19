@@ -29,6 +29,7 @@ harbour plug_gm_sokoban.prg -n -gh -q
 harbour plug_gm_strek.prg -n -gh -q
 harbour plug_gm_life.prg -n -gh -q
 harbour plug_gm_chess.prg -n -gh -q
+harbour plug_gm_ugolki.prg -n -gh -q
 harbour plug_webservices.prg -n -gh -q
 harbour plug_vcs.prg -n -gh -q
 harbour lisp_run.prg -n -gh -q

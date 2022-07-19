@@ -1,5 +1,5 @@
 /*
- * Corners game
+ * Ugolki game
  * HbEdit plugin
  *
  * Copyright 2022 Alexander S.Kresin <alex@kresin.ru>
@@ -38,6 +38,11 @@ STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG"
 STATIC clrSeleB := "N", clrSeleW := "W"
 STATIC lRussian := .T.
 
+STATIC lTurnBlack, nSummWin, nSummRes
+STATIC aCurrPos
+STATIC aHistory
+STATIC lPlayGame
+
 STATIC cInitBoard := "ppp     ppp     ppp                          PPP     PPP     PPP"
 STATIC aFigs := {' ','p','P'}, ;
        aFigs1 :={' ','O','H'}
@@ -60,21 +65,15 @@ STATIC aBoardValues := { ;
       4, 6, 8, 9,10,12,13,13,  ;
       4, 6, 8, 9,10,12,13,13 } }
 
-STATIC lTurnBlack, nSummWin
+FUNCTION plug_gm_Ugolki( oEdit, cPath )
 
-STATIC aCurrPos
-STATIC aHistory
-STATIC lPlayGame
-
-FUNCTION plug_gm_Corners( oEdit, cPath )
-
-   LOCAL i, cName := "$Corners"
+   LOCAL i, cName := "$Ugolki"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       Scroll( y, o:x1, y, o:x2 )
       IF Empty( l )
          DevPos( y, o:x1 )
-         DevOut( "F9-menu  Corners" )
+         DevOut( "F9-menu  Ugolki" )
       ENDIF
       DevPos( nRow, nCol )
       RETURN Nil
@@ -84,7 +83,7 @@ FUNCTION plug_gm_Corners( oEdit, cPath )
 
    IF Empty( cIniPath )
       cIniPath := cPath
-      Read_Game_Ini( (cIniPath := cPath) + "corners.ini" )
+      Read_Game_Ini( (cIniPath := cPath) + "ugolki.ini" )
    ENDIF
 
    IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cName} ) ) > 0
@@ -343,8 +342,8 @@ STATIC FUNCTION DrawBoard()
 
 STATIC FUNCTION MakeMove( nRow, nCol )
 
-   LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0
-   LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 ), cBoa16
+   LOCAL nMove := (nRow-1)*8 + nCol, nRes
+   LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 )
 
    IF nMoveState == 0 .AND. ( (!lTurnBlack .AND. c == 'P') .OR. ;
       (lTurnBlack .AND. c == 'p') )
@@ -358,14 +357,9 @@ STATIC FUNCTION MakeMove( nRow, nCol )
          nMoveTo := nMove
          DrawMove( nMoveFrom, nMove )
          nMoveState := 0
-         //Inkey( 0.5 )
-         //DrawBoard()
 
-         //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
-         nSumm := ii_Ocenka( aCurrPos[POS_BOARD], lTurnBlack )
-         //edi_writelog( str(nSumm)+" "+str(nSummWin) )
-         IF nSumm == nSummWin
-            GameOver( 1 )
+         IF lTurnBlack .AND. ( nRes := Check4Win() ) > 0
+            GameOver( nRes )
          ELSE
             lTurnBlack := !lTurnBlack
             IF Iif( lTurnBlack, nLevel2, nLevel1 ) > 0
@@ -373,6 +367,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
             ENDIF
          ENDIF
       ELSE
+         nMoveState := 0
          DrawMove( -1 )
       ENDIF
    ENDIF
@@ -430,9 +425,17 @@ STATIC FUNCTION DrawMove( nStart, nEnd )
 
 STATIC FUNCTION GenMoves( aPos, nStart, aMoves )
 
-   STATIC arr := { -1, 1, -8, 8 }
-   LOCAL lFirst := .F., i, nMove, nCol1
+   LOCAL arr, lFirst := .F., i, nMove, nCol1
 
+   nCol1 := Iif( nStart%8 == 0, 8, nStart%8 )
+   i := Int( 9 - nStart/8 )
+   IF lTurnBlack .AND. i >= 6 .AND. nCol1 >= 6
+      arr := { 1, 8 }
+   ELSEIF !lTurnBlack .AND. i <= 3 .AND. nCol1 <= 3
+      arr := { -1, -8 }
+   ELSE
+      arr := { -1, 1, -8, 8 }
+   ENDIF
    IF aMoves == Nil
       aMoves := {}
       lFirst := .T.
@@ -536,7 +539,7 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
             nSumm := ii_Ocenka( aPosTemp[POS_BOARD], lTurnBlack )
             IF nSumm == nSummWin
                lExit := .T.
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+               aMaxOcen[3] := 10000; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
                EXIT
             ENDIF
             IF nLevel > 1
@@ -548,7 +551,7 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
                      FOR j1 := 1 TO nLen2
                         cFig := Substr( aPosTemp[POS_BOARD], i1, 1 )
                         aPosT2[POS_BOARD] := hb_bPoke( hb_bPoke( aPosTemp[POS_BOARD], i1, 32 ), arr2[j1], Asc(cFig) )
-                        nSumm2 := nSumm + ii_Ocenka( aPosT2[POS_BOARD], lTurnBlack )
+                        nSumm2 := ii_Ocenka( aPosT2[POS_BOARD], lTurnBlack )
                         IF nSumm2 > nOcen .OR. ( nSumm2 == nOcen .AND. hb_Random() > 0.75 )
                            aMaxOcen[3] := nOcen := nSumm2; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
                         ENDIF
@@ -572,7 +575,7 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
 
 STATIC FUNCTION ii_MakeMove()
 
-   LOCAL cFig, nSec, nCou := 0, nKey
+   LOCAL cFig, nSec, nKey, nRes
    LOCAL aMaxOcen, cBoa, cMoves, n
 
    DrawMove( -2 )
@@ -581,20 +584,16 @@ STATIC FUNCTION ii_MakeMove()
    aMaxOcen := ii_ScanBoard_1( Iif( lTurnBlack, nLevel2, nLevel1 ) )
    @ y1t+11, Iif( lTurnBlack, x1t+12, x1t+2 ) SAY Ltrim(Str( Seconds()-nSec,6,2 ))
 
-   IF aMaxOcen[1] == Nil
-      GameOver( 1 )
-   ELSE
-      nMoveState := 2
-      nMoveFrom := amaxOcen[1]
-      nMoveTo := amaxOcen[2]
-      DrawMove( aMaxOcen[1], amaxOcen[2] )
-      nMoveState := 0
-      //Inkey( 1 )
-      //DrawBoard()
-
-      IF aMaxOcen[3] > 50000
-         GameOver( 2 )
-      ENDIF
+   nMoveState := 2
+   nMoveFrom := amaxOcen[1]
+   nMoveTo := amaxOcen[2]
+   DrawMove( aMaxOcen[1], amaxOcen[2] )
+   nMoveState := 0
+   //Inkey( 1 )
+   //DrawBoard()
+   IF lTurnBlack .AND. ( nRes := Check4Win() ) > 0
+   //IF aMaxOcen[3] == 10000
+      GameOver( nRes )
    ENDIF
 
    lTurnBlack := !lTurnBlack
@@ -608,12 +607,36 @@ STATIC FUNCTION ii_MakeMove()
 
    RETURN Nil
 
+STATIC FUNCTION Check4Win()
+
+   LOCAL nSummW := ii_Ocenka( aCurrPos[POS_BOARD], .F. )
+   LOCAL nSummB := ii_Ocenka( aCurrPos[POS_BOARD], .T. )
+
+   nSummRes := Abs( nSummW - nSummB )
+   IF nSummB == nSummW .AND. nSummB == nSummWin
+      RETURN 3
+   ELSEIF nSummW == nSummWin
+      RETURN 1
+   ELSEIF nSummB == nSummWin
+      RETURN 2
+   ENDIF
+
+   RETURN 0
+
 STATIC FUNCTION GameOver( nRes )
 
+   LOCAL s := Iif( lRussian, Ltrim(Str(nSummRes)) + " очков!", Ltrim(Str(nSummRes)) + " scores!" )
+
    IF nRes == 1
-      edi_Alert( Iif( lRussian, "Поздравляем! Вы выиграли", "Congratulations! You are won!" ) )
+      s := Iif( nLevel1 == 0, Iif( lRussian, "Поздравляем!;", "Congratulations!;" ), ;
+         Iif( nLevel2 == 0, Iif( lRussian, "Увы...;", "Sorry...;" ), "" ) ) + ;
+         Iif( lRussian, "Белые выиграли "+s, "White won "+s )
+      edi_Alert( s )
    ELSEIF nRes == 2
-      edi_Alert( Iif( lRussian, "Увы, вы проиграли...", "You lost the game..." ) )
+      s := Iif( nLevel2 == 0, Iif( lRussian, "Поздравляем!;", "Congratulations!;" ), ;
+         Iif( nLevel1 == 0, Iif( lRussian, "Увы...;", "Sorry...;" ), "" ) ) + ;
+         Iif( lRussian, "Черные выграли "+s, "Black won "+s )
+      edi_Alert( s )
    ELSE
       edi_Alert( Iif( lRussian, "Ничья. Партия окончена!", "The draw. Game over!" ) )
    ENDIF
@@ -700,6 +723,6 @@ STATIC FUNCTION Write_Game_Ini()
    s += "figureblack=" + aFigs1[2] + Chr(13)+Chr(10)
    s += "russian=" + Iif( lRussian, "On", "Off" ) + Chr(13)+Chr(10)
 
-   hb_MemoWrit( cIniPath + "corners.ini", s )
+   hb_MemoWrit( cIniPath + "ugolki.ini", s )
 
    RETURN Nil

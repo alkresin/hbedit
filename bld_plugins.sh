@@ -28,6 +28,8 @@ $HB_INS/bin/linux/gcc/harbour plug_gm_tetris.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_sokoban.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_strek.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_life.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_gm_chess.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_webservices.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour lisp_run.prg -n -gh
