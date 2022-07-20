@@ -33,6 +33,7 @@ STATIC oGame
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
 STATIC nLevel1, nLevel2, nMoveState, nMoveFrom, nMoveTo
+STATIC aVariants[1000,5], iVariants
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
 STATIC clrSeleB := "N", clrSeleW := "W"
@@ -396,7 +397,7 @@ STATIC FUNCTION MoveN2C( nStart, nEnd )
 
 STATIC FUNCTION DrawMove( nStart, nEnd )
 
-   LOCAL cFig, xPos := x1t+2
+   LOCAL cFig, xPos := x1t+4
 
    IF lTurnBlack
       xPos := x1t + 12
@@ -404,6 +405,9 @@ STATIC FUNCTION DrawMove( nStart, nEnd )
       @ y1t+10, xPos+10 SAY Space( 8 )
    ENDIF
    @ y1t+10, xPos SAY Space( 8 )
+   IF !lTurnBlack
+      @ y1t+10, xPos-4 SAY Str( Len(aHistory)+1, 2 ) + '.'
+   ENDIF
 
    IF nStart < 0
       DevPos( y1t+10, xPos )
@@ -529,10 +533,14 @@ STATIC FUNCTION ii_Ocenka( cBoard, lBlack )
 
 STATIC FUNCTION ii_ScanBoard_1( nLevel )
 
-   LOCAL i, j, i1, j1, nFig, arr, arr2, nLen, nLen2, nOcen := -1000000, nSumm, nSumm2
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
+   LOCAL i, j, i1, j1, nFig, arr, arr2, nLen, nLen2, nOcen := -1000000, nSumm
+   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F., l
    LOCAL aPosTemp := Array(POS_LEN), aPosT2 := Array(POS_LEN), cFig
 
+   IF nLevel == 0
+      nLevel := 2
+   ENDIF
+   iVariants := 0
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( aCurrPos[POS_BOARD], i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -556,9 +564,19 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
                      FOR j1 := 1 TO nLen2
                         cFig := Substr( aPosTemp[POS_BOARD], i1, 1 )
                         aPosT2[POS_BOARD] := hb_bPoke( hb_bPoke( aPosTemp[POS_BOARD], i1, 32 ), arr2[j1], Asc(cFig) )
-                        nSumm2 := ii_Ocenka( aPosT2[POS_BOARD], lTurnBlack )
-                        IF nSumm2 > nOcen .OR. ( nSumm2 == nOcen .AND. hb_Random() > 0.75 )
-                           aMaxOcen[3] := nOcen := nSumm2; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+                        nSumm := ii_Ocenka( aPosT2[POS_BOARD], lTurnBlack )
+                        IF nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 )
+                           IF nSumm == nOcen
+                              IF iVariants > 0 .AND. nSumm > aVariants[iVariants,5]
+                                 iVariants := 1
+                              ELSE
+                                 iVariants ++
+                              ENDIF
+                              aVariants[iVariants,1] := i; aVariants[iVariants,2] := arr[j]
+                              aVariants[iVariants,3] := i1; aVariants[iVariants,4] := arr2[j1]
+                              aVariants[iVariants,5] := nSumm
+                           ENDIF
+                           aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
                         ENDIF
                      NEXT
                   ENDIF
@@ -575,6 +593,27 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
          ENDIF
       ENDIF
    NEXT
+   IF !lExit .AND. nLevel > 1 .AND. iVariants > 0 .AND. nOcen == aVariants[iVariants,5]
+      j1 := Iif( lTurnBlack, 2, 1 )
+      l := .T.
+      //edi_writelog( str(Len(aHistory)+Iif(lTurnBlack,0,1)) + ': ' + str( iVariants ) )
+      FOR i := 1 TO iVariants
+         IF aBoardValues[j1,aVariants[i,4]] - aBoardValues[j1,aVariants[i,3]] > ;
+            aBoardValues[j1,aVariants[i,2]] - aBoardValues[j1,aVariants[i,1]]
+            FOR i1 := 1 TO iVariants
+               IF aVariants[i1,1] == aVariants[i,3] .AND. aVariants[i1,2] == aVariants[i,4]
+                  IF l .OR. hb_Random() > 0.75
+                     l := .F.
+                     aMaxOcen[1] := aVariants[i1,1]; aMaxOcen[2] := aVariants[i1,2]
+                  ENDIF
+               ENDIF
+            NEXT
+            IF !l
+               EXIT
+            ENDIF
+         ENDIF
+      NEXT
+   ENDIF
 
    RETURN aMaxOcen
 
