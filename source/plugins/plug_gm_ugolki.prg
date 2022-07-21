@@ -42,7 +42,7 @@ STATIC lRussian := .T.
 STATIC lTurnBlack, nSummWin, nSummRes
 STATIC aCurrPos
 STATIC aHistory
-STATIC lPlayGame
+STATIC lPlayGame, lDebug
 
 STATIC cInitBoard := "ppp     ppp     ppp                          PPP     PPP     PPP"
 STATIC aFigs := {' ','p','P'}, ;
@@ -140,6 +140,7 @@ STATIC FUNCTION _Game_New( lFirst )
    DrawBoard()
    nScrolled := 0
    lTurnBlack := .F.
+   lDebug := .F.
    _Game_Players( !lFirst )
 
    RETURN Nil
@@ -211,11 +212,14 @@ STATIC FUNCTION _Game_Players( lAsk )
    ENDIF
 
    IF lRussian
-      @ y1t-1, x1t SAY Iif( nLevel1 == 0, "Человек  ", "Компьютер" )
-      @ y1t-1, x1t+15 SAY Iif( nLevel2 == 0, "Человек  ", "Компьютер" )
+      @ y1t-2, x1t SAY Iif( nLevel1 == 0, "Человек  ", "Компьютер" )
+      @ y1t-2, x1t+15 SAY Iif( nLevel2 == 0, "Человек  ", "Компьютер" )
    ELSE
-      @ y1t-1, x1t SAY Iif( nLevel1 == 0, "Human   ", "Computer" )
-      @ y1t-1, x1t+15 SAY Iif( nLevel2 == 0, "Human   ", "Computer" )
+      @ y1t-2, x1t SAY Iif( nLevel1 == 0, "Human   ", "Computer" )
+      @ y1t-2, x1t+15 SAY Iif( nLevel2 == 0, "Human   ", "Computer" )
+   ENDIF
+   IF nLevel1 > 0 .OR. nLevel2 > 0
+      @ y1t-1, x1t+7 SAY Iif(lRussian,"уровень ","level ") + Ltrim(Str( Iif(nLevel1>0,nLevel1,nLevel2)-1 ))
    ENDIF
    IF lPlayGame .AND. ( (lTurnBlack .AND. nLevel2 > 0) .OR. (!lTurnBlack .AND. nLevel1 > 0) )
       ii_MakeMove()
@@ -226,8 +230,8 @@ STATIC FUNCTION _Game_Players( lAsk )
 STATIC FUNCTION _Game_MainMenu()
 
    LOCAL nc
-   STATIC aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Игроки",,,"F6"}, {"Rus/Eng",,,"F8"} }
-   STATIC aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Change players",,,"F6"}, {"Rus/Eng",,,"F8"} }
+   STATIC aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Игроки,уровень",,,"F6"}, {"Rus/Eng",,,"F8"} }
+   STATIC aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Players,level",,,"F6"}, {"Rus/Eng",,,"F8"} }
 
    IF ( nc := FMenu( oGame, Iif( lRussian, aMenuR, aMenuE ), y1t, x2t+2 ) ) == 1
       _Game_Exit()
@@ -305,6 +309,11 @@ STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_CTRL_N
      IF lPlayGame
         ii_MakeMove()
+     ENDIF
+
+   ELSEIF nKey == K_CTRL_D
+     IF lPlayGame
+        lDebug := !lDebug
      ENDIF
 
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
@@ -540,6 +549,9 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
    IF nLevel == 0
       nLevel := 2
    ENDIF
+   IF lDebug
+      edi_Writelog( aCurrPos[POS_BOARD], "ugolki_dbg.out" )
+   ENDIF
    iVariants := 0
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( aCurrPos[POS_BOARD], i ) ) >= 65 .AND. ;
@@ -556,6 +568,9 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
                EXIT
             ENDIF
             IF nLevel > 1
+               IF lDebug
+                  edi_Writelog( MoveN2C(i,arr[j]), "ugolki_dbg.out" )
+               ENDIF
                FOR i1 := 1 TO 64
                   IF ( nFig := hb_bPeek( aPosTemp[POS_BOARD], i1 ) ) >= 65 .AND. ;
                      ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -565,7 +580,7 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
                         cFig := Substr( aPosTemp[POS_BOARD], i1, 1 )
                         aPosT2[POS_BOARD] := hb_bPoke( hb_bPoke( aPosTemp[POS_BOARD], i1, 32 ), arr2[j1], Asc(cFig) )
                         nSumm := ii_Ocenka( aPosT2[POS_BOARD], lTurnBlack )
-                        IF nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 )
+                        IF ( l := ( nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 ) ) )
                            IF nSumm == nOcen
                               IF iVariants > 0 .AND. nSumm > aVariants[iVariants,5]
                                  iVariants := 1
@@ -577,13 +592,19 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
                               aVariants[iVariants,5] := nSumm
                            ENDIF
                            aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+                           IF lDebug
+                              edi_Writelog( "   " + MoveN2C(i1,arr2[j1]) + Iif(l, " X ","   ") + Ltrim(Str(nSumm)), "ugolki_dbg.out" )
+                           ENDIF
                         ENDIF
                      NEXT
                   ENDIF
                NEXT
             ELSE
-               IF nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 )
+               IF ( l := ( nSumm > nOcen .OR. ( nSumm == nOcen .AND. hb_Random() > 0.75 ) ) )
                   aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+               ENDIF
+               IF lDebug
+                  edi_Writelog( MoveN2C(i,arr[j]) + Iif(l, " X ","   ") + Ltrim(Str(nSumm)), "ugolki_dbg.out" )
                ENDIF
             ENDIF
             //edi_writelog( MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
@@ -596,7 +617,9 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
    IF !lExit .AND. nLevel > 1 .AND. iVariants > 0 .AND. nOcen == aVariants[iVariants,5]
       j1 := Iif( lTurnBlack, 2, 1 )
       l := .T.
-      //edi_writelog( str(Len(aHistory)+Iif(lTurnBlack,0,1)) + ': ' + str( iVariants ) )
+      IF lDebug
+         edi_writelog( "var " + str(Len(aHistory)+Iif(lTurnBlack,0,1)) + ': ' + str( iVariants ), "ugolki_dbg.out" )
+      ENDIF
       FOR i := 1 TO iVariants
          IF aBoardValues[j1,aVariants[i,4]] - aBoardValues[j1,aVariants[i,3]] > ;
             aBoardValues[j1,aVariants[i,2]] - aBoardValues[j1,aVariants[i,1]]
@@ -613,6 +636,9 @@ STATIC FUNCTION ii_ScanBoard_1( nLevel )
             ENDIF
          ENDIF
       NEXT
+   ENDIF
+   IF lDebug
+      edi_Writelog( "--> " + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + Str(aMaxOcen[3]), "ugolki_dbg.out" )
    ENDIF
 
    RETURN aMaxOcen
