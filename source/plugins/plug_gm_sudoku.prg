@@ -222,7 +222,7 @@ STATIC FUNCTION _Game_Menu( oEdit )
 
    LOCAL aMenu := { "New Game" }
    LOCAL aMenu2 := { "Level 1", "Level 2", "Level 3" }
-   LOCAL iChoic, i
+   LOCAL iChoic, i, j
 
    IF nGameState == 1
       Aadd( aMenu, "Clean board" )
@@ -238,6 +238,10 @@ STATIC FUNCTION _Game_Menu( oEdit )
          nHis := 0
          CreateBoard()
          nyPos := nxPos := 1
+         IF Look4Empty( .F., @i, @j )
+            nyPos := i
+            nxPos := j
+         ENDIF
          DrawBoard()
       ELSE
          RETURN .F.
@@ -271,7 +275,7 @@ STATIC FUNCTION CreateBoard()
    NEXT
 
    // Mix
-   FOR i := 1 TO 10
+   FOR i := 1 TO 12
       n1 := hb_randomInt( 1, 9 )
       n2 := Iif( n1%3 == 0, n1-2, n1+1 )
       IF hb_randomInt() == 0
@@ -501,26 +505,24 @@ STATIC FUNCTION Check2( y, x )
          ENDIF
       ENDIF
    NEXT
-   IF lRes
-      y1 := Int( (y-1)/3 ) * 3 + 1
-      y2 := y1 + 2
-      x1 := Int( (x-1)/3 ) * 3 + 1
-      x2 := x1 + 2
-      FOR i := y1 TO y2
-         FOR j := x1 TO x2
-            IF Empty( aBoard[i,j] )
-               lRes := .F.
-               FOR k := 1 TO 9
-                  lRes := CheckValue( i, j, Chr(k) )
-                  EXIT
-               NEXT
-               IF !lRes
-                  RETURN { i,j }
-               ENDIF
+   y1 := Int( (y-1)/3 ) * 3 + 1
+   y2 := y1 + 2
+   x1 := Int( (x-1)/3 ) * 3 + 1
+   x2 := x1 + 2
+   FOR i := y1 TO y2
+      FOR j := x1 TO x2
+         IF Empty( aBoard[i,j] )
+            lRes := .F.
+            FOR k := 1 TO 9
+               lRes := CheckValue( i, j, Chr(k) )
+               EXIT
+            NEXT
+            IF !lRes
+               RETURN { i,j }
             ENDIF
-         NEXT
+         ENDIF
       NEXT
-   ENDIF
+   NEXT
 
    RETURN Nil
 
