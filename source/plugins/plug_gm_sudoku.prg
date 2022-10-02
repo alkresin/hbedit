@@ -23,17 +23,8 @@ STATIC oGame
 STATIC x1t, y1t, x2t, nyPos, nxPos, lPaneOn := .F.
 STATIC nLevel, nGameState
 STATIC cScreenBuff
-STATIC aBoardTempl := { ;
-   { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i' }, ;
-   { 'd', 'e', 'f', 'g', 'h', 'i', 'a', 'b', 'c' }, ;
-   { 'g', 'h', 'i', 'a', 'b', 'c', 'd', 'e', 'f' }, ;
-   { 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'a' }, ;
-   { 'e', 'f', 'g', 'h', 'i', 'a', 'b', 'c', 'd' }, ;
-   { 'h', 'i', 'a', 'b', 'c', 'd', 'e', 'f', 'g' }, ;
-   { 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'a', 'b' }, ;
-   { 'f', 'g', 'h', 'i', 'a', 'b', 'c', 'd', 'e' }, ;
-   { 'i', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' } ;
-   }
+STATIC aBoardTempl := { "ABCDEFGHIDEFGHIABCGHIABCDEFBCDEFGHIAEFGHIABCDHIABCDEFGCDEFGHIABFGHIABCDEIABCDEFGH", ;
+   "725491683843267951169385247631974825284653719597128436372816594916542378458739162" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 
@@ -267,29 +258,66 @@ STATIC FUNCTION _Game_Menu( oEdit )
 
 STATIC FUNCTION CreateBoard()
 
-   LOCAL i, j, n1, n2, xTmp
+   LOCAL i, j, i1, n1, n2, xTmp, n2Del := 0
    LOCAL a1 := { '1','2','3','4','5','6','7','8','9' }, a2[9]
 
-   FOR i := 1 TO 9
-      ACopy( aBoardTempl[i], aBoardInit[i] )
-   NEXT
+   n1 := hb_randomInt( 1, Len(aBoardTempl) )
+   templ2Boa( aBoardTempl[n1] )
 
    // Mix
    FOR i := 1 TO 12
       n1 := hb_randomInt( 1, 9 )
       n2 := Iif( n1%3 == 0, n1-2, n1+1 )
       IF hb_randomInt() == 0
+         // Row exchange
          xTmp := aBoardInit[n1]
          aBoardInit[n1] := aBoardInit[n2]
          aBoardInit[n2] := xTmp
       ELSE
          FOR j := 1 TO 9
+            // Column exchange
             xTmp := aBoardInit[j,n1]
             aBoardInit[j,n1] := aBoardInit[j,n2]
             aBoardInit[j,n2] := xTmp
          NEXT
       ENDIF
+      IF i == 6
+         IF hb_randomInt( 1,3 ) < 3
+            // Transponir
+            FOR n1 := 1 TO 9
+               FOR j := 1 TO 9
+                  aBoard[j,n1] := aBoardInit[n1,j]
+               NEXT
+            NEXT
+            FOR n1 := 1 TO 9
+               FOR j := 1 TO 9
+                  aBoardInit[n1,j] := aBoard[n1,j]
+               NEXT
+            NEXT
+         ENDIF
+         IF ( n1 := hb_randomInt( 0,3 ) ) > 0
+            // Section exchange
+            n1 := Iif( n1 == 1, n1, Iif( n1 == 2, 4, 7 ) )
+            n2 := Iif( n1 == 1, 4, Iif( n1 == 4, 7, 1 ) )
+            IF hb_randomInt() == 0
+               FOR i1 := 0 TO 2
+                  xTmp := aBoardInit[n1+i1]
+                  aBoardInit[n1+i1] := aBoardInit[n2+i1]
+                  aBoardInit[n2+i1] := xTmp
+               NEXT
+            ELSE
+               FOR i1 := 0 TO 2
+                  FOR j := 1 TO 9
+                     xTmp := aBoardInit[j,n1+i1]
+                     aBoardInit[j,n1+i1] := aBoardInit[j,n2+i1]
+                     aBoardInit[j,n2+i1] := xTmp
+                  NEXT
+               NEXT
+            ENDIF
+         ENDIF
+      ENDIF
    NEXT
+   //edi_writelog( "cb-8" )
 
    // Hide cells
    FOR j := 1 TO 3
@@ -298,10 +326,15 @@ STATIC FUNCTION CreateBoard()
       ENDIF
       IF j < 3 .OR. n2 == 0
          FOR i := 1 TO 9
+            i1 := 0
             DO WHILE .T.
                n1 := hb_randomInt( 1, 9 )
                IF !Empty( aBoardInit[i,n1] )
                   aBoardInit[i,n1] := ''
+                  EXIT
+               ENDIF
+               IF ++i1 > 15
+                  n2Del ++
                   EXIT
                ENDIF
             ENDDO
@@ -309,28 +342,36 @@ STATIC FUNCTION CreateBoard()
       ENDIF
       IF j < 3 .OR. n2 > 0
          FOR i := 1 TO 9
+            i1 := 0
             DO WHILE .T.
                n1 := hb_randomInt( 1, 9 )
                IF !Empty( aBoardInit[n1,i] )
                   aBoardInit[n1,i] := ''
                   EXIT
                ENDIF
+               IF ++i1 > 15
+                  n2Del ++
+                  EXIT
+               ENDIF
             ENDDO
          NEXT
       ENDIF
    NEXT
+   //edi_writelog( "cb-8a" )
+   n2Del += Iif( nLevel==1, 6, Iif( nLevel==2, 10, 14 ) )
    n1 := 0
    DO WHILE .T.
       i := hb_randomInt( 1, 9 )
       j := hb_randomInt( 1, 9 )
       IF !Empty( aBoardInit[i,j] )
          aBoardInit[i,j] := ''
-         IF ++n1 > Iif( nLevel==1, 6, Iif( nLevel==2, 10, 14 ) )
+         IF ++n1 > n2Del
             EXIT
          ENDIF
       ENDIF
    ENDDO
 
+   //edi_writelog( "cb-9" )
    // Replace 'a'..'i' by '1'..'9'
    FOR i := 1 TO 9
       n1 := Iif( i == 9, 1, hb_randomInt( 1, 10-i ) )
@@ -340,7 +381,8 @@ STATIC FUNCTION CreateBoard()
    FOR i := 1 TO 9
       FOR j := 1 TO 9
          IF !Empty( aBoardInit[i,j] )
-            n1 := Ascan( aBoardTempl[1], aBoardInit[i,j] )
+            n1 := Asc( aBoardInit[i,j] ) - 64
+            //edi_writelog( aBoardInit[i,j] + "/" + str(n1) )
             aBoardInit[i,j] := a2[n1]
          ENDIF
       NEXT
@@ -564,6 +606,28 @@ STATIC FUNCTION boa2Text()
       NEXT
    NEXT
    RETURN cSaved
+
+STATIC FUNCTION templ2Boa( s )
+
+   LOCAL i1 := 0, i, j, n
+
+   IF Len( s ) != 81
+      RETURN .F.
+   ENDIF
+   FOR i := 1 TO 9
+      FOR j := 1 TO 9
+         n := hb_bpeek( s, ++i1 )
+         IF n >= 65 .AND. n <= 73   // 'A'..'I'
+            aBoardInit[i,j] := Chr( n )
+         ELSEIF n >= 49 .AND. n <= 57 // '1'..'9'
+            aBoardInit[i,j] := Chr( n + (65-49) )
+         ELSE
+            RETURN .F.
+         ENDIF
+      NEXT
+   NEXT
+
+   RETURN .T.
 
 STATIC FUNCTION text2Boa( s )
 
