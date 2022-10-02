@@ -19,7 +19,7 @@
 #define K_LBUTTONDOWN 1002
 
 STATIC cIniPath
-STATIC oGame
+STATIC oGame, lRu := .T.
 STATIC x1t, y1t, x2t, nyPos, nxPos, lPaneOn := .F.
 STATIC nLevel, nGameState
 STATIC cScreenBuff
@@ -84,14 +84,19 @@ FUNCTION _Game_Start()
       SetColor( clrText )
       Scroll( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
 
-      @ y1t, x1t+2 SAY "F9 - menu"
-      @ y1t+1, x1t+2 SAY "F10, ESC - Exit"
+      @ y1t, x1t+2 SAY "F9 - " + Iif( lRu, "меню", "menu" )
+      @ y1t+1, x1t+2 SAY "F10, ESC - " + Iif( lRu, "Выход", "Exit" )
 
-      @ y1t+3, x1t+2 SAY "Space - Clean cell"
-      @ y1t+4, x1t+2 SAY "1...9 - Put number"
-      @ y1t+5, x1t+2 SAY "h,Left / l,Right /"
-      @ y1t+6, x1t+2 SAY "k,Up / j,Down - Movement"
-      @ y1t+7, x1t+2 SAY "Backspace - Turn back"
+      @ y1t+3, x1t+2 SAY "Space - " + Iif( lRu, "Очистить", "Clean cell" )
+      @ y1t+4, x1t+2 SAY "1...9 - "  + Iif( lRu, "Вставить цифру", "Put number" )
+      IF lRu
+         @ y1t+5, x1t+2 SAY "h,Влево/l,Вправо /"
+         @ y1t+6, x1t+2 SAY "k,Вверх/j,Вниз - Перейти"
+      ELSE
+         @ y1t+5, x1t+2 SAY "h,Left / l,Right /"
+         @ y1t+6, x1t+2 SAY "k,Up / j,Down - Movement"
+      ENDIF
+      @ y1t+7, x1t+2 SAY "Backspace - " + Iif( lRu, "Вернуть ход", "Turn back" )
 
       SetColor( clrBorder )
       @ y1t, x1t+26 TO y1t+11, x1t+26
@@ -211,16 +216,17 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _Game_Menu( oEdit )
 
-   LOCAL aMenu := { "New Game" }
-   LOCAL aMenu2 := { "Level 1", "Level 2", "Level 3" }
+   LOCAL aMenu := { Iif( lRu, "Новая игра", "New Game" ) }
+   LOCAL aMenu2 := Iif( lRu, { "Уровень 1", "Уровень 2", "Уровень 3" }, { "Level 1", "Level 2", "Level 3" } )
    LOCAL iChoic, i, j
 
    IF nGameState == 1
-      Aadd( aMenu, "Clean board" )
+      Aadd( aMenu, Iif( lRu, "Очистить доску", "Clean board" ) )
    ENDIF
-   Aadd( aMenu, "Exit" )
+   Aadd( aMenu, Iif( lRu, "English", "Russian" ) )
+   Aadd( aMenu, Iif( lRu, "Выход", "Exit" ) )
 
-   iChoic := FMenu( oGame, aMenu, y1t+2, x2t+2, y1t+6, x2t+20 )
+   iChoic := FMenu( oGame, aMenu, y1t+2, x2t+2, y1t+7, x2t+20 )
 
    IF iChoic == 1
       IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+6, x2t+18 ) ) > 0
@@ -242,6 +248,9 @@ STATIC FUNCTION _Game_Menu( oEdit )
       cScreenBuff := Nil
       Write_Game_Ini()
       mnu_Exit( oEdit )
+
+   ELSEIF iChoic == Len( aMenu ) - 1
+      lRu := !lRu
 
    ELSEIF iChoic == 2 .AND. nGameState == 1
       FOR i := 1 TO 9
@@ -430,7 +439,7 @@ STATIC FUNCTION SetCellValue( nKey )
    LOCAL c := aBoard[nyPos,nxPos], aErr
 
    IF !Empty( aBoardInit[nyPos,nxPos] )
-      edi_Alert( "Can't change initial value!" )
+      edi_Alert( Iif( lRu, "Нельзя менять начальные значения!", "Can't change initial value!" ) )
       RETURN .F.
    ENDIF
    IF nKey == 32
@@ -441,12 +450,12 @@ STATIC FUNCTION SetCellValue( nKey )
       SetCurrentPos( .T. )
       Look4Empty( .T. )
    ELSE
-      edi_Alert( "Illegal value!" )
+      edi_Alert( Iif( lRu, "Ошибка!", "Illegal value!" ) )
       RETURN .F.
    ENDIF
    AddHis( c, aBoard[nyPos,nxPos] )
    IF nKey != 32 .AND. !Empty( aErr := Check2( nyPos,nxPos ) )
-      edi_Alert( "Problem at " + Ltrim(Str(aErr[1])) + Ltrim(Str(aErr[2])) )
+      edi_Alert( Iif( lRu, "Проблема в ", "Problem at " ) + Ltrim(Str(aErr[1])) + "/" + Ltrim(Str(aErr[2])) )
    ENDIF
 
    RETURN .T.
@@ -578,7 +587,7 @@ STATIC FUNCTION Look4Empty( l4End, i, j )
       NEXT
    NEXT
    IF l4End
-      edi_Alert( "Game over!" )
+      edi_Alert( Iif( lRu, "Задача решена!", "The task solved!" ) )
       nGameState := 0
    ENDIF
 
@@ -664,6 +673,9 @@ STATIC FUNCTION Read_Game_Ini( cIni )
          IF Upper(aIni[nSect]) == "GAME"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTemp := "russian" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  lRu := ( Lower(cTemp) == "on" )
+               ENDIF
                IF hb_hHaskey( aSect, cTemp := "clrtext" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   clrText := cTemp
                ENDIF
@@ -692,6 +704,7 @@ STATIC FUNCTION Write_Game_Ini()
 
    LOCAL s := "[GAME]" + Chr(13)+Chr(10)
 
+   s += "russian=" + Iif( lRu, "on","off" ) + Chr(13)+Chr(10)
    s += "clrtext=" + clrText + Chr(13)+Chr(10)
    s += "clrboard=" + clrBoard + Chr(13)+Chr(10)
    s += "clrfix=" + clrFix + Chr(13)+Chr(10)
