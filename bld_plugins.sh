@@ -27,6 +27,7 @@ $HB_INS/bin/linux/gcc/harbour plug_palette.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_tetris.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_sokoban.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_strek.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_gm_sudoku.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_life.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh
