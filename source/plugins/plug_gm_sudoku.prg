@@ -493,6 +493,7 @@ STATIC FUNCTION coors2Index( y, x, i, j )
 
    RETURN Nil
 
+// Returns .F., if there is the same value on a vert, horiz or section
 STATIC FUNCTION CheckValue( y, x, c )
 
    LOCAL i, j, y1, y2, x1, x2, lRes := .T.
@@ -540,9 +541,10 @@ STATIC FUNCTION Check2( y, x )
    FOR i := 1 TO 9
       IF Empty( aBoard[i,x] )
          lRes := .F.
-         FOR k := 1 TO 9
-            lRes := CheckValue( i, x, Chr(k) )
-            EXIT
+         FOR k := 49 TO 57
+            IF ( lRes := CheckValue( i, x, Chr(k) ) )
+               EXIT
+            ENDIF
          NEXT
          IF !lRes
             RETURN { i,x }
@@ -550,9 +552,10 @@ STATIC FUNCTION Check2( y, x )
       ENDIF
       IF Empty( aBoard[y,i] )
          lRes := .F.
-         FOR k := 1 TO 9
-            lRes := CheckValue( y, i, Chr(k) )
-            EXIT
+         FOR k := 49 TO 57
+            IF ( lRes := CheckValue( y, i, Chr(k) ) )
+               EXIT
+            ENDIF
          NEXT
          IF !lRes
             RETURN { y,i }
@@ -567,9 +570,10 @@ STATIC FUNCTION Check2( y, x )
       FOR j := x1 TO x2
          IF Empty( aBoard[i,j] )
             lRes := .F.
-            FOR k := 1 TO 9
-               lRes := CheckValue( i, j, Chr(k) )
-               EXIT
+            FOR k := 49 TO 57
+               IF ( lRes := CheckValue( i, j, Chr(k) ) )
+                  EXIT
+               ENDIF
             NEXT
             IF !lRes
                RETURN { i,j }
