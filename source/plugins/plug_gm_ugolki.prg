@@ -659,10 +659,7 @@ STATIC FUNCTION ii_MakeMove()
    nMoveTo := amaxOcen[2]
    DrawMove( aMaxOcen[1], amaxOcen[2] )
    nMoveState := 0
-   //Inkey( 1 )
-   //DrawBoard()
    IF lTurnBlack .AND. ( nRes := Check4Win() ) > 0
-   //IF aMaxOcen[3] == 10000
       GameOver( nRes )
    ENDIF
 
