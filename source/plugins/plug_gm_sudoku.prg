@@ -170,6 +170,12 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == 32 .OR. ( nKey >= 49 .AND. nKey <= 57 )
          SetCellValue( nKey )
          RETURN -1
+      ELSEIF nKey == 115  // s
+         IF Solver()
+            edi_Alert( "Solved" )
+         ELSE
+            edi_Alert( "Error" )
+         ENDIF
       ENDIF
    ENDIF
 
@@ -586,11 +592,16 @@ STATIC FUNCTION Check2( y, x )
 
 STATIC FUNCTION Solver()
 
-   LOCAL i1 := 1, i, j, k, s, lErr := .F.
-   LOCAL nMin := 10, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0
+   LOCAL i1 := 1, i, j, k, s, aBack[9,9]
+   LOCAL nMin, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0
+
+   FOR i := 1 TO 9
+      ACopy( aBoard[i], aBack[i] )
+   NEXT
 
    DO WHILE i1 > 0
       i1 := 0
+      nMin := 10
       FOR i := 1 TO 9
          FOR j := 1 TO 9
             IF Empty( aBoard[i,j] )
@@ -617,19 +628,38 @@ STATIC FUNCTION Solver()
          ENDIF
       NEXT
       IF nMin == 0
-         IF nSolver > 1
-            nSolver --
-         ELSE
-            lErr := .T.
-            EXIT
-         ENDIF
+         DO WHILE nSolver > 0
+            aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+            IF Len(aSolver[nSolver,3]) == 1
+               nSolver --
+               IF nSolver == 0
+                  FOR i := 1 TO 9
+                     ACopy( aBack[i], aBoard[i] )
+                  NEXT
+                  RETURN .F.
+               ENDIF
+            ELSE
+               aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+               EXIT
+            ENDIF
+         ENDDO
       ELSE
          aBoard[aCoor[1],aCoor[2]] := Left( sMin, 1 )
-         aSolver[++nSolver], { aCoor[1], aCoor[2], sMin, nMin }
+         aSolver[++nSolver] := { aCoor[1], aCoor[2], sMin }
       ENDIF
    ENDDO
 
-   RETURN !lErr
+   s := ""
+   FOR i := 1 TO 9
+      FOR j := 1 TO 9
+         s += aBoard[i,j]
+      NEXT
+      s += Chr(10)+Chr(13)
+      ACopy( aBack[i], aBoard[i] )
+   NEXT
+   edi_writelog( s, "solver.log" )
+
+   RETURN .T.
 
 STATIC FUNCTION Look4Empty( l4End, i, j )
 
