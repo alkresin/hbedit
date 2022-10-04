@@ -584,6 +584,53 @@ STATIC FUNCTION Check2( y, x )
 
    RETURN Nil
 
+STATIC FUNCTION Solver()
+
+   LOCAL i1 := 1, i, j, k, s, lErr := .F.
+   LOCAL nMin := 10, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0
+
+   DO WHILE i1 > 0
+      i1 := 0
+      FOR i := 1 TO 9
+         FOR j := 1 TO 9
+            IF Empty( aBoard[i,j] )
+               i1 ++
+               s := ""
+               FOR k := 49 TO 57
+                  IF CheckValue( i, j, Chr(k) )
+                     s += Chr(k)
+                  ENDIF
+               NEXT
+               IF Len( s ) < nMin
+                  sMin := s
+                  nMin := Len( s )
+                  aCoor[1] := i
+                  aCoor[2] := j
+                  IF nMin <= 1
+                     EXIT
+                  ENDIF
+               ENDIF
+            ENDIF
+         NEXT
+         IF nMin <= 1
+            EXIT
+         ENDIF
+      NEXT
+      IF nMin == 0
+         IF nSolver > 1
+            nSolver --
+         ELSE
+            lErr := .T.
+            EXIT
+         ENDIF
+      ELSE
+         aBoard[aCoor[1],aCoor[2]] := Left( sMin, 1 )
+         aSolver[++nSolver], { aCoor[1], aCoor[2], sMin, nMin }
+      ENDIF
+   ENDDO
+
+   RETURN !lErr
+
 STATIC FUNCTION Look4Empty( l4End, i, j )
 
    FOR i := 1 TO 9
