@@ -171,8 +171,10 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
          SetCellValue( nKey )
          RETURN -1
       ELSEIF nKey == 115  // s
-         IF Solver()
+         IF ( i := Solver( .T. ) ) == 1
             edi_Alert( "Solved" )
+         ELSEIF i > 1
+            edi_Alert( "Too many solutions" )
          ELSE
             edi_Alert( "Error" )
          ENDIF
@@ -226,7 +228,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _Game_Menu( oEdit )
 
    LOCAL aMenu := { Iif( lRu, "Новая игра", "New Game" ) }
-   LOCAL aMenu2 := Iif( lRu, { "Уровень 1", "Уровень 2", "Уровень 3" }, { "Level 1", "Level 2", "Level 3" } )
+   LOCAL aMenu2 := Iif( lRu, { "Уровень 1", "Уровень 2", "Уровень 3", "Уровень 4" }, { "Level 1", "Level 2", "Level 3", "Level 4" } )
    LOCAL iChoic, i, j
 
    IF nGameState == 1
@@ -235,10 +237,10 @@ STATIC FUNCTION _Game_Menu( oEdit )
    Aadd( aMenu, Iif( lRu, "English", "Russian" ) )
    Aadd( aMenu, Iif( lRu, "Выход", "Exit" ) )
 
-   iChoic := FMenu( oGame, aMenu, y1t+2, x2t+2, y1t+7, x2t+20 )
+   iChoic := FMenu( oGame, aMenu, y1t+2, x2t, y1t+7, x2t+24 )
 
    IF iChoic == 1
-      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+6, x2t+18 ) ) > 0
+      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+7, x2t+18 ) ) > 0
          nLevel := iChoic
          nGameState := 1
          nHis := 0
@@ -376,7 +378,7 @@ STATIC FUNCTION CreateBoard()
       ENDIF
    NEXT
    //edi_writelog( "cb-8a" )
-   n2Del += Iif( nLevel==1, 6, Iif( nLevel==2, 10, 14 ) )
+   n2Del += Iif( nLevel==1, 3, Iif( nLevel==2, 7, Iif( nLevel==3, 10, 14 ) ) )
    n1 := 0
    DO WHILE .T.
       i := hb_randomInt( 1, 9 )
@@ -590,76 +592,101 @@ STATIC FUNCTION Check2( y, x )
 
    RETURN Nil
 
-STATIC FUNCTION Solver()
+STATIC FUNCTION Solver( lOut )
 
-   LOCAL i1 := 1, i, j, k, s, aBack[9,9]
+   LOCAL i1 := 1, i, j, k, s, aBack[9,9], nSolutions := 0
    LOCAL nMin, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0
 
    FOR i := 1 TO 9
       ACopy( aBoard[i], aBack[i] )
    NEXT
 
-   DO WHILE i1 > 0
-      i1 := 0
-      nMin := 10
-      FOR i := 1 TO 9
-         FOR j := 1 TO 9
-            IF Empty( aBoard[i,j] )
-               i1 ++
-               s := ""
-               FOR k := 49 TO 57
-                  IF CheckValue( i, j, Chr(k) )
-                     s += Chr(k)
-                  ENDIF
-               NEXT
-               IF Len( s ) < nMin
-                  sMin := s
-                  nMin := Len( s )
-                  aCoor[1] := i
-                  aCoor[2] := j
-                  IF nMin <= 1
-                     EXIT
-                  ENDIF
-               ENDIF
-            ENDIF
-         NEXT
-         IF nMin <= 1
-            EXIT
-         ENDIF
-      NEXT
-      IF nMin == 0
-         DO WHILE nSolver > 0
-            aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
-            IF Len(aSolver[nSolver,3]) == 1
-               nSolver --
-               IF nSolver == 0
-                  FOR i := 1 TO 9
-                     ACopy( aBack[i], aBoard[i] )
+   DO WHILE nSolutions < 2
+      DO WHILE i1 > 0
+         i1 := 0
+         nMin := 10
+         FOR i := 1 TO 9
+            FOR j := 1 TO 9
+               IF Empty( aBoard[i,j] )
+                  i1 ++
+                  s := ""
+                  FOR k := 49 TO 57
+                     IF CheckValue( i, j, Chr(k) )
+                        s += Chr(k)
+                     ENDIF
                   NEXT
-                  RETURN .F.
+                  IF Len( s ) < nMin
+                     sMin := s
+                     nMin := Len( s )
+                     aCoor[1] := i
+                     aCoor[2] := j
+                     IF nMin <= 1
+                        EXIT
+                     ENDIF
+                  ENDIF
                ENDIF
-            ELSE
-               aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+            NEXT
+            IF nMin <= 1
                EXIT
             ENDIF
-         ENDDO
-      ELSE
-         aBoard[aCoor[1],aCoor[2]] := Left( sMin, 1 )
-         aSolver[++nSolver] := { aCoor[1], aCoor[2], sMin }
+         NEXT
+         IF nMin == 0
+            DO WHILE nSolver > 0
+               aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+               IF Len(aSolver[nSolver,3]) == 1
+                  nSolver --
+                  IF nSolver == 0
+                     FOR i := 1 TO 9
+                        ACopy( aBack[i], aBoard[i] )
+                     NEXT
+                     RETURN nSolutions
+                  ENDIF
+               ELSE
+                  aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+                  EXIT
+               ENDIF
+            ENDDO
+         ELSE
+            aBoard[aCoor[1],aCoor[2]] := Left( sMin, 1 )
+            aSolver[++nSolver] := { aCoor[1], aCoor[2], sMin }
+         ENDIF
+      ENDDO
+
+      nSolutions ++
+      IF lOut
+         s := ""
+         FOR i := 1 TO 9
+            FOR j := 1 TO 9
+               s += aBoard[i,j]
+            NEXT
+            s += Chr(10)+Chr(13)
+         NEXT
+         edi_writelog( s, "solver.log" )
       ENDIF
+
+      DO WHILE nSolver > 0
+         aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+         IF Len(aSolver[nSolver,3]) == 1
+            nSolver --
+            IF nSolver == 0
+               FOR i := 1 TO 9
+                  ACopy( aBack[i], aBoard[i] )
+               NEXT
+               RETURN nSolutions
+            ENDIF
+         ELSE
+            aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+            EXIT
+         ENDIF
+      ENDDO
+
    ENDDO
 
-   s := ""
    FOR i := 1 TO 9
-      FOR j := 1 TO 9
-         s += aBoard[i,j]
-      NEXT
-      s += Chr(10)+Chr(13)
       ACopy( aBack[i], aBoard[i] )
    NEXT
-   edi_writelog( s, "solver.log" )
 
-   RETURN .T.
+   RETURN nSolutions
 
 STATIC FUNCTION Look4Empty( l4End, i, j )
 
