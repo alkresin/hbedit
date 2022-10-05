@@ -659,7 +659,7 @@ STATIC FUNCTION Solver( lOut )
             FOR j := 1 TO 9
                s += aBoard[i,j]
             NEXT
-            s += Chr(10)+Chr(13)
+            s += hb_Eol()
          NEXT
          edi_writelog( s, "solver.log" )
       ENDIF
