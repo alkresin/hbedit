@@ -23,13 +23,13 @@ STATIC oGame, lRu := .T.
 STATIC x1t, y1t, x2t, nyPos, nxPos, lPaneOn := .F.
 STATIC nLevel, nGameState
 STATIC cScreenBuff
-// "ABCDEFGHIDEFGHIABCGHIABCDEFBCDEFGHIAEFGHIABCDHIABCDEFGCDEFGHIABFGHIABCDEIABCDEFGH"
 STATIC aBoardTempl := { "164893725729156834835247196243718659917465382658932417391624578576389241482571963", ;
    "725491683843267951169385247631974825284653719597128436372816594916542378458739162", ;
    "142893675763425189895617324217964853934581267586372941451236798328759416679148532", ;
    "132547698946281357578936214864352179395718462721694583657823941219475836483169725" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
+STATIC cFileSave := "sudoku.saved"
 
 FUNCTION plug_gm_Sudoku( oEdit, cPath )
 
@@ -171,7 +171,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
          SetCellValue( nKey )
          RETURN -1
       ELSEIF nKey == 115  // s
-         IF ( i := Solver( .T. ) ) == 1
+         IF ( i := Solver( aBoard, .T. ) ) == 1
             edi_Alert( "Solved" )
          ELSEIF i > 1
             edi_Alert( "Too many solutions" )
@@ -204,6 +204,16 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
             ENDIF
          ENDIF
       ENDIF
+
+   ELSEIF nKey == 122  // z
+      IF nGameState == 2
+         nGameState := 1
+         FOR i := 1 TO 9
+            ACopy( aBoard[i], aBoardInit[i] )
+         NEXT
+         @ y1t+12, x2t SAY Space(40)
+      ENDIF
+
    ELSEIF nKey == K_F9
 
       _Game_Menu()
@@ -234,10 +244,13 @@ STATIC FUNCTION _Game_Menu( oEdit )
    IF nGameState == 1
       Aadd( aMenu, Iif( lRu, "Очистить доску", "Clean board" ) )
    ENDIF
-   Aadd( aMenu, Iif( lRu, "English", "Russian" ) )
+   Aadd( aMenu, Iif( lRu, "Сохранить", "Save game" ) )
+   Aadd( aMenu, Iif( lRu, "Загрузить", "Load game" ) )
+   Aadd( aMenu, Iif( lRu, "Создать", "Create" ) )
+   Aadd( aMenu, Iif( lRu, "English", "Русский" ) )
    Aadd( aMenu, Iif( lRu, "Выход", "Exit" ) )
 
-   iChoic := FMenu( oGame, aMenu, y1t+2, x2t, y1t+7, x2t+24 )
+   iChoic := FMenu( oGame, aMenu, y1t+2, x2t, y1t+10, x2t+24 )
 
    IF iChoic == 1
       IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+7, x2t+18 ) ) > 0
@@ -262,6 +275,23 @@ STATIC FUNCTION _Game_Menu( oEdit )
 
    ELSEIF iChoic == Len( aMenu ) - 1
       lRu := !lRu
+
+   ELSEIF iChoic == Len( aMenu ) - 2
+      nGameState := 2
+      FOR i := 1 TO 9
+         FOR j := 1 TO 9
+            aBoardInit[i,j] := aBoard[i,j] := ''
+         NEXT
+      NEXT
+      nHis := 0
+      DrawBoard()
+      @ y1t+12, x2t SAY Iif( lRu, "Жмите 'z', чтобы начать решать задачу", "Press 'z' to start solve a problem" )
+
+   ELSEIF iChoic == Len( aMenu ) - 3
+      LoadGame()
+
+   ELSEIF iChoic == Len( aMenu ) - 4
+      SaveGame()
 
    ELSEIF iChoic == 2 .AND. nGameState == 1
       FOR i := 1 TO 9
@@ -337,7 +367,6 @@ STATIC FUNCTION CreateBoard()
          ENDIF
       ENDIF
    NEXT
-   //edi_writelog( "cb-8" )
 
    // Hide cells
    FOR j := 1 TO 3
@@ -378,7 +407,7 @@ STATIC FUNCTION CreateBoard()
       ENDIF
    NEXT
    //edi_writelog( "cb-8a" )
-   n2Del += Iif( nLevel==1, 3, Iif( nLevel==2, 7, Iif( nLevel==3, 10, 14 ) ) )
+   n2Del += Iif( nLevel==1, 4, Iif( nLevel==2, 7, Iif( nLevel==3, 10, 14 ) ) )
    n1 := 0
    DO WHILE .T.
       i := hb_randomInt( 1, 9 )
@@ -407,6 +436,10 @@ STATIC FUNCTION CreateBoard()
          ENDIF
       NEXT
    NEXT
+
+   DO WHILE Valtype( xTmp := Solver( aBoardInit, .F., .T. ) ) == "A"
+      aBoardInit[xTmp[1],xTmp[2]] := xTmp[3]
+   ENDDO
 
    FOR i := 1 TO 9
       ACopy( aBoardInit[i], aBoard[i] )
@@ -456,7 +489,7 @@ STATIC FUNCTION SetCellValue( nKey )
    IF nKey == 32
       aBoard[nyPos,nxPos] := ''
       SetCurrentPos( .T. )
-   ELSEIF CheckValue( nyPos, nxPos, Chr(nKey) )
+   ELSEIF CheckValue( aBoard, nyPos, nxPos, Chr(nKey) )
       aBoard[nyPos,nxPos] := Chr(nKey)
       SetCurrentPos( .T. )
       Look4Empty( .T. )
@@ -502,19 +535,19 @@ STATIC FUNCTION coors2Index( y, x, i, j )
    RETURN Nil
 
 // Returns .F., if there is the same value on a vert, horiz or section
-STATIC FUNCTION CheckValue( y, x, c )
+STATIC FUNCTION CheckValue( aBoa, y, x, c )
 
    LOCAL i, j, y1, y2, x1, x2, lRes := .T.
 
    FOR i := 1 TO 9
       IF y != i
-         IF aBoard[i,x] == c
+         IF aBoa[i,x] == c
             lRes := .F.
             EXIT
          ENDIF
       ENDIF
       IF x != i
-         IF aBoard[y,i] == c
+         IF aBoa[y,i] == c
             lRes := .F.
             EXIT
          ENDIF
@@ -528,7 +561,7 @@ STATIC FUNCTION CheckValue( y, x, c )
       FOR i := y1 TO y2
          FOR j := x1 TO x2
             IF y != i .AND. x != j
-               IF aBoard[i,j] == c
+               IF aBoa[i,j] == c
                   lRes := .F.
                   EXIT
                ENDIF
@@ -550,7 +583,7 @@ STATIC FUNCTION Check2( y, x )
       IF Empty( aBoard[i,x] )
          lRes := .F.
          FOR k := 49 TO 57
-            IF ( lRes := CheckValue( i, x, Chr(k) ) )
+            IF ( lRes := CheckValue( aBoard, i, x, Chr(k) ) )
                EXIT
             ENDIF
          NEXT
@@ -561,7 +594,7 @@ STATIC FUNCTION Check2( y, x )
       IF Empty( aBoard[y,i] )
          lRes := .F.
          FOR k := 49 TO 57
-            IF ( lRes := CheckValue( y, i, Chr(k) ) )
+            IF ( lRes := CheckValue( aBoard, y, i, Chr(k) ) )
                EXIT
             ENDIF
          NEXT
@@ -579,7 +612,7 @@ STATIC FUNCTION Check2( y, x )
          IF Empty( aBoard[i,j] )
             lRes := .F.
             FOR k := 49 TO 57
-               IF ( lRes := CheckValue( i, j, Chr(k) ) )
+               IF ( lRes := CheckValue( aBoard, i, j, Chr(k) ) )
                   EXIT
                ENDIF
             NEXT
@@ -592,27 +625,34 @@ STATIC FUNCTION Check2( y, x )
 
    RETURN Nil
 
-STATIC FUNCTION Solver( lOut )
+STATIC FUNCTION Solver( aBoa, lOut, lCompare )
 
-   LOCAL i1 := 1, i, j, k, s, aBack[9,9], nSolutions := 0
-   LOCAL nMin, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0
+   LOCAL i1, i, j, k, s, aBack[9,9], nSolutions := 0
+   LOCAL nMin, sMin, aCoor[2], aSolver := Array( 81 ), nSolver := 0, aCompare
 
+   IF Empty( lCompare ); lCompare := .F.; ENDIF
    FOR i := 1 TO 9
-      ACopy( aBoard[i], aBack[i] )
+      ACopy( aBoa[i], aBack[i] )
    NEXT
 
-   DO WHILE nSolutions < 2
+   DO WHILE .T.
+      i1 := 1
+      //edi_writelog( "1)", "_solver.log" )
+      //boa2File( aBoa, "_solver.log" )
       DO WHILE i1 > 0
          i1 := 0
          nMin := 10
          FOR i := 1 TO 9
             FOR j := 1 TO 9
-               IF Empty( aBoard[i,j] )
+               IF Empty( aBoa[i,j] )
                   i1 ++
                   s := ""
                   FOR k := 49 TO 57
-                     IF CheckValue( i, j, Chr(k) )
+                     IF CheckValue( aBoa, i, j, Chr(k) )
                         s += Chr(k)
+                        IF Len( s ) >= nMin
+                           EXIT
+                        ENDIF
                      ENDIF
                   NEXT
                   IF Len( s ) < nMin
@@ -632,58 +672,79 @@ STATIC FUNCTION Solver( lOut )
          NEXT
          IF nMin == 0
             DO WHILE nSolver > 0
-               aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+               //aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
                IF Len(aSolver[nSolver,3]) == 1
+                  aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := ''
                   nSolver --
                   IF nSolver == 0
                      FOR i := 1 TO 9
-                        ACopy( aBack[i], aBoard[i] )
+                        ACopy( aBack[i], aBoa[i] )
                      NEXT
                      RETURN nSolutions
                   ENDIF
                ELSE
                   aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+                  aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
                   EXIT
                ENDIF
             ENDDO
          ELSE
-            aBoard[aCoor[1],aCoor[2]] := Left( sMin, 1 )
+            aBoa[aCoor[1],aCoor[2]] := Left( sMin, 1 )
             aSolver[++nSolver] := { aCoor[1], aCoor[2], sMin }
          ENDIF
       ENDDO
+      //edi_writelog( "2)", "_solver.log" )
+      //boa2File( aBoa, "_solver.log" )
 
-      nSolutions ++
       IF lOut
-         s := ""
-         FOR i := 1 TO 9
-            FOR j := 1 TO 9
-               s += aBoard[i,j]
+         boa2File( aBoa, "solver.log" )
+      ENDIF
+      IF lCompare
+         IF nSolutions == 0
+            aCompare := Array( 9,9 )
+            FOR i := 1 TO 9
+               ACopy( aBoa[i], aCompare[i] )
             NEXT
-            s += hb_Eol()
-         NEXT
-         edi_writelog( s, "solver.log" )
+         ENDIF
       ENDIF
 
-      DO WHILE nSolver > 0
-         aBoard[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
-         IF Len(aSolver[nSolver,3]) == 1
-            nSolver --
-            IF nSolver == 0
-               FOR i := 1 TO 9
-                  ACopy( aBack[i], aBoard[i] )
-               NEXT
-               RETURN nSolutions
+      IF ++nSolutions > 1
+         EXIT
+      ELSE
+         DO WHILE nSolver > 0
+            //aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+            IF Len(aSolver[nSolver,3]) == 1
+               aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := ''
+               nSolver --
+               IF nSolver == 0
+                  FOR i := 1 TO 9
+                     ACopy( aBack[i], aBoa[i] )
+                  NEXT
+                  RETURN nSolutions
+               ENDIF
+            ELSE
+               aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
+               aBoa[aSolver[nSolver,1],aSolver[nSolver,2]] := Left( aSolver[nSolver,3],1 )
+               EXIT
             ENDIF
-         ELSE
-            aSolver[nSolver,3] := Substr( aSolver[nSolver,3],2 )
-            EXIT
-         ENDIF
-      ENDDO
+         ENDDO
+      ENDIF
 
    ENDDO
 
+   IF lCompare .AND. nSolutions == 2
+      FOR i := 1 TO 9
+         FOR j := 1 TO 9
+            IF aBoa[i,j] != aCompare[i,j]
+               nSolutions := { i, j, aCompare[i,j] }
+               EXIT
+            ENDIF
+         NEXT
+      NEXT
+   ENDIF
+
    FOR i := 1 TO 9
-      ACopy( aBack[i], aBoard[i] )
+      ACopy( aBack[i], aBoa[i] )
    NEXT
 
    RETURN nSolutions
@@ -773,6 +834,70 @@ STATIC FUNCTION text2Boa( s )
    NEXT
 
    RETURN .T.
+
+STATIC FUNCTION boa2File( aBoa, cFile )
+
+   LOCAL s := "", i, j
+
+   FOR i := 1 TO 9
+      FOR j := 1 TO 9
+         s += Iif( Empty(aBoa[i,j]), ' ', aBoa[i,j] )
+      NEXT
+      s += hb_Eol()
+   NEXT
+   edi_writelog( s, cFile )
+
+   RETURN Nil
+
+STATIC FUNCTION SaveGame()
+
+   LOCAL arr, cName, n, nLen, i, s
+
+   arr := Iif( File( cIniPath + cFileSave ), hb_aTokens( MemoRead( cIniPath + cFileSave ), Chr(10) ), {} )
+   cName := __GetString( oGame, Iif( lRu,"Имя задачи","Name of the task" ) )
+   IF ( nLen := Len( cName ) ) > 0
+      IF ( n := Ascan( arr, {|s|Left(s,nLen)==cName} ) ) > 0
+         IF edi_Alert( Iif( lRu,"Такое имя существует. Перезаписать?","This name exists already. Overwrite?" ), Iif( lRu,"Да","Yes" ), Iif( lRu,"Нет","No" ) ) != 1
+            RETURN Nil
+         ENDIF
+      ENDIF
+      FOR i := 1 TO Len( arr )
+         IF i != n
+            s += arr[i] + Chr(10)
+         ENDIF
+      NEXT
+      s += cName + '=' + boa2Text()
+      hb_MemoWrit( cIniPath + cFileSave, s )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION LoadGame()
+
+   RETURN Nil
+
+STATIC FUNCTION __GetString( oEdit, cTitle )
+
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu )
+   LOCAL aGets := { {11,27,0,"",26} }
+   LOCAL nRes, cRes := ""
+   LOCAL bufsc := Savescreen( 09, 25, 12, 55 )
+
+   hb_cdpSelect( "RU866" )
+   @ 09, 25, 12, 55 BOX "┌─┐│┘─└│ "
+   hb_cdpSelect( oEdit:cp )
+
+   @ 10,32 SAY cTitle
+   SetColor( oEdit:cColorMenu )
+
+   IF ( nRes := edi_READ( aGets ) ) > 0
+       cRes := AllTrim( aGets[1,4] )
+   ENDIF
+
+   SetColor( oldc )
+   Restscreen( 09, 25, 12, 55, bufsc )
+
+   RETURN cRes
 
 STATIC FUNCTION Read_Game_Ini( cIni )
 
