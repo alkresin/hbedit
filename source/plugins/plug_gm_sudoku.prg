@@ -851,7 +851,7 @@ STATIC FUNCTION boa2File( aBoa, cFile )
 
 STATIC FUNCTION SaveGame()
 
-   LOCAL arr, cName, n, nLen, i, s
+   LOCAL arr, cName, n, nLen, i, s := ""
 
    arr := Iif( File( cIniPath + cFileSave ), hb_aTokens( MemoRead( cIniPath + cFileSave ), Chr(10) ), {} )
    cName := __GetString( oGame, Iif( lRu,"Имя задачи","Name of the task" ) )
@@ -873,6 +873,37 @@ STATIC FUNCTION SaveGame()
    RETURN Nil
 
 STATIC FUNCTION LoadGame()
+
+   LOCAL arr, aMenu, i, j, nPos, cSaved
+
+   IF Empty( arr := Iif( File( cIniPath + cFileSave ), hb_aTokens( MemoRead( cIniPath + cFileSave ), Chr(10) ), {} ) )
+      edi_Alert( Iif( lRu, "Нет сохраненных задач", "No saved tasks" ) )
+      RETURN Nil
+   ENDIF
+
+   aMenu := Array( Len(arr) )
+   FOR i := 1 TO Len(arr)
+      IF ( nPos := At( '=', arr[i] ) ) > 0
+         aMenu[i] := Left( arr,nPos-1 )
+      ELSE
+         aMenu[i] := " "
+      ENDIF
+   NEXT
+   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+10, x2t+22 )
+   IF i > 0 .AND. !Empty( aMenu[i] )
+      nPos := At( '=', arr[i] )
+      cSaved := Substr( arr[i], nPos+1 )
+      IF !Empty( cSaved ) .AND. text2Boa( cSaved )
+         nGameState := 1
+         nHis := 0
+         nyPos := nxPos := 1
+         IF Look4Empty( .F., @i, @j )
+            nyPos := i
+            nxPos := j
+         ENDIF
+         DrawBoard()
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
