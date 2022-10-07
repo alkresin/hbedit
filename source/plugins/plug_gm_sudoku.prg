@@ -132,7 +132,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j
 
-   IF nGameState == 1
+   IF nGameState == 1 .OR. nGameState == 2
       IF nKey == K_BS
          IF nHis > 0
             nyPos := aHis[nHis,1]
@@ -187,7 +187,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
       IF i == oEdit:y1-1 .AND. j < 8
          _Game_Menu( oEdit )
       ELSE
-         IF nGameState == 1
+         IF nGameState == 1 .OR. nGameState == 2
             IF i >= y1t .AND. i <= y1t + 10 .AND. j >= x2t .AND. j <= x2t + 20
                coors2Index( i, j, @i, @j )
                IF i > 0 .AND. i < 10 .AND. j > 0 .AND. j < 10
@@ -212,6 +212,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
             ACopy( aBoard[i], aBoardInit[i] )
          NEXT
          @ y1t+12, x2t SAY Space(40)
+         DrawBoard()
       ENDIF
 
    ELSEIF nKey == K_F9
@@ -284,6 +285,7 @@ STATIC FUNCTION _Game_Menu( oEdit )
          NEXT
       NEXT
       nHis := 0
+      nyPos := nxPos := 1
       DrawBoard()
       @ y1t+12, x2t SAY Iif( lRu, "Жмите 'z', чтобы начать решать задачу", "Press 'z' to start solve a problem" )
 
@@ -368,6 +370,22 @@ STATIC FUNCTION CreateBoard()
       ENDIF
    NEXT
 
+   // Replace 'a'..'i' by '1'..'9'
+   FOR i := 1 TO 9
+      n1 := Iif( i == 9, 1, hb_randomInt( 1, 10-i ) )
+      a2[i] := a1[n1]
+      ADel( a1, n1 )
+   NEXT
+   FOR i := 1 TO 9
+      FOR j := 1 TO 9
+         IF !Empty( aBoardInit[i,j] )
+            n1 := Asc( aBoardInit[i,j] ) - 64
+            //edi_writelog( aBoardInit[i,j] + "/" + str(n1) )
+            aBoardInit[i,j] := a2[n1]
+         ENDIF
+      NEXT
+   NEXT
+
    // Hide cells
    FOR j := 1 TO 3
       IF j == 3
@@ -406,7 +424,7 @@ STATIC FUNCTION CreateBoard()
          NEXT
       ENDIF
    NEXT
-   //edi_writelog( "cb-8a" )
+
    n2Del += Iif( nLevel==1, 4, Iif( nLevel==2, 7, Iif( nLevel==3, 10, 14 ) ) )
    n1 := 0
    DO WHILE .T.
@@ -419,23 +437,6 @@ STATIC FUNCTION CreateBoard()
          ENDIF
       ENDIF
    ENDDO
-
-   //edi_writelog( "cb-9" )
-   // Replace 'a'..'i' by '1'..'9'
-   FOR i := 1 TO 9
-      n1 := Iif( i == 9, 1, hb_randomInt( 1, 10-i ) )
-      a2[i] := a1[n1]
-      ADel( a1, n1 )
-   NEXT
-   FOR i := 1 TO 9
-      FOR j := 1 TO 9
-         IF !Empty( aBoardInit[i,j] )
-            n1 := Asc( aBoardInit[i,j] ) - 64
-            //edi_writelog( aBoardInit[i,j] + "/" + str(n1) )
-            aBoardInit[i,j] := a2[n1]
-         ENDIF
-      NEXT
-   NEXT
 
    DO WHILE Valtype( xTmp := Solver( aBoardInit, .F., .T. ) ) == "A"
       aBoardInit[xTmp[1],xTmp[2]] := xTmp[3]
@@ -884,7 +885,7 @@ STATIC FUNCTION LoadGame()
    aMenu := Array( Len(arr) )
    FOR i := 1 TO Len(arr)
       IF ( nPos := At( '=', arr[i] ) ) > 0
-         aMenu[i] := Left( arr,nPos-1 )
+         aMenu[i] := Left( arr[i],nPos-1 )
       ELSE
          aMenu[i] := " "
       ENDIF
