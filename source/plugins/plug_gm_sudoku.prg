@@ -312,6 +312,8 @@ STATIC FUNCTION CreateBoard()
 
    LOCAL i, j, i1, n1, n2, xTmp, n2Del := 0
    LOCAL a1 := { '1','2','3','4','5','6','7','8','9' }, a2[9]
+   LOCAL a3 := { {1,1}, {1,4}, {1,7}, {4,1}, {4,4}, {4,7}, {7,1}, {7,4}, {7,7} }
+   LOCAL aSectors[9], s
 
    n1 := hb_randomInt( 1, Len(aBoardTempl) )
    templ2Boa( aBoardTempl[n1] )
@@ -425,22 +427,55 @@ STATIC FUNCTION CreateBoard()
       ENDIF
    NEXT
 
-   n2Del += Iif( nLevel==1, 4, Iif( nLevel==2, 7, Iif( nLevel==3, 10, 14 ) ) )
+   //
+   FOR i1 := 1 TO 9
+      i := a3[i1,1] - 1
+      j := a3[i1,2] - 1
+      n1 := 0
+      DO WHILE ++i <= a3[i1,1]+2
+         DO WHILE ++j <= a3[i1,2]+2
+            //edi_writelog( "."+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
+            IF !Empty( aBoardInit[i,j] ); n1 ++; ENDIF
+         ENDDO
+         j := a3[i1,2] - 1
+      ENDDO
+      aSectors[i1] := n1
+   NEXT
+
+   n2Del += Iif( nLevel==1, 5, Iif( nLevel==2, 8, Iif( nLevel==3, 12, 16 ) ) )
    n1 := 0
    DO WHILE .T.
-      i := hb_randomInt( 1, 9 )
-      j := hb_randomInt( 1, 9 )
+      xTmp := 0
+      //s := ""
+      FOR i1 := 1 TO 9
+         IF aSectors[i1] > xTmp
+            n2 := i1
+            xTmp := aSectors[i1]
+         ENDIF
+         //s += ltrim(str(aSectors[i1]))+" "
+      NEXT
+      //edi_writelog( s )
+      i := hb_randomInt( 0,8 )
+      j := Int(i%3) + a3[n2,2]
+      i := Int(i/3) + a3[n2,1]
+
+      //i := hb_randomInt( 1, 9 )
+      //j := hb_randomInt( 1, 9 )
+      //edi_writelog( ltrim(str(n2))+": "+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
       IF !Empty( aBoardInit[i,j] )
          aBoardInit[i,j] := ''
+         aSectors[n2] --
          IF ++n1 > n2Del
             EXIT
          ENDIF
       ENDIF
    ENDDO
 
+   //boa2File( aBoardInit, "a1.log" )
    DO WHILE Valtype( xTmp := Solver( aBoardInit, .F., .T. ) ) == "A"
       aBoardInit[xTmp[1],xTmp[2]] := xTmp[3]
    ENDDO
+   //boa2File( aBoardInit, "a1.log" )
 
    FOR i := 1 TO 9
       ACopy( aBoardInit[i], aBoard[i] )
