@@ -2488,7 +2488,7 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       nReg -= 95
    ELSEIF nReg == 42
       nReg := CBOARD_SYS
-      TEdit():aCBoards[nReg,1] := s_cb2t()
+      TEdit():aCBoards[nReg,1] := s_cb2t( oEdit )
    ELSEIF nReg == 45
       nReg := CBOARD_MINUS
    ENDIF
@@ -2497,12 +2497,12 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       IF nReg == 1
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
-         s := s_cb2t()
+         s := s_cb2t( oEdit )
 #else
          s := TEdit():aCBoards[1,1]
 #endif
 #else
-         s := s_cb2t()
+         s := s_cb2t( oEdit )
 #endif
          IF !( s == TEdit():aCBoards[1,1] )
             TEdit():aCBoards[1,1] := s
@@ -2651,7 +2651,14 @@ STATIC FUNCTION s_t2cb( oEdit, s )
 
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
+   IF !oEdit:lUtf8
+      s := hb_Translate( s, oEdit:cp, "UTF8" )
+      hb_cdpSelect( "UTF8" )
+   ENDIF
    hwg_Copystringtoclipboard( s )
+   IF !oEdit:lUtf8
+      hb_cdpSelect( oEdit:cp )
+   ENDIF
 #else
    IF !Empty( TEdit():cClipCmd )
       cedi_RunConsoleApp( TEdit():cClipCmd + ' -s "' + StrTran( s,'"','\"' ) + '" 2>/dev/null', "/dev/null" )
@@ -2664,13 +2671,21 @@ STATIC FUNCTION s_t2cb( oEdit, s )
    RETURN Nil
 
 
-FUNCTION s_cb2t()
+FUNCTION s_cb2t( oEdit )
 
+   LOCAL s
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
-   RETURN hwg_Getclipboardtext()
+   IF !Empty(oEdit) .AND. !oEdit:lUtf8
+      hb_cdpSelect( "UTF8" )
+   ENDIF
+   s := hwg_Getclipboardtext()
+   IF !Empty(oEdit) .AND. !oEdit:lUtf8
+      s := hb_Translate( s, "UTF8", oEdit:cp )
+      hb_cdpSelect( oEdit:cp )
+   ENDIF
+   RETURN s
 #else
-   LOCAL s
    IF !Empty( TEdit():cClipCmd )
       cedi_RunConsoleApp( TEdit():cClipCmd + ' -gm 2>/dev/null', "/dev/null" )
       IF !Empty( s := cedi_shmRead() )

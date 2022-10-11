@@ -59,6 +59,8 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
    oGame := mnu_NewBuf( oEdit )
    IF !hb_Version(20) .OR. hb_gtVersion() == "HWGUI" // 20 - HB_VERSION_UNIX_COMPAT
       edi_SetPalette( oGame, "solarized dark" )
+   ELSEIF hb_Version(20)
+      edi_SetPalette( oGame, "default" )
    ENDIF
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
