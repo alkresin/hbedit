@@ -26,7 +26,9 @@ STATIC cScreenBuff
 STATIC aBoardTempl := { "164893725729156834835247196243718659917465382658932417391624578576389241482571963", ;
    "725491683843267951169385247631974825284653719597128436372816594916542378458739162", ;
    "142893675763425189895617324217964853934581267586372941451236798328759416679148532", ;
-   "132547698946281357578936214864352179395718462721694583657823941219475836483169725" }
+   "132547698946281357578936214864352179395718462721694583657823941219475836483169725", ;
+   "459172683671843529823569714916327458237458961548691372384715296195236847762984135", ;
+   "658173294279458361314926578437261859826594137591837426782349615945612783163785942" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
@@ -239,7 +241,7 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _Game_Menu( oEdit )
 
    LOCAL aMenu := { Iif( lRu, "Новая игра", "New Game" ) }
-   LOCAL aMenu2 := Iif( lRu, { "Уровень 1", "Уровень 2", "Уровень 3", "Уровень 4" }, { "Level 1", "Level 2", "Level 3", "Level 4" } )
+   LOCAL aMenu2 := Iif( lRu, { "Уровень 1", "Уровень 2", "Уровень 3" }, { "Level 1", "Level 2", "Level 3" } )
    LOCAL iChoic, i, j
 
    IF nGameState == 1
@@ -254,7 +256,7 @@ STATIC FUNCTION _Game_Menu( oEdit )
    iChoic := FMenu( oGame, aMenu, y1t+2, x2t, y1t+10, x2t+24 )
 
    IF iChoic == 1
-      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+7, x2t+18 ) ) > 0
+      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+6, x2t+18 ) ) > 0
          nLevel := iChoic
          nGameState := 1
          nHis := 0
@@ -442,7 +444,7 @@ STATIC FUNCTION CreateBoard()
       aSectors[i1] := n1
    NEXT
 
-   n2Del += Iif( nLevel==1, 5, Iif( nLevel==2, 8, Iif( nLevel==3, 12, 16 ) ) )
+   n2Del += Iif( nLevel==1, 5, Iif( nLevel==2, 10, 16 ) )
    n1 := 0
    DO WHILE .T.
       xTmp := 0
