@@ -23,12 +23,16 @@ STATIC oGame, lRu := .T.
 STATIC x1t, y1t, x2t, nyPos, nxPos, lPaneOn := .F.
 STATIC nLevel, nGameState
 STATIC cScreenBuff
-STATIC aBoardTempl := { "164893725729156834835247196243718659917465382658932417391624578576389241482571963", ;
+STATIC aBoardEasyTempl := { "164893725729156834835247196243718659917465382658932417391624578576389241482571963", ;
    "725491683843267951169385247631974825284653719597128436372816594916542378458739162", ;
    "142893675763425189895617324217964853934581267586372941451236798328759416679148532", ;
-   "132547698946281357578936214864352179395718462721694583657823941219475836483169725", ;
-   "459172683671843529823569714916327458237458961548691372384715296195236847762984135", ;
-   "658173294279458361314926578437261859826594137591837426782349615945612783163785942" }
+   "132547698946281357578936214864352179395718462721694583657823941219475836483169725" }
+STATIC aBoardMediumTempl := { "xxx4xxxxxxx125x7xxx49xxx38xxxxx6xx27x2x3x4x9x56xx2xxxxx78xxx13xxx2x916xxxxxxx2xxx", ;
+   "x6x9xx81x2xx1xx5xx8xxxx67xx7xxxx3xxxx1xxxxx3xxxx6xxxx1xx63xxxx2xx7xx5xx8x53xx2x9x", ;
+   "xxxx73x1x1xxxxx6x4xx8xx92x78xxxx17xxx3xxxxx8xxx63xxxx19x35xx4xx7x5xxxxx2x4x18xxxx" }
+STATIC aBoardHardTempl := { "xxxxx1xx39xxxxx46xx46x5xxxxx6x3xxx5x8xx1xx2x7x9x2xxx4xx28x9xxxx6xxxxx87xxxxxx3xx9", ;
+   "6xxxxxxx5xx95x74xxxx8xxx3xx91xxxxx32xx7x1x8xx3x6xxx1x7xxxxxxxxxx9xx7xx1xx7x352x4x", ;
+   "8xxxx2xxx7x2xx35xxxxxx5x2x8x7x4xxxx6xxxxx83xxx9x6xxxx2xxxx1x7x46x7xx41xx3xxxx6xxx" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
@@ -319,8 +323,16 @@ STATIC FUNCTION CreateBoard()
    LOCAL a3 := { {1,1}, {1,4}, {1,7}, {4,1}, {4,4}, {4,7}, {7,1}, {7,4}, {7,7} }
    LOCAL aSectors[9], s
 
-   n1 := hb_randomInt( 1, Len(aBoardTempl) )
-   templ2Boa( aBoardTempl[n1] )
+   IF nLevel == 1
+      n1 := hb_randomInt( 1, Len(aBoardEasyTempl) )
+      templ2Boa( aBoardEasyTempl[n1] )
+   ELSEIF nLevel == 2
+      n1 := hb_randomInt( 1, Len(aBoardMediumTempl) )
+      templ2Boa( aBoardMediumTempl[n1] )
+   ELSEIF nLevel == 3
+      n1 := hb_randomInt( 1, Len(aBoardHardTempl) )
+      templ2Boa( aBoardHardTempl[n1] )
+   ENDIF
 
    // Mix
    FOR i := 1 TO 12
@@ -392,94 +404,96 @@ STATIC FUNCTION CreateBoard()
       NEXT
    NEXT
 
-   // Hide cells
-   FOR j := 1 TO 3
-      IF j == 3
-        n2 := hb_randomInt()
-      ENDIF
-      IF j < 3 .OR. n2 == 0
-         FOR i := 1 TO 9
-            i1 := 0
-            DO WHILE .T.
-               n1 := hb_randomInt( 1, 9 )
-               IF !Empty( aBoardInit[i,n1] )
-                  aBoardInit[i,n1] := ''
-                  EXIT
-               ENDIF
-               IF ++i1 > 15
-                  n2Del ++
-                  EXIT
-               ENDIF
-            ENDDO
-         NEXT
-      ENDIF
-      IF j < 3 .OR. n2 > 0
-         FOR i := 1 TO 9
-            i1 := 0
-            DO WHILE .T.
-               n1 := hb_randomInt( 1, 9 )
-               IF !Empty( aBoardInit[n1,i] )
-                  aBoardInit[n1,i] := ''
-                  EXIT
-               ENDIF
-               IF ++i1 > 15
-                  n2Del ++
-                  EXIT
-               ENDIF
-            ENDDO
-         NEXT
-      ENDIF
-   NEXT
-
-   //
-   FOR i1 := 1 TO 9
-      i := a3[i1,1] - 1
-      j := a3[i1,2] - 1
-      n1 := 0
-      DO WHILE ++i <= a3[i1,1]+2
-         DO WHILE ++j <= a3[i1,2]+2
-            //edi_writelog( "."+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
-            IF !Empty( aBoardInit[i,j] ); n1 ++; ENDIF
-         ENDDO
-         j := a3[i1,2] - 1
-      ENDDO
-      aSectors[i1] := n1
-   NEXT
-
-   n2Del += Iif( nLevel==1, 5, Iif( nLevel==2, 10, 16 ) )
-   n1 := 0
-   DO WHILE .T.
-      xTmp := 0
-      //s := ""
-      FOR i1 := 1 TO 9
-         IF aSectors[i1] > xTmp
-            n2 := i1
-            xTmp := aSectors[i1]
+   IF nLevel == 1
+      // Hide cells
+      FOR j := 1 TO 3
+         IF j == 3
+           n2 := hb_randomInt()
          ENDIF
-         //s += ltrim(str(aSectors[i1]))+" "
+         IF j < 3 .OR. n2 == 0
+            FOR i := 1 TO 9
+               i1 := 0
+               DO WHILE .T.
+                  n1 := hb_randomInt( 1, 9 )
+                  IF !Empty( aBoardInit[i,n1] )
+                     aBoardInit[i,n1] := ''
+                     EXIT
+                  ENDIF
+                  IF ++i1 > 15
+                     n2Del ++
+                     EXIT
+                  ENDIF
+               ENDDO
+            NEXT
+         ENDIF
+         IF j < 3 .OR. n2 > 0
+            FOR i := 1 TO 9
+               i1 := 0
+               DO WHILE .T.
+                  n1 := hb_randomInt( 1, 9 )
+                  IF !Empty( aBoardInit[n1,i] )
+                     aBoardInit[n1,i] := ''
+                     EXIT
+                  ENDIF
+                  IF ++i1 > 15
+                     n2Del ++
+                     EXIT
+                  ENDIF
+               ENDDO
+            NEXT
+         ENDIF
       NEXT
-      //edi_writelog( s )
-      i := hb_randomInt( 0,8 )
-      j := Int(i%3) + a3[n2,2]
-      i := Int(i/3) + a3[n2,1]
 
-      //i := hb_randomInt( 1, 9 )
-      //j := hb_randomInt( 1, 9 )
-      //edi_writelog( ltrim(str(n2))+": "+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
-      IF !Empty( aBoardInit[i,j] )
-         aBoardInit[i,j] := ''
-         aSectors[n2] --
-         IF ++n1 > n2Del
-            EXIT
+      //
+      FOR i1 := 1 TO 9
+         i := a3[i1,1] - 1
+         j := a3[i1,2] - 1
+         n1 := 0
+         DO WHILE ++i <= a3[i1,1]+2
+            DO WHILE ++j <= a3[i1,2]+2
+               //edi_writelog( "."+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
+               IF !Empty( aBoardInit[i,j] ); n1 ++; ENDIF
+            ENDDO
+            j := a3[i1,2] - 1
+         ENDDO
+         aSectors[i1] := n1
+      NEXT
+
+      n2Del += Iif( nLevel==1, 5, Iif( nLevel==2, 10, 16 ) )
+      n1 := 0
+      DO WHILE .T.
+         xTmp := 0
+         //s := ""
+         FOR i1 := 1 TO 9
+            IF aSectors[i1] > xTmp
+               n2 := i1
+               xTmp := aSectors[i1]
+            ENDIF
+            //s += ltrim(str(aSectors[i1]))+" "
+         NEXT
+         //edi_writelog( s )
+         i := hb_randomInt( 0,8 )
+         j := Int(i%3) + a3[n2,2]
+         i := Int(i/3) + a3[n2,1]
+
+         //i := hb_randomInt( 1, 9 )
+         //j := hb_randomInt( 1, 9 )
+         //edi_writelog( ltrim(str(n2))+": "+ltrim(str(i))+"/"+ltrim(str(j))+" "+aBoardInit[i,j] )
+         IF !Empty( aBoardInit[i,j] )
+            aBoardInit[i,j] := ''
+            aSectors[n2] --
+            IF ++n1 > n2Del
+               EXIT
+            ENDIF
          ENDIF
-      ENDIF
-   ENDDO
+      ENDDO
 
-   //boa2File( aBoardInit, "a1.log" )
-   DO WHILE Valtype( xTmp := Solver( aBoardInit, .F., .T. ) ) == "A"
-      aBoardInit[xTmp[1],xTmp[2]] := xTmp[3]
-   ENDDO
-   //boa2File( aBoardInit, "a1.log" )
+      //boa2File( aBoardInit, "a1.log" )
+      DO WHILE Valtype( xTmp := Solver( aBoardInit, .F., .T. ) ) == "A"
+         aBoardInit[xTmp[1],xTmp[2]] := xTmp[3]
+      ENDDO
+      //boa2File( aBoardInit, "a1.log" )
+   ENDIF
 
    FOR i := 1 TO 9
       ACopy( aBoardInit[i], aBoard[i] )
@@ -842,6 +856,8 @@ STATIC FUNCTION templ2Boa( s )
             aBoardInit[i,j] := Chr( n )
          ELSEIF n >= 49 .AND. n <= 57 // '1'..'9'
             aBoardInit[i,j] := Chr( n + (65-49) )
+         ELSEIF n == 120  // 'x'
+            aBoardInit[i,j] := ' '
          ELSE
             RETURN .F.
          ENDIF
