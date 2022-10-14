@@ -35,7 +35,9 @@ relevant functions, so you can use it as a reference.
    Alt - '[a ... z]    go to the bookmark;
    Alt- '.             go to the last edit position;
    Ctrl-b              go to the pair bracket;
-   Alt-b               Return to the previous position (after search, goto, ...);
+   Alt-b               return to the previous position (after search, goto, ...);
+   Alt-8               find a word under cursor;
+   Alt-3               find a word under cursor (backward);
 
    Ctrl-w,s            split window horizontally and open the same file in readonly mode;
    Ctrl-w,v            split window vertically and open the same file in readonly mode;

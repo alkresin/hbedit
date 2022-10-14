@@ -1104,7 +1104,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
         CASE K_ALT_BS
             ::Undo()
             EXIT
-         END
+        CASE K_ALT_3
+            edi_SeaWord( Self, .T. )
+            EXIT
+        CASE K_ALT_8
+            edi_SeaWord( Self, .F. )
+            EXIT
+        END
       ENDIF
       IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
 
@@ -1404,22 +1410,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      edi_Move( Self, 94 )
                      EXIT
                   CASE 42    // *
-                     i := edi_PrevWord( Self, .F., .F.,,, ::nPos+1 )
-                     x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
-                     s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
-                     i := ::nPos
-                     IF ::Search( s, .T., .T., .T., .F., @n, @i )
-                        ::GoTo( n, i, 0 )
-                     ENDIF
+                     edi_SeaWord( Self, .F. )
                      EXIT
                   CASE 35    // #
-                     i := edi_PrevWord( Self, .F., .F.,,, ::nPos+1 )
-                     x := edi_NextWord( Self, .F., .T., .F.,, ::nPos-1 )
-                     s := cp_Substr( ::lUtf8, ::aText[n], i, x-i+1 )
-                     i --
-                     IF ::Search( s, .T., .F., .T., .F., @n, @i )
-                        ::GoTo( n, i, 0 )
-                     ENDIF
+                     edi_SeaWord( Self, .T. )
                      EXIT
                   CASE 47    // /
                      ::nMode := 2
@@ -4325,6 +4319,20 @@ STATIC FUNCTION edi_GoEnd( oEdit )
       ENDIF
       edi_SetPos( oEdit, n, oEdit:ColToPos( oEdit:LineToRow(n), nCol - oEdit:nxFirst + oEdit:x1) )
    ENDIF
+   RETURN Nil
+
+STATIC FUNCTION edi_SeaWord( oEdit, lBack )
+
+   LOCAL i, x, s, n := oEdit:nLine
+
+   i := edi_PrevWord( oEdit, .F., .F.,,, oEdit:nPos+1 )
+   x := edi_NextWord( oEdit, .F., .T., .F.,, oEdit:nPos-1 )
+   s := cp_Substr( oEdit:lUtf8, oEdit:aText[n], i, x-i+1 )
+   i := Iif( lBack, i-1, oEdit:nPos )
+   IF oEdit:Search( s, .T., !lBack, .T., .F., @n, @i )
+      oEdit:GoTo( n, i, 0 )
+   ENDIF
+
    RETURN Nil
 
 FUNCTION edi_SelectW( oEdit, lBigW )
