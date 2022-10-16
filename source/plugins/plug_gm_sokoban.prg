@@ -54,8 +54,8 @@ FUNCTION plug_gm_Sokoban( oEdit, cPath )
    edi_SetPalette( oGame, "default" )
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
-   oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
-   oGame:bStartEdit := {|| _Game_Start() }
+   oGame:bOnKey := {|o,n| _gm_Sokoban_OnKey(o,n) }
+   oGame:bStartEdit := {|| _gm_Sokoban_Start() }
    oGame:cp := "RU866"
    oGame:lIns := Nil
    nGameState := 1
@@ -65,7 +65,7 @@ FUNCTION plug_gm_Sokoban( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _Game_Start()
+FUNCTION _gm_Sokoban_Start()
 
    IF Empty( cScreenBuff )
       y1t := oGame:y1 + 3
@@ -98,7 +98,7 @@ FUNCTION _Game_Start()
 
    RETURN Nil
 
-FUNCTION _Game_OnKey( oEdit, nKeyExt )
+FUNCTION _gm_Sokoban_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j, lOnTarget, lNoEnd := .T.
 

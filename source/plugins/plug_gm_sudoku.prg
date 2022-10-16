@@ -68,8 +68,8 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
    ENDIF
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
-   oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
-   oGame:bStartEdit := {|| _Game_Start() }
+   oGame:bOnKey := {|o,n| _gm_Sudoku_OnKey(o,n) }
+   oGame:bStartEdit := {|| _gm_Sudoku_Start() }
    oGame:cp := "RU866"
    oGame:lIns := Nil
    nLevel := 1
@@ -80,7 +80,7 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _Game_Start()
+FUNCTION _gm_Sudoku_Start()
 
    LOCAL cSaved, i, j
 
@@ -136,7 +136,7 @@ FUNCTION _Game_Start()
 
    RETURN Nil
 
-FUNCTION _Game_OnKey( oEdit, nKeyExt )
+FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j
 
@@ -178,8 +178,8 @@ FUNCTION _Game_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == 32 .OR. ( nKey >= 49 .AND. nKey <= 57 )
          SetCellValue( nKey )
          RETURN -1
-      ELSEIF nKey == 115  // s
-         IF ( i := Solver( aBoard, .T. ) ) == 1
+      ELSEIF nKey == 115 .OR. nKey == 83  // s,S
+         IF ( i := Solver( aBoard, nKey == 83 ) ) == 1
             edi_Alert( "Solved" )
          ELSEIF i > 1
             edi_Alert( "Too many solutions" )
