@@ -90,7 +90,7 @@ FUNCTION plug_gm_Tetris( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _Tetris_Start()
+STATIC FUNCTION _Tetris_Start()
 
    IF Empty( cScreenBuff )
       y1t := oTetr:y1 + Int((oTetr:y2-oTetr:y1-BOARD_HEIGHT)/2); y2t := y1t + BOARD_HEIGHT-1
@@ -116,7 +116,7 @@ FUNCTION _Tetris_Start()
 
    RETURN Nil
 
-FUNCTION _Tetris_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _Tetris_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j
 

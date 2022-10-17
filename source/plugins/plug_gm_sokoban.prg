@@ -65,7 +65,7 @@ FUNCTION plug_gm_Sokoban( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _gm_Sokoban_Start()
+STATIC FUNCTION _gm_Sokoban_Start()
 
    IF Empty( cScreenBuff )
       y1t := oGame:y1 + 3
@@ -98,7 +98,7 @@ FUNCTION _gm_Sokoban_Start()
 
    RETURN Nil
 
-FUNCTION _gm_Sokoban_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _gm_Sokoban_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j, lOnTarget, lNoEnd := .T.
 

@@ -194,8 +194,8 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
    //DispEnd()
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
-   oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
-   oGame:bStartEdit := {|| _Game_Start() }
+   oGame:bOnKey := {|o,n| _gm_Chess_OnKey(o,n) }
+   oGame:bStartEdit := {|| _gm_Chess_Start() }
    //oGame:cp := Iif( lDrawUtf8, "UTF8",  "RU866" )
    hb_cdpSelect( oGame:cp := "UTF8" )
    oGame:lUtf8 := .T.
@@ -205,7 +205,7 @@ FUNCTION plug_gm_Chess( oEdit, cPath )
 
    RETURN Nil
 
-STATIC FUNCTION _Game_Start()
+STATIC FUNCTION _gm_Chess_Start()
 
    IF Empty( cScreenBuff )
       y1t := oGame:y1 + 3
@@ -410,7 +410,7 @@ STATIC FUNCTION _Game_MainMenu()
 
    RETURN Nil
 
-STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol, nRow, arr, n
 

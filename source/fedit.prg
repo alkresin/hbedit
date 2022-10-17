@@ -3460,11 +3460,10 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
 
    IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
          .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
-      oEdit:nCurr := Len( oEdit:aWindows )
    ELSE
       oEdit:lClose := .T.
-      oEdit:nCurr := Len( oEdit:aWindows ) - 1
    ENDIF
+   oEdit:nCurr := Len( oEdit:aWindows )
 
    RETURN oNew
 

@@ -80,7 +80,7 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _gm_Sudoku_Start()
+STATIC FUNCTION _gm_Sudoku_Start()
 
    LOCAL cSaved, i, j
 
@@ -136,7 +136,7 @@ FUNCTION _gm_Sudoku_Start()
 
    RETURN Nil
 
-FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j
 

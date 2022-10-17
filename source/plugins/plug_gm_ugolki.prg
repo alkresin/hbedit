@@ -96,8 +96,8 @@ FUNCTION plug_gm_Ugolki( oEdit, cPath )
    edi_SetPalette( oGame, "default" )
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
-   oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
-   oGame:bStartEdit := {|| _Game_Start() }
+   oGame:bOnKey := {|o,n| _gm_Ugolki_OnKey(o,n) }
+   oGame:bStartEdit := {|| _gm_Ugolki_Start() }
    hb_cdpSelect( oGame:cp := "UTF8" )
    oGame:lUtf8 := .T.
    oGame:lIns := Nil
@@ -108,7 +108,7 @@ FUNCTION plug_gm_Ugolki( oEdit, cPath )
 
    RETURN Nil
 
-STATIC FUNCTION _Game_Start()
+STATIC FUNCTION _gm_Ugolki_Start()
 
    IF Empty( cScreenBuff )
       y1t := oGame:y1 + 3
@@ -250,7 +250,7 @@ STATIC FUNCTION _Game_MainMenu()
 
    RETURN Nil
 
-STATIC FUNCTION _Game_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _gm_Ugolki_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol, nRow, arr, n
 

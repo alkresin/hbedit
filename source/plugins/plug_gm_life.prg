@@ -109,7 +109,7 @@ FUNCTION plug_gm_Life( oEdit, cPath )
 
    RETURN Nil
 
-FUNCTION _Life_Start()
+STATIC FUNCTION _Life_Start()
 
    IF Empty( cScreenBuff )
       SetColor( cBorderClr )
@@ -122,7 +122,7 @@ FUNCTION _Life_Start()
 
    RETURN Nil
 
-FUNCTION _Life_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _Life_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j
 

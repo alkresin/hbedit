@@ -64,14 +64,14 @@ FUNCTION plug_gm_STrek( oEdit, cPath )
    edi_SetPalette( oGame, "default" )
    oGame:cFileName := cName
    oGame:bWriteTopPane := bWPane
-   oGame:bOnKey := {|o,n| _Game_OnKey(o,n) }
-   oGame:bStartEdit := {|| _Game_Start() }
+   oGame:bOnKey := {|o,n| _gm_STrek_OnKey(o,n) }
+   oGame:bStartEdit := {|| _gm_STrek_Start() }
    oGame:cp := "RU866"
    nGameState := 1
 
    RETURN Nil
 
-FUNCTION _Game_Start()
+STATIC FUNCTION _gm_STrek_Start()
 
    lSRS := .T.
    IF Empty( cScreenBuff )
@@ -101,7 +101,7 @@ FUNCTION _Game_Start()
 
    RETURN Nil
 
-FUNCTION _Game_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _gm_STrek_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), i, j, lOnTarget, lNoEnd := .T.
    LOCAL nCmd
