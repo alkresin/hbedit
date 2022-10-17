@@ -15,6 +15,9 @@ relevant functions, so you can use it as a reference.
    Shift-F2            save file as;
    F3                  block selection;
    Ctrl-F3             vertical block selection;
+   F4                  file open dialog with a list of recent files;
+   Ctrl-F4             file open dialog;
+   Shift-F4            new window;
    F7                  search;
    Shift-F7            search for the next entry;
    Alt-F7              search for the previous entry;
