@@ -5356,11 +5356,13 @@ STATIC FUNCTION _FIdle()
    LOCAL nDelay, nKey, oEdit
    STATIC lRun := .F.
 
-   IF nLastSec > 0 .AND. !lRun .AND. ( nDelay := hb_hGetDef( TEdit():options,"autodelay", 0 ) ) > 0 ;
+   IF nLastSec <= 0 .OR. lRun .OR. !( Valtype(TEdit()) ) == "O" .OR. ;
+      Empty( TEdit():aWindows ) .OR. TEdit():nCurr == 0 .OR. TEdit():nCurr > Len(TEdit():aWindows)
+      RETURN Nil
+   ENDIF
+
+   IF ( nDelay := hb_hGetDef( TEdit():options,"autodelay", 0 ) ) > 0 ;
       .AND. Seconds() > (nLastSec + nDelay) .AND. Seconds() < (nLastSec + nDelay*2)
-      IF Empty( TEdit():aWindows ) .OR. TEdit():nCurr == 0 .OR. TEdit():nCurr > Len(TEdit():aWindows)
-         RETURN Nil
-      ENDIF
       oEdit := TEdit():aWindows[TEdit():nCurr]
       IF ( (nKey := hb_keyStd(nLastKey)) >= K_SPACE .AND. nKey <= 255 ) .OR. ( oEdit:lUtf8 .AND. nKey > 3000 )
          IF oEdit:nPos > 1 .AND. oEdit:nPos == cp_Len( oEdit:lUtf8,oEdit:aText[oEdit:nLine] ) + 1 ;
