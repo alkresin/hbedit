@@ -604,6 +604,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
    IF !Empty( ::bOnKey )
       i := Eval( ::bOnKey, Self, nKeyExt )
       IF i == - 1
+         nLastSec := 0
          RETURN Nil
       ELSEIF i > 0
          nKeyExt := i
@@ -5356,7 +5357,7 @@ STATIC FUNCTION _FIdle()
    LOCAL nDelay, nKey, oEdit
    STATIC lRun := .F.
 
-   IF nLastSec <= 0 .OR. lRun .OR. !( Valtype(TEdit()) ) == "O" .OR. ;
+   IF nLastSec <= 0 .OR. lRun .OR. ;
       Empty( TEdit():aWindows ) .OR. TEdit():nCurr == 0 .OR. TEdit():nCurr > Len(TEdit():aWindows)
       RETURN Nil
    ENDIF
