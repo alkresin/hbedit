@@ -1725,7 +1725,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
       lLastOper_Ended := .T.
    ENDIF
    ::WriteTopPane()
-   nLastSec := Seconds()
+   nLastSec := Iif( nKeyExt == 0x41010018 .OR. nKeyExt == 0x41020018, 0, Seconds() )
    nLastKey := nKeyExt
 
    RETURN Nil
