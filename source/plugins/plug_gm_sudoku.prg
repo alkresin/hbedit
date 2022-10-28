@@ -32,7 +32,8 @@ STATIC aBoardMediumTempl := { "xxx4xxxxxxx125x7xxx49xxx38xxxxx6xx27x2x3x4x9x56xx
    "xxxx73x1x1xxxxx6x4xx8xx92x78xxxx17xxx3xxxxx8xxx63xxxx19x35xx4xx7x5xxxxx2x4x18xxxx" }
 STATIC aBoardHardTempl := { "xxxxx1xx39xxxxx46xx46x5xxxxx6x3xxx5x8xx1xx2x7x9x2xxx4xx28x9xxxx6xxxxx87xxxxxx3xx9", ;
    "6xxxxxxx5xx95x74xxxx8xxx3xx91xxxxx32xx7x1x8xx3x6xxx1x7xxxxxxxxxx9xx7xx1xx7x352x4x", ;
-   "8xxxx2xxx7x2xx35xxxxxx5x2x8x7x4xxxx6xxxxx83xxx9x6xxxx2xxxx1x7x46x7xx41xx3xxxx6xxx" }
+   "8xxxx2xxx7x2xx35xxxxxx5x2x8x7x4xxxx6xxxxx83xxx9x6xxxx2xxxx1x7x46x7xx41xx3xxxx6xxx", ;
+   "xxxCxxxExBxADGECIxxxxxxFxxDxxCHIxxxxFIxxxxxxxxxxxFxxDIxExxDxxFxxBxxxxxxECxGxxxIxH" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
