@@ -218,25 +218,6 @@ STATIC FUNCTION _gm_Chess_Start()
 
    RETURN Nil
 
-STATIC FUNCTION dbOpn_Open()
-
-   LOCAL bOldError := ErrorBlock( { |e|break( e ) } ), lRes := .T.
-
-   lOpenings := .F.
-   BEGIN SEQUENCE
-      dbUseArea( .T., "DBFCDX", cOpenings, "OPENINGS", .T., .F. )
-   RECOVER
-      lRes := .F.
-   END SEQUENCE
-
-   IF lRes
-      ordSetFocus( "BOARD" )
-      lOpenings := .T.
-   ENDIF
-   Errorblock( bOldError )
-
-   RETURN Nil
-
 STATIC FUNCTION _Game_Exit()
 
    cScreenBuff := Nil
@@ -835,21 +816,6 @@ STATIC FUNCTION isMoveCorrect( nMove )
 
    RETURN .T.
 
-STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lShah )
-
-   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lShah, "" }
-
-   IF cFig != Substr( aCurrPos[POS_BOARD], nEnd, 1 )
-      arr[6] := Substr( aCurrPos[POS_BOARD], nEnd, 1 )
-   ENDIF
-   IF lTurnBlack
-      ATail( aHistory )[2] := arr
-   ELSE
-      AAdd( aHistory, { arr, Nil, board_64to32(cBoard) } )
-   ENDIF
-
-   RETURN Nil
-
 STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig )
 
    LOCAL j1 := nEnd - nStart, nPos4p := aPos[POS_4P]
@@ -1106,6 +1072,22 @@ STATIC FUNCTION GameOver( nRes )
 
    RETURN Nil
 
+STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lShah )
+
+   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lShah, "" }
+
+   IF cFig != Substr( aCurrPos[POS_BOARD], nEnd, 1 )
+      arr[6] := Substr( aCurrPos[POS_BOARD], nEnd, 1 )
+   ENDIF
+   IF lTurnBlack
+      ATail( aHistory )[2] := arr
+   ELSE
+      AAdd( aHistory, { arr, Nil, board_64to32(cBoard) } )
+   ENDIF
+
+   RETURN Nil
+
+
 STATIC FUNCTION board_64to32( cBoard )
 
    LOCAL cRes := "", i, cf := " prnbqkPRNBQK"
@@ -1268,6 +1250,25 @@ STATIC FUNCTION pgnrec2Move( aPos, cRec, lBlack )
    ENDIF
 
    RETURN aMove
+
+STATIC FUNC dbOpn_Open()    // Открывает базу дебютов
+
+   LOCAL bOldError := ErrorBlock( { |e|break( e ) } ), lRes := .T.
+
+   lOpenings := .F.
+   BEGIN SEQUENCE
+      dbUseArea( .T., "DBFCDX", cOpenings, "OPENINGS", .T., .F. )
+   RECOVER
+      lRes := .F.
+   END SEQUENCE
+
+   IF lRes
+      ordSetFocus( "BOARD" )
+      lOpenings := .T.
+   ENDIF
+   Errorblock( bOldError )
+
+   RETURN Nil
 
 STATIC FUNCTION chess_ReplayGame( aHis )
 
