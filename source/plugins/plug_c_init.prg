@@ -2,6 +2,7 @@
 #define K_ALT_L            294
 
 STATIC cIniPath
+STATIC lClass
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
@@ -65,6 +66,7 @@ STATIC FUNCTION _c_Spis( oEdit )
    //   oEdit:oHili:Do( Len( oEdit:aText ) )
    //ENDIF
 
+   lClass := .F.
    oHili:CheckComm()
    IF Empty( arrfnc := _c_Funcs( oEdit, oHili ) )
       edi_Alert( "Nothing found..." )
@@ -119,9 +121,17 @@ STATIC FUNCTION _c_Funcs( oEdit, oHili, nLineEnd )
             ENDIF
 
          ELSEIF c == '{'
-            IF nLevel == 0
+            IF nLevel == 0 .OR. (lClass .AND. nLevel == 1)
+               IF nLevel == 0
+                  lClass := .F.
+               ENDIF
                IF nPos == 1
-                  IF Right( _C_DropComments( oEdit, cLinePrev ), 1 ) == ")"
+                  //edi_writelog( "1: "+cLinePrev )
+                  IF !lClass .AND. Left( cLinePrev, 6 ) == "class "
+                     //edi_writelog( "class: "+cLinePrev )
+                     lClass := .T.
+                  ELSEIF lClass .OR. Right( _C_DropComments( oEdit, cLinePrev ), 1 ) == ")"
+                     //edi_writelog( "2: "+cLinePrev )
                      IF ( j := _C_AddF( lUtf8, arrfnc, arr, i, cLinePrev ) ) > 0
                         nLast := j
                      ENDIF
@@ -140,6 +150,9 @@ STATIC FUNCTION _c_Funcs( oEdit, oHili, nLineEnd )
 
          ELSEIF c == '}'
             nLevel --
+            IF nLevel == 0
+               lClass := .F.
+            ENDIF
 
          ENDIF
          nPos := cp_NextPos( lUtf8, cLine, nPos )
