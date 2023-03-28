@@ -11,6 +11,7 @@
 #define CTRL_PRESSED  0x020000
 
 STATIC lSea, cSea, aSea
+STATIC lDown := .T.
 
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
@@ -80,8 +81,12 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
 
    DO WHILE lDo
-      IF Left( arr[i+nFirst-1], 3 ) == "---" .AND. i + nFirst - 1 < nLen
-         KEYBOARD Chr( K_DOWN )
+      IF Left( arr[i+nFirst-1], 3 ) == "---"
+         IF lDown .AND. i + nFirst - 1 < nLen
+            KEYBOARD Chr( K_DOWN )
+         ELSEIF !lDown .AND. i + nFirst - 1 > 1
+            KEYBOARD Chr( K_UP )
+         ENDIF
       ENDIF
       SetColor( clrMenuSel )
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
@@ -201,6 +206,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
       ELSEIF nKey == K_DOWN .OR. ( nKey == K_MWBACKWARD .AND. ;
          (mRow := MRow()) >= y1 .AND. mRow <= y2 .AND. (mCol := MCol()) >= x1 .AND. mCol <= x2 )
+         lDown := .T.
          IF i < nHeight
             i ++
          ELSEIF i + nFirst - 1 < nLen
@@ -210,6 +216,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
       ELSEIF nKey == K_UP .OR. ( nKey == K_MWFORWARD .AND. ;
          (mRow := MRow()) >= y1 .AND. mRow <= y2 .AND. (mCol := MCol()) >= x1 .AND. mCol <= x2 )
+         lDown := .F.
          IF i > 1
             i --
          ELSEIF nFirst > 1
