@@ -343,7 +343,7 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
 STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
 
-   LOCAL i, n := y2 -y1 - 1
+   LOCAL i, n := y2 -y1 - 1, cp
 
    FOR i := 1 TO n
       IF i+nFirst-1 > Len( arr )
@@ -352,7 +352,9 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
       ENDIF
       DevPos( y1 + i, x1+2 )
       IF Empty( arr[i+nFirst-1] )
+         cp := hb_cdpSelect( "RU866" )
          DevOut( Replicate( 'Ä', x2-1-x1-2 ) )
+         hb_cdpSelect( cp )
       ELSE
          DevOut( arr[i+nFirst-1] )
       ENDIF
