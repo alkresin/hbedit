@@ -60,25 +60,25 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    RETURN i
 
-FUNCTION edi_RunPlugin( oEdit, xPlugin )
+FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin )
 
    LOCAL i, cPlugin, cFullPath
 
    IF Valtype( xPlugin ) == "N"
       i := xPlugin
    ELSEIF Valtype( xPlugin ) == "C"
-      i := Ascan( TEdit():aPlugins, {|a|a[1]==xPlugin} )
+      i := Ascan( aPlugins, {|a|a[1]==xPlugin} )
    ENDIF
    IF i > 0
-      IF Empty( TEdit():aPlugins[i,4] )
-         cPlugin := TEdit():aPlugins[i,1]
+      IF Empty( aPlugins[i,4] )
+         cPlugin := aPlugins[i,1]
          IF !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + cPlugin ) )
-            TEdit():aPlugins[i,4] := hb_hrbLoad( cFullPath )
-            TEdit():aPlugins[i,5] := cFullPath
+            aPlugins[i,4] := hb_hrbLoad( cFullPath )
+            aPlugins[i,5] := cFullPath
          ENDIF
       ENDIF
-      IF !Empty( TEdit():aPlugins[i,4] )
-         hb_hrbDo( TEdit():aPlugins[i,4], oEdit, hb_fnameDir( TEdit():aPlugins[i,5] ) )
+      IF !Empty( aPlugins[i,4] )
+         hb_hrbDo( aPlugins[i,4], oEdit, hb_fnameDir( aPlugins[i,5] ) )
       ENDIF
    ENDIF
 

@@ -81,7 +81,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
 
    DO WHILE lDo
-      IF Left( arr[i+nFirst-1], 3 ) == "---"
+      //IF Left( arr[i+nFirst-1], 3 ) == "---"
+      IF Empty( arr[i+nFirst-1] )
          IF lDown .AND. i + nFirst - 1 < nLen
             KEYBOARD Chr( K_DOWN )
          ELSEIF !lDown .AND. i + nFirst - 1 > 1
@@ -117,7 +118,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             ENDIF
          ELSEIF nKey == K_ENTER
          ELSEIF lMulti .AND. nKey == K_SPACE
-            IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+            //IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+            IF !Empty( arr[i+nFirst-1] )
                arr[i+nFirst-1] := Iif(Asc(arr[i+nFirst-1])==32,"x"," ") + cp_Substr( lUtf8, arr[i+nFirst-1], 2 )
             ENDIF
             LOOP
@@ -157,7 +159,8 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
          ENDIF
 
          @ y1 + i, x1 + 2 SAY arr[i+nFirst-1] COLOR clrMenuSel
-         IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+         //IF !( Left( arr[i+nFirst-1], 3 ) == "---" )
+         IF !Empty( arr[i+nFirst-1] )
             IF !(Right(arr[i+nFirst-1],1) == ">") .AND. !(nKey == K_ENTER)
                Inkey( 0.3 )
             ENDIF
@@ -281,7 +284,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
 STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
 
-   LOCAL i, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0
+   LOCAL i, nLen := Len(aMenu), arr, lSingle := !(Valtype(aMenu[1]) == "A"), nLenArr := 0, nMenuPos := 0
    LOCAL cPrefix, cs, nDop, l, cLine, aSeaTmp
 
    IF lSea .AND. !Empty( cSearch )
@@ -304,19 +307,24 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
       IF ( !lSea .OR. Empty(cs) .OR. cp_At( lUtf8, cs, cp_Lower( lUtf8, cLine ) ) > 0 ) .AND. ;
          ( bSea == Nil .OR. Eval( bSea, 1, cSearch, cLine ) )
          nLenArr ++
-         IF ( cPrefix := Substr( Iif( lSingle,aMenu[i],aMenu[i,1] ), 2, 2 ) ) == ": " ;
-            .OR. cPrefix == "--"
-            cPrefix := ""
+         cPrefix := Substr( Iif( lSingle,aMenu[i],aMenu[i,1] ), 2, 2 )
+         IF cPrefix == "--"
+            arr[nLenArr] := cPrefix := ""
          ELSE
-            cPrefix := Iif( i>36.OR.lSea, "   ", Iif(i>10, Chr(86+i), Ltrim(Str(i-1)) ) + ": " )
-         ENDIF
-         IF lSingle
-            arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i], nSize )
-         ELSE
-            IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), cp_Len(lUtf8,aMenu[i,4]), 0 ) ) > 0
-               nDop := nSize - nDop - cp_Len(lUtf8,aMenu[i,1]) - 3
+            nMenuPos ++
+            IF cPrefix == ": "
+               cPrefix := ""
+            ELSE
+               cPrefix := Iif( nMenuPos>36.OR.lSea, "   ", Iif(nMenuPos>10, Chr(86+nMenuPos), Ltrim(Str(nMenuPos-1)) ) + ": " )
             ENDIF
-            arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
+            IF lSingle
+               arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i], nSize )
+            ELSE
+               IF ( nDop := Iif( Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), cp_Len(lUtf8,aMenu[i,4]), 0 ) ) > 0
+                  nDop := nSize - nDop - cp_Len(lUtf8,aMenu[i,1]) - 3
+               ENDIF
+               arr[nLenArr] := cp_PAdr( lUtf8, cPrefix + aMenu[i,1] + Iif( nDop>0, Space(nDop)+aMenu[i,4], "" ), nSize )
+            ENDIF
          ENDIF
          l := .T.
       ENDIF
@@ -343,7 +351,11 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
          EXIT
       ENDIF
       DevPos( y1 + i, x1+2 )
-      DevOut( arr[i+nFirst-1] )
+      IF Empty( arr[i+nFirst-1] )
+         DevOut( Replicate( 'Ä', x2-1-x1-2 ) )
+      ELSE
+         DevOut( arr[i+nFirst-1] )
+      ENDIF
    NEXT
 
    RETURN Nil

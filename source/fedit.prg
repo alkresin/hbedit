@@ -391,7 +391,7 @@ METHOD Edit( lShowOnly ) CLASS TEdit
                NEXT
                IF Valtype( i ) == "N"
                   SetCursor( SC_NONE )
-                  edi_RunPlugin( Self, i )
+                  edi_RunPlugin( Self, ::aPlugins, i )
                   LOOP
                ENDIF
             ENDIF
@@ -3901,7 +3901,7 @@ FUNCTION mnu_Plugins( oEdit )
    IF !Empty( aMenu )
       IF ( i := FMenu( oEdit, aMenu, 2, 6 ) ) > 0
          i := aMenu[i,3]
-         edi_RunPlugin( oEdit, i )
+         edi_RunPlugin( oEdit, TEdit():aPlugins, i )
       ENDIF
    ENDIF
 
