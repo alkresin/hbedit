@@ -68,7 +68,7 @@ STATIC hIdle
 CLASS TEdit
 
    CLASS VAR aCPages    SHARED  INIT {}
-   CLASS VAR aWindows   SHARED                   // An array with all TEdit objects
+   CLASS VAR aWindows   SHARED  INIT {}          // An array with all TEdit objects
    CLASS VAR nCurr      SHARED                   // A currently processed TEdit object number
    CLASS VAR nCurrPrev  SHARED
    CLASS VAR cpInit     SHARED
@@ -220,9 +220,9 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
    ::hBookMarks := hb_Hash()
 
-   IF ::aWindows == Nil
+   /* IF ::aWindows == Nil
       ::aWindows := {}
-   ENDIF
+   ENDIF */
    Aadd( ::aWindows, Self )
 
    IF !Empty( ::bNew )
@@ -3268,13 +3268,13 @@ FUNCTION mnu_Windows( oEdit, aXY, n )
 
 FUNCTION mnu_Buffers( oEdit, aXY )
 
-   LOCAL aMenu := { }, i, nCurr := 1
+   LOCAL aMenu := { }, i, nCurr := 1, aWindows := TEdit():aWindows
 
-   FOR i := 1 TO Len( oEdit:aWindows )
-      IF oEdit:aWindows[i] == oEdit
+   FOR i := 1 TO Len( aWindows )
+      IF aWindows[i] == oEdit
          nCurr := i
       ENDIF
-      AAdd( aMenu, {NameShortcut(oEdit:aWindows[i]:cFileName,30,'~'),@mnu_ToBuf(),i} )
+      AAdd( aMenu, {NameShortcut(aWindows[i]:cFileName,30,'~'),@mnu_ToBuf(),i} )
    NEXT
    IF !Empty( oEdit:cLauncher )
       AAdd( aMenu, {oEdit:cLauncher,@mnu_ToBuf(),0} )
@@ -3288,9 +3288,9 @@ FUNCTION mnu_ToBuf( oEdit, x )
 
    oEdit:lShow := .F.
    IF Valtype( x ) == "O"
-      oEdit:nCurr := Ascan( oEdit:aWindows, {|o|o==x} )
+      TEdit():nCurr := Ascan( TEdit():aWindows, {|o|o==x} )
    ELSEIF Valtype( x ) == "N"
-      oEdit:nCurr := x
+      TEdit():nCurr := x
    ENDIF
 
    RETURN Nil
