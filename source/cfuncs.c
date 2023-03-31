@@ -387,6 +387,8 @@ HB_FUNC( CEDI_REDIROFF )
 
 #if defined(__linux__) || defined(__unix__)
 
+#include <pwd.h>
+#include <grp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -414,6 +416,33 @@ HB_FUNC( CEDI_SHMREAD )
    munmap(addr, iLen);
    close(shm);
    shm_unlink( shm_file_name );
+}
+
+HB_FUNC( CEDI_CHOWN )
+{
+   struct stat info;
+   struct passwd *pw;
+   //struct group  *gr = getgrgid(info.st_gid);
+
+   stat( hb_parc(1), &info);
+   pw = getpwuid( info.st_uid );
+   if( pw && pw->pw_name )
+      hb_retc_buffer( pw->pw_name );
+   else
+      hb_retc_null();
+}
+
+HB_FUNC( CEDI_CHGRP )
+{
+   struct stat info;
+   struct group *gr;
+
+   stat( hb_parc(1), &info);
+   gr = getgrgid(info.st_gid);
+   if( gr && gr->gr_name )
+      hb_retc_buffer( gr->gr_name );
+   else
+      hb_retc_null();
 }
 
 HB_FUNC( CEDI_RUNCONSOLEAPP )
