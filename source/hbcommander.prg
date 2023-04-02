@@ -119,15 +119,6 @@ FUNCTION Hbc( oEdit )
 
    LOCAL aPanes
    LOCAL i, cName := "$HbCommander"
-   LOCAL bWPane := {|o,l,y|
-      LOCAL nCol := Col(), nRow := Row()
-      IF Empty( l )
-         DevPos( y, o:x1 )
-         DevOut( "Tetris" )
-      ENDIF
-      DevPos( nRow, nCol )
-      RETURN Nil
-   }
 
    IF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cName} ) ) > 0
       mnu_ToBuf( oEdit, i )
@@ -139,15 +130,20 @@ FUNCTION Hbc( oEdit )
       lGuiVer := .T.
 #endif
 
+      IF !Empty( oEdit )
+         FilePane():vy2 := TEdit():aRectFull[3]; nScreenH := FilePane():vy2 + 1
+         FilePane():vx2 := TEdit():aRectFull[4]; nScreenW := FilePane():vx2 + 1
+      ENDIF
+
       oHbc := mnu_NewBuf( oEdit )
       edi_SetPalette( oHbc, "default" )
       oHbc:cFileName := cName
       oHbc:lTopPane := .F.
       oHbc:bOnKey := {|o,n| _Hbc_OnKey(o,n) }
       oHbc:bStartEdit := {|| _Hbc_Start() }
-      //oHbc:cp := "RU866"
 
       aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
+      hb_cdpSelect( oHbc:cp := FilePane():cp )
       SetPanes( aPanes )
       cFileOut := hb_DirTemp() + "hbc_cons.out"
       //TEdit():cLauncher := "Panel"
@@ -794,8 +790,8 @@ METHOD New( x1, y1, x2, y2, nMode, cPath ) CLASS FilePane
 
    ::SetDir( cPath )
    ::nCurrent := Iif( Empty( ::aDir ), 0, 1 )
-   ::Draw()
-   ::DrawHead( .F. )
+   //::Draw()
+   //::DrawHead( .F. )
 
    RETURN Self
 
