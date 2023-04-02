@@ -42,7 +42,8 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, ;
    {"Codepage",@mnu_CPages(),{11,16},">"}, {"Palette",@mnu_Palettes(),{12,16},">"}, ;
    {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
-   {"Windows",@mnu_Windows(),{15,16},">"}, {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
+   {"Windows",@mnu_Windows(),{15,16},">"}, ;
+   {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
 
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }
@@ -190,6 +191,9 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
       edi_ReadIni( edi_FindPath( "hbedit.ini" ) )
    ENDIF
    IF Empty( ::aRectFull )
+#ifndef _NO_HBC
+      aMenuMain := hb_AIns( aMenuMain, Len(aMenuMain), { "File Manager",@hbc(),Nil }, .T. )
+#endif
       ::aRectFull := { 0, 0, MaxRow(), MaxCol() }
       IF y1 != Nil; ::aRectFull[1] := y1; ENDIF
       IF x1 != Nil; ::aRectFull[2] := x1; ENDIF
@@ -1416,12 +1420,14 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   CASE 35    // #
                      edi_SeaWord( Self, .T. )
                      EXIT
+#ifndef _NO_CMDLINE
                   CASE 47    // /
                      ::nMode := 2
                      ::WriteTopPane( 1 )
                      __KeyBoard( "/" )
                      mnu_CmdLine( Self )
                      EXIT
+#endif
                   CASE 58    // :
                      IF ::nDefMode >= 0
                         edi_ChgMode( Self )
@@ -2904,6 +2910,7 @@ FUNCTION edi_ReadIni( xIni )
       hHili["colorwr"] := TEdit():cColorWR
       hHili["colorget"] := TEdit():cColorGet
 
+#if defined ( __PLATFORM__WINDOWS ) || defined ( GTHWG )
       FOR nSect := 1 TO Len( aIni )
          IF Left( Upper(aIni[nSect]),8 ) == "PALETTE_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
@@ -2950,7 +2957,7 @@ FUNCTION edi_ReadIni( xIni )
             ENDIF
          ENDIF
       NEXT
-
+#endif
       FOR nSect := 1 TO Len( aIni )
          IF Left( Upper(aIni[nSect]),5 ) == "LANG_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
@@ -3276,8 +3283,8 @@ FUNCTION mnu_Buffers( oEdit, aXY )
       ENDIF
       AAdd( aMenu, {NameShortcut(aWindows[i]:cFileName,30,'~'),@mnu_ToBuf(),i} )
    NEXT
-   IF !Empty( oEdit:cLauncher )
-      AAdd( aMenu, {oEdit:cLauncher,@mnu_ToBuf(),0} )
+   IF !Empty( TEdit():cLauncher )
+      AAdd( aMenu, {TEdit():cLauncher,@mnu_ToBuf(),0} )
    ENDIF
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2],,,,, nCurr )
@@ -4071,10 +4078,12 @@ FUNCTION edi_ChgMode( oEdit, nMode, lNoDelay )
       IF oEdit:nMode == 0
          oEdit:nMode := 1
          oEdit:WriteTopPane( 1 )
+#ifndef _NO_CMDLINE
       ELSEIF oEdit:nMode == 1
          oEdit:nMode := 2
          oEdit:WriteTopPane( 1 )
          mnu_CmdLine( oEdit )
+#endif
       ENDIF
    ENDIF
 
