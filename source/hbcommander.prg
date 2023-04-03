@@ -219,7 +219,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
 
    ELSEIF nKey == K_F1
-      FHelp()
+      //FHelp()
+      mnu_Help( oHbc, edi_FindPath( "hbc.help" ) )
+      edi_SetPalette( oHbc, oHbc:cPalette )
+      hb_CdpSelect( FilePane():cp )
+      FilePane():RedrawAll()
 
    ELSEIF nKey == K_DOWN
      oPaneCurr:DrawCell( ,.F. )
@@ -1455,9 +1459,10 @@ STATIC FUNCTION hbc_Search()
       {12,23,1,.F.,1}, ;
       {12,43,1,.F.,1}, ;
       {13,23,1,.F.,1}, ;
+      {13,43,1,.T.,1}, ;
       {15,25,2,"[Search]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,40,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, cs_utf8, cCmd, cRes, aRes, aDir, lFound := .F.
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu, cs_utf8, cCmd, cRes, aRes, aDir, lFound := .F.
 
    hb_cdpSelect( "RU866" )
    @ 08, 15, 16, 65 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -1471,6 +1476,7 @@ STATIC FUNCTION hbc_Search()
    @ 12, 22 SAY "[ ] Case sensitive"
    @ 12, 42 SAY "[ ] Regular expr."
    @ 13, 22 SAY "[ ] Whole word"
+   @ 13, 42 SAY "[ ] Recursive"
 
    IF !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -1483,10 +1489,12 @@ STATIC FUNCTION hbc_Search()
       lCase := aGets[4,4]
       lRegex := aGets[5,4]
       lWord := aGets[6,4]
+      lRecu := aGets[7,4]
 
-      IF !Empty( cSearch )
+      IF Empty( cSearch )
+      ELSE
          cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
-            '-R -l --include "' + aGets[1,4] + '" "' + cSearch + '"'
+            Iif(lRecu,'-R ','') + '-l --include "' + aGets[1,4] + '" "' + cSearch + '"'
          FErase( cFileOut )
          cedi_RunConsoleApp( cCmd, cFileOut )
          IF !Empty( cRes := MemoRead( cFileOut ) )
@@ -1497,22 +1505,22 @@ STATIC FUNCTION hbc_Search()
                   Aadd( aDir, { aRes[i],"","","","" } )
                ENDIF
             NEXT
-            IF Len( aDir ) > 1
-               oPaneCurr:nPanelMod := 1
-               oPaneCurr:aDir := aDir
-
-               cs_utf8 := hb_Translate( cSearch,, "UTF8" )
-               IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
-                  ADel( TEdit():aSeaHis, i )
-                  hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
-               ELSE
-                  hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
-               ENDIF
-
-               oPaneCurr:nCurrent := 1
-               lFound := .T.
-            ENDIF
          ENDIF
+      ENDIF
+      IF !Empty( aDir ) .AND. Len( aDir ) > 1
+         oPaneCurr:nPanelMod := 1
+         oPaneCurr:aDir := aDir
+
+         cs_utf8 := hb_Translate( cSearch,, "UTF8" )
+         IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
+            ADel( TEdit():aSeaHis, i )
+            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
+         ELSE
+            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+         ENDIF
+
+         oPaneCurr:nCurrent := 1
+         lFound := .T.
       ENDIF
    ENDIF
 

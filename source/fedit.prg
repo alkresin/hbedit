@@ -3142,11 +3142,14 @@ FUNCTION edi_ReadIni( xIni )
 
    RETURN Nil
 
-FUNCTION mnu_Help( oEdit )
+FUNCTION mnu_Help( oEdit, cFullPath )
 
-   LOCAL cFullPath := edi_FindPath( "hbedit.help" ), oHelp, nCurr := TEdit():nCurr
+   LOCAL oHelp, nCurr := TEdit():nCurr
    LOCAL cHelp, cPlugHelp
 
+   IF Empty( cFullPath )
+      cFullPath := edi_FindPath( "hbedit.help" )
+   ENDIF
    IF !Empty( cFullPath )
       cHelp := MemoRead( cFullPath )
       IF !Empty( oEdit:oHili ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
