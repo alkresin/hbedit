@@ -552,7 +552,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
    if( !HB_ISNIL( 2 ) )
    {
-      hOut = CreateFile( hb_parc( 2 ), GENERIC_WRITE, 0, 0,
+      hOut = CreateFile( ( LPTSTR )hb_parc( 2 ), GENERIC_WRITE, 0, 0,
             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
    }
    while( 1 )

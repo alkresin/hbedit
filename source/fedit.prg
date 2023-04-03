@@ -153,7 +153,7 @@ CLASS TEdit
 
    DATA   funSave
    DATA   bStartEdit, bEndEdit
-   DATA   bOnKey, bWriteTopPane
+   DATA   bOnKey, bWriteTopPane, bTextOut
    DATA   bAutoC
    DATA   oHili
    DATA   hBookMarks
@@ -450,6 +450,9 @@ METHOD TextOut( n1, n2 ) CLASS TEdit
 
    LOCAL i, nCol := Col(), nRow := Row()
 
+   IF !Empty( ::bTextOut )
+      RETURN Eval( ::bTextOut, Self )
+   ENDIF
    IF n1 == Nil; n1 := 1; ENDIF
    IF n2 == Nil; n2 := ::y2 -::y1 + 1; ENDIF
 
@@ -1163,8 +1166,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
          CASE K_CTRL_TAB
             IF ::lCtrlTab
-               ::lShow := .F.
-               ::nCurr ++
+               IF Len( ::aWindows ) == 1
+                  Hbc( Self )
+               ELSE
+                  ::lShow := .F.
+                  ::nCurr ++
+               ENDIF
             ENDIF
             lNoDeselect := .T.
             EXIT
@@ -1515,8 +1522,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
             CASE K_SH_TAB
                IF ::lCtrlTab
-                  ::lShow := .F.
-                  ::nCurr --
+                  IF Len( ::aWindows ) == 1
+                     Hbc( Self )
+                  ELSE
+                     ::lShow := .F.
+                     ::nCurr --
+                  ENDIF
                ENDIF
                lNoDeselect := .T.
                EXIT
@@ -2720,6 +2731,8 @@ FUNCTION edi_ReadIni( xIni )
    hPalettes := hb_Hash()
    hPalettes["default"] := hb_Hash()
    hPalettes["default"]["colors"] := hb_gtinfo( HB_GTI_PALETTE )
+   hPalettes["default"]["colors"][2] := 0x800000
+   hPalettes["default"]["colors"][4] := 0x808000
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )
@@ -3677,18 +3690,20 @@ FUNCTION mnu_Search( oEdit )
 FUNCTION mnu_SeaHist( oEdit, aGet )
 
    LOCAL aMenu, i, bufc
+   LOCAL y1 := aGet[1]+1, x1 := aGet[2], y2, x2 := x1 + aGet[5]
 
    IF !Empty( TEdit():aSeaHis )
       aMenu := Array( Len(TEdit():aSeaHis) )
       FOR i := 1 TO Len(aMenu)
          aMenu[i] := { hb_Translate( TEdit():aSeaHis[i], "UTF8" ), Nil, i }
       NEXT
-      bufc := SaveScreen( 12, 22, 12 + Min(6,Len(aMenu)+1), 55 )
-      IF !Empty( i := FMenu( oEdit, aMenu, 12, 22, 12 + Min(6,Len(aMenu)+1), 55 ) )
+      y2 := y1 + Min( 6,Len(aMenu)+1 )
+      bufc := SaveScreen( y1, x1, y2, x2 )
+      IF !Empty( i := FMenu( oEdit, aMenu, y1, x1, y2, x2 ) )
          aGet[4] := aMenu[i,1]
          ShowGetItem( aGet, .F., oEdit:lUtf8 )
       ENDIF
-      RestScreen( 12, 22, 12 + Min(6,Len(aMenu)+1), 55, bufc )
+      RestScreen( y1, x1, y2, x2, bufc )
       __KeyBoard(Chr(K_UP))
    ENDIF
 

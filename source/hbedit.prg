@@ -17,7 +17,7 @@ FUNCTION Main( ... )
 
    LOCAL aParams := hb_aParams(), i, c, arr
    LOCAL cCurrPath := edi_CurrPath(), cIniName
-   LOCAL ypos, xpos, nStartLine, lRO := .F., lDiff := .F., cText, cDefCP, cDefPal, nSaveHis := -1
+   LOCAL ypos, xpos, nStartLine, lRO := .F., lDiff := .F., lHbc := .F., cText, cDefCP, cDefPal, nSaveHis := -1
 
    FOR i := 1 TO Len( aParams )
       IF Left( aParams[i],1 ) == "-"
@@ -40,6 +40,9 @@ FUNCTION Main( ... )
 
          ELSEIF c == "r" .AND. Substr( aParams[i],3,1 ) == "o"
             lRO := .T.
+
+         ELSEIF c == "m"
+            lHbc := .T.
 
          ELSEIF c == "s" .AND. Substr( aParams[i],3,4 ) == "ize="
             arr := hb_ATokens( Substr( aParams[i],7 ), "," )
@@ -163,9 +166,6 @@ FUNCTION Main( ... )
 
    IF Empty( TEdit():aWindows )
       TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
-      IF lRO
-         ATail(TEdit():aWindows):lReadOnly := .T.
-      ENDIF
    ENDIF
 
    IF nStartLine != Nil
@@ -175,6 +175,9 @@ FUNCTION Main( ... )
 
    SetCancel( .F. )
    TEdit():nCurr := 1
+   IF lHbc .AND. Len( TEdit():aWindows ) == 1
+      Hbc( TEdit():aWindows[1] )
+   ENDIF
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)
          TEdit():nCurr := 1
