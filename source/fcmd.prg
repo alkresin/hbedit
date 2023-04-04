@@ -30,7 +30,8 @@ STATIC aCommands := { ;
 STATIC s4auto, lModeSea
 STATIC aKeysOpt
 STATIC lEnd
-STATIC cFileAdd, cCmdLine
+//STATIC cFileAdd
+STATIC cCmdLine
 
 FUNCTION mnu_CmdLine( oEdit )
 
@@ -151,6 +152,7 @@ FUNCTION mnu_CmdLine( oEdit )
    SetColor( oEdit:cColor )
    oEdit:TextOut()
    edi_ChgMode( oEdit, Iif( oEdit:nDefMode==1, 1, 0 ) )
+/*
    IF !Empty( cFileAdd )
       IF !Empty( cTemp := MemoRead( cFileAdd ) )
          cTemp := ">" + cCmdLine + Chr(10) + cTemp
@@ -164,7 +166,7 @@ FUNCTION mnu_CmdLine( oEdit )
       ENDIF
       cFileAdd := ""
    ENDIF
-
+*/
    RETURN Nil
 
 STATIC FUNCTION fSea( oEdit, s )
@@ -179,6 +181,7 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
+/*
    ELSEIF Left( sCmd, 1 ) == '!'
       IF ( nPos := At( '%', sCmd ) ) > 0
          s := Iif( Substr( sCmd,nPos+1,1 ) == 'f', oEdit:cFileName, ;
@@ -209,6 +212,7 @@ STATIC FUNCTION cmdExec( oEdit, sCmd )
          cFileAdd := ""
       ENDIF
       lEnd := .T.
+*/
    ELSE
       acmd := hb_aTokens( sCmd )
       FOR EACH arr IN aCommands

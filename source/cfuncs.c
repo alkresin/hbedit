@@ -504,6 +504,9 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    DWORD dwRead, dwWritten, dwExitCode;
    CHAR chBuf[BUFSIZE];
    HANDLE hOut = NULL;
+#ifdef UNICODE
+   TCHAR wc1[256], wc2[256];
+#endif
 
    sa.nLength = sizeof( SECURITY_ATTRIBUTES );
    sa.bInheritHandle = TRUE;
@@ -535,9 +538,14 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    si.hStdOutput = g_hChildStd_OUT_Wr;
    si.hStdError = g_hChildStd_OUT_Wr;
 
+#ifdef UNICODE
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
+         TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
+#else
    bSuccess = CreateProcess( NULL, ( LPTSTR ) hb_parc( 1 ), NULL, NULL,
          TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
-
+#endif
    if( !bSuccess )
    {
       hb_retni( 3 );
@@ -552,8 +560,14 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
    if( !HB_ISNIL( 2 ) )
    {
+#ifdef UNICODE
+      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, 256 );
+      hOut = CreateFile( wc2, GENERIC_WRITE, 0, 0,
+            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
+#else
       hOut = CreateFile( ( LPTSTR )hb_parc( 2 ), GENERIC_WRITE, 0, 0,
             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
+#endif
    }
    while( 1 )
    {

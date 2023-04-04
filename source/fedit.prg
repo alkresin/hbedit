@@ -4114,7 +4114,7 @@ FUNCTION edi_SetPos( oEdit, nLine, nPos )
 
    RETURN DevPos( oEdit:LineToRow(nLine), oEdit:PosToCol(nLine,nPos) )
 
-STATIC FUNCTION edi_Move( oEdit, nKey, nRepeat )
+FUNCTION edi_Move( oEdit, nKey, nRepeat )
 
    LOCAL i, x
    LOCAL nLine, nPos, nRow, nLine1, nxOfLine

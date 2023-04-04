@@ -145,6 +145,7 @@ FUNCTION Hbc( oEdit )
       oHbc:bOnKey := {|o,n| _Hbc_OnKey(o,n) }
       oHbc:bStartEdit := {|| _Hbc_Start() }
       oHbc:bTextOut := bTextOut
+      oHbc:lIns := Nil
 
       aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
       edi_SetPalette( oHbc, "default" )
@@ -173,10 +174,9 @@ STATIC FUNCTION _Hbc_Start()
 
 STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
-   LOCAL nKey, cPath, nPos, lRedraw, cTemp, o, nRow, nCol
+   LOCAL nKey, cPath, nPos, lRedraw, cExt, cTemp, o, nRow, nCol
    LOCAL bufsc
 
-   SetCursor( SC_NONE )
    nKey := hb_keyStd( nKeyExt )
 
    IF oPaneCurr:nCurrent == 0 .AND. !( nKey == K_ALT_D .OR. nKey == K_CTRL_TAB .OR. nKey == K_ALT_TAB .OR. ;
@@ -219,11 +219,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
 
    ELSEIF nKey == K_F1
-      //FHelp()
       mnu_Help( oHbc, edi_FindPath( "hbc.help" ) )
       edi_SetPalette( oHbc, oHbc:cPalette )
       hb_CdpSelect( FilePane():cp )
       FilePane():RedrawAll()
+
+   ELSEIF nKey == K_F2
+      oPaneCurr:ContextMenu()
 
    ELSEIF nKey == K_DOWN
      oPaneCurr:DrawCell( ,.F. )
@@ -407,14 +409,22 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:DrawHead( .T. )
       ELSE
          IF Empty( oPaneCurr:cIOpref )
-            cTemp := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
-            nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
+            cExt := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExt .or. '/'+cExt+'/' $ a[1]} )
             cTemp := oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
             IF ' ' $ cTemp
                cTemp := '"' + cTemp + '"'
             ENDIF
             IF nPos > 0
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+#ifdef __PLATFORM__WINDOWS
+            ELSEIF cExt == "bat"
+               Console( cTemp )
+#endif
+#ifdef __PLATFORM__UNIX
+            ELSEIF cExt == "sh"
+               Console( cTemp )
+#endif
 #ifdef GTHWG
             ELSEIF lGuiVer
                hwg_shellExecute( cTemp )
@@ -478,7 +488,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
             RETURN -1
          ELSE
-            IF !o:PaneMenu() .AND. oPaneCurr:OnExit()
+            IF !o:PaneMenu()
                mnu_Exit( oEdit_Hbc )
             ENDIF
          ENDIF
@@ -556,7 +566,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
 STATIC FUNCTION ReadIni( cIniName )
 
-   LOCAL hIni := hb_iniRead( cIniName ), aSect, arr, i, cTmp, s
+   LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s
    LOCAL aPanes := { Nil, Nil }, cp, lPalette := .F.
 
    FilePane():lReadIni := .T.
@@ -782,6 +792,8 @@ CLASS FilePane
    CLASS VAR aPlugins SHARED   INIT {}
    CLASS VAR aAppList SHARED   INIT {}
    CLASS VAR lReadIni SHARED   INIT .F.
+   CLASS VAR cConsOut SHARED   INIT ""
+   CLASS VAR nConsMax SHARED   INIT 20000
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -812,6 +824,7 @@ CLASS FilePane
    METHOD DrawCell( nCell, lSel )
    METHOD DrawHead( lSel )
    METHOD PaneMenu()
+   METHOD ContextMenu()
    METHOD RedrawAll()
 
 ENDCLASS
@@ -893,10 +906,15 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 
 METHOD ParsePath( cPath ) CLASS FilePane
 
-   LOCAL nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, c, l, i
+   LOCAL nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i
 
    IF Lower( Left( cPath,4 ) ) == "net:"
       cPref := "net:"
+      IF ( nPos1 := hb_At( '<', cPath, 5 ) ) > 0 .AND. ;
+         ( nPos2 := hb_At( '>', cPath, nPos1+1 ) ) > 0
+         cPass := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
+         cPath := Left( cPath, nPos1-1 ) + Substr( cPath, nPos2+1 )
+      ENDIF
       IF ( nPos1 := hb_At( ':', cPath, 5 ) ) > 0
          cAddr := Substr( cPath, 5, nPos1-5 )
          IF ( nPos2 := hb_At( ':', cPath, nPos1+1 ) ) > 0
@@ -941,7 +959,10 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ENDIF
       NEXT
       IF !l
-         IF netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1) )
+         IF Empty( cPass )
+            cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30 )
+         ENDIF
+         IF netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
             l := .T.
          ELSE
             //::cCurrPath := ::cIOpref := ::net_cAddress := ::net_cPort := ""
@@ -1147,12 +1168,15 @@ METHOD PaneMenu() CLASS FilePane
 
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
-   LOCAL aMenu := { "Pane mode", "Change dir", "File edit history", "Find file  Alt-F7", ;
-      "Plugins       F11", "Apps      Alt-F12", "Buffers       F12", ;
-      cSep, "Edit hbc.ini", cSep, "Exit" }
+   LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,}, {"File edit history",,}, {"Find file",,,"Alt-F7"}, ;
+      {"Plugins",,,"F11"}, {"Apps",,,"Alt-F12"}, {"Buffers",,,"F12"}, ;
+      {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
    LOCAL aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," ") + "    Alt-1", ;
       "Mode 2 " + Iif(::nDispMode==2,"x"," ") + "    Alt-2" }
 
+   IF !Empty( FilePane():cConsOut )
+      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,}, .T. )
+   ENDIF
    nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2, ::x1+25, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
       nChoic := FMenu( oHbc, aMenu1, ::y1+2, ::x1+14, ::y1+Len(aMenu1)+3, ::x1+38, ::aClrMenu[1], ::aClrMenu[2] )
@@ -1174,8 +1198,10 @@ METHOD PaneMenu() CLASS FilePane
       Plugins( Self )
    ELSEIF nChoic == 6
       AppList( Self )
-   ELSEIF nChoic == Len( aMenu ) - 4
+   ELSEIF nChoic == 7
       mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
+   ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
+      ShowStdout()
    ELSEIF nChoic == Len( aMenu ) - 2
       mnu_NewBuf( oHbc, hb_DirBase() + "hbc.ini" )
 
@@ -1184,6 +1210,20 @@ METHOD PaneMenu() CLASS FilePane
    ENDIF
 
    RETURN .T.
+
+METHOD ContextMenu() CLASS FilePane
+
+   LOCAL aMenu := {}, nChoic
+
+   IF Len( aMenu ) == 0
+      RETURN Nil
+   ENDIF
+
+   nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2, ::x1+25, ::aClrMenu[1], ::aClrMenu[2] )
+   IF nChoic == 1
+   ENDIF
+
+   RETURN Nil
 
 METHOD RedrawAll() CLASS FilePane
 
@@ -1197,7 +1237,7 @@ METHOD RedrawAll() CLASS FilePane
 
 STATIC FUNCTION hbc_FCopy()
 
-   LOCAL cFileName, cBuf, nKey, i, oPaneTo, cFileTo
+   LOCAL cFileName, cBuf, nKey, i, cFileTo
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
@@ -1243,7 +1283,7 @@ STATIC FUNCTION hbc_FCopy()
 
 STATIC FUNCTION hbc_FCopySele()
 
-   LOCAL cFileName, cFileTo, oPaneTo, i, aWnd, nSch := 0
+   LOCAL cFileName, cFileTo, i, aWnd, nSch := 0
 
    FOR i := 1 TO Len( FilePane():aPanes )
       IF !( FilePane():aPanes[i] == oPaneCurr )
@@ -1329,12 +1369,10 @@ STATIC FUNCTION hbc_FRename()
 
 STATIC FUNCTION hbc_FDelete()
 
-   LOCAL cFileName
+   LOCAL cFileName, lDir
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-   IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
-      RETURN Nil
-   ENDIF
+   lDir := ('D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5])
 
    IF edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
       IF (lDir .AND. hb_vfDirRemove( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0 ) ;
@@ -1448,6 +1486,41 @@ STATIC FUNCTION hbc_Dirlist()
 
    RETURN Nil
 
+STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode )
+
+   LOCAL i, res, nCount := 0, arlen, aFiles, nPos1 := 1, nPos2, cMsk, lDo := .T.
+
+   cMask := Iif( cMask==Nil, "*.*", Upper(cMask) )
+
+   DO WHILE lDo
+      IF ( nPos2 := hb_At( ";", cMask, nPos1 ) ) > 0
+         cMsk := Substr( cMask, nPos1, nPos2-nPos1 )
+         nPos1 := nPos2 + 1
+      ELSE
+         cMsk := Substr( cMask, nPos1 )
+         lDo := .F.
+      ENDIF
+      aFiles := Directory( cInitDir + "*.*", "HSD" )
+      arlen := Len( aFiles )
+      FOR i := 1 TO arlen
+         IF "D" $ aFiles[ i,5 ]
+            IF "." != aFiles[ i,1 ] .AND. ".." != aFiles[ i,1 ] .AND. lRecur
+               nCount += DirEval( cInitDir + aFiles[i,1] + hb_OsPathSeparator(), cMsk, .T., bCode )
+            ENDIF
+         ELSEIF hb_FileMatch( UPPER( aFiles[ i,1 ] ), cMsk )
+            nCount ++
+            IF bCode != Nil
+               res := Eval( bCode, cInitDir + aFiles[i,1] )
+               IF ValType( res ) == "L" .AND. !res
+                  Return nCount
+               ENDIF
+            ENDIF
+         ENDIF
+      NEXT
+   ENDDO
+
+   RETURN nCount
+
 STATIC FUNCTION hbc_Search()
 
    LOCAL cScBuf := Savescreen( 08, 15, 16, 65 ), nRes, i
@@ -1462,7 +1535,8 @@ STATIC FUNCTION hbc_Search()
       {13,43,1,.T.,1}, ;
       {15,25,2,"[Search]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,40,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, lRecu, cs_utf8, cCmd, cRes, aRes, aDir, lFound := .F.
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu
+   LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F.
 
    hb_cdpSelect( "RU866" )
    @ 08, 15, 16, 65 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -1492,13 +1566,14 @@ STATIC FUNCTION hbc_Search()
       lRecu := aGets[7,4]
 
       IF Empty( cSearch )
+         DirEval( oPaneCurr:cCurrPath, aGets[1,4], lRecu, ;
+            {|s|Aadd( aDir,{ Substr(s,Len(oPaneCurr:cCurrPath)+1),"","","","" })} )
       ELSE
          cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
             Iif(lRecu,'-R ','') + '-l --include "' + aGets[1,4] + '" "' + cSearch + '"'
          FErase( cFileOut )
          cedi_RunConsoleApp( cCmd, cFileOut )
          IF !Empty( cRes := MemoRead( cFileOut ) )
-            aDir := { { "..","","","","D" } }
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
                IF !Empty( aRes[i] )
@@ -1507,7 +1582,7 @@ STATIC FUNCTION hbc_Search()
             NEXT
          ENDIF
       ENDIF
-      IF !Empty( aDir ) .AND. Len( aDir ) > 1
+      IF Len( aDir ) > 1
          oPaneCurr:nPanelMod := 1
          oPaneCurr:aDir := aDir
 
@@ -1732,7 +1807,26 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
 
    RETURN Nil
 
-STATIC FUNCTION Console()
+STATIC FUNCTION ShowStdout()
+
+   LOCAL cName := "$Stdout", i, oNew
+
+   IF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cName} ) ) > 0
+      mnu_ToBuf( oHbc, i )
+      RETURN Nil
+      //RETURN TEdit():aWindows[i]
+   ENDIF
+
+   oNew := TEdit():New( FilePane():cConsOut, cName, oHbc:aRectFull[1], oHbc:aRectFull[2], oHbc:aRectFull[3], oHbc:aRectFull[4] )
+   oHbc:lShow := .F.
+   TEdit():nCurr := Len( TEdit():aWindows )
+   oNew:lReadOnly := .T.
+   //KEYBOARD Chr( K_PGDN )
+   edi_Move( oNew, 71 )
+
+   RETURN Nil
+
+STATIC FUNCTION Console( cCommand )
 
    LOCAL bufsc, clr, i, nHis := 0
    LOCAL xRes, bOldError
@@ -1751,20 +1845,28 @@ STATIC FUNCTION Console()
       RETURN Nil
    }
 
+   IF cCommand == Nil
+      cCommand := ""
+   ELSE
+      KEYBOARD Chr( K_ENTER )
+   ENDIF
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    clr := SetColor( "+W/N" )
+
    SET CURSOR ON
+
    IF Empty( cOutBuff )
       CLEAR SCREEN
    ELSE
       RestScreen( 0, 0, nScreenH-1, nScreenW-1, cOutBuff )
    ENDIF
+
    DO WHILE .T.
       nHis := Len( aHisCmd ) + 1
       ?
       DevPos( Maxrow(), 0 )
       SetColor( "+W/N" )
-      cCommand := GetLine( ">", "", bKeys )
+      cCommand := GetLine( ">", cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
             EXIT
@@ -1776,8 +1878,10 @@ STATIC FUNCTION Console()
             Errorblock( bOldError )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
+         /*
          ELSEIF !lGuiVer
             cedi_RunConsoleApp( cCommand )
+         */
          ELSE
             FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
@@ -1786,14 +1890,23 @@ STATIC FUNCTION Console()
             //edi_alert( "Run " + ccommand + " / " + cfileout )
             cedi_RunConsoleApp( cCommand, cFileOut )
             IF !Empty( xRes := MemoRead( cFileOut ) )
+               IF Chr(9) $ xRes
+                  xRes := StrTran( xRes, Chr(9), Space(8) )
+               ENDIF
                SetColor( "W/N" )
-               ? StrTran( xRes, Chr(9), Space(8) )
+               FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) + xRes
+               IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+                  i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+                  FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+               ENDIF
+               ? xRes
             ENDIF
          ENDIF
          IF ( i := Ascan( aHisCmd, {|s|s == cCommand} ) ) > 0
             aHisCmd := hb_ADel( aHisCmd, i, .T. )
          ENDIF
          Aadd( aHisCmd, cCommand )
+         cCommand := ""
       ENDIF
    ENDDO
    cOutBuff := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
@@ -1879,37 +1992,6 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
    ENDDO
 
    RETURN cRes
-
-STATIC FUNCTION FHelp()
-
-   LOCAL cBuf
-
-   cBuf := Savescreen( 02, 20, 21, 64 )
-
-   Set COLOR TO N/W
-   @ 02, 20, 21, 64 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 03, 25 SAY "HbCommander " + HBC_VERSION
-   @ 04, 25 SAY "Copyright (C) Alexander S. Kresin"
-
-   @ 06, 22 SAY "F3  - File view"
-   @ 07, 22 SAY "F4  - File edit"
-   @ 08, 22 SAY "F5  - File copy"
-   @ 09, 22 SAY "F6  - File rename"
-   @ 10, 22 SAY "F7  - Create directory"
-   @ 11, 22 SAY "F8  - File delete"
-   @ 12, 22 SAY "F9  - Menu"
-   @ 13, 22 SAY "F10 - Exit"
-   @ 14, 22 SAY "F11 - Plugins"
-   @ 15, 22 SAY "F12 - Editor buffers"
-
-   @ 17, 22 SAY "Alt-1 - 1 column in pane"
-   @ 18, 22 SAY "Alt-2 - 2 column in pane"
-   @ 19, 22 SAY "Alt-D - Change path"
-
-   Inkey( 0 )
-   Restscreen( 02, 20, 21, 64, cBuf )
-
-   RETURN Nil
 
 STATIC FUNCTION WndInit( y1, x1, y2, x2, clr )
 

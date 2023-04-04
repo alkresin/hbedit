@@ -1,4 +1,19 @@
 
 HbCommander - ¢áâà®¥­­ë© ¬¥­¥¤¦¥à ä ©«®¢
+   Copyright (C) Alexander S. Kresin
 ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 
+   F3  - File view
+   F4  - File edit
+   F5  - File copy
+   F6  - File rename
+   F7  - Create directory
+   F8  - File delete
+   F9  - Menu
+   F10 - Exit
+   F11 - Plugins
+   F12 - Editor buffers
+
+   Alt-1 - 1 column in pane
+   Alt-2 - 2 column in pane
+   Alt-D - Change path

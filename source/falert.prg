@@ -60,6 +60,23 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    RETURN i
 
+FUNCTION edi_MsgGet( cTitle, y1, x1, x2 )
+
+   LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets := { { y1+1,x1+2, 0, "", x2-x1-4 } }
+
+      cBuf := Savescreen( y1, x1, y1 + 2, x2 )
+      @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ y1, x1 + 4 SAY cTitle
+
+      edi_READ( aGets )
+      IF LastKey() == 13
+         xRes := aGets[1,4]
+      ENDIF
+      Restscreen( y1, x1, y1 + 2, x2, cBuf )
+
+   RETURN xRes
+
 FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin )
 
    LOCAL i, cPlugin, cFullPath
