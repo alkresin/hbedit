@@ -144,6 +144,7 @@ FUNCTION Hbc( oEdit )
       oHbc:lTopPane := .F.
       oHbc:bOnKey := {|o,n| _Hbc_OnKey(o,n) }
       oHbc:bStartEdit := {|| _Hbc_Start() }
+      oHbc:bEndEdit := {|| hb_gtinfo( HB_GTI_WINTITLE, "HbEdit" ) }
       oHbc:bTextOut := bTextOut
       oHbc:lIns := Nil
 
@@ -166,6 +167,7 @@ FUNCTION Hbc( oEdit )
 
 STATIC FUNCTION _Hbc_Start()
 
+   hb_gtinfo( HB_GTI_WINTITLE, "HbCommander" )
    SetCursor( SC_NONE )
    DirChange( oPaneCurr:cCurrPath )
    FilePane():RedrawAll()
