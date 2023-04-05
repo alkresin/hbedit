@@ -430,8 +430,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                Console( cTemp )
 #endif
 #ifdef GTHWG
-            ELSEIF lGuiVer
+            ELSE  //IF lGuiVer
+#ifdef __PLATFORM__UNIX
+               hwg_shellExecute( "file://" + cTemp )
+#else
                hwg_shellExecute( cTemp )
+#endif
 #endif
             ENDIF
          ENDIF
