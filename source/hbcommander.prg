@@ -176,7 +176,7 @@ STATIC FUNCTION _Hbc_Start()
 
 STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
-   LOCAL nKey, cPath, nPos, lRedraw, cExt, cTemp, o, nRow, nCol
+   LOCAL nKey, cPath, nPos, lRedraw, cExt, cTemp, o, nRow, nCol, i
    LOCAL bufsc
 
    nKey := hb_keyStd( nKeyExt )
@@ -422,6 +422,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == "bat"
                Console( cTemp )
+            ELSEIF cExt == "exe"
+              cedi_RunApp( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
             ELSEIF cExt == "sh"
@@ -544,10 +546,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_CTRL_O
       Console()
 
+/*
    ELSEIF nKey == K_ALT_1
       oPaneCurr:ChangeMode( 1 )
    ELSEIF nKey == K_ALT_2
       oPaneCurr:ChangeMode( 2 )
+*/
    ELSEIF nKey == K_ALT_D
       oPaneCurr:ChangeDir()
    ELSEIF nKey == K_ALT_F1
@@ -562,13 +566,21 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       hbc_Search()
    ELSEIF nKey == K_ALT_F12
       AppList( oPaneCurr )
+   ELSE
+      IF !Empty( FilePane():aDefPaths )
+         FOR i := 1 TO Len( FilePane():aDefPaths )
+            IF FilePane():aDefPaths[i,3] == nKeyExt
+               oPaneCurr:ChangeDir( FilePane():aDefPaths[i,1] )
+            ENDIF
+         NEXT
+      ENDIF
    ENDIF
 
    RETURN -1
 
 STATIC FUNCTION ReadIni( cIniName )
 
-   LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s
+   LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s, nPos
    LOCAL aPanes := { Nil, Nil }, cp, lPalette := .F.
 
    FilePane():lReadIni := .T.
@@ -662,7 +674,13 @@ STATIC FUNCTION ReadIni( cIniName )
          FilePane():aDefPaths := Array( Len( arr ) )
          FOR i := 1 TO Len( arr )
             IF !Empty( cTmp := aSect[ arr[i] ] )
-               FilePane():aDefPaths[i] := cTmp
+               IF ( nPos := At( ',', cTmp ) ) > 0
+                  s := Substr( cTmp, nPos+1 )
+                  cTmp := Left( cTmp, nPos-1 )
+               ELSE
+                  s := ""
+               ENDIF
+               FilePane():aDefPaths[i] := { cTmp, s, Iif( !Empty(s), edi_KeyCToN(s), Nil ) }
             ENDIF
          NEXT
       ENDIF
@@ -872,6 +890,7 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
       Set COLOR TO +GR/B,N/BG
       @ ::y1 + 6, ::x1 + 8, ::y1 + 8, ::x1 + 36 BOX "ÚÄ¿³ÙÄÀ³ "
       @ ::y1 + 6, ::x1 + 12 SAY " Set new path:"
+      KEYBOARD Chr(K_ENTER)
 
       DO WHILE .T.
          IF ( nRes := edi_READ( aGets, hb_Hash( 0x440003ee, Chr(K_ENTER)) ) ) > 0
@@ -1170,11 +1189,11 @@ METHOD PaneMenu() CLASS FilePane
 
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
-   LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,}, {"File edit history",,}, {"Find file",,,"Alt-F7"}, ;
+   LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,,"Alt-D"}, {"File edit history",,}, {"Find file",,,"Alt-F7"}, ;
       {"Plugins",,,"F11"}, {"Apps",,,"Alt-F12"}, {"Buffers",,,"F12"}, ;
       {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
-   LOCAL aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," ") + "    Alt-1", ;
-      "Mode 2 " + Iif(::nDispMode==2,"x"," ") + "    Alt-2" }
+   LOCAL aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
+      "Mode 2 " + Iif(::nDispMode==2,"x"," ") }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,}, .T. )
@@ -1189,9 +1208,12 @@ METHOD PaneMenu() CLASS FilePane
       ENDIF
 
    ELSEIF nChoic == 2
+      /*
       IF !Empty( cTemp := hbc_SelePath( ::y1-1, ::x1-1 ) )
          ::ChangeDir( cTemp )
       ENDIF
+      */
+      ::ChangeDir()
    ELSEIF nChoic == 3
       hbc_Dirlist()
    ELSEIF nChoic == 4
@@ -1239,47 +1261,51 @@ METHOD RedrawAll() CLASS FilePane
 
 STATIC FUNCTION hbc_FCopy()
 
-   LOCAL cFileName, cBuf, nKey, i, cFileTo
+   LOCAL cFileName, cFileTo
+   LOCAL cScBuf := Savescreen( 05, 10, 10, 70 ), nRes, i
+   LOCAL oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
+   LOCAL aGets := { ;
+      {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {09,25,2,"[Copy]",6,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+
+   hb_cdpSelect( "RU866" )
+   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 08, 10 SAY "Ã"
+   @ 08, 70 SAY "´"
+   @ 08, 11 TO 08, 69
+   hb_cdpSelect( oHbc:cp )
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN Nil
    ENDIF
 
-   cBuf := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-
-   Set COLOR TO N/W
-   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 06, 12 SAY "Copy " + NameShortcut( cFileName, 48 ) + " to:"
-   @ 07, 14 SAY NameShortcut( oPaneTo:cCurrPath, 57 )
-   Set COLOR TO N/BG
-   @ 09, 24 SAY "[Enter - Ok]  [ESC - Cancel]"
+   aGets[1,4] := oPaneTo:cCurrPath + cFileName
 
-   DO WHILE .T.
-      IF ( nKey := Inkey( 0 ) ) == 13
-         cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName
-         IF hb_vfExists( cFileTo ) .AND. edi_Alert( "File exists already! Owerwrite it?", "No", "Yes" ) != 2
-            Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
-            RETURN Nil
-         ENDIF
-         @ 08, 28 SAY PAdc( "Wait", 28 )
-         //hwg_writelog( oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName )
-         IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, ;
-               cFileTo ) == 0
-            Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
-            oPaneTo:Refresh()
-            oPaneTo:Draw()
-         ELSE
-            edi_Alert( "Error copying " + cFileName )
-            Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
-         ENDIF
+   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+      cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + AllTrim(aGets[1,4])
+      IF hb_vfExists( cFileTo ) .AND. edi_Alert( "File exists already! Owerwrite it?", "No", "Yes" ) != 2
+         Restscreen( 05, 10, 10, 70, cScBuf )
          RETURN Nil
-      ELSEIF nKey == 27
-         EXIT
       ENDIF
-   ENDDO
+      @ 08, 28 SAY PAdc( "Wait", 28 )
+      //hwg_writelog( oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName )
+      IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, ;
+            cFileTo ) == 0
+         //Restscreen( 05, 10, 10, 70, cScBuf )
+         oPaneCurr:Refresh()
+         oPaneTo:Refresh()
+         oPaneCurr:RedrawAll()
+      ELSE
+         edi_Alert( "Error copying " + cFileName )
+         Restscreen( 05, 10, 10, 70, cScBuf )
+      ENDIF
+      RETURN Nil
+   ENDIF
 
-   Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
+   Restscreen( 05, 10, 10, 70, cScBuf )
 
    RETURN Nil
 
@@ -1452,17 +1478,18 @@ STATIC FUNCTION hbc_FMakeDir()
 
 STATIC FUNCTION hbc_SelePath( y1, x1 )
 
-   LOCAL i, nHeight, nWidth := 16, cRes := "", aPaths := FilePane():aDefPaths
+   LOCAL i, nHeight, nWidth := 16, cRes := "", aPaths := Array( Len(FilePane():aDefPaths) )
    LOCAL nwMax := FilePane():vx2 - 1 - x1
 
-   IF !Empty( aPaths )
+   IF !Empty( FilePane():aDefPaths )
       nHeight := Min( Len(aPaths),20 )
       FOR i := 1 TO Len(aPaths)
-         nWidth := Min( Max( Len(aPaths[i])+5, nWidth ), nwMax )
+         aPaths[i] := { FilePane():aDefPaths[i,1],,, FilePane():aDefPaths[i,2] }
+         nWidth := Min( Max( Len(aPaths[i,1])+5, nWidth ), nwMax )
       NEXT
       i := FMenu( oHbc, aPaths, y1+2, x1+2, y1+3+nHeight, x1+3+nWidth, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
       IF i > 0
-         cRes := PAdr( aPaths[i], 200 )
+         cRes := PAdr( aPaths[i,1], 200 )
       ENDIF
    ENDIF
 

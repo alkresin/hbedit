@@ -41,7 +41,7 @@ FUNCTION mnu_CmdLine( oEdit )
    lModeSea := .F.
    lEnd := .F.
 
-   SetColor( oEdit:cColorWB )
+   SetColor( oEdit:cColorSel )
    Scroll( y, oEdit:x1, y, oEdit:x2 )
    oEdit:y2 --
 

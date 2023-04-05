@@ -1437,7 +1437,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 #endif
                   CASE 58    // :
                      IF ::nDefMode >= 0
-                        edi_ChgMode( Self )
+                        edi_ChgMode( Self, 2 )
                      ENDIF
                      EXIT
                   CASE 46    // .
@@ -4092,16 +4092,13 @@ FUNCTION edi_ChgMode( oEdit, nMode, lNoDelay )
    IF nMode != Nil
       oEdit:nMode := nMode
       oEdit:WriteTopPane( 1 )
+      IF nMode == 2
+         mnu_CmdLine( oEdit )
+      ENDIF
    ELSE
       IF oEdit:nMode == 0
          oEdit:nMode := 1
          oEdit:WriteTopPane( 1 )
-#ifndef _NO_CMDLINE
-      ELSEIF oEdit:nMode == 1
-         oEdit:nMode := 2
-         oEdit:WriteTopPane( 1 )
-         mnu_CmdLine( oEdit )
-#endif
       ENDIF
    ENDIF
 
