@@ -1273,7 +1273,9 @@ METHOD ContextMenu() CLASS FilePane
    ENDIF
 
    nChoic := FMenu( oHbc, aMenu, ::y1+3, ::x1+10,,, ::aClrMenu[1], ::aClrMenu[2] )
-   IF aMenu[nChoic,3] == 1
+   IF nChoic == 0
+      RETURN Nil
+   ELSEIF aMenu[nChoic,3] == 1
       IF Empty( oPaneCurr:aSelected )
          hbc_FCopy()
       ELSE
