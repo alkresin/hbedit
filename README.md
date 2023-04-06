@@ -31,7 +31,9 @@ A fullscreen console multiplatform text editor.
     + fmenu.prg
     + hilight.prg       - editor source files, which implements the TEdit class.
                         To include the TEdit in your application you need to link them all.
-
+    + hbcommander.prg
+    + fview.prg         - integrated file commander source files
+    
     + errorsys.prg
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
@@ -48,12 +50,14 @@ A fullscreen console multiplatform text editor.
     + plug_gm_life.prg      - A Life game
     + plug_gm_sokoban.prg   - A Sokoban game
     + plug_gm_strek.prg     - A Star Trek game
+    + plug_gm_sudoku.prg    - A Sudoku game
     + plug_gm_tetris.prg    - A Tetris game
     + plug_go_build.prg     - Golang build project
     + plug_go_fmt.prg       - Golang formatting
     + plug_go_init.prg      - a start plugin for .go files
     + plug_go_run.prg       - Golang run code
     + plug_go_spis.prg      - Golang functions list
+    + plug_hbc_menu.prg     - a plugin, which complements file commander context menu
     + plug_hbp_init.prg     - a start plugin for .hbp files
     + plug_java_init.prg    - a start plugin for .java files
     + plug_lisp_init.prg    - a start plugin for .lisp files
