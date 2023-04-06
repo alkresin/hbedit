@@ -352,7 +352,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       DirChange( oPaneCurr:cCurrPath )
       RETURN -1
 
-   ELSEIF nKey == K_ENTER .OR. nKey == K_CTRL_PGUP .OR. nKey == K_LDBLCLK
+   ELSEIF nKey == K_ENTER .OR. nKey == K_CTRL_PGUP .OR. (nKey == K_LDBLCLK .AND. MRow()>0)
       IF nKey == K_CTRL_PGUP
          oPaneCurr:DrawCell( ,.F. )
          oPaneCurr:nCurrent := 1
@@ -421,13 +421,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == "bat"
-               Console( cTemp )
+               hbc_Console( cTemp )
             ELSEIF cExt == "exe"
               cedi_RunApp( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
             ELSEIF cExt == "sh"
-               Console( cTemp )
+               hbc_Console( cTemp )
 #endif
 #ifdef GTHWG
             ELSE  //IF lGuiVer
@@ -491,14 +491,19 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_LBUTTONDOWN .OR. nKey == K_RBUTTONDOWN
       nRow := MRow(); nCol := MCol()
       o := Iif( nCol <= FilePane():aPanes[1]:x2, FilePane():aPanes[1], FilePane():aPanes[2] )
-      IF nKey == K_LBUTTONDOWN .AND. nRow == 0
-         IF nCol >= FilePane():vx2 - 5
-            mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
-            RETURN -1
-         ELSE
-            IF !o:PaneMenu()
-               mnu_Exit( oEdit_Hbc )
+      IF nRow == 0
+         IF nKey == K_LBUTTONDOWN
+            IF nCol >= FilePane():vx2 - 5
+               mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
+               RETURN -1
+            ELSE
+               IF !o:PaneMenu()
+                  mnu_Exit( oEdit_Hbc )
+               ENDIF
             ENDIF
+         ELSE
+            oPaneCurr:ContextMenu()
+            RETURN -1
          ENDIF
       ENDIF
       IF oPaneCurr:nCurrent > 0 .AND. nRow > 0 .AND. nRow <= o:nRows
@@ -548,7 +553,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       KEYBOARD Chr( K_DOWN )
 
    ELSEIF nKey == K_CTRL_O
-      Console()
+      hbc_Console()
 
 /*
    ELSEIF nKey == K_ALT_1
@@ -615,12 +620,15 @@ STATIC FUNCTION ReadIni( cIniName )
       ENDIF
 #endif
       IF hb_hHaskey( hIni, cTmp := "OPTIONS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         IF hb_hHaskey( aSect, "cp" ) .AND. !Empty( cTmp := aSect[ "cp" ] )
+         IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := cTmp
          ENDIF
          IF hb_hHaskey( aSect, cTemp := "palette" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
             edi_SetPalette( oHbc, cTemp )
             lPalette := .T.
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "context_menu_plugin" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():xContextMenu := cTmp
          ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -818,6 +826,7 @@ CLASS FilePane
    CLASS VAR lReadIni SHARED   INIT .F.
    CLASS VAR cConsOut SHARED   INIT ""
    CLASS VAR nConsMax SHARED   INIT 20000
+   CLASS VAR xContextMenu SHARED
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -1241,14 +1250,45 @@ METHOD PaneMenu() CLASS FilePane
 
 METHOD ContextMenu() CLASS FilePane
 
-   LOCAL aMenu := {}, nChoic
+   LOCAL aMenu := {}, nChoic, xPlugin, cFullPath, bMenu
+
+   IF !( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
+      Aadd( aMenu, { "Copy",,1,"F5" } )
+      Aadd( aMenu, { "Rename",,2,"F6" } )
+      Aadd( aMenu, { "Delete",,3,"F8" } )
+   ENDIF
+
+   IF !Empty( xPlugin := FilePane():xContextMenu )
+      IF Valtype( xPlugin ) == "C" .AND. ;
+         !Empty( cFullPath := edi_FindPath( "plugins" + hb_ps() + xPlugin ) )
+         xPlugin := FilePane():xContextMenu := { cFullPath, hb_hrbLoad( cFullPath ) }
+      ENDIF
+      IF Valtype( xPlugin ) == "A" .AND. !Empty( xPlugin[2] )
+         bMenu := hb_hrbDo( xPlugin[2], aMenu, Self, hb_fnameDir( xPlugin[1] ) )
+      ENDIF
+   ENDIF
 
    IF Len( aMenu ) == 0
       RETURN Nil
    ENDIF
 
-   nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2, ::x1+25, ::aClrMenu[1], ::aClrMenu[2] )
-   IF nChoic == 1
+   nChoic := FMenu( oHbc, aMenu, ::y1+3, ::x1+10,,, ::aClrMenu[1], ::aClrMenu[2] )
+   IF aMenu[nChoic,3] == 1
+      IF Empty( oPaneCurr:aSelected )
+         hbc_FCopy()
+      ELSE
+         hbc_FCopySele()
+      ENDIF
+   ELSEIF aMenu[nChoic,3] == 2
+      hbc_FRename()
+   ELSEIF aMenu[nChoic,3] == 3
+      IF Empty( oPaneCurr:aSelected )
+         hbc_FDelete()
+      ELSE
+         hbc_FDeleteSele()
+      ENDIF
+   ELSEIF !Empty( bMenu )
+      Eval( bMenu, aMenu[nChoic,3] )
    ENDIF
 
    RETURN Nil
@@ -1859,9 +1899,9 @@ STATIC FUNCTION ShowStdout()
 
    RETURN Nil
 
-STATIC FUNCTION Console( cCommand )
+FUNCTION hbc_Console( xCommand )
 
-   LOCAL bufsc, clr, i, nHis := 0
+   LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
@@ -1878,11 +1918,6 @@ STATIC FUNCTION Console( cCommand )
       RETURN Nil
    }
 
-   IF cCommand == Nil
-      cCommand := ""
-   ELSE
-      KEYBOARD Chr( K_ENTER )
-   ENDIF
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    clr := SetColor( "+W/N" )
 
@@ -1899,8 +1934,30 @@ STATIC FUNCTION Console( cCommand )
       ?
       DevPos( Maxrow(), 0 )
       SetColor( "+W/N" )
+      IF Valtype( xCommand ) == "C"
+         cCommand := xCommand
+         xCommand := Nil
+      ELSEIF Valtype( xCommand ) == "A"
+         cCommand := Iif( nCommand < Len( xCommand ), xCommand[++nCommand], "" )
+      ENDIF
+      IF !Empty( cCommand )
+         KEYBOARD Chr( K_ENTER )
+      ENDIF
       cCommand := GetLine( ">", cCommand, bKeys )
       IF !Empty( cCommand )
+         IF ( i := At( '%', cCommand ) ) > 0
+            s := Substr( cCommand,i+1,1 )
+            IF s == 'f'
+               s := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+            ELSEIF s == 'p'
+               s := oPaneCurr:cCurrPath
+            ELSEIF s == 'm'
+               s := edi_MsgGet( "Input text", oPaneCurr:y1+10, oPaneCurr:x1+6, oPaneCurr:x2-6 )
+            ENDIF
+            IF !Empty( s )
+               cCommand := Left( cCommand,i-1 ) + s + Substr( cCommand,i+2 )
+            ENDIF
+         ENDIF
          IF cCommand == "exit"
             EXIT
          ELSEIF Left( cCommand,1 ) == "="
@@ -1911,10 +1968,6 @@ STATIC FUNCTION Console( cCommand )
             Errorblock( bOldError )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
-         /*
-         ELSEIF !lGuiVer
-            cedi_RunConsoleApp( cCommand )
-         */
          ELSE
             FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
@@ -1957,10 +2010,12 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
 
    DevOut( Iif( cMsg==Nil, "", cMsg ) )
    nColInit := Col()
-   DevPos( nRow, nColInit + nPos )
    IF cRes == Nil
       cRes := ""
+   ELSE
+      DevOut( " " + cRes )
    ENDIF
+   DevPos( nRow, nColInit + nPos )
    DO WHILE .T.
       nPosMax := Max( nPos, nPosMax )
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
