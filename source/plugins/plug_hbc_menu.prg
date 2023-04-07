@@ -59,13 +59,24 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
          Aadd( aMenu, { "---",,, } )
       ENDIF
       Aadd( aMenu, { "run "+cFile,,32 } )
+   ELSEIF cExt == ".c" .OR. cExt == ".cpp"
+      IF !Empty( aMenu )
+         Aadd( aMenu, { "---",,, } )
+      ENDIF
+      Aadd( aMenu, { "format",,36 } )
+      IF hb_Version(20)
+         Aadd( aMenu, { "compile",,37 } )
+       ELSE
+         Aadd( aMenu, { "compile with Mingw",,37 } )
+         Aadd( aMenu, { "compile with Borland",,38 } )
+      ENDIF
    ENDIF
 
    RETURN {|n| _hbc_menu_exec(n,oPane)}
 
 STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
-   LOCAL lRefr := .F., cTemp, cSep := hb_ps()
+   LOCAL lRefr := .F.
 
    IF n == 11
       hbc_Console( "git pull" )
@@ -79,19 +90,24 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
    ELSEIF n == 15
       hbc_Console( "fossil changes" )
    ELSEIF n == 21
-      hbc_Console(  cPath_Hrb + "bin/hbformat %f" )
+      hbc_Console(  "hbformat %p" )
       lRefr := .T.
    ELSEIF n == 22
-      cTemp := hb_fnameName( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
-      hbc_Console( { cPath_Hrb + "bin" + cSep + "harbour %f -n -w -i" + cPath_Hrb + cSep + "include", ;
-         "bcc32 -O2 -d -I" + cPath_Hrb + "include -L" + cPath_Hrb + "lib" + cSep + "win" + cSep + "bcc " + ;
-          cTemp + ".c " + "hbdebug.lib hbvm.lib hbrtl.lib gtwin.lib hblang.lib hbrdd.lib hbmacro.lib hbpp.lib rddntx.lib rddcdx.lib rddfpt.lib hbsix.lib hbcommon.lib hbcpage.lib hbct.lib hbpcre.lib hbcplr.lib hbzlib.lib hbziparc.lib hbmzip.lib minizip.lib hbtip.lib hbnetio.lib hbwin.lib ws2_32.lib ws2_32.lib iphlpapi.lib", ;
-          "del " + cTemp + ".c", "del " + cTemp + ".obj", "del " + cTemp + ".tds" } )
+      hbc_Console( { cPath_Hrb + "bin%/harbour %p -n -w -i" + cPath_Hrb + "%/include", ;
+         "bcc32 -O2 -d -I" + cPath_Hrb + "include -L" + cPath_Hrb + "lib%/win%/bcc " + ;
+          "%n.c " + "hbdebug.lib hbvm.lib hbrtl.lib gtwin.lib hblang.lib hbrdd.lib hbmacro.lib hbpp.lib rddntx.lib rddcdx.lib rddfpt.lib hbsix.lib hbcommon.lib hbcpage.lib hbct.lib hbpcre.lib hbcplr.lib hbzlib.lib hbziparc.lib hbmzip.lib minizip.lib hbtip.lib hbnetio.lib hbwin.lib ws2_32.lib ws2_32.lib iphlpapi.lib", ;
+          "cmd /C del %n.c", "cmd /C del %n.obj", "cmd /C del %n.tds" } )
       lRefr := .T.
    ELSEIF n == 31
       hbc_Console( "go build" )
    ELSEIF n == 32
-      hbc_Console( "go run %f" )
+      hbc_Console( "go run %p" )
+   ELSEIF n == 36
+      hbc_Console( "indent.bat %p" )
+   ELSEIF n == 37
+      hbc_Console( "gcc %p" )
+   ELSEIF n == 38
+      hbc_Console( "bcc32 %p" )
    ENDIF
    IF lRefr
       oPane:Refresh()

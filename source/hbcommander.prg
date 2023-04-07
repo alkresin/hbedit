@@ -1934,6 +1934,7 @@ FUNCTION hbc_Console( xCommand )
    DO WHILE .T.
       nHis := Len( aHisCmd ) + 1
       ?
+      @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
       DevPos( Maxrow(), 0 )
       SetColor( "+W/N" )
       IF Valtype( xCommand ) == "C"
@@ -1947,19 +1948,31 @@ FUNCTION hbc_Console( xCommand )
       ENDIF
       cCommand := GetLine( ">", cCommand, bKeys )
       IF !Empty( cCommand )
-         IF ( i := At( '%', cCommand ) ) > 0
+         DO WHILE ( i := At( '%', cCommand ) ) > 0
             s := Substr( cCommand,i+1,1 )
-            IF s == 'f'
+            IF s == 'p'
                s := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-            ELSEIF s == 'p'
+            ELSEIF s == 'f'
+               s := oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+            ELSEIF s == 'n'
+               s := hb_fnameName( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+            ELSEIF s == 'd'
                s := oPaneCurr:cCurrPath
             ELSEIF s == 'm'
                s := edi_MsgGet( "Input text", oPaneCurr:y1+10, oPaneCurr:x1+6, oPaneCurr:x2-6 )
+            ELSEIF s == '/'
+               s := hb_ps()
+            ELSEIF s == '%'
+            ELSE
+               s := ""
             ENDIF
             IF !Empty( s )
                cCommand := Left( cCommand,i-1 ) + s + Substr( cCommand,i+2 )
             ENDIF
-         ENDIF
+         ENDDO
+         @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
+         DevPos( Maxrow(), 0 )
+         ?? cCommand
          IF cCommand == "exit"
             EXIT
          ELSEIF Left( cCommand,1 ) == "="
