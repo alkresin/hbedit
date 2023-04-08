@@ -195,7 +195,7 @@ STATIC FUNCTION _C_DropComments( oEdit, cLine )
    LOCAL nPos := 1, nPos2
 
    DO WHILE ( nPos := hb_At( "//", cLine, nPos ) ) > 0
-      IF !edi_InQuo( oEdit, cLine, nPos )
+      IF edi_InQuo( oEdit, cLine, nPos ) == 0
          cLine := Trim( Left( cLine, nPos-1 ) )
          EXIT
       ENDIF
@@ -204,7 +204,7 @@ STATIC FUNCTION _C_DropComments( oEdit, cLine )
 
    nPos := 1
    DO WHILE ( nPos := hb_At( "/*", cLine, nPos ) ) > 0
-      IF !edi_InQuo( oEdit, cLine, nPos )
+      IF edi_InQuo( oEdit, cLine, nPos ) == 0
          nPos2 := hb_At( "*/", cLine, nPos+2 )
          cLine := Trim( Left( cLine, nPos-1 ) ) + Iif( nPos2==0, "", Substr( cLine, nPos2+2 ) )
       ELSE
