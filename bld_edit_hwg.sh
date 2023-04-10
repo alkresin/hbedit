@@ -3,7 +3,7 @@ export HB_INS=/opt/harbour
 export SRC_DIR=source
 export HWG_INS=$HB_INS/hwgui-code
 export HWGUI_LIBS="-lhwgui -lhbxml -lprocmisc -lhwgdebug"
-export HARBOUR_LIBS="-lhbdebug -lhbvm -lhbrtl -lgthwg -lhblang -lhbrdd -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix -lhbct -lhbcpage -lpcre -lhbcplr"
+export HARBOUR_LIBS="-lhbdebug -lhbvm -lhbrtl -lgthwg -lhblang -lhbrdd -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix -lhbct -lhbcpage -lpcre -lhbcplr -lhbnetio"
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbedit.prg  -n -q0 -es2 -gc0 -dGTHWG -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fedit.prg  -n -q0 -es2 -gc0 -dGTHWG -d_FULL -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fcmd.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
