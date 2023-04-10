@@ -13,13 +13,15 @@ A fullscreen console multiplatform text editor.
   + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
   + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
+  + hbc.help            - HbCommander help file.
   + hbedit.help         - Hbedit help file (Russian).
   + hbedit_en.help      - Hbedit help file (English).
+  + hbc.ini             - HbCommander ini file.
   + hbedit.ini          - Hbedit ini file.
+  
 
   + source/
-    + hbfuncs.ch
-    + hbfuncsfull.ch    - header files.
+    + hbfuncsfull.ch    - header file.
 
     + cfuncs.c
     + fcmd.prg
