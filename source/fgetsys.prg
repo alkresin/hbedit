@@ -26,6 +26,7 @@
 #define G_TYPE_CHECK   1
 #define G_TYPE_BUTTON  2
 #define G_TYPE_RADIO   3
+#define G_TYPE_STATIC 11
 
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
@@ -52,7 +53,7 @@ FUNCTION edi_READ( aGets, pKeys )
       ENDIF
    NEXT
 
-   DO WHILE aGets[nCurr,G_TYPE] < 0
+   DO WHILE aGets[nCurr,G_TYPE] < G_TYPE_STRING .OR. aGets[nCurr,G_TYPE] >= G_TYPE_STATIC
       nCurr ++
    ENDDO
    ShowGetItem( aGets[nCurr], .T., lUtf8, .T., aOpt[nCurr] )
@@ -186,7 +187,7 @@ FUNCTION edi_READ( aGets, pKeys )
          i := nCurr
          DO WHILE i > 1
             i --
-            IF aGets[i,G_TYPE] >= 0
+            IF aGets[i,G_TYPE] >= G_TYPE_STRING .AND. aGets[i,G_TYPE] < G_TYPE_STATIC
                ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
@@ -198,7 +199,7 @@ FUNCTION edi_READ( aGets, pKeys )
          i := nCurr
          DO WHILE i < Len( aGets )
             i ++
-            IF aGets[i,G_TYPE] >= 0
+            IF aGets[i,G_TYPE] >= G_TYPE_STRING .AND. aGets[i,G_TYPE] < G_TYPE_STATIC
                ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
@@ -209,7 +210,7 @@ FUNCTION edi_READ( aGets, pKeys )
       ELSEIF nKey == K_CTRL_HOME
          i := 1
          DO WHILE i < Len( aGets )
-            IF aGets[i,G_TYPE] >= 0
+            IF aGets[i,G_TYPE] >= G_TYPE_STRING .AND. aGets[i,G_TYPE] < G_TYPE_STATIC
                ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
@@ -221,7 +222,7 @@ FUNCTION edi_READ( aGets, pKeys )
       ELSEIF nKey == K_CTRL_END
          i := Len( aGets )
          DO WHILE i > 0
-            IF aGets[i,G_TYPE] >= 0
+            IF aGets[i,G_TYPE] >= G_TYPE_STRING .AND. aGets[i,G_TYPE] < G_TYPE_STATIC
                ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
                ShowGetItem( aGets[nCurr], .T., lUtf8, aOpt[nCurr,G2_OPT], aOpt[nCurr] )
@@ -286,7 +287,8 @@ FUNCTION edi_READ( aGets, pKeys )
          nCol := MCol()
          nRow := MRow()
          FOR i := 1 TO Len(aGets)
-            IF aGets[i,G_TYPE] >= 0 .AND. aGets[i,G_Y] == nRow .AND. ;
+            IF aGets[i,G_TYPE] >= G_TYPE_STRING .AND. aGets[i,G_TYPE] < G_TYPE_STATIC ;
+                  .AND. aGets[i,G_Y] == nRow .AND. ;
                   aGets[i,G_X] <= nCol .AND. aGets[i,G_X]+aGets[i,G_WIDTH] > nCol
                ShowGetItem( aGets[nCurr], .F., lUtf8,, aOpt[nCurr] )
                nCurr := i
@@ -350,7 +352,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
    Scroll( aGet[G_Y], aGet[G_X], aGet[G_Y], aGet[G_X] + aGet[G_WIDTH] - 1 )
 
-   IF aGet[G_TYPE] == G_TYPE_STRING
+   IF aGet[G_TYPE] == G_TYPE_STRING .OR. aGet[G_TYPE] == G_TYPE_STATIC
       @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
          aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], ;
          Iif( aOpt==Nil, 1, aOpt[G2_FIRST] ), aGet[G_WIDTH] ) )

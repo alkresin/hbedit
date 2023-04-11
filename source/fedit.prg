@@ -3881,7 +3881,9 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
 FUNCTION mnu_GoTo( oEdit )
 
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu )
-   LOCAL aGets := { {11,27,0,"",26}, ;
+   LOCAL aGets := { ;
+      {10,32,11,"Go to position",14}, ;
+      {11,27,0,"",26}, ;
       {13,28,2,"[Ok]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {13,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL arr, ny, nx, nRes
@@ -3893,7 +3895,6 @@ FUNCTION mnu_GoTo( oEdit )
    @ 12, 26 TO 12, 54
    hb_cdpSelect( oEdit:cp )
 
-   @ 10,32 SAY "Go to position"
    SetColor( oEdit:cColorMenu )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
