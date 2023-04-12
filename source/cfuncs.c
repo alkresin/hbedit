@@ -383,7 +383,7 @@ HB_FUNC( CEDI_REDIROFF )
    }
 }
 
-#define BUFSIZE  4096
+#define BUFSIZE  16384
 
 #if defined(__linux__) || defined(__unix__)
 
@@ -491,6 +491,7 @@ HB_FUNC( CEDI_RUNAPP )
 #else
 
 #include <windows.h>
+#include <tchar.h>
 
 HB_FUNC( CEDI_RUNCONSOLEAPP )
 {
@@ -596,6 +597,240 @@ HB_FUNC( CEDI_RUNAPP )
    hb_retni( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) );
 }
 
+typedef struct {
+
+   HANDLE g_hChildStd_IN_Rd;
+   HANDLE g_hChildStd_IN_Wr;
+   HANDLE g_hChildStd_OUT_Rd;
+   HANDLE g_hChildStd_OUT_Wr;
+   PROCESS_INFORMATION piProcInfo;
+   OVERLAPPED overlapped;
+   int iRes;
+
+} PROCESS_HANDLES;
+
+int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
+{
+   STARTUPINFO siStartInfo;
+   BOOL bSuccess;
+
+   ZeroMemory( &(pHandles->piProcInfo), sizeof( PROCESS_INFORMATION ) );
+
+   ZeroMemory( &siStartInfo, sizeof( STARTUPINFO ) );
+   siStartInfo.cb = sizeof( STARTUPINFO );
+   siStartInfo.hStdError = pHandles->g_hChildStd_OUT_Wr;
+   siStartInfo.hStdOutput = pHandles->g_hChildStd_OUT_Wr;
+   siStartInfo.hStdInput = pHandles->g_hChildStd_IN_Rd;
+   //siStartInfo.wShowWindow = SW_HIDE;
+   siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+
+   bSuccess = CreateProcess( NULL,
+         ( LPTSTR ) pName,      // command line
+         NULL,                  // process security attributes
+         NULL,                  // primary thread security attributes
+         TRUE,                  // handles are inherited
+         0,                     // creation flags
+         NULL,                  // use parent's environment
+         NULL,                  // use parent's current directory
+         &siStartInfo,          // STARTUPINFO pointer
+         &(pHandles->piProcInfo) );         // receives PROCESS_INFORMATION
+
+   if( !bSuccess )
+   {
+      return 0;
+   }
+   else
+   {
+      // Close handles to the child process and its primary thread.
+      // Some applications might keep these handles to monitor the status
+      // of the child process, for example.
+      //CloseHandle( piProcInfo.hProcess );
+      //CloseHandle( piProcInfo.hThread );
+
+      // Close handles to the stdin and stdout pipes no longer needed by the child process.
+      // If they are not explicitly closed, there is no way to recognize that the child process has ended.
+      if( pHandles->g_hChildStd_OUT_Wr ) {
+         CloseHandle( pHandles->g_hChildStd_OUT_Wr );
+         pHandles->g_hChildStd_OUT_Wr = NULL;
+      }
+      if( pHandles->g_hChildStd_IN_Rd ) {
+         CloseHandle( pHandles->g_hChildStd_IN_Rd );
+         pHandles->g_hChildStd_IN_Rd = NULL;
+      }
+   }
+   return 1;
+}
+
+int WriteToPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, DWORD dwRead )
+{
+   DWORD dwWritten;
+   BOOL bSuccess;
+
+   bSuccess = WriteFile( pHandles->g_hChildStd_IN_Wr, chBuf, dwRead, &dwWritten, NULL );
+   if( !bSuccess )
+      return 1;
+
+   WriteFile( pHandles->g_hChildStd_IN_Wr, "\r\n", 2, &dwWritten, NULL );
+   return 0;
+}
+
+int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
+{
+   DWORD dwRead = 0;
+   BOOL bSuccess;
+   DWORD result;
+   int iRes = 1;
+
+   while (1) {
+      //printf( "readf-1\r\n" );
+      if (ReadFile(pHandles->g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, &(pHandles->overlapped))) {
+          break;
+      } else if (GetLastError() == ERROR_IO_PENDING) {
+          //printf( "readf-2\r\n" );
+          result = WaitForSingleObject(pHandles->overlapped.hEvent, 3000);
+          //printf( "readf-3\r\n" );
+          if (result == WAIT_OBJECT_0) {
+              if (GetOverlappedResult(pHandles->g_hChildStd_OUT_Rd, &(pHandles->overlapped), &dwRead, FALSE)) {
+                  break;
+              }
+          }
+      }
+      else
+      {
+         iRes = 0; break;
+      }
+   }
+
+   chBuf[dwRead] = '\0';
+   *iRead = (int) dwRead;
+
+   return iRes;
+}
+
+HB_FUNC( CEDI_STARTCONSOLEAPP )
+{
+   SECURITY_ATTRIBUTES saAttr;
+   DWORD mode = PIPE_READMODE_BYTE | PIPE_WAIT;
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_xgrab( sizeof(PROCESS_HANDLES) );
+
+   memset( pHandles, 0, sizeof( PROCESS_HANDLES ) );
+   /*
+   g_hChildStd_IN_Rd = NULL;
+   g_hChildStd_IN_Wr = NULL;
+   g_hChildStd_OUT_Rd = NULL;
+   g_hChildStd_OUT_Wr = NULL;
+   */
+
+// Set the bInheritHandle flag so pipe handles are inherited.
+   saAttr.nLength = sizeof( SECURITY_ATTRIBUTES );
+   saAttr.bInheritHandle = TRUE;
+   saAttr.lpSecurityDescriptor = NULL;
+
+// Create a pipe for the child process's STDOUT.
+   if( !CreatePipe( &(pHandles->g_hChildStd_OUT_Rd), &(pHandles->g_hChildStd_OUT_Wr), &saAttr, 0 ) ) {
+      pHandles->iRes = 1; hb_retptr( (void*) pHandles ); return;
+   }
+// Ensure the read handle to the pipe for STDOUT is not inherited.
+   if( !SetHandleInformation( pHandles->g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0 ) ) {
+      pHandles->iRes = 2; hb_retptr( (void*) pHandles ); return;
+   }
+   if (!SetNamedPipeHandleState(pHandles->g_hChildStd_OUT_Rd, &mode, NULL, NULL)) {
+      pHandles->iRes = 3; hb_retptr( (void*) pHandles ); return;
+   }
+
+// Create a pipe for the child process's STDIN.
+   if( !CreatePipe( &(pHandles->g_hChildStd_IN_Rd), &(pHandles->g_hChildStd_IN_Wr), &saAttr, 0 ) ) {
+      pHandles->iRes = 4; hb_retptr( (void*) pHandles ); return;
+   }
+// Ensure the write handle to the pipe for STDIN is not inherited.
+   if( !SetHandleInformation( pHandles->g_hChildStd_IN_Wr, HANDLE_FLAG_INHERIT, 0 ) ) {
+      pHandles->iRes = 5; hb_retptr( (void*) pHandles ); return;
+   }
+
+   if( !CreateChildProcess( pHandles, (char*) hb_parc(1) ) ) {
+      pHandles->iRes = GetLastError(); hb_retptr( (void*) pHandles ); return;
+   }
+
+   pHandles->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+   hb_retptr( (void*) pHandles );
+
+}
+
+HB_FUNC( CEDI_RETURNERRCODE )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   hb_retni( pHandles->iRes );
+}
+
+HB_FUNC( CEDI_READFROMCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   CHAR chBuf[BUFSIZE];
+   int iRead;
+   DWORD dwAvail;
+
+   if( !PeekNamedPipe( pHandles->g_hChildStd_OUT_Rd, NULL, NULL, NULL, &dwAvail, NULL ) )
+   {
+      hb_ret();
+   }
+   else if( !dwAvail )
+   {
+      hb_retc( "" );
+   }
+   else
+   {
+      if( ReadFromPipe( pHandles, chBuf, &iRead ) )
+         hb_retclen( chBuf, iRead );
+      else
+         hb_ret();
+
+      ResetEvent( pHandles->overlapped.hEvent );
+   }
+}
+
+HB_FUNC( CEDI_WRITETOCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+
+   hb_retl( WriteToPipe( pHandles, (char*) hb_parc(2), (DWORD) hb_parclen(2) ) == 0 );
+}
+
+HB_FUNC( CEDI_ENDCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+
+   if( !pHandles )
+      return;
+
+   CloseHandle(pHandles->overlapped.hEvent);
+
+   if( pHandles->g_hChildStd_IN_Rd ) {
+      CloseHandle( pHandles->g_hChildStd_IN_Rd );
+      pHandles->g_hChildStd_IN_Rd = NULL;
+   }
+   if( pHandles->g_hChildStd_IN_Wr ) {
+      CloseHandle( pHandles->g_hChildStd_IN_Wr );
+      pHandles->g_hChildStd_IN_Wr = NULL;
+   }
+   if( pHandles->g_hChildStd_OUT_Rd ) {
+      CloseHandle( pHandles->g_hChildStd_OUT_Rd );
+      pHandles->g_hChildStd_OUT_Rd = NULL;
+   }
+   if( pHandles->g_hChildStd_OUT_Wr ) {
+      CloseHandle( pHandles->g_hChildStd_OUT_Wr );
+      pHandles->g_hChildStd_OUT_Wr = NULL;
+   }
+   if( pHandles->piProcInfo.hProcess )
+   {
+      TerminateProcess( pHandles->piProcInfo.hProcess, 0 );
+      CloseHandle( pHandles->piProcInfo.hProcess );
+      CloseHandle( pHandles->piProcInfo.hThread );
+      pHandles->piProcInfo.hProcess = NULL;
+   }
+   hb_xfree( pHandles );
+
+}
 #endif
 
 typedef struct _bitarr_ {

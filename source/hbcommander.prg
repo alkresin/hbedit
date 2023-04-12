@@ -1905,6 +1905,7 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
+   LOCAL pApp, nKeyExt, nKey, cmd
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
          IF nHis <= Len( aHisCmd )
@@ -1916,6 +1917,9 @@ FUNCTION hbc_Console( xCommand )
             nHis --
             RETURN aHisCmd[nHis]
          ENDIF
+      ELSEIF nKey == K_CTRL_O
+         KEYBOARD Chr(K_ENTER)
+         RETURN "exit"
       ENDIF
       RETURN Nil
    }
@@ -1987,8 +1991,6 @@ FUNCTION hbc_Console( xCommand )
             FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
             cCommand += " 2>&1"
-#endif
-            //edi_alert( "Run " + ccommand + " / " + cfileout )
             cedi_RunConsoleApp( cCommand, cFileOut )
             IF !Empty( xRes := MemoRead( cFileOut ) )
                IF Chr(9) $ xRes
@@ -2002,6 +2004,47 @@ FUNCTION hbc_Console( xCommand )
                ENDIF
                ? xRes
             ENDIF
+#else
+            cmd := ""
+            pApp := cedi_StartConsoleApp( cCommand )
+            IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
+               ? "Error starting app ", xRes
+               cedi_EndConsoleApp()
+               LOOP
+            ENDIF
+            FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
+            DevPos( Maxrow(), nColInit := 0 )
+            DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
+               IF !Empty( xRes )
+                  IF Chr(9) $ xRes
+                     xRes := StrTran( xRes, Chr(9), Space(8) )
+                  ENDIF
+                  SetColor( "W/N" )
+                  FilePane():cConsOut += xRes
+                  IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+                     i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+                     FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+                  ENDIF
+                  ?? xRes
+                  nColInit := Col()
+                  cmd := ""
+               ENDIF
+               nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+               IF nKeyExt == 0
+                  LOOP
+               ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
+                     ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
+                  EXIT
+               ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+                  IF !cedi_WriteToConsoleApp( pApp, cmd )
+                     ? "Pipe write error"
+                  ENDIF
+               ELSE
+                  cmd := ProcessKey( nColInit, cmd, nKeyExt )
+               ENDIF
+            ENDDO
+            cedi_EndConsoleApp(pApp)
+#endif
          ENDIF
          IF ( i := Ascan( aHisCmd, {|s|s == cCommand} ) ) > 0
             aHisCmd := hb_ADel( aHisCmd, i, .T. )
@@ -2020,79 +2063,88 @@ FUNCTION hbc_Console( xCommand )
 
 STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
 
-   LOCAL nRow := Row(), nPos := Len(cRes) + 1, nColInit, lChg, cTemp, nPosMax := nPos
-   LOCAL lIns := .T., nKey := 0, nKeyExt
+   LOCAL nRow := Row(), nPos := Len(cRes) + 1, nColInit, nKeyExt, nKey
 
    DevOut( Iif( cMsg==Nil, "", cMsg ) )
    nColInit := Col()
    IF cRes == Nil
       cRes := ""
-   ELSE
-      DevOut( " " + cRes )
+   ELSEIF !Empty( cRes )
+      DevOut( cRes )
    ENDIF
-   DevPos( nRow, nColInit + nPos )
    DO WHILE .T.
-      nPosMax := Max( nPos, nPosMax )
-      nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
-      nKey := hb_keyStd( nKeyExt )
-      lChg := .F.
-      IF nKey >= 32 .AND. nKey <= 250
-         cRes := Left( cRes, nPos-1 ) + Chr(nKey) + Substr( cRes, Iif(lIns,nPos,nPos+1) )
-         nPos ++
-         lChg := .T.
-      ELSEIF nKey == K_DEL
-         IF nPos <= Len( cRes )
-            cRes := Left( cRes, nPos-1 ) + Substr( cRes, nPos+1 )
-            lChg := .T.
-         ENDIF
-      ELSEIF nKey == K_BS
-         IF nPos > 1
-            cRes := Left( cRes, nPos-2 ) + Substr( cRes, nPos )
-            nPos --
-            lChg := .T.
-         ENDIF
-      ELSEIF nKey == K_RIGHT
-         IF nPos <= Len( cRes )
-            nPos ++
-         ENDIF
-      ELSEIF nKey == K_LEFT
-         IF nPos > 1
-            nPos --
-         ENDIF
-      ELSEIF nKey == K_HOME
-         nPos := 1
-      ELSEIF nKey == K_END
-         nPos := Len( cRes ) + 1
-      ELSEIF nKey == K_ENTER
-         EXIT
-      ELSEIF nKey == K_CTRL_O
-         cRes := "exit"
-         EXIT
-      ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
-         ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
-         cTemp := s_cb2t()
-         cRes := Left( cRes, nPos-1 ) + cTemp + Substr( cRes, Iif(lIns,nPos,nPos+1) )
-         nPos := nPos + Len( cTemp )
-         lChg := .T.
-      ELSEIF nKey == K_INS
-         lIns := !lIns
+      nKeyExt := Inkey( 0, INKEY_KEYBOARD + HB_INKEY_EXT )
+      IF (nKey := hb_keyStd( nKeyExt )) == K_ENTER
+         RETURN cRes
       ELSEIF nKey == K_ESC
-         cRes := ""
-         EXIT
-      ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKey ) ) == "C"
-         cRes := cTemp
-         nPos := Len( cRes ) + 1
+         RETURN ""
+      ELSE
+         cRes := ProcessKey( nColInit, cRes, nKeyExt, bKeys )
+      ENDIF
+   ENDDO
+
+   RETURN cRes
+
+STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
+
+   LOCAL nRow := Row(), lChg, cTemp, nResLen := Len( cRes ), nPos := Col() - nColInit + 1
+   LOCAL nKey := hb_keyStd( nKeyExt )
+   STATIC lIns := .T.
+
+   lChg := .F.
+   IF nKey >= 32 .AND. nKey <= 250
+      cRes := Left( cRes, nPos-1 ) + Chr(nKey) + Substr( cRes, Iif(lIns,nPos,nPos+1) )
+      nPos ++
+      lChg := .T.
+   ELSEIF nKey == K_DEL
+      IF nPos <= Len( cRes )
+         cRes := Left( cRes, nPos-1 ) + Substr( cRes, nPos+1 )
          lChg := .T.
       ENDIF
-      IF lChg
-         DevPos( nRow, nColInit + 1 )
-         DevOut( cRes )
-         IF nPosMax > Len( cRes )
-            DevOut( Space(nPosMax - Len( cRes )) )
-         ENDIF
+   ELSEIF nKey == K_BS
+      IF nPos > 1
+         cRes := Left( cRes, nPos-2 ) + Substr( cRes, nPos )
+         nPos --
+         lChg := .T.
       ENDIF
-      DevPos( nRow, nColInit + nPos )
-   ENDDO
+   ELSEIF nKey == K_RIGHT
+      IF nPos <= Len( cRes )
+         nPos ++
+      ENDIF
+   ELSEIF nKey == K_LEFT
+      IF nPos > 1
+         nPos --
+      ENDIF
+   ELSEIF nKey == K_HOME
+      nPos := 1
+   ELSEIF nKey == K_END
+      nPos := Len( cRes ) + 1
+   ELSEIF nKey == K_ENTER
+      RETURN cRes
+   ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
+      ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
+      cTemp := s_cb2t()
+      cRes := Left( cRes, nPos-1 ) + cTemp + Substr( cRes, Iif(lIns,nPos,nPos+1) )
+      nPos := nPos + Len( cTemp )
+      lChg := .T.
+   ELSEIF nKey == K_INS
+      lIns := !lIns
+   ELSEIF nKey == K_ESC
+      cRes := ""
+      RETURN cRes
+   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKey ) ) == "C"
+      cRes := cTemp
+      nPos := Len( cRes ) + 1
+      lChg := .T.
+   ENDIF
+   IF lChg
+      DevPos( nRow, nColInit )
+      DevOut( cRes )
+      IF nResLen > Len( cRes )
+         DevOut( Space(nResLen - Len( cRes )) )
+      ENDIF
+   ENDIF
+   DevPos( nRow, nColInit + nPos - 1 )
 
    RETURN cRes
 
