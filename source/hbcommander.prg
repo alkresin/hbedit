@@ -43,6 +43,12 @@ STATIC aHisCmd := {}
 STATIC cFileOut, cOutBuff
 STATIC oPaneCurr, oPaneTo
 STATIC lCase_Sea := .F., lRegex_Sea := .F.
+#ifdef __PLATFORM__UNIX
+STATIC aExtExe := { ".sh" }
+#else
+STATIC aExtExe := { ".exe", ".com", ".bat" }
+#endif
+STATIC aExtZip := { ".zip", ".rar", ".7z" }
 
 MEMVAR GETLIST
 
@@ -429,12 +435,17 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ELSEIF cExt == "sh"
                hbc_Console( cTemp )
 #endif
-#ifdef GTHWG
-            ELSE  //IF lGuiVer
+
+            ELSE
 #ifdef __PLATFORM__UNIX
+#ifdef GTHWG
                hwg_shellExecute( "file://" + cTemp )
+#endif
 #else
+#ifdef GTHWG
                hwg_shellExecute( cTemp )
+#else
+               cedi_shellExecute( cTemp )
 #endif
 #endif
             ENDIF
@@ -644,6 +655,10 @@ STATIC FUNCTION ReadIni( cIniName )
                   FilePane():cClrDir := cTemp
                ELSEIF arr[i] == "colorfile"
                   FilePane():cClrFil := cTemp
+               ELSEIF arr[i] == "colorfileexe"
+                  FilePane():cClrExe := cTemp
+               ELSEIF arr[i] == "colorfilezip"
+                  FilePane():cClrZip := cTemp
                ELSEIF arr[i] == "colorcurr"
                   FilePane():cClrCurr := cTemp
                ELSEIF arr[i] == "colorsel"
@@ -819,6 +834,8 @@ CLASS FilePane
    CLASS VAR cClrSel  SHARED   INIT "+GR/B"
    CLASS VAR cClrSelCurr  SHARED   INIT "+GR/BG"
    CLASS VAR aClrMenu SHARED   INIT { "W/B","N/BG" }
+   CLASS VAR cClrExe  SHARED   INIT "+G/B"
+   CLASS VAR cClrZip  SHARED   INIT "+RB/B"
    CLASS VAR lUtf8    SHARED   INIT .F.
    CLASS VAR cp       SHARED
    CLASS VAR aPlugins SHARED   INIT {}
@@ -1137,7 +1154,7 @@ METHOD Draw() CLASS FilePane
 
 METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
-   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, cDate, dDate, cSize
+   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
 
    IF ::nCurrent == 0
       @ ::y2 - 1, ::x1 + 1 SAY "Not available"
@@ -1154,9 +1171,15 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
          nRow := ::nRows
       ENDIF
    ENDIF
-   SetColor( Iif( lCurr, Iif( lSel, ::cClrSelCurr, ::cClrCurr ), ;
-      Iif( lSel, ::cClrSel, Iif( 'D' $ arr[5], ::cClrDir, ::cClrFil ) ) ) )
    cText := Trim( arr[1] )
+   cExt := hb_fnameExt( cText )
+   IF Ascan( aExtExe, {|s| s==cExt} ) > 0
+      cClrFil := ::cClrExe
+   ELSEIF Ascan( aExtZip, {|s| s==cExt} ) > 0
+      cClrFil := ::cClrZip
+   ENDIF
+   SetColor( Iif( lCurr, Iif( lSel, ::cClrSelCurr, ::cClrCurr ), ;
+      Iif( lSel, ::cClrSel, Iif( 'D' $ arr[5], ::cClrDir, cClrFil ) ) ) )
    IF Len( cText ) > ::nWidth
       cText := Left( cText, ::nWidth-1 ) + '>'
    ENDIF
@@ -1905,7 +1928,7 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL pApp, nKeyExt, nKey, cmd
+   LOCAL pApp, nKeyExt, nKey, cmd, nSecInit, hWnd
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
          IF nHis <= Len( aHisCmd )
@@ -2009,11 +2032,14 @@ FUNCTION hbc_Console( xCommand )
             pApp := cedi_StartConsoleApp( cCommand )
             IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
                ? "Error starting app ", xRes
-               cedi_EndConsoleApp()
+               cedi_EndConsoleApp( pApp )
+               cCommand := ""
                LOOP
             ENDIF
             FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
             DevPos( Maxrow(), nColInit := 0 )
+            ?
+            nSecInit := Seconds()
             DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
                IF !Empty( xRes )
                   IF Chr(9) $ xRes
@@ -2028,22 +2054,36 @@ FUNCTION hbc_Console( xCommand )
                   ?? xRes
                   nColInit := Col()
                   cmd := ""
+                  nSecInit := 0
                ENDIF
                nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
                IF nKeyExt == 0
+                  IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
+                     nSecInit := 0
+                     IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
+                        //IF ( i := edi_Alert( "Show app window?", "Yes", "No", "Close it!" ) ) == 1
+                           cedi_ShowWindow( hWnd )
+                           cedi_EndConsoleApp( pApp, .T. )
+                           pApp := Nil
+                           EXIT
+                        //ELSEIF i == 3
+                        //   EXIT
+                        //ENDIF
+                     ENDIF
+                  ENDIF
                   LOOP
                ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
                      ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
                   EXIT
                ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
-                  IF !cedi_WriteToConsoleApp( pApp, cmd )
+                  IF !cedi_WriteToConsoleApp( pApp, cmd+Chr(13)+Chr(10) )
                      ? "Pipe write error"
                   ENDIF
                ELSE
                   cmd := ProcessKey( nColInit, cmd, nKeyExt )
                ENDIF
             ENDDO
-            cedi_EndConsoleApp(pApp)
+            cedi_EndConsoleApp( pApp )
 #endif
          ENDIF
          IF ( i := Ascan( aHisCmd, {|s|s == cCommand} ) ) > 0
@@ -2057,6 +2097,7 @@ FUNCTION hbc_Console( xCommand )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    SET CURSOR OFF
+   oPaneCurr:Refresh()
    FilePane():RedrawAll()
 
    RETURN Nil

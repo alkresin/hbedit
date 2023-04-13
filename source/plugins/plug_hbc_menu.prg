@@ -1,6 +1,8 @@
 
 STATIC cIniPath
 STATIC cPath_Hrb
+STATIC aMenuGit
+STATIC aMenuC
 
 FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
@@ -32,6 +34,11 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       Aadd( aMenu, { "git status",,12, } )
       Aadd( aMenu, { "git describe",,13, } )
       Aadd( aMenu, { "git commit",,14, } )
+      IF !Empty( aMenuGit )
+         FOR i := 1 TO Len( aMenuGit )
+            Aadd( aMenu, { aMenuGit[i,1],,100+i, } )
+         NEXT
+      ENDIF
    ENDIF
    IF lFoss
       IF !Empty( aMenu )
@@ -63,12 +70,16 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "format",,36 } )
       IF hb_Version(20)
          Aadd( aMenu, { "compile",,37 } )
        ELSE
          Aadd( aMenu, { "compile with Mingw",,37 } )
          Aadd( aMenu, { "compile with Borland",,38 } )
+      ENDIF
+      IF !Empty( aMenuC )
+         FOR i := 1 TO Len( aMenuC )
+            Aadd( aMenu, { aMenuC[i,1],,200+i, } )
+         NEXT
       ENDIF
    ENDIF
 
@@ -102,12 +113,24 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       hbc_Console( "go build" )
    ELSEIF n == 32
       hbc_Console( "go run %p" )
-   ELSEIF n == 36
-      hbc_Console( "indent.bat %p" )
    ELSEIF n == 37
       hbc_Console( "gcc %p" )
    ELSEIF n == 38
       hbc_Console( "bcc32 %p" )
+   ELSEIF !Empty( aMenuGit ) .AND. n > 100 .AND. n < 150 .AND. ;
+      (n-100) <= Len( aMenuGit ) .AND. !Empty( aMenuGit[n-100] )
+      IF hb_TokenCount( aMenuGit[n-100,2], ",", .T. ) > 1
+         hbc_Console( hb_ATokens( aMenuGit[n-100,2],",",.T. ) )
+      ELSE
+         hbc_Console( aMenuGit[n-100,2] )
+      ENDIF
+   ELSEIF !Empty( aMenuC ) .AND. n > 200 .AND. n < 250 .AND. ;
+      (n-200) <= Len( aMenuC ) .AND. !Empty( aMenuC[n-200] )
+      IF hb_TokenCount( aMenuC[n-200,2], ",", .T. ) > 1
+         hbc_Console( hb_ATokens( aMenuC[n-200,2],",",.T. ) )
+      ELSE
+         hbc_Console( aMenuC[n-200,2] )
+      ENDIF
    ENDIF
    IF lRefr
       oPane:Refresh()
@@ -117,7 +140,7 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
 STATIC FUNCTION _hbc_readini()
 
-   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), cTmp, aSect
+   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), cTmp, aSect, arr, i, nPos
 
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
@@ -130,6 +153,30 @@ STATIC FUNCTION _hbc_readini()
                cPath_Hrb += hb_ps()
             ENDIF
          ENDIF
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "GIT" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         arr := hb_hKeys( aSect )
+         aMenuGit := Array( Len( arr ) )
+         FOR i := 1 TO Len( arr )
+            IF !Empty( cTmp := aSect[ arr[i] ] )
+               IF ( nPos := At( ',', cTmp ) ) > 0
+                  aMenuGit[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+               ENDIF
+            ENDIF
+         NEXT
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "C" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         arr := hb_hKeys( aSect )
+         aMenuC := Array( Len( arr ) )
+         FOR i := 1 TO Len( arr )
+            IF !Empty( cTmp := aSect[ arr[i] ] )
+               IF ( nPos := At( ',', cTmp ) ) > 0
+                  aMenuC[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+               ENDIF
+            ENDIF
+         NEXT
 
       ENDIF
    ENDIF

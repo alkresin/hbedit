@@ -18,7 +18,6 @@
 static HB_SIZE nLastX, nLastPos;
 static char* shm_file_name = "hbedit_cb";
 
-
 #include "hbapifs.h"
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
@@ -609,7 +608,7 @@ typedef struct {
 
 } PROCESS_HANDLES;
 
-int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
+static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
 {
    STARTUPINFO siStartInfo;
    BOOL bSuccess;
@@ -621,7 +620,6 @@ int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    siStartInfo.hStdError = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdOutput = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdInput = pHandles->g_hChildStd_IN_Rd;
-   //siStartInfo.wShowWindow = SW_HIDE;
    siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 
    bSuccess = CreateProcess( NULL,
@@ -641,12 +639,6 @@ int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    }
    else
    {
-      // Close handles to the child process and its primary thread.
-      // Some applications might keep these handles to monitor the status
-      // of the child process, for example.
-      //CloseHandle( piProcInfo.hProcess );
-      //CloseHandle( piProcInfo.hThread );
-
       // Close handles to the stdin and stdout pipes no longer needed by the child process.
       // If they are not explicitly closed, there is no way to recognize that the child process has ended.
       if( pHandles->g_hChildStd_OUT_Wr ) {
@@ -661,20 +653,7 @@ int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    return 1;
 }
 
-int WriteToPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, DWORD dwRead )
-{
-   DWORD dwWritten;
-   BOOL bSuccess;
-
-   bSuccess = WriteFile( pHandles->g_hChildStd_IN_Wr, chBuf, dwRead, &dwWritten, NULL );
-   if( !bSuccess )
-      return 1;
-
-   WriteFile( pHandles->g_hChildStd_IN_Wr, "\r\n", 2, &dwWritten, NULL );
-   return 0;
-}
-
-int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
+static int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
 {
    DWORD dwRead = 0;
    BOOL bSuccess;
@@ -682,13 +661,10 @@ int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
    int iRes = 1;
 
    while (1) {
-      //printf( "readf-1\r\n" );
       if (ReadFile(pHandles->g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, &(pHandles->overlapped))) {
           break;
       } else if (GetLastError() == ERROR_IO_PENDING) {
-          //printf( "readf-2\r\n" );
           result = WaitForSingleObject(pHandles->overlapped.hEvent, 3000);
-          //printf( "readf-3\r\n" );
           if (result == WAIT_OBJECT_0) {
               if (GetOverlappedResult(pHandles->g_hChildStd_OUT_Rd, &(pHandles->overlapped), &dwRead, FALSE)) {
                   break;
@@ -792,13 +768,19 @@ HB_FUNC( CEDI_READFROMCONSOLEAPP )
 HB_FUNC( CEDI_WRITETOCONSOLEAPP )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   DWORD dwWritten;
+   BOOL bSuccess;
 
-   hb_retl( WriteToPipe( pHandles, (char*) hb_parc(2), (DWORD) hb_parclen(2) ) == 0 );
+   bSuccess = WriteFile( pHandles->g_hChildStd_IN_Wr, (char*) hb_parc(2),
+      (DWORD) hb_parclen(2), &dwWritten, NULL );
+
+   hb_retl( !bSuccess );
 }
 
 HB_FUNC( CEDI_ENDCONSOLEAPP )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   int iNoTerminate = (HB_ISLOG(2) && hb_parl(2))? 1 : 0;
 
    if( !pHandles )
       return;
@@ -823,7 +805,8 @@ HB_FUNC( CEDI_ENDCONSOLEAPP )
    }
    if( pHandles->piProcInfo.hProcess )
    {
-      TerminateProcess( pHandles->piProcInfo.hProcess, 0 );
+      if( !iNoTerminate )
+         TerminateProcess( pHandles->piProcInfo.hProcess, 0 );
       CloseHandle( pHandles->piProcInfo.hProcess );
       CloseHandle( pHandles->piProcInfo.hThread );
       pHandles->piProcInfo.hProcess = NULL;
@@ -831,6 +814,40 @@ HB_FUNC( CEDI_ENDCONSOLEAPP )
    hb_xfree( pHandles );
 
 }
+
+HB_FUNC( CEDI_GETHWNDBYPID )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   DWORD mypid = pHandles->piProcInfo.dwProcessId;
+   DWORD pid;
+   HWND h = GetTopWindow( 0 );
+
+   while ( h )
+   {
+      GetWindowThreadProcessId( h,&pid );
+      if ( pid == mypid )
+      {
+         hb_retptr( h );
+         return;
+      }
+      h = GetNextWindow( h , GW_HWNDNEXT );
+   }
+   hb_ret();
+}
+
+HB_FUNC( CEDI_SHOWWINDOW )
+{
+   ShowWindow( ( HWND ) hb_parptr( 1 ), SW_SHOW );
+}
+
+HB_FUNC( CEDI_SHELLEXECUTE )
+{
+#ifndef GTHWG
+   hb_retnl( ( LONG ) ShellExecute( GetActiveWindow(),
+      NULL, hb_parc( 1 ), NULL, TEXT( "C:\\" ), SW_SHOWNORMAL ) );
+#endif
+}
+
 #endif
 
 typedef struct _bitarr_ {
