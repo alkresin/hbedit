@@ -866,7 +866,7 @@ CLASS FilePane
 
    DATA cPath
    DATA aDir
-   DATA aZipTree
+   DATA aZipFull
    DATA aSelected     INIT {}
 
    METHOD New( x1, y1, x2, y2, nMode, cPath )
@@ -1576,7 +1576,7 @@ STATIC FUNCTION hbc_FReadArh()
    LOCAL cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    LOCAL cExt := Lower( hb_fnameExt( cFileName ) )
    LOCAL hUnzip, nErr, cFile, dDate, cTime, nSize, lCrypted
-   LOCAL i, aDir
+   LOCAL aDir
 
    IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN Nil
@@ -1594,8 +1594,9 @@ STATIC FUNCTION hbc_FReadArh()
          ENDDO
          hb_unzipClose( hUnzip )
       ENDIF
+      oPaneCurr:aZipFull := aDir
+      zipDirRefresh( oPaneCurr, "" )
       oPaneCurr:nPanelMod := 2
-      oPaneCurr:aDir := aDir
       oPaneCurr:cIOpref := "zip"
       oPaneCurr:net_cAddress := cFileName
       oPaneCurr:nCurrent := 1
@@ -1624,6 +1625,22 @@ STATIC FUNCTION hbc_Dirlist()
          oPaneCurr:ChangeDir( hb_fnameDir( TEdit():aEditHis[aMenu[i,3],1] ) )
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION zipDirRefresh( oPane, cDir )
+
+   LOCAL i, aDir := { { "..","","","","D" } }, aFull := oPane:aZipFull, cName
+
+   FOR i := 1 TO Len( aFull )
+      IF Right( cName := aFull[i,1],1 ) == '/'
+         cName := hb_strShrink( cName,1 )
+      ENDIF
+      IF hb_fnameDir( cName ) == cDir
+      ENDIF
+   NEXT
+
+   oPane:aDir := aFull
 
    RETURN Nil
 
