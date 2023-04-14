@@ -48,7 +48,7 @@ STATIC aExtExe := { ".sh" }
 #else
 STATIC aExtExe := { ".exe", ".com", ".bat" }
 #endif
-STATIC aExtZip := { ".zip", ".rar", ".7z" }
+STATIC aExtZip := { ".zip", ".rar", ".7z", ".lha", ".arj", ".gz" }
 
 MEMVAR GETLIST
 
@@ -182,7 +182,7 @@ STATIC FUNCTION _Hbc_Start()
 
 STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
-   LOCAL nKey, cPath, nPos, lRedraw, cExt, cTemp, o, nRow, nCol, i
+   LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i
    LOCAL bufsc
 
    nKey := hb_keyStd( nKeyExt )
@@ -374,6 +374,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          IF Empty( oPaneCurr:aDir ) .OR. oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
             IF oPaneCurr:nPanelMod > 0
                oPaneCurr:nPanelMod := 0
+               oPaneCurr:cIOpref := ""
+               oPaneCurr:net_cAddress := ""
                oPaneCurr:Refresh()
                oPaneCurr:nCurrent := 1
                oPaneCurr:Draw()
@@ -417,8 +419,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:DrawHead( .T. )
       ELSE
          IF Empty( oPaneCurr:cIOpref )
-            cExt := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
-            nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExt .or. '/'+cExt+'/' $ a[1]} )
+            cExt := Lower( hb_fnameExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ) )
+            cExtFull := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} )
             cTemp := oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
             IF ' ' $ cTemp
                cTemp := '"' + cTemp + '"'
@@ -426,16 +429,17 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             IF nPos > 0
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
 #ifdef __PLATFORM__WINDOWS
-            ELSEIF cExt == "bat"
+            ELSEIF cExt == ".bat"
                hbc_Console( cTemp )
-            ELSEIF cExt == "exe"
+            ELSEIF cExt == ".exe"
               cedi_RunApp( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
-            ELSEIF cExt == "sh"
+            ELSEIF cExt == ".sh"
                hbc_Console( cTemp )
 #endif
 
+            ELSEIF Ascan( aExtZip, {|s| s==cExt} ) > 0 .AND. hbc_FReadArh()
             ELSE
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
@@ -862,6 +866,7 @@ CLASS FilePane
 
    DATA cPath
    DATA aDir
+   DATA aZipTree
    DATA aSelected     INIT {}
 
    METHOD New( x1, y1, x2, y2, nMode, cPath )
@@ -1217,6 +1222,8 @@ METHOD DrawHead( lCurr ) CLASS FilePane
    ELSEIF ::nPanelMod == 1
       cPath := "Search results"
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
+   ELSEIF ::nPanelMod == 2
+      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY ::cIOpref + ": " + ::net_cAddress
    ENDIF
 
    RETURN Nil
@@ -1563,6 +1570,42 @@ STATIC FUNCTION hbc_SelePath( y1, x1 )
    ENDIF
 
    RETURN cRes
+
+STATIC FUNCTION hbc_FReadArh()
+
+   LOCAL cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+   LOCAL cExt := Lower( hb_fnameExt( cFileName ) )
+   LOCAL hUnzip, nErr, cFile, dDate, cTime, nSize, lCrypted
+   LOCAL i, aDir
+
+   IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+      RETURN Nil
+   ENDIF
+
+   IF cExt == ".zip"
+      aDir := { { "..","","","","D" } }
+      hUnzip := hb_unzipOpen( cFileName )
+      IF ! Empty( hUnzip )
+         nErr := hb_unzipFileFirst( hUnzip )
+         DO WHILE nErr == 0
+            hb_unzipFileInfo( hUnzip, @cFile, @dDate, @cTime, , , , @nSize, @lCrypted )
+            Aadd( aDir, { cFile, nSize, dDate, cTime, Iif(Right(cFile,1)=='/',"D","") } )
+            nErr := hb_unzipFileNext( hUnzip )
+         ENDDO
+         hb_unzipClose( hUnzip )
+      ENDIF
+      oPaneCurr:nPanelMod := 2
+      oPaneCurr:aDir := aDir
+      oPaneCurr:cIOpref := "zip"
+      oPaneCurr:net_cAddress := cFileName
+      oPaneCurr:nCurrent := 1
+      oPaneCurr:Draw()
+      oPaneCurr:DrawCell( ,.T. )
+      oPaneCurr:DrawHead( .T. )
+      RETURN .T.
+   ENDIF
+
+   RETURN .F.
 
 STATIC FUNCTION hbc_Dirlist()
 

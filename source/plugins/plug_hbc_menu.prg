@@ -1,8 +1,7 @@
 
 STATIC cIniPath
 STATIC cPath_Hrb
-STATIC aMenuGit
-STATIC aMenuC
+STATIC aMenuGit, aMenuFoss, aMenuC
 
 FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
@@ -45,6 +44,11 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
          Aadd( aMenu, { "---",,, } )
       ENDIF
       Aadd( aMenu, { "fossil changes",,15, } )
+      IF !Empty( aMenuFoss )
+         FOR i := 1 TO Len( aMenuFoss )
+            Aadd( aMenu, { aMenuFoss[i,1],,130+i, } )
+         NEXT
+      ENDIF
    ENDIF
    IF lGo
       IF !Empty( aMenu )
@@ -117,12 +121,19 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       hbc_Console( "gcc %p" )
    ELSEIF n == 38
       hbc_Console( "bcc32 %p" )
-   ELSEIF !Empty( aMenuGit ) .AND. n > 100 .AND. n < 150 .AND. ;
+   ELSEIF !Empty( aMenuGit ) .AND. n > 100 .AND. n < 130 .AND. ;
       (n-100) <= Len( aMenuGit ) .AND. !Empty( aMenuGit[n-100] )
       IF hb_TokenCount( aMenuGit[n-100,2], ",", .T. ) > 1
          hbc_Console( hb_ATokens( aMenuGit[n-100,2],",",.T. ) )
       ELSE
          hbc_Console( aMenuGit[n-100,2] )
+      ENDIF
+   ELSEIF !Empty( aMenuFoss ) .AND. n > 130 .AND. n < 160 .AND. ;
+      (n-130) <= Len( aMenuFoss ) .AND. !Empty( aMenuFoss[n-130] )
+      IF hb_TokenCount( aMenuFoss[n-100,2], ",", .T. ) > 1
+         hbc_Console( hb_ATokens( aMenuFoss[n-130,2],",",.T. ) )
+      ELSE
+         hbc_Console( aMenuFoss[n-130,2] )
       ENDIF
    ELSEIF !Empty( aMenuC ) .AND. n > 200 .AND. n < 250 .AND. ;
       (n-200) <= Len( aMenuC ) .AND. !Empty( aMenuC[n-200] )
@@ -162,6 +173,18 @@ STATIC FUNCTION _hbc_readini()
             IF !Empty( cTmp := aSect[ arr[i] ] )
                IF ( nPos := At( ',', cTmp ) ) > 0
                   aMenuGit[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+               ENDIF
+            ENDIF
+         NEXT
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "FOSSIL" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         arr := hb_hKeys( aSect )
+         aMenuFoss := Array( Len( arr ) )
+         FOR i := 1 TO Len( arr )
+            IF !Empty( cTmp := aSect[ arr[i] ] )
+               IF ( nPos := At( ',', cTmp ) ) > 0
+                  aMenuFoss[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
                ENDIF
             ENDIF
          NEXT
