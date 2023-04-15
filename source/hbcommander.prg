@@ -373,9 +373,18 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF Empty( oPaneCurr:aDir ) .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
          IF Empty( oPaneCurr:aDir ) .OR. oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
             IF oPaneCurr:nPanelMod > 0
-               oPaneCurr:nPanelMod := 0
-               oPaneCurr:cIOpref := ""
-               oPaneCurr:net_cAddress := ""
+               IF oPaneCurr:nPanelMod == 1 .OR. ;
+                  Empty( cTemp := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,6] )
+                  oPaneCurr:cIOpref := oPaneCurr:net_cAddress := ""
+                  oPaneCurr:nPanelMod := 0
+               ELSE
+                  IF ( nPos := hb_Rat( '/', cTemp,, Len(cTemp)-1 ) ) == 0
+                     cTemp := ""
+                  ELSE
+                     cTemp := Left( cTemp,nPos )
+                  ENDIF
+                  zipDirRefresh( oPaneCurr, cTemp )
+               ENDIF
                oPaneCurr:Refresh()
                oPaneCurr:nCurrent := 1
                oPaneCurr:Draw()
@@ -401,17 +410,22 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                   RETURN -1
                ENDIF
             ENDIF
+         ELSEIF oPaneCurr:nPanelMod == 2
+            zipDirRefresh( oPaneCurr, ;
+               oPaneCurr:aZipFull[oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,6],1] )
          ELSE
             cPath := oPaneCurr:cCurrPath + Iif(Right(oPaneCurr:cCurrPath,1) $ "\/", "", hb_ps() ) + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] + hb_ps()
          ENDIF
-         oPaneCurr:SetDir( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + cPath )
          oPaneCurr:nCurrent := Iif( Empty( oPaneCurr:aDir ), 0, 1 )
          oPaneCurr:nShift := 0
-         IF !Empty( cTemp ) .AND. ( nPos := Ascan( oPaneCurr:aDir, {|a|a[1]==cTemp} ) ) > 0
-            IF nPos <= oPaneCurr:nCells
-               oPaneCurr:nCurrent := nPos
-            ELSE
-               oPaneCurr:nShift := nPos - 1
+         IF oPaneCurr:nPanelMod < 2
+            oPaneCurr:SetDir( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + cPath )
+            IF !Empty( cTemp ) .AND. ( nPos := Ascan( oPaneCurr:aDir, {|a|a[1]==cTemp} ) ) > 0
+               IF nPos <= oPaneCurr:nCells
+                  oPaneCurr:nCurrent := nPos
+               ELSE
+                  oPaneCurr:nShift := nPos - 1
+               ENDIF
             ENDIF
          ENDIF
          oPaneCurr:Draw()
@@ -421,7 +435,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          IF Empty( oPaneCurr:cIOpref )
             cExt := Lower( hb_fnameExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ) )
             cExtFull := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
-            nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} )
+            IF ( nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) == 0
+               cTemp := Substr( cExt,2 )
+               nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
+            ENDIF
             cTemp := oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
             IF ' ' $ cTemp
                cTemp := '"' + cTemp + '"'
@@ -463,8 +480,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       nPos := 0
       IF nKey == K_CTRL_F3
          IF Empty( oPaneCurr:cIOpref )
-            cTemp := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
-            IF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} ) ) > 0
+            cExt := Lower( Substr( hb_fnameExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ),2 ) )
+            cExtFull := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            IF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
+               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+            ELSEIF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cExt .or. '/'+cExt+'/' $ a[1]} ) ) > 0
                cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
             ELSEIF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == "..."} ) ) > 0
                cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
@@ -493,8 +513,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
       IF nPos == 0
          cTemp := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-         //EditFile( Self, cTemp )
-         mnu_NewBuf( oHbc, cTemp )
+         IF Empty( oPaneCurr:cIOpref )
+            mnu_NewBuf( oHbc, cTemp )
+         ELSEIF oPaneCurr:cIOpref == "net:"
+            mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfMemoWrit() )
+         ELSEIF oPaneCurr:cIOpref == "zip:"
+         ENDIF
       ENDIF
 
    ELSEIF nKey == K_SH_F4
@@ -1597,7 +1621,7 @@ STATIC FUNCTION hbc_FReadArh()
       oPaneCurr:aZipFull := aDir
       zipDirRefresh( oPaneCurr, "" )
       oPaneCurr:nPanelMod := 2
-      oPaneCurr:cIOpref := "zip"
+      oPaneCurr:cIOpref := "zip:"
       oPaneCurr:net_cAddress := cFileName
       oPaneCurr:nCurrent := 1
       oPaneCurr:Draw()
@@ -1630,17 +1654,19 @@ STATIC FUNCTION hbc_Dirlist()
 
 STATIC FUNCTION zipDirRefresh( oPane, cDir )
 
-   LOCAL i, aDir := { { "..","","","","D" } }, aFull := oPane:aZipFull, cName
+   LOCAL i, aDir := { { "..","","","","D",cDir } }, aFull := oPane:aZipFull, cName
 
    FOR i := 1 TO Len( aFull )
       IF Right( cName := aFull[i,1],1 ) == '/'
          cName := hb_strShrink( cName,1 )
       ENDIF
-      IF hb_fnameDir( cName ) == cDir
+      IF hb_fnameDir( cName ) == cDir .AND. !( ".." $ cName )
+         AAdd( aDir, { hb_fnameNameExt(cName), aFull[i,2], aFull[i,3], aFull[i,4], ;
+            Iif(Right(aFull[i,1],1)=='/',"D",""), i } )
       ENDIF
    NEXT
 
-   oPane:aDir := aFull
+   oPane:aDir := aDir
 
    RETURN Nil
 

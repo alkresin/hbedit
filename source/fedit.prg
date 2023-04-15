@@ -3458,9 +3458,9 @@ FUNCTION mnu_OpenRecent( oEdit, n )
    ENDIF
    RETURN mnu_OpenFile( oEdit, cFileName )
 
-FUNCTION mnu_NewBuf( oEdit, cFileName )
+FUNCTION mnu_NewBuf( oEdit, cFileName, cText, funSave )
 
-   LOCAL oNew, s, j, cText
+   LOCAL oNew, s, j
 
    IF !Empty( cFileName )
       s := Lower( cFileName )
@@ -3468,17 +3468,19 @@ FUNCTION mnu_NewBuf( oEdit, cFileName )
          mnu_ToBuf( oEdit, j )
          RETURN oEdit:aWindows[j]
       ENDIF
-      IF File( cFileName )
-         cText := Memoread( cFileName )
-      ELSE
-         edi_Alert( "File not found" )
-         RETURN Nil
+      IF Empty( cText )
+         IF File( cFileName )
+            cText := Memoread( cFileName )
+         ELSE
+            edi_Alert( "File not found" )
+            RETURN Nil
+         ENDIF
       ENDIF
    ENDIF
 
    hb_cdpSelect( oEdit:cpInit )
    oNew := TEdit():New( cText, cFileName, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
-   oNew:funSave := oEdit:funSave
+   oNew:funSave := Iif( Empty(funSave), oEdit:funSave, funSave )
    hb_cdpSelect( oEdit:cp )
    oEdit:lShow := .F.
 
