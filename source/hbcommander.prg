@@ -182,7 +182,7 @@ STATIC FUNCTION _Hbc_Start()
 
 STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
-   LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i
+   LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i, aDir
    LOCAL bufsc
 
    nKey := hb_keyStd( nKeyExt )
@@ -192,6 +192,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       RETURN -1
    ENDIF
 
+   aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    IF nKey == K_F9
      IF !oPaneCurr:PaneMenu()
         mnu_Exit( oEdit_Hbc )
@@ -298,7 +299,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
          RETURN -1
       ELSE
-         IF oPaneCurr:nCurrent + oPaneCurr:nRows < oPaneCurr:nCells .AND. oPaneCurr:nCurrent + oPaneCurr:nRows < Len( oPaneCurr:aDir )
+         IF oPaneCurr:nCurrent + oPaneCurr:nRows < oPaneCurr:nCells .AND. ;
+            oPaneCurr:nCurrent + oPaneCurr:nRows < Len( oPaneCurr:aDir )
             oPaneCurr:DrawCell( ,.F. )
             oPaneCurr:nCurrent += oPaneCurr:nRows
             oPaneCurr:DrawCell( ,.T. )
@@ -352,7 +354,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       oPaneCurr:DrawCell( ,.F. )
       oPaneCurr:DrawHead( .F. )
       oPaneTo := oPaneCurr
-      oPaneCurr := Iif( oPaneCurr == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
+      oPaneCurr := Iif( oPaneCurr == FilePane():aPanes[1], FilePane():aPanes[2], ;
+         FilePane():aPanes[1] )
       oPaneCurr:DrawCell( ,.T. )
       oPaneCurr:DrawHead( .T. )
       DirChange( oPaneCurr:cCurrPath )
@@ -363,6 +366,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:DrawCell( ,.F. )
          oPaneCurr:nCurrent := 1
          oPaneCurr:nShift := 0
+         aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
          IF !Empty( oPaneCurr:aDir ) .AND. !( oPaneCurr:aDir[1,1] == ".." )
             oPaneCurr:Draw()
             oPaneCurr:DrawCell( ,.T. )
@@ -370,13 +374,17 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             RETURN -1
          ENDIF
       ENDIF
-      IF Empty( oPaneCurr:aDir ) .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
-         IF Empty( oPaneCurr:aDir ) .OR. oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
+      IF Empty( oPaneCurr:aDir ) .OR. 'D' $ aDir[5]
+         IF Empty( oPaneCurr:aDir ) .OR. aDir[1] == ".."
             IF oPaneCurr:nPanelMod > 0
-               IF oPaneCurr:nPanelMod == 1 .OR. ;
-                  Empty( cTemp := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,6] )
+               IF oPaneCurr:nPanelMod == 1 .OR. Empty( cTemp := aDir[6] )
                   oPaneCurr:cIOpref := oPaneCurr:net_cAddress := ""
+                  IF oPaneCurr:nPanelMod == 2
+                     hb_unzipClose( oPaneCurr:hUnzip )
+                     oPaneCurr:hUnzip := Nil
+                  ENDIF
                   oPaneCurr:nPanelMod := 0
+                  oPaneCurr:Refresh()
                ELSE
                   IF ( nPos := hb_Rat( '/', cTemp,, Len(cTemp)-1 ) ) == 0
                      cTemp := ""
@@ -384,8 +392,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                      cTemp := Left( cTemp,nPos )
                   ENDIF
                   zipDirRefresh( oPaneCurr, cTemp )
+                  //edi_Alert( ltrim(str(len(oPaneCurr:adir))) + " " + ltrim(str(len(cTemp))) + ":" + cTemp )
                ENDIF
-               oPaneCurr:Refresh()
                oPaneCurr:nCurrent := 1
                oPaneCurr:Draw()
                oPaneCurr:DrawCell( ,.T.)
@@ -412,7 +420,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
          ELSEIF oPaneCurr:nPanelMod == 2
             zipDirRefresh( oPaneCurr, ;
-               oPaneCurr:aZipFull[oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,6],1] )
+               oPaneCurr:aZipFull[aDir[6],1] )
          ELSE
             cPath := oPaneCurr:cCurrPath + Iif(Right(oPaneCurr:cCurrPath,1) $ "\/", "", hb_ps() ) + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] + hb_ps()
          ENDIF
@@ -433,13 +441,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:DrawHead( .T. )
       ELSE
          IF Empty( oPaneCurr:cIOpref )
-            cExt := Lower( hb_fnameExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ) )
-            cExtFull := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            cExt := Lower( hb_fnameExt( aDir[1] ) )
+            cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             IF ( nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) == 0
                cTemp := Substr( cExt,2 )
                nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
             ENDIF
-            cTemp := oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+            cTemp := oPaneCurr:cCurrPath + aDir[1]
             IF ' ' $ cTemp
                cTemp := '"' + cTemp + '"'
             ENDIF
@@ -474,50 +482,61 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_F3 .OR. nKey == K_CTRL_F3
-      IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+      IF 'D' $ aDir[5]
          RETURN -1
       ENDIF
       nPos := 0
       IF nKey == K_CTRL_F3
          IF Empty( oPaneCurr:cIOpref )
-            cExt := Lower( Substr( hb_fnameExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ),2 ) )
-            cExtFull := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            cExt := Lower( Substr( hb_fnameExt( aDir[1] ),2 ) )
+            cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             IF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
-               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + aDir[1] )
             ELSEIF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cExt .or. '/'+cExt+'/' $ a[1]} ) ) > 0
-               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + aDir[1] )
             ELSEIF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == "..."} ) ) > 0
-               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+               cedi_RunApp( oPaneCurr:aExtView[nPos,2] + " " + oPaneCurr:cCurrPath + aDir[1] )
             ENDIF
          ENDIF
       ENDIF
       IF nPos == 0
-         FileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1], oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
+         FileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1], oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
 #ifdef __PLATFORM__UNIX
          oPaneCurr:RedrawAll()
 #endif
       ENDIF
 
    ELSEIF nKey == K_F4 .OR. nKey == K_CTRL_F4
-      IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+      IF 'D' $ aDir[5]
          RETURN 0
       ENDIF
       nPos := 0
       IF nKey == K_CTRL_F4
          IF Empty( oPaneCurr:cIOpref )
-            cTemp := Lower( Substr( GetFullExt( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] ), 2 ) )
+            cTemp := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             IF ( nPos := Ascan( oPaneCurr:aExtEdit, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} ) ) > 0
-               cedi_RunApp( oPaneCurr:aExtEdit[nPos,2] + " " + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
+               cedi_RunApp( oPaneCurr:aExtEdit[nPos,2] + " " + oPaneCurr:cCurrPath + aDir[1] )
             ENDIF
          ENDIF
       ENDIF
       IF nPos == 0
-         cTemp := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+         cTemp := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1]
          IF Empty( oPaneCurr:cIOpref )
             mnu_NewBuf( oHbc, cTemp )
          ELSEIF oPaneCurr:cIOpref == "net:"
             mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfMemoWrit() )
          ELSEIF oPaneCurr:cIOpref == "zip:"
+            i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[6],6] )
+            IF i == 0 .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
+               cTemp := Space( aDir[2] )
+               hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
+               hb_unzipFileClose( oPaneCurr:hUnzip )
+               mnu_NewBuf( oHbc, "zip:"+oPaneCurr:net_cAddress+aDir[1], cTemp )
+            ELSE
+               edi_Alert( "Something goes wrong..." )
+            ENDIF
          ENDIF
       ENDIF
 
@@ -581,7 +600,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_INS
-      IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+      IF 'D' $ aDir[5]
          RETURN -1
       ENDIF
       IF ( nPos := Ascan( oPaneCurr:aSelected, oPaneCurr:nCurrent+oPaneCurr:nShift ) ) == 0
@@ -883,6 +902,7 @@ CLASS FilePane
    DATA nShift        INIT 0
    DATA nCells, nRows, nWidth
    DATA nPanelMod     INIT 0
+   DATA hUnzip
 
    DATA cCurrPath
 
@@ -1087,6 +1107,12 @@ METHOD SetDir( cPath ) CLASS FilePane
       ::aDir := {}
       RETURN Nil
    ENDIF
+
+   IF ::nPanelMod == 2
+      hb_unzipClose( ::hUnzip )
+      ::hUnzip := Nil
+   ENDIF
+   ::nPanelMod := 0
 
    ::ParsePath( cPath )
    ::Refresh()
@@ -1361,8 +1387,8 @@ METHOD RedrawAll() CLASS FilePane
 
 STATIC FUNCTION hbc_FCopy()
 
-   LOCAL cFileName, cFileTo
-   LOCAL cScBuf := Savescreen( 05, 10, 10, 70 ), nRes, i
+   LOCAL cFileName, cFileTo, aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
+   LOCAL cScBuf := Savescreen( 05, 10, 10, 70 ), nRes, i, cTemp, handle
    LOCAL oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
    LOCAL aGets := { ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
@@ -1376,7 +1402,7 @@ STATIC FUNCTION hbc_FCopy()
    @ 08, 11 TO 08, 69
    hb_cdpSelect( oHbc:cp )
 
-   cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+   cFileName := aDir[1]
    IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN Nil
    ENDIF
@@ -1385,24 +1411,47 @@ STATIC FUNCTION hbc_FCopy()
    aGets[1,4] := oPaneTo:cCurrPath + cFileName
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+      IF oPaneTo:nPanelMod > 0
+         edi_Alert( "Operation isn't permitted" )
+         Restscreen( 05, 10, 10, 70, cScBuf )
+         RETURN Nil
+      ENDIF
       cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + AllTrim(aGets[1,4])
       IF hb_vfExists( cFileTo ) .AND. edi_Alert( "File exists already! Owerwrite it?", "No", "Yes" ) != 2
          Restscreen( 05, 10, 10, 70, cScBuf )
          RETURN Nil
       ENDIF
       @ 08, 28 SAY PAdc( "Wait", 28 )
-      //hwg_writelog( oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName )
-      IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, ;
-            cFileTo ) == 0
-         //Restscreen( 05, 10, 10, 70, cScBuf )
-         oPaneCurr:Refresh()
-         oPaneTo:Refresh()
-         oPaneCurr:RedrawAll()
+      IF oPaneCurr:nPanelMod == 2
+         i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[6],6] )
+         IF i == 0
+            IF oPaneTo:cIOpref == "net:" .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
+               cTemp := Space( aDir[2] )
+               hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
+               hb_unzipFileClose( oPaneCurr:hUnzip )
+               handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC )
+               hb_vfWrite( handle, cTemp )
+               hb_vfClose( handle )
+            ELSEIF oPaneTo:cIOpref != "net:" .AND. ;
+               hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cFileTo ) == 0
+            ELSE
+               edi_Alert( "Something goes wrong..." )
+               Restscreen( 05, 10, 10, 70, cScBuf )
+               RETURN Nil
+            ENDIF
+         ENDIF
       ELSE
-         edi_Alert( "Error copying " + cFileName )
-         Restscreen( 05, 10, 10, 70, cScBuf )
+         IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, ;
+               cFileTo ) == 0
+            oPaneCurr:Refresh()
+            oPaneTo:Refresh()
+            oPaneCurr:RedrawAll()
+         ELSE
+            edi_Alert( "Error copying " + cFileName )
+            Restscreen( 05, 10, 10, 70, cScBuf )
+         ENDIF
       ENDIF
-      RETURN Nil
+      //RETURN Nil
    ENDIF
 
    Restscreen( 05, 10, 10, 70, cScBuf )
@@ -1613,10 +1662,12 @@ STATIC FUNCTION hbc_FReadArh()
          nErr := hb_unzipFileFirst( hUnzip )
          DO WHILE nErr == 0
             hb_unzipFileInfo( hUnzip, @cFile, @dDate, @cTime, , , , @nSize, @lCrypted )
-            Aadd( aDir, { cFile, nSize, dDate, cTime, Iif(Right(cFile,1)=='/',"D","") } )
+            Aadd( aDir, { cFile, nSize, dDate, cTime, Iif(Right(cFile,1)=='/',"D",""), ;
+               hb_unzipFilePos(hUnzip) } )
             nErr := hb_unzipFileNext( hUnzip )
          ENDDO
-         hb_unzipClose( hUnzip )
+         oPaneCurr:hUnzip := hUnzip
+         //hb_unzipClose( hUnzip )
       ENDIF
       oPaneCurr:aZipFull := aDir
       zipDirRefresh( oPaneCurr, "" )
