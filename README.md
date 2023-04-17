@@ -1,5 +1,5 @@
 # hbedit
-A fullscreen console multiplatform text editor.
+A fullscreen console multiplatform text editor with built-in file manager
 
 ### Project files
 
@@ -13,10 +13,10 @@ A fullscreen console multiplatform text editor.
   + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
   + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
-  + hbc.help            - HbCommander help file.
+  + hbc.help            - HbCommander (built-in file manager) help file.
   + hbedit.help         - Hbedit help file (Russian).
   + hbedit_en.help      - Hbedit help file (English).
-  + hbc.ini             - HbCommander ini file.
+  + hbc.ini             - HbCommander (built-in file manager) ini file.
   + hbedit.ini          - Hbedit ini file.
   
 
@@ -34,7 +34,7 @@ A fullscreen console multiplatform text editor.
     + hilight.prg       - editor source files, which implements the TEdit class.
                         To include the TEdit in your application you need to link them all.
     + hbcommander.prg
-    + fview.prg         - integrated file commander source files
+    + fview.prg         - built-in file manager source files
     
     + errorsys.prg
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
@@ -93,6 +93,7 @@ A fullscreen console multiplatform text editor.
   hbedit [-f iniFileName] [-gN] [-xy=xPos,yPos] [-size=nCols,nRows] [-ro] [files...]
 
   - -f iniFileName      - a name of ini file to use instead of hbedit.ini
+  - -m                  - start in a file manager mode
   - -gN                 - goto line N; If N is negative it is a number of lines before the end
   - -xy=xPos,yPos       - initial window position in pixels (for Windows only)
   - -size=nCols,nRows   - number of columns and rows in an editor window

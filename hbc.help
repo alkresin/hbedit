@@ -1,7 +1,7 @@
 
-HbCommander - integrated file manager
-   Copyright (C) Alexander S. Kresin
-컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
+HbCommander - built-in file manager
+  Copyright (C) Alexander S. Kresin
+컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
 
    F1  - Help
    F2  - Context menu
@@ -16,6 +16,9 @@ HbCommander - integrated file manager
    F11 - Plugins
    F12 - Editor buffers
 
-   Alt-D  - Change path
-   Alt-F7 - Search
-   Ctrl-O - Console
+   Alt-D    - Change path
+   Alt-F7   - Search
+   Alt-F12  - Apps list for a quick access
+   Shift-F1 - Add file/folder to a zip
+   Shift-F2 - Extract files from a zip
+   Ctrl-O   - Console

@@ -336,7 +336,7 @@ FUNCTION edi_READ( aGets, pKeys )
 
 FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
-   LOCAL x
+   LOCAL x, nWidth := Iif( aGet[G_TYPE] == G_TYPE_STATIC, cp_Len( lUtf8,aGet[G_VALUE] ), aGet[G_WIDTH] )
 
    IF lFirst == Nil; lFirst := .F.; ENDIF
    IF lSele
@@ -350,18 +350,18 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
       SetColor( Iif( Len(aGet) < G_CLR .OR.Empty(aGet[G_CLR]), aClrdef[5], aGet[G_CLR] ) )
    ENDIF
 
-   Scroll( aGet[G_Y], aGet[G_X], aGet[G_Y], aGet[G_X] + aGet[G_WIDTH] - 1 )
+   Scroll( aGet[G_Y], aGet[G_X], aGet[G_Y], aGet[G_X] + nWidth - 1 )
 
    IF aGet[G_TYPE] == G_TYPE_STRING .OR. aGet[G_TYPE] == G_TYPE_STATIC
-      @ aGet[G_Y], aGet[G_X] SAY Iif( aGet[G_WIDTH] >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
+      @ aGet[G_Y], aGet[G_X] SAY Iif( nWidth >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
          aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], ;
-         Iif( aOpt==Nil, 1, aOpt[G2_FIRST] ), aGet[G_WIDTH] ) )
+         Iif( aOpt==Nil, 1, aOpt[G2_FIRST] ), nWidth ) )
 
    ELSEIF aGet[G_TYPE] == G_TYPE_CHECK .OR. aGet[G_TYPE] == G_TYPE_RADIO
       @ aGet[G_Y], aGet[G_X] SAY Iif(aGet[G_VALUE],"x"," ")
 
    ELSEIF aGet[G_TYPE] == G_TYPE_BUTTON
-      x := aGet[G_X] + Int( (aGet[G_WIDTH] - cp_Len( lUtf8,aGet[G_VALUE] ))/2 )
+      x := aGet[G_X] + Int( (nWidth - cp_Len( lUtf8,aGet[G_VALUE] ))/2 )
       @ aGet[G_Y], x SAY aGet[G_VALUE]
 
    ENDIF

@@ -3884,7 +3884,7 @@ FUNCTION mnu_GoTo( oEdit )
 
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu )
    LOCAL aGets := { ;
-      {10,32,11,"Go to position",14}, ;
+      {10,32,11,"Go to position"}, ;
       {11,27,0,"",26}, ;
       {13,28,2,"[Ok]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {13,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
@@ -3900,7 +3900,7 @@ FUNCTION mnu_GoTo( oEdit )
    SetColor( oEdit:cColorMenu )
 
    IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
-      arr := hb_aTokens( aGets[1,4], "," )
+      arr := hb_aTokens( aGets[2,4], "," )
       ny := Val( arr[1] )
       nx := Iif( Len(arr)>1 .AND. Val(arr[2])>0, Val(arr[2]), 1 )
       IF ny > 0 .AND. ny <= Len(oEdit:aText)
