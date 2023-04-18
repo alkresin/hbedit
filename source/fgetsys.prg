@@ -104,7 +104,7 @@ FUNCTION edi_READ( aGets, pKeys )
                   IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
                      FOR i := 1 TO Len( aGets )
                         IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
-                              (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCUrr,G_GROUP])
+                              (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCurr,G_GROUP])
                            aGets[i,G_VALUE] := .F.
                            DevPos( y, aGets[i,G_X] )
                            DevOut( " " )
@@ -315,6 +315,7 @@ FUNCTION edi_READ( aGets, pKeys )
                      ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                   ENDIF
                ENDIF
+               EXIT
             ENDIF
          NEXT
 
@@ -336,7 +337,8 @@ FUNCTION edi_READ( aGets, pKeys )
 
 FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
-   LOCAL x, nWidth := Iif( aGet[G_TYPE] == G_TYPE_STATIC, cp_Len( lUtf8,aGet[G_VALUE] ), aGet[G_WIDTH] )
+   LOCAL x, nWidth := Iif( aGet[G_TYPE]==G_TYPE_STATIC, cp_Len( lUtf8,aGet[G_VALUE] ), ;
+      Iif( aGet[G_TYPE]==G_TYPE_CHECK.OR.aGet[G_TYPE]==G_TYPE_RADIO, 1, aGet[G_WIDTH] ) )
 
    IF lFirst == Nil; lFirst := .F.; ENDIF
    IF lSele

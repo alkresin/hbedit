@@ -18,10 +18,10 @@
 
 #include "hbgtinfo.ch"
 
-#define HBC_VERSION   "1.1"
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
 #define ALT_PRESSED   0x040000
+#define KP_PRESSED    0x080000
 
 #define ADIR_POS      6
 #define AZF_POS       6
@@ -642,6 +642,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF Ascan( aExtZip, {|s| s==cExt} ) > 0
          hbc_Unzip()
       ENDIF
+   ELSEIF nKey == 43 .AND. hb_BitAnd( nKeyExt, KP_PRESSED ) != 0
+      hbc_Search( .T. )
    ELSE
       IF !Empty( FilePane():aDefPaths )
          FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -1221,7 +1223,8 @@ METHOD Draw() CLASS FilePane
 
 METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
-   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
+   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel
+   LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
 
    IF ::nCurrent == 0
       @ ::y2 - 1, ::x1 + 1 SAY "Not available"
@@ -1269,6 +1272,12 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       @ ::y2 - 1, ::x1 + 1 SAY cText
       @ ::y2 - 1, ::x1 + 1 + Len(cText) SAY Space( ::x2 - ::x1 - 1 - Len(cText) )
       @ ::y2 - 1, ::x2 - Len(cDop) SAY cDop
+      x1 := Int( (::x2-::x1-15)/2 )
+      IF Empty( ::aSelected )
+         @ ::y2 - 2, x1, ::y2 - 2, x1 + 15 BOX "ÚÄ¿³ÙÄÀ³ " COLOR ::cClrBox
+      ELSE
+         @ ::y2 - 2, x1 SAY "Selected: " + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -1397,13 +1406,48 @@ METHOD RedrawAll() CLASS FilePane
 
    RETURN Nil
 
-STATIC FUNCTION FCopy( aDir, cFileTo )
+STATIC FUNCTION FAsk_Overwrite( n, cFile )
+
+   LOCAL nRes
+   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+5, x2 := x1+50
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
+   LOCAL aGets := { ;
+      {y1+1,x1+2, 11, cFile + " exists already! Owerwrite it?"}, ;
+      {y1+2,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+2,x1+2, 11, "[ ] Don's ask anymore"}, ;
+      {y1+4,x1+16, 2, "[Yes]", 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+28, 2,"[No]", 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
+   STATIC lNoAsk := .F., lRes := .F.
+
+   IF n == 0  // One time
+      aGets[2,3] := aGets[3,3] := -1
+   ELSEIF n == 1  // First time
+      lNoAsk := .F.
+   ELSEIF lNoAsk
+      RETURN lRes
+   ENDIF
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+3, x1 SAY "Ã"
+   @ y1+3, x2 SAY "´"
+   @ y1+3, x1+1 TO y1+3, x2-1
+
+   lRes := ( ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets) )
+   lNoAsk := aGets[2,4]
+
+   Restscreen( y1, x1, y2, x2, cBuf )
+   SetColor( oldc )
+
+   RETURN lRes
+
+STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
    LOCAL i, cTemp, cIOpref, handle, lRes := .T.
 
-   IF hb_vfExists( cFileTo ) .AND. edi_Alert( "File exists already! Owerwrite it?", "No", "Yes" ) != 2
+   IF hb_vfExists( cFileTo ) .AND. !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo) )
       RETURN .F.
    ENDIF
+
    @ 08, 28 SAY PAdc( "Wait", 28 )
 
    IF oPaneCurr:nPanelMod == 2
@@ -1466,7 +1510,7 @@ STATIC FUNCTION hbc_FCopyFile()
          RETURN Nil
       ENDIF
 
-      IF FCopy( aDir, cFileTo )
+      IF FCopy( aDir, cFileTo, 0 )
          oPaneCurr:Refresh()
          oPaneTo:Refresh()
          oPaneCurr:RedrawAll()
@@ -1497,7 +1541,7 @@ STATIC FUNCTION hbc_FCopySele()
          cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName
 
          WndOut( aWnd, cFileName )
-         IF FCopy( aDir, cFileTo )
+         IF FCopy( aDir, cFileTo, i )
             nSch ++
          ENDIF
          IF Inkey() == 27
@@ -1789,38 +1833,40 @@ STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode )
 
    RETURN nCount
 
-STATIC FUNCTION hbc_Search()
+STATIC FUNCTION hbc_Search( lSele )
 
-   LOCAL cScBuf := Savescreen( 08, 15, 16, 65 ), nRes, i
+   LOCAL cScBuf := Savescreen( 08, 15, 16, 70 ), nRes, i
    LOCAL oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
    LOCAL aGets := { ;
       {09,28,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {10,28,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {10,62,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
-      {12,23,1,.F.,1}, ;
-      {12,43,1,.F.,1}, ;
-      {13,23,1,.F.,1}, ;
-      {13,43,1,.T.,1}, ;
+      {12,18,1,.F.,1}, ;
+      {12,38,1,.F.,1}, ;
+      {13,18,1,.F.,1}, ;
+      {13,38,1,Empty(lSele),1}, ;
+      {12,58,1,!Empty(lSele),1}, ;
       {15,25,2,"[Search]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,40,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, lRecu
-   LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F.
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect
+   LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n
 
    hb_cdpSelect( "RU866" )
-   @ 08, 15, 16, 65 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 08, 15, 16, 70 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 14, 15 SAY "Ã"
-   @ 14, 65 SAY "´"
-   @ 14, 16 TO 14, 64
+   @ 14, 70 SAY "´"
+   @ 14, 16 TO 14, 69
    hb_cdpSelect( oHbc:cp )
 
    @ 09, 17 SAY "File mask"
    @ 10, 17 SAY "Search for"
-   @ 12, 22 SAY "[ ] Case sensitive"
-   @ 12, 42 SAY "[ ] Regular expr."
-   @ 13, 22 SAY "[ ] Whole word"
-   @ 13, 42 SAY "[ ] Recursive"
+   @ 12, 17 SAY "[ ] Case sensitive"
+   @ 12, 37 SAY "[ ] Regular expr."
+   @ 13, 17 SAY "[ ] Whole word"
+   @ 13, 37 SAY "[ ] Recursive"
+   @ 12, 57 SAY "[ ] Select"
 
-   IF !Empty( TEdit():aSeaHis )
+   IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
       aGets[4,4] := lCase_Sea
       aGets[5,4] := lRegex_Sea
@@ -1832,49 +1878,74 @@ STATIC FUNCTION hbc_Search()
       lRegex := aGets[5,4]
       lWord := aGets[6,4]
       lRecu := aGets[7,4]
+      lSelect := Iif( lRecu, .F., aGets[8,4] )
 
+      aDir := Iif( lSelect, {}, { { "..","","","","D" } } )
       IF Empty( cSearch )
-         DirEval( oPaneCurr:cCurrPath, aGets[1,4], lRecu, ;
-            {|s|Aadd( aDir,{ Substr(s,Len(oPaneCurr:cCurrPath)+1),"","","","" })} )
+         IF lSelect
+            DirEval( oPaneCurr:cCurrPath, aGets[1,4], lRecu, ;
+               {|s|Aadd( aDir, Ascan2(oPaneCurr:aDir,hb_fnameNameExt(s)) )} )
+         ELSE
+            DirEval( oPaneCurr:cCurrPath, aGets[1,4], lRecu, ;
+               {|s|Aadd( aDir,{ Substr(s,Len(oPaneCurr:cCurrPath)+1),"","","","" })} )
+         ENDIF
       ELSE
-         cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
-            Iif(lRecu,'-R ','') + '-l --include "' + aGets[1,4] + '" "' + cSearch + '"'
+         IF lRecu
+            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
+               '-R -l --include "' + aGets[1,4] + '" "' + cSearch + '"'
+         ELSE
+            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
+               '-l ' + '"' + cSearch + '" ' + aGets[1,4]
+         ENDIF
          FErase( cFileOut )
          cedi_RunConsoleApp( cCmd, cFileOut )
          IF !Empty( cRes := MemoRead( cFileOut ) )
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
                IF !Empty( aRes[i] )
-                  Aadd( aDir, { aRes[i],"","","","" } )
+                  IF lSelect
+                     IF ( n := Ascan2( oPaneCurr:aDir,aRes[i] ) ) > 0
+                        Aadd( aDir, n )
+                     ENDIF
+                  ELSE
+                     Aadd( aDir, { aRes[i],"","","","" } )
+                  ENDIF
                ENDIF
             NEXT
          ENDIF
       ENDIF
-      IF Len( aDir ) > 1
+      IF !lSelect .AND. Len( aDir ) > 1
          oPaneCurr:nPanelMod := 1
          oPaneCurr:aDir := aDir
 
-         cs_utf8 := hb_Translate( cSearch,, "UTF8" )
-         IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
-            ADel( TEdit():aSeaHis, i )
-            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
-         ELSE
-            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+         IF !Empty( cSearch )
+            cs_utf8 := hb_Translate( cSearch,, "UTF8" )
+            IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
+               ADel( TEdit():aSeaHis, i )
+               hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
+            ELSE
+               hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+            ENDIF
          ENDIF
 
-         oPaneCurr:nCurrent := 1
+         lFound := .T.
+      ELSEIF lSelect .AND. Len( aDir ) > 0
+         oPaneCurr:aSelected := aDir
          lFound := .T.
       ENDIF
+      oPaneCurr:nCurrent := 1
    ENDIF
 
-   Restscreen( 08, 15, 16, 65, cScBuf )
+   Restscreen( 08, 15, 16, 70, cScBuf )
    SetColor( oldc )
    IF lFound
-      oPaneCurr:cIOpref := "sea:"
+      IF !lSelect
+         oPaneCurr:cIOpref := "sea:"
+      ENDIF
       oPaneCurr:Draw()
       oPaneCurr:DrawCell( ,.T. )
       oPaneCurr:DrawHead( .T. )
-   ELSE
+   ELSEIF LastKey() != K_ESC
       edi_Alert( "Nothing found" )
    ENDIF
 
@@ -1980,7 +2051,7 @@ STATIC FUNCTION hbc_Unzip()
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cScBuf, oldc, nRes, cPath
+   LOCAL cScBuf, oldc, nRes, cPath, nFirst := 0
 
    IF cExt == ".zip"
 
@@ -2010,8 +2081,16 @@ STATIC FUNCTION hbc_Unzip()
             DO WHILE nErr == 0
                hb_unzipFileInfo( hUnzip, @cFile,,,,,,, @lCrypted )
                WndOut( aWnd, cFile )
-               IF hb_unzipExtractCurrentFile( hUnzip, cPath+cFile ) == 0
-                  nSch++
+               IF Right( cFile,1 ) $ "/\"
+                  IF !hb_vfDirExists( cPath+cFile )
+                     hb_vfDirMake( cPath+cFile )
+                  ENDIF
+               ELSE
+                  IF !hb_vfExists( cPath+cFile ) .OR. FAsk_Overwrite( ++nFirst, hb_fnameNameExt(cFile) )
+                     IF hb_unzipExtractCurrentFile( hUnzip, cPath+cFile ) == 0
+                        nSch++
+                     ENDIF
+                  ENDIF
                ENDIF
                nErr := hb_unzipFileNext( hUnzip )
             ENDDO
@@ -2516,6 +2595,8 @@ STATIC FUNCTION WndClose( arr, cText )
 
    RETURN Nil
 
+STATIC FUNCTION Ascan2( arr, xItem )
+   RETURN Ascan( arr, {|a|a[1]==xItem} )
 /*
 #pragma BEGINDUMP
 #include "hbapi.h"
