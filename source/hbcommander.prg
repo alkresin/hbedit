@@ -44,7 +44,6 @@ STATIC cNetPort := "2941"
 STATIC cFontName
 STATIC nFontHeight, nFontWidth
 STATIC nScreenH := 25, nScreenW := 80
-STATIC aHisCmd := {}
 STATIC cFileOut, cOutBuff
 STATIC oPaneCurr, oPaneTo
 STATIC lCase_Sea := .F., lRegex_Sea := .F.
@@ -200,10 +199,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    aDir := Iif( Empty(oPaneCurr:aDir), {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
    IF nKey == K_F9
      IF !oPaneCurr:PaneMenu()
+        CmdHisSave()
         mnu_Exit( oEdit_Hbc )
      ENDIF
 
    ELSEIF nKey == K_F10
+      CmdHisSave()
       mnu_Exit( oEdit_Hbc )
 
    ELSEIF nKey == K_F5
@@ -562,6 +563,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                RETURN -1
             ELSE
                IF !o:PaneMenu()
+                  CmdHisSave()
                   mnu_Exit( oEdit_Hbc )
                ENDIF
             ENDIF
@@ -648,6 +650,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
    ELSEIF nKey == 43 //.AND. hb_BitAnd( nKeyExt, KP_PRESSED ) != 0
       hbc_Search( .T. )
+   ELSEIF nKey == 61 //.OR. (nKey >= 65 .AND. nKey <= 90) .OR. (nKey >= 97 .AND. nKey <= 122)
+      KEYBOARD Chr(nKey)
+      hbc_Console()
    ELSE
       IF !Empty( FilePane():aDefPaths )
          FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -885,6 +890,8 @@ CLASS FilePane
    CLASS VAR aPanes SHARED INIT {}
    CLASS VAR aDefPaths SHARED
    CLASS VAR aExtView, aExtEdit, aExtEnter SHARED
+   CLASS VAR aCmdHis   SHARED
+   CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
    CLASS VAR vx2 SHARED  INIT nScreenW-1
@@ -2391,14 +2398,14 @@ FUNCTION hbc_Console( xCommand )
    LOCAL pApp, nKeyExt, nKey, cmd, nSecInit, hWnd
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
-         IF nHis <= Len( aHisCmd )
+         IF nHis <= Len( FilePane():aCmdHis )
             nHis ++
-            RETURN Iif( nHis <= Len( aHisCmd ), aHisCmd[nHis], "" )
+            RETURN Iif( nHis <= Len( FilePane():aCmdHis ), FilePane():aCmdHis[nHis], "" )
          ENDIF
       ELSEIF nKey == K_UP
          IF nHis > 1
             nHis --
-            RETURN aHisCmd[nHis]
+            RETURN FilePane():aCmdHis[nHis]
          ENDIF
       ELSEIF nKey == K_CTRL_O
          KEYBOARD Chr(K_ENTER)
@@ -2418,8 +2425,12 @@ FUNCTION hbc_Console( xCommand )
       RestScreen( 0, 0, nScreenH-1, nScreenW-1, cOutBuff )
    ENDIF
 
+   IF Valtype( FilePane():aCmdHis ) != "A"
+      CmdHisLoad()
+   ENDIF
+
    DO WHILE .T.
-      nHis := Len( aHisCmd ) + 1
+      nHis := Len( FilePane():aCmdHis ) + 1
       ?
       @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
       DevPos( Maxrow(), 0 )
@@ -2546,10 +2557,11 @@ FUNCTION hbc_Console( xCommand )
             cedi_EndConsoleApp( pApp )
 #endif
          ENDIF
-         IF ( i := Ascan( aHisCmd, {|s|s == cCommand} ) ) > 0
-            aHisCmd := hb_ADel( aHisCmd, i, .T. )
+         IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
+            FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
          ENDIF
-         Aadd( aHisCmd, cCommand )
+         Aadd( FilePane():aCmdHis, cCommand )
+         FilePane():lCmdHis := .T.
          cCommand := ""
       ENDIF
    ENDDO
@@ -2648,6 +2660,37 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    DevPos( nRow, nColInit + nPos - 1 )
 
    RETURN cRes
+
+STATIC FUNCTION CmdHisLoad()
+
+   LOCAL arr := hb_ATokens( Memoread( hb_DirBase() + "hbc.his" ), Chr(10) ), i
+
+   FOR i := Len(arr) TO 1 STEP -1
+      IF Empty( arr[i] )
+         hb_ADel( arr, i, .T. )
+      ELSEIF Right( arr[i],1 ) == Chr(13)
+         arr[i] := hb_strShrink( arr[i], 1 )
+      ENDIF
+   NEXT
+
+   FilePane():aCmdHis := arr
+
+   RETURN Nil
+
+STATIC FUNCTION CmdHisSave()
+
+   LOCAL i, s := "", nCou := 0, nLen
+
+   IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
+      nLen := Len(FilePane():aCmdHis)
+      FOR i := Max( 1,nLen-200 ) TO nLen
+         s += FilePane():aCmdHis + Chr(10)
+      NEXT
+      hb_MemoWrit( hb_DirBase() + "hbc.his", s )
+      FilePane():lCmdHis := .F.
+   ENDIF
+
+   RETURN Nil
 
 STATIC FUNCTION WndInit( y1, x1, y2, x2, clr )
 
