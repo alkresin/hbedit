@@ -1509,7 +1509,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 STATIC FUNCTION hbc_FCopyFile()
 
    LOCAL cFileTo, aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
-   LOCAL cScBuf, oldc, nRes, cTemp, lDir, cInitDir, nStart := 0
+   LOCAL cScBuf, oldc, nRes, cTemp, lDir, cInitDir, nStart := 0, aWnd
    LOCAL cFileName := aDir[1]
    LOCAL aGets := { ;
       {06,12,11,"Copy " + NameShortcut( cFileName, 48 ) + " to:"}, ;
@@ -1529,6 +1529,7 @@ STATIC FUNCTION hbc_FCopyFile()
          nStart ++
          //edi_writelog( "from: " + Substr( s,nLen ) )
          //edi_writelog( "to:   " + cFileTo + Substr( s,nLen ) )
+         WndOut( aWnd, Substr( s,nLen ) )
          RETURN FCopy( {Substr( s,nLen )}, cFileTo + Substr( s,nLen ), nStart )
       ENDIF
       RETURN .T.
@@ -1570,7 +1571,9 @@ STATIC FUNCTION hbc_FCopyFile()
          IF hb_vfDirMake( cFileTo  + aDir[1] ) != 0
             RETURN edi_Alert( "Error copying " + aDir[1] )
          ENDIF
+         aWnd := WndInit( 05, 20, 12, 60 )
          DirEval( cInitDir, "*", .T., bCopy, .T. )
+         WndClose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files copied." )
          oPaneTo:Refresh()
          oPaneCurr:Refresh()
          oPaneCurr:RedrawAll()
@@ -2684,7 +2687,9 @@ STATIC FUNCTION CmdHisSave()
    IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
       nLen := Len(FilePane():aCmdHis)
       FOR i := Max( 1,nLen-200 ) TO nLen
-         s += FilePane():aCmdHis + Chr(10)
+         IF Len( FilePane():aCmdHis[i] ) > 2
+            s += FilePane():aCmdHis[i] + Chr(10)
+         ENDIF
       NEXT
       hb_MemoWrit( hb_DirBase() + "hbc.his", s )
       FilePane():lCmdHis := .F.
