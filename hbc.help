@@ -18,6 +18,7 @@ HbCommander - built-in file manager
 
    Alt-D    - Change path
    Alt-F7   - Search
+   +        - Search/select
    Alt-F12  - Apps list for a quick access
    Shift-F1 - Add file/folder to a zip
    Shift-F2 - Extract files from a zip

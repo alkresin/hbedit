@@ -20,7 +20,7 @@
 // used below
 #define NTRIM(n)                ( LTrim(Str(n)) )
 
-STATIC LogInitialPath := ""
+//STATIC LogInitialPath := ""
 
 /***
 *       ErrorSys()
@@ -31,7 +31,7 @@ STATIC LogInitialPath := ""
 PROC ErrorSys()
 
    Errorblock( { | e | DefError( e ) } )
-   LogInitialPath := "\" + Curdir() + Iif( Empty( Curdir() ), "", "\" )
+   //LogInitialPath := hb_ps() + Curdir() + Iif( Empty( Curdir() ), "", hb_ps() )
 RETURN
 
 /***
@@ -39,7 +39,7 @@ RETURN
 */
 STATIC FUNC DefError( e )
 
-LOCAL i, cMessage
+LOCAL i, cMessage, s
 
    // by default, division by zero yields zero
    IF ( e:genCode == EG_ZERODIV )
@@ -75,9 +75,19 @@ LOCAL i, cMessage
       cMessage += " (DOS Error " + NTRIM( e:osCode ) + ") "
    END
 
+   s := Chr(13)+Chr(10)
+   s += Dtoc( Date() ) + ' ' + Time() + Chr(13)+Chr(10)
+   s += cMessage + Chr(13)+Chr(10)
+   i := 2
+   WHILE ( !Empty( Procname( i ) ) )
+      s += "Called from " + Trim( Procname( i ) ) + "(" + NTRIM( Procline( i ) ) + ")  " + Chr(13)+Chr(10)
+      i ++
+   ENDDO
+   edi_Writelog( s, "apps.err" )
+   /*
    SET DEFAULT TO
    SET DEVICE TO PRINTER
-   SET PRINTER TO "apps.err" ADDITIVE
+   SET PRINTER TO (LogInitialPath+"apps.err") ADDITIVE
    @  1,  0 SAY " "
    @  2,  0 SAY Dtoc( Date() ) + ' ' + Time()
    @  3,  0 SAY cMessage
@@ -89,6 +99,7 @@ LOCAL i, cMessage
       i ++
    ENDDO
    SET DEVICE TO SCREEN
+   */
    Errorlevel( 1 )
    QUIT
 
