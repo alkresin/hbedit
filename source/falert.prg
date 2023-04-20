@@ -70,7 +70,7 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2 )
 
       edi_READ( aGets )
       IF LastKey() == 13
-         xRes := aGets[1,4]
+         xRes := aGets[2,4]
       ENDIF
       Restscreen( y1, x1, y1 + 2, x2, cBuf )
 

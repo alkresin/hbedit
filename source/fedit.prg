@@ -3156,7 +3156,7 @@ FUNCTION mnu_Help( oEdit, cFullPath )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + Chr(10) + ;
-         "Copyright (C) 2019-2020  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
+         "Copyright (C) 2019-2023  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
