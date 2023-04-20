@@ -1,7 +1,7 @@
 /*
  * File manager, based on Harbour File IO API
  *
- * Copyright 2016 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2016-2023 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
@@ -2787,7 +2787,7 @@ STATIC FUNCTION WndClose( arr, cText )
 
    RETURN Nil
 
-STATIC FUNCTION Ascan2( arr, xItem )
+FUNCTION Ascan2( arr, xItem )
    RETURN Ascan( arr, {|a|a[1]==xItem} )
 /*
 #pragma BEGINDUMP

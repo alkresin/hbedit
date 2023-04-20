@@ -13,6 +13,10 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       _hbc_readini()
    ENDIF
 
+   IF oPane:nPanelMod == 1 .AND. oPane:nCurrent > 1
+      Aadd( aMenu, { "go to file",,5, } )
+   ENDIF
+
    FOR i := 1 TO Len( oPane:aDir )
       cFile := oPane:aDir[i,1]
       cExt := hb_fnameExt( cFile )
@@ -91,9 +95,31 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
 STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
-   LOCAL lRefr := .F.
+   LOCAL lRefr := .F., cFile, cDir, i
 
-   IF n == 11
+   IF n == 5
+      oPane:cIOpref := oPane:cIOpref_bak
+      oPane:net_cAddress := oPane:net_cAddress_bak
+      cFile := hb_fnameNameExt( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
+      cDir := oPane:cCurrPath + hb_fnameDir( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
+      IF !( Right( cDir, 1 ) $ "/\" )
+         cDir += hb_ps()
+      ELSEIF Right( cDir, 1 ) != hb_ps()
+         cDir := hb_strShrink( cDir, 1 ) + hb_ps()
+      ENDIF
+      oPane:SetDir( cDir )
+      IF ( i := Ascan2( oPane:aDir, cFile ) ) > 0
+         IF i <= oPane:nCells
+            oPane:nCurrent := i
+         ELSE
+            oPane:nShift := i
+         ENDIF
+      ENDIF
+      oPane:Draw()
+      oPane:DrawCell( ,.T. )
+      oPane:DrawHead( .T. )
+
+   ELSEIF n == 11
       hbc_Console( "git pull" )
       lRefr := .T.
    ELSEIF n == 12

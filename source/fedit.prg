@@ -1,7 +1,7 @@
 /*
  * Text editor
  *
- * Copyright 2019-2021 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2019-2023 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
