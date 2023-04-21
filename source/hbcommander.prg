@@ -501,9 +501,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          RETURN -1
       ENDIF
       nPos := 0
-      cTemp := hb_DirTemp() + "hbc_view.tmp"
       IF nKey == K_CTRL_F3
-         IF Empty( oPaneCurr:cIOpref )
+         IF Empty( oPaneCurr:cIOpref ) .OR. oPaneCurr:nPanelMod == 1
             cExt := Lower( Substr( hb_fnameExt( aDir[1] ),2 ) )
             cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             IF ( nPos := Ascan( oPaneCurr:aExtView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
@@ -517,13 +516,15 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
       IF nPos == 0
          IF oPaneCurr:nPanelMod == 2
+            cTemp := hb_DirTemp() + "hbc_view.tmp"
             IF hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] ) == 0 ;
                .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cTemp ) == 0
                FileView( cTemp, oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
                FErase( cTemp )
             ENDIF
          ELSE
-            FileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            FileView( Iif( oPaneCurr:nPanelMod==1, oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak, ;
+               oPaneCurr:cIOpref + oPaneCurr:net_cAddress ) + oPaneCurr:net_cPort + ;
                oPaneCurr:cCurrPath + aDir[1], oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
          ENDIF
 #ifdef __PLATFORM__UNIX
@@ -537,7 +538,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
       nPos := 0
       IF nKey == K_CTRL_F4
-         IF Empty( oPaneCurr:cIOpref )
+         IF Empty( oPaneCurr:cIOpref ) .OR. oPaneCurr:nPanelMod == 1
             cTemp := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             IF ( nPos := Ascan( oPaneCurr:aExtEdit, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} ) ) > 0
                cedi_RunApp( oPaneCurr:aExtEdit[nPos,2] + " " + oPaneCurr:cCurrPath + aDir[1] )
@@ -545,9 +546,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          ENDIF
       ENDIF
       IF nPos == 0
-         cTemp := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+         cTemp := Iif( oPaneCurr:nPanelMod==1, oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak, ;
+            oPaneCurr:cIOpref + oPaneCurr:net_cAddress ) + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1]
-         IF Empty( oPaneCurr:cIOpref )
+         IF Empty( oPaneCurr:cIOpref ) .OR. oPaneCurr:nPanelMod == 1
             mnu_NewBuf( oHbc, cTemp )
          ELSEIF oPaneCurr:cIOpref == "net:"
             mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfWrit_Net() )
@@ -1394,9 +1396,11 @@ METHOD ContextMenu() CLASS FilePane
 
    LOCAL aMenu := {}, nChoic, xPlugin, cFullPath, bMenu
 
-   IF !( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
-      Aadd( aMenu, { "Copy",,1,"F5" } )
+   Aadd( aMenu, { "Copy",,1,"F5" } )
+   IF oPaneCurr:nPanelMod == 0 .AND. !( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
       Aadd( aMenu, { "Rename",,2,"F6" } )
+   ENDIF
+   IF oPaneCurr:nPanelMod == 0
       Aadd( aMenu, { "Delete",,3,"F8" } )
    ENDIF
 
@@ -1522,6 +1526,11 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
       ELSE
          lRes := .F.
       ENDIF
+   ELSEIF oPaneCurr:nPanelMod == 1
+      IF hb_vfCopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
+            oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
+         lRes := .F.
+      ENDIF
    ELSE
       IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
@@ -1548,20 +1557,21 @@ STATIC FUNCTION hbc_FCopyFile()
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
       IF "D" $ arr[5]
          IF !( s == "." .OR. s == ".." )
-            //edi_writelog( "dir:  " + cFileTo + Substr( s,nLen ) )
             IF hb_vfDirMake( cFileTo + Substr( s,nLen ) ) != 0
                RETURN .F.
             ENDIF
          ENDIF
       ELSE
          nStart ++
-         //edi_writelog( "from: " + Substr( s,nLen ) )
-         //edi_writelog( "to:   " + cFileTo + Substr( s,nLen ) )
          WndOut( aWnd, Substr( s,nLen ) )
          RETURN FCopy( {Substr( s,nLen )}, cFileTo + Substr( s,nLen ), nStart )
       ENDIF
       RETURN .T.
    }
+
+   IF oPaneTo:nPanelMod == 1
+      RETURN edi_Alert( "Operation isn't permitted" )
+   ENDIF
 
    lDir := ( 'D' $ aDir[5] )
 
@@ -1576,6 +1586,9 @@ STATIC FUNCTION hbc_FCopyFile()
 
    IF oPaneTo:nPanelMod == 2
       aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + ":" + oPaneTo:zip_cCurrDir + cFileName
+   ELSEIF oPaneCurr:nPanelMod == 1
+      aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
+         hb_fnameNameExt( cFileName )
    ELSE
       aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
          Iif( lDir, "", cFileName )
@@ -1629,8 +1642,7 @@ STATIC FUNCTION hbc_FCopySele()
    LOCAL cFileName, cFileTo, i, aWnd, nSch := 0, aDir
 
    IF oPaneTo:nPanelMod > 0
-      edi_Alert( "Operation isn't permitted" )
-      RETURN Nil
+      RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
 
    IF edi_Alert( "Copy " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "Yes", "No" ) == 1
@@ -1665,12 +1677,8 @@ STATIC FUNCTION hbc_FRename()
    LOCAL cFileName, cBuf, cNewName
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-   IF 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
-      RETURN Nil
-   ENDIF
-   IF oPaneCurr:nPanelMod > 0
-      edi_Alert( "Operation isn't permitted" )
-      RETURN Nil
+   IF oPaneCurr:nPanelMod > 0 .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+      RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
 
    cBuf := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
