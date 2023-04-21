@@ -341,7 +341,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
       oPaneCurr:DrawCell( ,.T. )
 
-   ELSEIF nKey == K_PGUP
+   ELSEIF nKey == K_PGUP  .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) == 0
       oPaneCurr:DrawCell( ,.F. )
       lRedraw := .F.
       IF oPaneCurr:nShift == 0
@@ -667,6 +667,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF Ascan( aExtZip, {|s| s==cExt} ) > 0
          hbc_Unzip()
       ENDIF
+   ELSEIF nKey == K_CTRL_R .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+      oPaneCurr:Refresh()
+      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+         oPaneCurr:nShift := Max( 0, Len( oPaneCurr:aDir ) ) - oPaneCurr:nCells
+         oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
+      ENDIF
+      oPaneCurr:RedrawAll()
    ELSEIF nKey == 43 //.AND. hb_BitAnd( nKeyExt, KP_PRESSED ) != 0
       hbc_Search( .T. )
    ELSEIF nKey == 61 //.OR. (nKey >= 65 .AND. nKey <= 90) .OR. (nKey >= 97 .AND. nKey <= 122)
@@ -1347,7 +1354,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
    LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,,"Alt-D"}, {"File edit history",,}, {"Find file",,,"Alt-F7"}, ;
-      {"Plugins",,,"F11"}, {"Apps",,,"Alt-F12"}, {"Buffers",,,"F12"}, ;
+      {"Plugins",,,"F11"}, {"Apps",,,"Alt-F12"}, {"Buffers",,,"F12"}, {"Refresh",,,"Ctrl-R"}, ;
       {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
    LOCAL aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
       "Mode 2 " + Iif(::nDispMode==2,"x"," ") }
@@ -1365,11 +1372,6 @@ METHOD PaneMenu() CLASS FilePane
       ENDIF
 
    ELSEIF nChoic == 2
-      /*
-      IF !Empty( cTemp := hbc_SelePath( ::y1-1, ::x1-1 ) )
-         ::ChangeDir( cTemp )
-      ENDIF
-      */
       ::ChangeDir()
    ELSEIF nChoic == 3
       hbc_Dirlist()
@@ -1380,7 +1382,14 @@ METHOD PaneMenu() CLASS FilePane
    ELSEIF nChoic == 6
       AppList( Self )
    ELSEIF nChoic == 7
-      mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
+      mnu_Buffers( oHbc, {::y1+1,::x1+1} )
+   ELSEIF nChoic == 8
+      ::Refresh()
+      IF ::nCurrent + ::nShift > Len( ::aDir )
+         ::nShift := Max( 0, Len( ::aDir ) ) - ::nCells
+         ::nCurrent := Len( ::aDir ) - ::nShift
+      ENDIF
+      ::RedrawAll()
    ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
       ShowStdout()
    ELSEIF nChoic == Len( aMenu ) - 2

@@ -20,6 +20,7 @@ HbCommander - built-in file manager
    Ctrl-A   - View/Set file attributes
 
    Alt-D    - Change path
+   Ctrl-R   - Refresh panel
    Alt-F7   - Search
    +        - Search/select
    Alt-F12  - Quick access to apps, declared in hbc.ini in [APPLIST] section
