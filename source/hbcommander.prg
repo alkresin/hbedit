@@ -2471,7 +2471,7 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL pApp, nKeyExt, nKey, cmd, nSecInit, hWnd
+   LOCAL pApp, oCons, nKeyExt, nKey, cmd, nSecInit, hWnd
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
          IF nHis <= Len( FilePane():aCmdHis )
@@ -2560,8 +2560,8 @@ FUNCTION hbc_Console( xCommand )
          ELSE
             FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
-            cCommand += " 2>&1"
-            cedi_RunConsoleApp( cCommand, cFileOut )
+/*
+            cedi_RunConsoleApp( cCommand + " 2>&1", cFileOut )
             IF !Empty( xRes := MemoRead( cFileOut ) )
                IF Chr(9) $ xRes
                   xRes := StrTran( xRes, Chr(9), Space(8) )
@@ -2574,6 +2574,47 @@ FUNCTION hbc_Console( xCommand )
                ENDIF
                ? xRes
             ENDIF
+*/
+            cmd := ""
+            oCons := RCons():New( cCommand )
+            IF oCons:hProcess < 0
+               ? "Error starting app"
+               cCommand := ""
+               LOOP
+            ENDIF
+            FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
+            DevPos( Maxrow(), nColInit := 0 )
+            ?
+            DO WHILE ( xRes := oCons:Read() ) != Nil
+               IF !Empty( xRes )
+                  IF Chr(9) $ xRes
+                     xRes := StrTran( xRes, Chr(9), Space(8) )
+                  ENDIF
+                  SetColor( "W/N" )
+                  FilePane():cConsOut += xRes
+                  IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+                     i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+                     FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+                  ENDIF
+                  ?? xRes
+                  nColInit := Col()
+                  cmd := ""
+               ENDIF
+               nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+               IF nKeyExt == 0
+                  LOOP
+               ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
+                     ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
+                  EXIT
+               ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+                  IF !oCons:Write( cmd + hb_Eol() )
+                     ? "Pipe write error"
+                  ENDIF
+               ELSE
+                  cmd := ProcessKey( nColInit, cmd, nKeyExt )
+               ENDIF
+            ENDDO
+            oCons:End()
 #else
             cmd := ""
             pApp := cedi_StartConsoleApp( cCommand )
@@ -2806,23 +2847,54 @@ STATIC FUNCTION WndClose( arr, cText )
 
 FUNCTION Ascan2( arr, xItem )
    RETURN Ascan( arr, {|a|a[1]==xItem} )
-/*
-#pragma BEGINDUMP
-#include "hbapi.h"
-#include "hbapiitm.h"
-#if defined (HB_OS_UNIX)
-#include <gtk/gtk.h>
-HB_FUNC( FRUNAPP )
-{
-   g_spawn_command_line_async( hb_parc(1), NULL );
-}
-#else
-#include <windows.h>
-HB_FUNC( FRUNAPP )
-{
-   WinExec( hb_parc( 1 ), SW_SHOW );
-}
-#endif
 
-#pragma ENDDUMP
-*/
+#define BUFFER_SIZE  1024
+
+CLASS RCons
+
+   DATA   hProcess
+   DATA   hStdIn, hStdOut, hStdErr
+
+   METHOD New( cCmd )
+   METHOD Read()
+   METHOD Write( cText )
+   METHOD End()
+
+ENDCLASS
+
+METHOD New( cCmd ) CLASS RCons
+
+   LOCAL hStdIn, hStdOut, hStdErr
+
+   ::hProcess = hb_processOpen( cCmd, @hStdIn, @hStdOut, @hStdErr )
+
+   ::hStdIn = hStdIn
+   ::hStdOut = hStdOut
+   ::hStdErr = hStdErr
+
+   RETURN Self
+
+METHOD Read() CLASS RCons
+
+   LOCAL nRead
+   LOCAL cBuffer := Space( BUFFER_SIZE )
+
+   IF ( nRead := hb_PRead( ::hStdOut, @cBuffer, BUFFER_SIZE, 10 ) ) == 0
+      nRead := hb_PRead( ::hStdErr, @cBuffer, BUFFER_SIZE, 10 )
+   ENDIF
+
+   RETURN Iif( nRead > 0, Left( cBuffer, nRead ), Iif( nRead < 0, Nil, "" ) )
+
+METHOD Write( cText ) CLASS RCons
+
+   RETURN ( FWrite( ::hStdIn, cText ) > 0 )
+
+METHOD End() CLASS RCons
+
+   LOCAL nResult := hb_processClose( ::hProcess )
+
+   FClose( ::hStdIn )
+   FClose( ::hStdOut )
+   FClose( ::hStdErr )
+
+   RETURN nResult
