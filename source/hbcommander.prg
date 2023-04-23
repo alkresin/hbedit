@@ -2891,10 +2891,9 @@ METHOD Write( cText ) CLASS RCons
 
 METHOD End() CLASS RCons
 
-   LOCAL nResult := hb_processClose( ::hProcess )
-
    FClose( ::hStdIn )
    FClose( ::hStdOut )
    FClose( ::hStdErr )
+   cedi_waitpid( ::hProcess )
 
-   RETURN nResult
+   RETURN hb_processClose( ::hProcess )

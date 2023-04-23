@@ -390,6 +390,7 @@ HB_FUNC( CEDI_REDIROFF )
 #include <grp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
@@ -485,6 +486,12 @@ HB_FUNC( CEDI_RUNAPP )
 #ifdef GTHWG
    hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
 #endif
+}
+
+HB_FUNC( CEDI_WAITPID )
+{
+   int status;
+   hb_retni( waitpid( hb_parni(1), &status, WNOHANG ) );
 }
 
 #else
