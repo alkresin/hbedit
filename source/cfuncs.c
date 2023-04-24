@@ -781,7 +781,8 @@ HB_FUNC( CEDI_WRITETOCONSOLEAPP )
    bSuccess = WriteFile( pHandles->g_hChildStd_IN_Wr, (char*) hb_parc(2),
       (DWORD) hb_parclen(2), &dwWritten, NULL );
 
-   hb_retl( !bSuccess );
+   //_writelog( "_ac.log", 0, "%d write %d %d %s\r\n", bSuccess, hb_parclen(2), (int)dwWritten, (char*) hb_parc(2) );
+   hb_retl( bSuccess );
 }
 
 HB_FUNC( CEDI_ENDCONSOLEAPP )

@@ -2471,7 +2471,6 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL pApp, oCons, nKeyExt, nKey, cmd, nSecInit, hWnd
    LOCAL bKeys := {|nKey|
       IF nKey == K_DOWN
          IF nHis <= Len( FilePane():aCmdHis )
@@ -2558,120 +2557,11 @@ FUNCTION hbc_Console( xCommand )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
          ELSE
-            FErase( cFileOut )
+            //FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
-/*
-            cedi_RunConsoleApp( cCommand + " 2>&1", cFileOut )
-            IF !Empty( xRes := MemoRead( cFileOut ) )
-               IF Chr(9) $ xRes
-                  xRes := StrTran( xRes, Chr(9), Space(8) )
-               ENDIF
-               SetColor( "W/N" )
-               FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) + xRes
-               IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-                  i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-                  FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-               ENDIF
-               ? xRes
-            ENDIF
-*/
-            cmd := ""
-            oCons := RCons():New( cCommand )
-            IF oCons:hProcess < 0
-               ? "Error starting app"
-               cCommand := ""
-               LOOP
-            ENDIF
-            FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
-            DevPos( Maxrow(), nColInit := 0 )
-            ?
-            DO WHILE ( xRes := oCons:Read() ) != Nil
-               IF !Empty( xRes )
-                  IF Chr(9) $ xRes
-                     xRes := StrTran( xRes, Chr(9), Space(8) )
-                  ENDIF
-                  SetColor( "W/N" )
-                  FilePane():cConsOut += xRes
-                  IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-                     i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-                     FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-                  ENDIF
-                  ?? xRes
-                  nColInit := Col()
-                  cmd := ""
-               ENDIF
-               nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
-               IF nKeyExt == 0
-                  LOOP
-               ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
-                     ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
-                  EXIT
-               ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
-                  IF !oCons:Write( cmd + hb_Eol() )
-                     ? "Pipe write error"
-                  ENDIF
-               ELSE
-                  cmd := ProcessKey( nColInit, cmd, nKeyExt )
-               ENDIF
-            ENDDO
-            oCons:End()
+            ConsUnix( cCommand )
 #else
-            cmd := ""
-            pApp := cedi_StartConsoleApp( cCommand )
-            IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
-               ? "Error starting app ", xRes
-               cedi_EndConsoleApp( pApp )
-               cCommand := ""
-               LOOP
-            ENDIF
-            FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
-            DevPos( Maxrow(), nColInit := 0 )
-            ?
-            nSecInit := Seconds()
-            DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
-               IF !Empty( xRes )
-                  IF Chr(9) $ xRes
-                     xRes := StrTran( xRes, Chr(9), Space(8) )
-                  ENDIF
-                  SetColor( "W/N" )
-                  FilePane():cConsOut += xRes
-                  IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-                     i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-                     FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-                  ENDIF
-                  ?? xRes
-                  nColInit := Col()
-                  cmd := ""
-                  nSecInit := 0
-               ENDIF
-               nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
-               IF nKeyExt == 0
-                  IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
-                     nSecInit := 0
-                     IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
-                        //IF ( i := edi_Alert( "Show app window?", "Yes", "No", "Close it!" ) ) == 1
-                           cedi_ShowWindow( hWnd )
-                           cedi_EndConsoleApp( pApp, .T. )
-                           pApp := Nil
-                           EXIT
-                        //ELSEIF i == 3
-                        //   EXIT
-                        //ENDIF
-                     ENDIF
-                  ENDIF
-                  LOOP
-               ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
-                     ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
-                  EXIT
-               ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
-                  IF !cedi_WriteToConsoleApp( pApp, cmd+Chr(13)+Chr(10) )
-                     ? "Pipe write error"
-                  ENDIF
-               ELSE
-                  cmd := ProcessKey( nColInit, cmd, nKeyExt )
-               ENDIF
-            ENDDO
-            cedi_EndConsoleApp( pApp )
+            ConsWin( cCommand )
 #endif
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
@@ -2777,6 +2667,129 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    DevPos( nRow, nColInit + nPos - 1 )
 
    RETURN cRes
+
+#ifdef __PLATFORM__UNIX
+STATIC FUNCTION ConsUnix( cCommand )
+
+   LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
+   LOCAL oCons := RCons():New( cCommand )
+
+   IF oCons:hProcess < 0
+      ? "Error starting app"
+      RETURN Nil
+   ENDIF
+   FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
+   DevPos( Maxrow(), nColInit := 0 )
+   ?
+   DO WHILE ( xRes := oCons:Read() ) != Nil
+      IF !Empty( xRes )
+         IF Chr(9) $ xRes
+            xRes := StrTran( xRes, Chr(9), Space(8) )
+         ENDIF
+         SetColor( "W/N" )
+         FilePane():cConsOut += xRes
+         IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+            i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+            FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+         ENDIF
+         ?? xRes
+         nColInit := Col()
+         cmd := ""
+      ENDIF
+      nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+      IF nKeyExt == 0
+         LOOP
+      ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
+            ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
+         EXIT
+      ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+         IF !oCons:Write( cmd + hb_Eol() )
+            ? "Pipe write error"
+         ENDIF
+      ELSE
+         cmd := ProcessKey( nColInit, cmd, nKeyExt )
+      ENDIF
+   ENDDO
+   oCons:End()
+
+/*
+            cedi_RunConsoleApp( cCommand + " 2>&1", cFileOut )
+            IF !Empty( xRes := MemoRead( cFileOut ) )
+               IF Chr(9) $ xRes
+                  xRes := StrTran( xRes, Chr(9), Space(8) )
+               ENDIF
+               SetColor( "W/N" )
+               FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) + xRes
+               IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+                  i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+                  FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+               ENDIF
+               ? xRes
+            ENDIF
+*/
+   RETURN Nil
+#else
+STATIC FUNCTION ConsWin( cCommand )
+
+   LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
+   LOCAL pApp := cedi_StartConsoleApp( cCommand ), nSecInit, hWnd
+
+   IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
+      ? "Error starting app ", xRes
+      cedi_EndConsoleApp( pApp )
+      RETURN Nil
+   ENDIF
+   FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
+   DevPos( Maxrow(), nColInit := 0 )
+   ?
+   nSecInit := Seconds()
+   DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
+      IF !Empty( xRes )
+         IF Chr(9) $ xRes
+            xRes := StrTran( xRes, Chr(9), Space(8) )
+         ENDIF
+         SetColor( "W/N" )
+         FilePane():cConsOut += xRes
+         IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+            i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+            FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+         ENDIF
+         ?? xRes
+         nColInit := Col()
+         cmd := ""
+         nSecInit := 0
+      ENDIF
+      nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+      IF nKeyExt == 0
+         IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
+            nSecInit := 0
+            IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
+               //IF ( i := edi_Alert( "Show app window?", "Yes", "No", "Close it!" ) ) == 1
+                  cedi_ShowWindow( hWnd )
+                  cedi_EndConsoleApp( pApp, .T. )
+                  pApp := Nil
+                  EXIT
+               //ELSEIF i == 3
+               //   EXIT
+               //ENDIF
+            ENDIF
+         ENDIF
+         LOOP
+      ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
+            ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
+         EXIT
+      ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+         IF !cedi_WriteToConsoleApp( pApp, cmd+Chr(13)+Chr(10) )
+            ? "Pipe write error"
+         ENDIF
+      ELSE
+         cmd := ProcessKey( nColInit, cmd, nKeyExt )
+      ENDIF
+   ENDDO
+   cedi_EndConsoleApp( pApp )
+
+   RETURN Nil
+#endif
 
 STATIC FUNCTION CmdHisLoad()
 
