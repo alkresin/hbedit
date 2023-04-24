@@ -2894,6 +2894,7 @@ METHOD End() CLASS RCons
    FClose( ::hStdIn )
    FClose( ::hStdOut )
    FClose( ::hStdErr )
+#ifdef __PLATFORM__UNIX
    cedi_waitpid( ::hProcess )
-
+#endif
    RETURN hb_processClose( ::hProcess )
