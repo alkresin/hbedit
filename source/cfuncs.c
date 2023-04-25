@@ -391,6 +391,7 @@ HB_FUNC( CEDI_REDIROFF )
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/select.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
@@ -487,6 +488,40 @@ HB_FUNC( CEDI_RUNAPP )
    hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
 #endif
 }
+
+/*
+typedef struct {
+
+   fd_set fds;
+
+} PROCESS_HANDLES;
+
+HB_FUNC( CEDI_STARTCONSOLEAPP )
+{
+}
+
+HB_FUNC( CEDI_RETURNERRCODE )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+}
+
+HB_FUNC( CEDI_READFROMCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+}
+
+HB_FUNC( CEDI_WRITETOCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+}
+
+HB_FUNC( CEDI_ENDCONSOLEAPP )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   hb_xfree( pHandles );
+
+}
+*/
 
 HB_FUNC( CEDI_WAITPID )
 {

@@ -5,8 +5,10 @@
  * www - http://www.kresin.ru
  */
 
-#ifndef _SMALL
-#include "hbfuncsfull.ch"
+#ifdef __BUILT_IN
+   #define _NO_HBC
+#else
+   #include "hbfuncsfull.ch"
 #endif
 
-#define HBEDIT_VERSION  "v2.2-34"
+#define HBEDIT_VERSION  "v2.2-35"

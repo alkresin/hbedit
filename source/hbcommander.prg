@@ -942,6 +942,7 @@ CLASS FilePane
    CLASS VAR cConsOut SHARED   INIT ""
    CLASS VAR nConsMax SHARED   INIT 20000
    CLASS VAR xContextMenu SHARED
+   CLASS VAR nConsVar SHARED INIT 1
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -2559,9 +2560,13 @@ FUNCTION hbc_Console( xCommand )
          ELSE
             //FErase( cFileOut )
 #ifdef __PLATFORM__UNIX
-            ConsUnix( cCommand )
+            Cons_Hrb( cCommand )
 #else
-            ConsWin( cCommand )
+            IF FilePane():nConsVar == 1
+               Cons_My( cCommand )
+            ELSE
+               Cons_Hrb( cCommand )
+            ENDIF
 #endif
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
@@ -2668,8 +2673,7 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
 
    RETURN cRes
 
-#ifdef __PLATFORM__UNIX
-STATIC FUNCTION ConsUnix( cCommand )
+STATIC FUNCTION Cons_Hrb( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL oCons := RCons():New( cCommand )
@@ -2712,24 +2716,10 @@ STATIC FUNCTION ConsUnix( cCommand )
    ENDDO
    oCons:End()
 
-/*
-            cedi_RunConsoleApp( cCommand + " 2>&1", cFileOut )
-            IF !Empty( xRes := MemoRead( cFileOut ) )
-               IF Chr(9) $ xRes
-                  xRes := StrTran( xRes, Chr(9), Space(8) )
-               ENDIF
-               SetColor( "W/N" )
-               FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) + xRes
-               IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-                  i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-                  FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-               ENDIF
-               ? xRes
-            ENDIF
-*/
    RETURN Nil
-#else
-STATIC FUNCTION ConsWin( cCommand )
+
+#ifndef __PLATFORM__UNIX
+STATIC FUNCTION Cons_My( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL pApp := cedi_StartConsoleApp( cCommand ), nSecInit, hWnd

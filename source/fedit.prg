@@ -36,6 +36,7 @@
 
 #define UNDO_INC       12
 
+#ifndef __BUILT_IN
 STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
    {"Save as",@mnu_Save(),.T.,"Shift-F2"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
    {"View",@mnu_View(),Nil,">"}, {"Selection",@mnu_Selection(),Nil,">"}, ;
@@ -44,7 +45,7 @@ STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Ni
    {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
    {"Windows",@mnu_Windows(),{15,16},">"}, ;
    {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
-
+#endif
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
@@ -1167,7 +1168,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE K_CTRL_TAB
             IF ::lCtrlTab
                IF Len( ::aWindows ) == 1
+#ifndef _NO_HBC
                   Hbc( Self )
+#endif
                ELSE
                   ::lShow := .F.
                   ::nCurr ++
@@ -1219,10 +1222,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_F3( Self, 2 )
             nKey := K_RIGHT
             EXIT
+#ifndef __BUILT_IN
          CASE K_CTRL_F4
             mnu_OpenFile( Self )
             ::lTextOut := .T.
             EXIT
+#endif
          CASE K_CTRL_F7
             mnu_SeaAndRepl( Self )
             ::lTextOut := .T.
@@ -1523,7 +1528,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             CASE K_SH_TAB
                IF ::lCtrlTab
                   IF Len( ::aWindows ) == 1
+#ifndef _NO_HBC
                      Hbc( Self )
+#endif
                   ELSE
                      ::lShow := .F.
                      ::nCurr --
@@ -1595,7 +1602,9 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      IF ::nby1 >= 0 .AND. ::nby2 >= 0
                         mnu_Sele( Self )
                      ELSE
+#ifndef __BUILT_IN
                         FMenu( Self, aMenuMain, 2, 6 )
+#endif
                      ENDIF
                      lNoDeselect := .T.
                      ::lTextOut := .T.
@@ -1642,6 +1651,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                lNoDeselect := .T.
                nKey := K_RIGHT
                EXIT
+#ifndef __BUILT_IN
             CASE K_F4
                mnu_F4( Self, {2, 6} )
                ::lTextOut := .T.
@@ -1650,19 +1660,24 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_NewBuf( Self )
                ::lTextOut := .T.
                EXIT
+#endif
             CASE K_F7
                mnu_Search( Self )
                ::lTextOut := .T.
                EXIT
+#ifndef __BUILT_IN
             CASE K_F8
                mnu_Syntax( Self, {2, 6} )
                ::lTextOut := .T.
                EXIT
+#endif
             CASE K_F9
                IF ::nby1 >= 0 .AND. ::nby2 >= 0
                   mnu_Sele( Self )
                ELSE
+#ifndef __BUILT_IN
                   FMenu( Self, aMenuMain, 2, 6 )
+#endif
                ENDIF
                nKey := K_RIGHT
                lNoDeselect := .T.
@@ -1679,6 +1694,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_Exit( Self )
                ENDIF
                EXIT
+#ifndef __BUILT_IN
             CASE K_F11
                mnu_Plugins( Self )
                ::lTextOut := .T.
@@ -1687,6 +1703,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                mnu_Buffers( Self, {2, 6} )
                ::lTextOut := .T.
                EXIT
+#endif
             CASE K_SH_F7
                mnu_SeaNext( Self, .T. )
                EXIT
