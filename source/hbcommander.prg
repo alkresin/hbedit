@@ -2522,6 +2522,14 @@ FUNCTION hbc_Console( xCommand )
       ENDIF
       cCommand := GetLine( ">", cCommand, bKeys )
       IF !Empty( cCommand )
+         IF cCommand == "exit"
+            EXIT
+         ENDIF
+         IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
+            FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
+         ENDIF
+         Aadd( FilePane():aCmdHis, cCommand )
+         FilePane():lCmdHis := .T.
          DO WHILE ( i := At( '%', cCommand ) ) > 0
             s := Substr( cCommand,i+1,1 )
             IF s == 'p'
@@ -2547,9 +2555,7 @@ FUNCTION hbc_Console( xCommand )
          @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
          DevPos( Maxrow(), 0 )
          ?? cCommand
-         IF cCommand == "exit"
-            EXIT
-         ELSEIF Left( cCommand,1 ) == "="
+         IF Left( cCommand,1 ) == "="
             bOldError := Errorblock( {|e| MacroError( e ) } )
             BEGIN SEQUENCE
                xRes := &( Substr( cCommand,2 ) )
@@ -2564,11 +2570,6 @@ FUNCTION hbc_Console( xCommand )
                Cons_Hrb( cCommand )
             ENDIF
          ENDIF
-         IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
-            FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
-         ENDIF
-         Aadd( FilePane():aCmdHis, cCommand )
-         FilePane():lCmdHis := .T.
          cCommand := ""
       ENDIF
    ENDDO
