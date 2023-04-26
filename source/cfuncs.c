@@ -489,39 +489,177 @@ HB_FUNC( CEDI_RUNAPP )
 #endif
 }
 
-/*
+#define BUFSIZE  8192
+#define  CMD_ARGS_MAX 32
+#define  CMD_LINE_MAX 256
+
 typedef struct {
 
+   pid_t pid;
+   int pipe_stdin[2];
+   int pipe_stdout[2];
+   int pipe_stderr[2];
    fd_set fds;
+   char *args[CMD_ARGS_MAX];
+   char szCmdLine[CMD_LINE_MAX];
+   int iRes;
 
 } PROCESS_HANDLES;
 
 HB_FUNC( CEDI_STARTCONSOLEAPP )
 {
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_xgrab( sizeof(PROCESS_HANDLES) );
+   pid_t pid;
+   int pipe_stdin[2];
+   int pipe_stdout[2];
+   int pipe_stderr[2];
+   char *ptr;
+   int iArgs = 0, iCmdLen;
+   int iStart;
+
+   memset( pHandles, 0, sizeof( PROCESS_HANDLES ) );
+
+   if( !HB_ISCHAR( 1 ) ) {
+       pHandles->iRes = 1; hb_retptr( (void*) pHandles ); return;
+   }
+   if( (iCmdLen = hb_parclen( 1 )) >= CMD_LINE_MAX ) {
+       pHandles->iRes = 2; hb_retptr( (void*) pHandles ); return;
+   }
+
+   memcpy( pHandles->szCmdLine, hb_parc(1), iCmdLen );
+   pHandles->szCmdLine[iCmdLen] = '\0';
+   ptr = pHandles->szCmdLine;
+   pHandles->args[0] = ptr;
+   iStart = 1;
+   while( *ptr ) {
+      if( *ptr == ' ' ) {
+         *ptr = '\0';
+         iStart = 0;
+      } else if( !iStart ) {
+         iStart = 1;
+         if( ++iArgs >= CMD_ARGS_MAX ) {
+             pHandles->iRes = 3; hb_retptr( (void*) pHandles ); return;
+         }
+         pHandles->args[iArgs] = ptr;
+      }
+      ptr ++;
+   }
+   pHandles->args[++iArgs] = NULL;
+
+   if( pipe( pipe_stdin ) == -1 || pipe( pipe_stdout ) == -1 || pipe( pipe_stderr ) == -1) {
+       pHandles->iRes = 4; hb_retptr( (void*) pHandles ); return;
+   }
+
+   pid = fork();
+   if( pid == -1 ) {
+       pHandles->iRes = 2; hb_retptr( (void*) pHandles ); return;
+   } else if( pid == 0 ) {
+       // Child process code
+       close( pipe_stdin[1] );
+       close( pipe_stdout[0] );
+       close( pipe_stderr[0] );
+       if( dup2( pipe_stdin[0], STDIN_FILENO ) == -1 ||
+           dup2( pipe_stdout[1], STDOUT_FILENO ) == -1 ||
+           dup2( pipe_stderr[1], STDERR_FILENO ) == -1 ) {
+           exit(EXIT_FAILURE);
+       }
+       close( pipe_stdin[0] );
+       close( pipe_stdout[1] );
+       close( pipe_stderr[1] );
+
+       execvp( pHandles->args[0], pHandles->args );
+       exit(EXIT_FAILURE);
+   } else {
+       // Parent process code
+       close( pipe_stdin[0] );
+       close( pipe_stdout[1] );
+       close( pipe_stderr[1] );
+
+       pHandles->pid = pid;
+       pHandles->pipe_stdin[1] = pipe_stdin[1];
+       pHandles->pipe_stdout[0] = pipe_stdout[0];
+       pHandles->pipe_stderr[0] = pipe_stderr[0];
+
+       FD_ZERO( &(pHandles->fds) );
+       FD_SET( pHandles->pipe_stdout[0], &(pHandles->fds) );
+       FD_SET( pHandles->pipe_stderr[0], &(pHandles->fds) );
+   }
+
+   hb_retptr( (void*) pHandles );
 }
 
 HB_FUNC( CEDI_RETURNERRCODE )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   hb_retni( pHandles->iRes );
 }
 
 HB_FUNC( CEDI_READFROMCONSOLEAPP )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   ssize_t bytes_read;
+   char buffer[BUFSIZE];
+   struct timeval tv = {0,0};
+   int result, status;
+   fd_set fds;
+
+   fds = pHandles->fds;
+   tv.tv_usec = 1000;
+
+   if( ( result = select( pHandles->pipe_stderr[0]+1, &fds, NULL, NULL, &tv ) ) < 0 ) {
+       hb_ret();
+       return;
+   } else if( result > 0 ) {
+      if( FD_ISSET( pHandles->pipe_stdout[0], &fds ) ) {
+         bytes_read = read( pHandles->pipe_stdout[0], buffer, BUFSIZE );
+      } else if( FD_ISSET( pHandles->pipe_stderr[0], &fds ) ) {
+         bytes_read = read( pHandles->pipe_stderr[0], buffer, BUFSIZE );
+      }
+      if( bytes_read > 0) {
+          buffer[bytes_read] = '\0';
+          hb_retclen( buffer, bytes_read );
+          return;
+      } else if (bytes_read == -1) {
+          hb_ret();
+          return;
+      }
+   }
+
+   if( ( result = waitpid( pHandles->pid, &status, WNOHANG ) ) == pHandles->pid || result == -1 ) {
+      hb_ret();
+      return;
+   }
+
+   hb_retc( "" );
+
 }
 
 HB_FUNC( CEDI_WRITETOCONSOLEAPP )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+
+   write( pHandles->pipe_stdin[1], (const void *) hb_parc(2), hb_parclen(2) );
+   fsync( pHandles->pipe_stdin[1] );
+   hb_retl( 1 );
 }
 
 HB_FUNC( CEDI_ENDCONSOLEAPP )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   int status;
+
+   waitpid( pHandles->pid, &status, WNOHANG );
+
+   close( pHandles->pipe_stdin[1] );
+   close( pHandles->pipe_stdout[0] );
+   close( pHandles->pipe_stderr[0] );
+
+   kill( pHandles->pid, SIGTERM );
+   waitpid( pHandles->pid, &status, WNOHANG );
+
    hb_xfree( pHandles );
 
 }
-*/
 
 HB_FUNC( CEDI_WAITPID )
 {

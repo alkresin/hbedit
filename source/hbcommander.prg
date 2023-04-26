@@ -2558,16 +2558,15 @@ FUNCTION hbc_Console( xCommand )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
          ELSE
-            //FErase( cFileOut )
-#ifdef __PLATFORM__UNIX
-            Cons_Hrb( cCommand )
-#else
+//#ifdef __PLATFORM__UNIX
+//            Cons_Hrb( cCommand )
+//#else
             IF FilePane():nConsVar == 1
                Cons_My( cCommand )
             ELSE
                Cons_Hrb( cCommand )
             ENDIF
-#endif
+//#endif
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
             FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
@@ -2718,7 +2717,6 @@ STATIC FUNCTION Cons_Hrb( cCommand )
 
    RETURN Nil
 
-#ifndef __PLATFORM__UNIX
 STATIC FUNCTION Cons_My( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
@@ -2751,6 +2749,7 @@ STATIC FUNCTION Cons_My( cCommand )
       ENDIF
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
       IF nKeyExt == 0
+#ifndef __PLATFORM__UNIX
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
             IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
@@ -2764,12 +2763,13 @@ STATIC FUNCTION Cons_My( cCommand )
                //ENDIF
             ENDIF
          ENDIF
+#endif
          LOOP
       ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
             ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
          EXIT
       ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
-         IF !cedi_WriteToConsoleApp( pApp, cmd+Chr(13)+Chr(10) )
+         IF !cedi_WriteToConsoleApp( pApp, cmd+hb_eol() )
             ? "Pipe write error"
          ENDIF
       ELSE
@@ -2779,7 +2779,6 @@ STATIC FUNCTION Cons_My( cCommand )
    cedi_EndConsoleApp( pApp )
 
    RETURN Nil
-#endif
 
 STATIC FUNCTION CmdHisLoad()
 
