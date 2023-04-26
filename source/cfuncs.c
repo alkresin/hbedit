@@ -552,6 +552,7 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
 
    pid = fork();
    if( pid == -1 ) {
+       pHandles->pid = -1;
        pHandles->iRes = 2; hb_retptr( (void*) pHandles ); return;
    } else if( pid == 0 ) {
        // Child process code
@@ -648,14 +649,16 @@ HB_FUNC( CEDI_ENDCONSOLEAPP )
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
    int status;
 
-   waitpid( pHandles->pid, &status, WNOHANG );
+   //waitpid( pHandles->pid, &status, WNOHANG );
 
    close( pHandles->pipe_stdin[1] );
    close( pHandles->pipe_stdout[0] );
    close( pHandles->pipe_stderr[0] );
 
-   kill( pHandles->pid, SIGTERM );
-   waitpid( pHandles->pid, &status, WNOHANG );
+   if( pHandles->pid >= 0 ) {
+      kill( pHandles->pid, SIGTERM );
+      waitpid( pHandles->pid, &status, 0 );
+   }
 
    hb_xfree( pHandles );
 

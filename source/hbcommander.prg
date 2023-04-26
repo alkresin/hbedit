@@ -2558,15 +2558,11 @@ FUNCTION hbc_Console( xCommand )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
          ELSE
-//#ifdef __PLATFORM__UNIX
-//            Cons_Hrb( cCommand )
-//#else
             IF FilePane():nConsVar == 1
                Cons_My( cCommand )
             ELSE
                Cons_Hrb( cCommand )
             ENDIF
-//#endif
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
             FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
