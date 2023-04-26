@@ -453,7 +453,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    FILE *cmd_file = ( FILE * ) popen( hb_parc( 1 ), "r" );
    FILE *hOut;
    char buf[BUFSIZE], *pOut;
-   int bytes_read, read_all = 0, iOutExist = 0, iOutFirst := 1, iExitCode;
+   int bytes_read, read_all = 0, iOutExist = 0, iOutFirst = 1, iExitCode;
 
    if( !cmd_file )
    {
