@@ -452,8 +452,8 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    fflush( stdin );
    FILE *cmd_file = ( FILE * ) popen( hb_parc( 1 ), "r" );
    FILE *hOut;
-   char buf[BUFSIZE];
-   int bytes_read, iOutExist = 0, iExitCode;
+   char buf[BUFSIZE], *pOut;
+   int bytes_read, read_all = 0, iOutExist = 0, iOutFirst := 1, iExitCode;
 
    if( !cmd_file )
    {
@@ -466,18 +466,37 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       hOut = fopen( hb_parc( 2 ), "w" );
       iOutExist = 1;
    }
+   else if( HB_ISBYREF( 3 ) )
+      iOutExist = 2;
 
    do
    {
       bytes_read = fread( buf, sizeof( char ), BUFSIZE, cmd_file );
-      if( iOutExist )
+      if( iOutExist == 1 )
          fwrite( buf, 1, bytes_read, hOut );
+      else if( iOutExist == 2 )
+      {
+         read_all += bytes_read;
+         if( iOutFirst )
+         {
+            pOut = (char*) hb_xgrab( bytes_read + 1 );
+            memcpy( pOut, buf, bytes_read );
+            iOutFirst = 0;
+         }
+         else
+         {
+            pOut = ( char * ) hb_xrealloc( pOut, read_all + 1 );
+            memcpy( pOut+read_all-bytes_read, buf, bytes_read );
+         }
+      }
    }
    while( bytes_read == BUFSIZE );
 
    iExitCode = pclose( cmd_file );
-   if( iOutExist )
+   if( iOutExist == 1 )
       fclose( hOut );
+   else if( iOutExist == 2 )
+      hb_storclen_buffer( pOut, read_all, 3 );
 
    hb_retni( iExitCode );
 }

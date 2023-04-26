@@ -30,7 +30,6 @@ STATIC aCommands := { ;
 STATIC s4auto, lModeSea
 STATIC aKeysOpt
 STATIC lEnd
-//STATIC cFileAdd
 STATIC cCmdLine
 
 FUNCTION mnu_CmdLine( oEdit )
@@ -152,21 +151,7 @@ FUNCTION mnu_CmdLine( oEdit )
    SetColor( oEdit:cColor )
    oEdit:TextOut()
    edi_ChgMode( oEdit, Iif( oEdit:nDefMode==1, 1, 0 ) )
-/*
-   IF !Empty( cFileAdd )
-      IF !Empty( cTemp := MemoRead( cFileAdd ) )
-         cTemp := ">" + cCmdLine + Chr(10) + cTemp
-         IF ( x := Ascan( oEdit:aWindows, {|o|o:cFileName=="$Console"} ) ) > 0
-            oEdit:aWindows[x]:InsText( Len(oEdit:aWindows[x]:aText)+1, 1, Chr(10)+cTemp,,, .T. )
-            oEdit:aWindows[x]:lUpdated := .F.
-            mnu_ToBuf( oEdit, x )
-         ELSE
-            edi_AddWindow( oEdit, cTemp, "$Console", 2, Int((oEdit:y2-oEdit:y1)/2) )
-         ENDIF
-      ENDIF
-      cFileAdd := ""
-   ENDIF
-*/
+
    RETURN Nil
 
 STATIC FUNCTION fSea( oEdit, s )
@@ -177,42 +162,10 @@ STATIC FUNCTION fSea( oEdit, s )
 
 STATIC FUNCTION cmdExec( oEdit, sCmd )
 
-   LOCAL acmd, arr, fnc, nPos, cFileOut := hb_DirTemp() + "hbedit_cons.out", s, lConsole := .T.
+   LOCAL acmd, arr, fnc, nPos, s, lConsole := .T.
 
    IF Left( sCmd, 1 ) == '/'
       DoSea( oEdit, Substr( sCmd, 2 ), .T., .F. )
-/*
-   ELSEIF Left( sCmd, 1 ) == '!'
-      IF ( nPos := At( '%', sCmd ) ) > 0
-         s := Iif( Substr( sCmd,nPos+1,1 ) == 'f', oEdit:cFileName, ;
-            Iif( Substr( sCmd,nPos+1,1 ) == 'p', hb_fnameDir( oEdit:cFileName ), "" ) )
-         sCmd := Left( sCmd,nPos-1 ) + s + Substr( sCmd,nPos+2 )
-      ENDIF
-      IF Substr( sCmd,2,1 ) == '!'
-         lConsole := .F.
-         cCmdLine := Substr( sCmd,3 )
-      ELSE
-         cCmdLine := Substr( sCmd,2 )
-      ENDIF
-#ifndef __PLATFORM__UNIX
-      s := Iif( ( nPos := At( ' ', cCmdLine ) ) > 0, Left( cCmdLine,nPos-1 ), cCmdLine )
-      IF Ascan( aCmds, Lower(s) ) != 0
-         cCmdLine := "cmd /C " + cCmdLine
-      ENDIF
-#endif
-      FErase( cFileOut )
-      Scroll( oEdit:y2 + 1, oEdit:x1, oEdit:y2 + 1, oEdit:x2 )
-      DevPos( oEdit:y2 + 1, oEdit:x1 )
-      DevOut( "Wait..." )
-      IF lConsole
-         cedi_RunConsoleApp( cCmdLine, cFileOut )
-         cFileAdd := cFileOut
-      ELSE
-         cedi_RunApp( cCmdLine, 0 )
-         cFileAdd := ""
-      ENDIF
-      lEnd := .T.
-*/
    ELSE
       acmd := hb_aTokens( sCmd )
       FOR EACH arr IN aCommands
