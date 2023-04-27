@@ -856,6 +856,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    siStartInfo.hStdError = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdOutput = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdInput = pHandles->g_hChildStd_IN_Rd;
+   //siStartInfo.wShowWindow = SW_HIDE;
    siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 
    bSuccess = CreateProcess( NULL,
@@ -863,7 +864,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
          NULL,                  // process security attributes
          NULL,                  // primary thread security attributes
          TRUE,                  // handles are inherited
-         0,                     // creation flags
+         CREATE_NEW_CONSOLE,                     // creation flags
          NULL,                  // use parent's environment
          NULL,                  // use parent's current directory
          &siStartInfo,          // STARTUPINFO pointer

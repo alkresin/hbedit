@@ -2760,14 +2760,12 @@ STATIC FUNCTION Cons_My( cCommand )
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
             IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
-               //IF ( i := edi_Alert( "Show app window?", "Yes", "No", "Close it!" ) ) == 1
+               IF ( i := edi_Alert( "Application has a window", "Show it", "Ignore" ) ) == 1
                   cedi_ShowWindow( hWnd )
                   cedi_EndConsoleApp( pApp, .T. )
                   pApp := Nil
                   EXIT
-               //ELSEIF i == 3
-               //   EXIT
-               //ENDIF
+               ENDIF
             ENDIF
          ENDIF
 #endif
