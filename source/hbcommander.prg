@@ -87,7 +87,7 @@ FUNCTION Hbc( oEdit )
       oHbc:lIns := Nil
 
       aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
-      edi_SetPalette( oHbc, "default" )
+      //edi_SetPalette( oHbc, "default" )
       hb_cdpSelect( oHbc:cp := FilePane():cp )
       SetPanes( aPanes )
       cFileOut := hb_DirTemp() + "hbc_cons.out"
@@ -627,8 +627,8 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := cTmp
          ENDIF
-         IF hb_hHaskey( aSect, cTemp := "palette" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-            edi_SetPalette( oHbc, cTemp )
+         IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTemp := aSect[ cTmp ] )
+            edi_SetPalette( oHbc, cTmp )
             lPalette := .T.
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "context_menu_plugin" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
