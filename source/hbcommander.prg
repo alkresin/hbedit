@@ -1236,12 +1236,12 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
 METHOD DrawHead( lCurr ) CLASS FilePane
 
-   LOCAL cPath := ::cCurrPath
+   LOCAL cPath
 
-   cPath := ::cIOpref + ::net_cAddress + cPath
    SetColor( Iif( lCurr, ::cClrCurr, ::cClrFil ) )
    IF ::nPanelMod == 0
-      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3 )
+      cPath := NameShortcut( ::cIOpref + ::net_cAddress + ::cCurrPath, ::x2-::x1-6, '~' )
+      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 1
       cPath := "Search results"
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
