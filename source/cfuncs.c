@@ -508,7 +508,6 @@ HB_FUNC( CEDI_RUNAPP )
 #endif
 }
 
-#define BUFSIZE  8192
 #define  CMD_ARGS_MAX 32
 #define  CMD_LINE_MAX 256
 

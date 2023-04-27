@@ -41,8 +41,6 @@ REQUEST NETIO_PROCEXISTS, NETIO_PROCEXEC, NETIO_FUNCEXEC
 STATIC oHbc
 STATIC lGuiVer := .F.
 STATIC cNetPort := "2941"
-STATIC cFontName
-STATIC nFontHeight, nFontWidth
 STATIC nScreenH := 25, nScreenW := 80
 STATIC cFileOut, cOutBuff
 STATIC oPaneCurr, oPaneTo
@@ -55,76 +53,6 @@ STATIC aExtExe := { ".exe", ".com", ".bat" }
 STATIC aExtZip := { ".zip", ".rar", ".7z", ".lha", ".arj", ".gz" }
 
 MEMVAR GETLIST
-
-#ifdef _HBC_MAIN
-FUNCTION Main( cDir1, cDir2 )
-   LOCAL aPanes, arr
-
-   SET CURSOR OFF
-   SET SCORE OFF
-   SET DATE FORMAT "dd.mm.yy"
-
-   //SetBlink( .F. )
-   aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
-
-#ifdef GTWVT
-   ANNOUNCE HB_GTSYS
-   REQUEST HB_GT_WVT
-   REQUEST HB_GT_WVT_DEFAULT
-   lGuiVer := .T.
-#endif
-
-#ifdef GTHWG
-   REQUEST HB_GT_HWGUI
-   REQUEST HB_GT_HWGUI_DEFAULT
-
-   gthwg_CreateMainWindow( "HbCommander" )
-   lGuiVer := .T.
-#endif
-
-   IF Empty( nScreenH )
-      nScreenH := 25
-   ENDIF
-   IF Empty( nScreenW )
-      nScreenW := 80
-   ENDIF
-   IF nScreenH != 25 .OR. nScreenW != 80
-      IF !SetMode( nScreenH, nScreenW )
-         nScreenH := 25
-         nScreenW := 80
-      ENDIF
-   ENDIF
-
-   IF Empty( cFontName )
-      hb_gtinfo( HB_GTI_FONTNAME, "Lusida console" )
-   ELSE
-      hb_gtinfo( HB_GTI_FONTNAME, cFontName )
-   ENDIF
-   IF Empty( nFontWidth )
-      hb_gtinfo( HB_GTI_FONTWIDTH, Int( ( hb_gtinfo( HB_GTI_DESKTOPWIDTH ) / nScreenH ) ) )
-   ELSE
-      hb_gtinfo( HB_GTI_FONTWIDTH, nFontWidth )
-   ENDIF
-   IF Empty( nFontHeight )
-      hb_gtinfo( HB_GTI_FONTSIZE, Int( ( ( hb_gtinfo( HB_GTI_DESKTOPHEIGHT ) - 64 ) / nScreenW ) ) )
-   ELSE
-      hb_gtinfo( HB_GTI_FONTSIZE, nFontHeight )
-   ENDIF
-   hb_gtinfo( HB_GTI_CLOSABLE, .F. )
-   arr := hb_gtinfo( HB_GTI_PALETTE )
-   arr[2] := 0x800000
-   arr[4] := 0x808000
-   hb_gtinfo( HB_GTI_PALETTE, arr )
-
-   SetPanes( aPanes, cDir1, cDir2 )
-   Hbc()
-
-#ifdef GTHWG
-   gthwg_CloseWindow()
-#endif
-
-   RETURN Nil
-#endif
 
 FUNCTION Hbc( oEdit )
 
@@ -695,30 +623,6 @@ STATIC FUNCTION ReadIni( cIniName )
    FilePane():lReadIni := .T.
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
-#ifdef _HBC_MAIN
-      IF hb_hHaskey( hIni, cTmp := "SCREEN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         hb_hCaseMatch( aSect, .F. )
-         IF hb_hHaskey( aSect, "fontname" ) .AND. !Empty( cTmp := aSect[ "fontname" ] )
-            cFontName := cTmp
-         ENDIF
-         IF hb_hHaskey( aSect, "fontheight" ) .AND. !Empty( cTmp := aSect[ "fontheight" ] )
-            nFontheight := Val(cTmp)
-         ENDIF
-         IF hb_hHaskey( aSect, "fontwidth" ) .AND. !Empty( cTmp := aSect[ "fontwidth" ] )
-            nFontWidth := Val(cTmp)
-         ENDIF
-         IF hb_hHaskey( aSect, cTmp := "screen_height" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            //IF Empty( nScreenH )
-               nScreenH := Val(cTmp)
-            //ENDIF
-         ENDIF
-         IF hb_hHaskey( aSect, cTmp := "screen_width" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            //IF Empty( nScreenW )
-               nScreenW := Val(cTmp)
-            //ENDIF
-         ENDIF
-      ENDIF
-#endif
       IF hb_hHaskey( hIni, cTmp := "OPTIONS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := cTmp
@@ -2527,7 +2431,7 @@ FUNCTION hbc_Console( xCommand )
       IF !Empty( cCommand )
          KEYBOARD Chr( K_ENTER )
       ENDIF
-      cCommand := GetLine( ">", cCommand, bKeys )
+      cCommand := GetLine( NameShortcut(Curdir(),28,'~' ) + ">", cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
             IF FilePane():nLastKey == 0
@@ -2540,6 +2444,11 @@ FUNCTION hbc_Console( xCommand )
          ENDIF
          Aadd( FilePane():aCmdHis, cCommand )
          FilePane():lCmdHis := .T.
+         IF Left( cCommand,3 ) == "cd "
+            DirChange( AllTrim( Substr(cCommand,4) ) )
+            cCommand := ""
+            LOOP
+         ENDIF
          DO WHILE ( i := At( '%', cCommand ) ) > 0
             s := Substr( cCommand,i+1,1 )
             IF s == 'p'
@@ -2587,7 +2496,12 @@ FUNCTION hbc_Console( xCommand )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    SET CURSOR OFF
-   oPaneCurr:Refresh()
+   s := hb_ps() + Curdir() + hb_ps()
+   IF !( s == oPaneCurr:cCurrPath )
+      oPaneCurr:Setdir( s )
+   ELSE
+      oPaneCurr:Refresh()
+   ENDIF
    FilePane():RedrawAll()
 
    RETURN Nil
