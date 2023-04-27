@@ -554,12 +554,19 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
       if( *ptr == ' ' ) {
          *ptr = '\0';
          iStart = 0;
-      } else if( !iStart ) {
-         iStart = 1;
-         if( ++iArgs >= CMD_ARGS_MAX ) {
-             pHandles->iRes = 3; hb_retptr( (void*) pHandles ); return;
+      } else {
+         if( !iStart ) {
+            iStart = 1;
+            if( ++iArgs >= CMD_ARGS_MAX ) {
+                pHandles->iRes = 3; hb_retptr( (void*) pHandles ); return;
+            }
+            pHandles->args[iArgs] = ptr;
          }
-         pHandles->args[iArgs] = ptr;
+         if( *ptr == '\"' ) {
+            while( *ptr && *ptr != '\"' ) ptr++;
+            if( ! *ptr )
+               break;
+         }
       }
       ptr ++;
    }
