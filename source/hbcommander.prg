@@ -163,15 +163,7 @@ FUNCTION Hbc( oEdit )
       hb_cdpSelect( oHbc:cp := FilePane():cp )
       SetPanes( aPanes )
       cFileOut := hb_DirTemp() + "hbc_cons.out"
-      //TEdit():cLauncher := "Panel"
    ENDIF
-
-   /*
-   DO WHILE oPaneCurr:Activate() != 0
-      oPaneCurr:DrawCell( ,.F. )
-      oPaneCurr := Iif( oPaneCurr == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
-   ENDDO
-   */
 
    RETURN Nil
 
@@ -181,6 +173,9 @@ STATIC FUNCTION _Hbc_Start()
    SetCursor( SC_NONE )
    DirChange( oPaneCurr:cCurrPath )
    FilePane():RedrawAll()
+   IF FilePane():lConsMode
+      KEYBOARD Chr( K_CTRL_O )
+   ENDIF
 
    RETURN Nil
 
@@ -639,13 +634,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    ELSEIF nKey == K_CTRL_O
       hbc_Console()
+   ELSEIF nKey == K_CTRL_Q
+      ShowStdout()
 
-/*
-   ELSEIF nKey == K_ALT_1
-      oPaneCurr:ChangeMode( 1 )
-   ELSEIF nKey == K_ALT_2
-      oPaneCurr:ChangeMode( 2 )
-*/
    ELSEIF nKey == K_ALT_D
       oPaneCurr:ChangeDir()
    ELSEIF nKey == K_ALT_F1
@@ -687,6 +678,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
          NEXT
       ENDIF
+   ENDIF
+
+   IF FilePane():nLastKey != 0
+      hb_KeyPut( FilePane():nLastKey )
+      FilePane():nLastKey := 0
    ENDIF
 
    RETURN -1
@@ -943,6 +939,8 @@ CLASS FilePane
    CLASS VAR nConsMax SHARED   INIT 20000
    CLASS VAR xContextMenu SHARED
    CLASS VAR nConsVar SHARED INIT 1
+   CLASS VAR lConsMode SHARED INIT .F.
+   CLASS VAR nLastKey SHARED INIT 0
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -1361,9 +1359,9 @@ METHOD PaneMenu() CLASS FilePane
       "Mode 2 " + Iif(::nDispMode==2,"x"," ") }
 
    IF !Empty( FilePane():cConsOut )
-      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,}, .T. )
+      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,,"Ctrl-Q"}, .T. )
    ENDIF
-   nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2, ::x1+25, ::aClrMenu[1], ::aClrMenu[2] )
+   nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2,, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
       nChoic := FMenu( oHbc, aMenu1, ::y1+2, ::x1+14, ::y1+Len(aMenu1)+3, ::x1+38, ::aClrMenu[1], ::aClrMenu[2] )
       IF nChoic == 1
@@ -2456,14 +2454,12 @@ STATIC FUNCTION ShowStdout()
    IF ( i := Ascan( TEdit():aWindows, {|o|o:cFileName==cName} ) ) > 0
       mnu_ToBuf( oHbc, i )
       RETURN Nil
-      //RETURN TEdit():aWindows[i]
    ENDIF
 
    oNew := TEdit():New( FilePane():cConsOut, cName, oHbc:aRectFull[1], oHbc:aRectFull[2], oHbc:aRectFull[3], oHbc:aRectFull[4] )
    oHbc:lShow := .F.
    TEdit():nCurr := Len( TEdit():aWindows )
    oNew:lReadOnly := .T.
-   //KEYBOARD Chr( K_PGDN )
    edi_Move( oNew, 71 )
 
    RETURN Nil
@@ -2472,7 +2468,8 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL bKeys := {|nKey|
+   LOCAL bKeys := {|nKeyExt|
+      LOCAL nKey := hb_keyStd( nKeyExt )
       IF nKey == K_DOWN
          IF nHis <= Len( FilePane():aCmdHis )
             nHis ++
@@ -2484,12 +2481,22 @@ FUNCTION hbc_Console( xCommand )
             RETURN FilePane():aCmdHis[nHis]
          ENDIF
       ELSEIF nKey == K_CTRL_O
+         FilePane():nLastKey := 0
+         KEYBOARD Chr(K_ENTER)
+         RETURN "exit"
+      ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_CTRL_TAB
+         FilePane():nLastKey := nKeyExt
+         KEYBOARD Chr(K_ENTER)
+         RETURN "exit"
+      ELSEIF nKey == K_CTRL_Q
+         FilePane():nLastKey := K_CTRL_Q
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ENDIF
       RETURN Nil
    }
 
+   FilePane():lConsMode := .T.
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    clr := SetColor( "+W/N" )
 
@@ -2523,6 +2530,9 @@ FUNCTION hbc_Console( xCommand )
       cCommand := GetLine( ">", cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
+            IF FilePane():nLastKey == 0
+               FilePane():lConsMode := .F.
+            ENDIF
             EXIT
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
@@ -2653,7 +2663,7 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    ELSEIF nKey == K_ESC
       cRes := ""
       RETURN cRes
-   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKey ) ) == "C"
+   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt ) ) == "C"
       cRes := cTemp
       nPos := Len( cRes ) + 1
       lChg := .T.

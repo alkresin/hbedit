@@ -563,7 +563,12 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
             pHandles->args[iArgs] = ptr;
          }
          if( *ptr == '\"' ) {
+            ptr++;
             while( *ptr && *ptr != '\"' ) ptr++;
+            if( *pHandles->args[iArgs] == '\"' ) {
+               pHandles->args[iArgs]++;
+               *ptr-- = ' ';
+            }
             if( ! *ptr )
                break;
          }
@@ -637,11 +642,10 @@ HB_FUNC( CEDI_READFROMCONSOLEAPP )
        hb_ret();
        return;
    } else if( result > 0 ) {
-      if( FD_ISSET( pHandles->pipe_stdout[0], &fds ) ) {
+      if( FD_ISSET( pHandles->pipe_stdout[0], &fds ) )
          bytes_read = read( pHandles->pipe_stdout[0], buffer, BUFSIZE );
-      } else if( FD_ISSET( pHandles->pipe_stderr[0], &fds ) ) {
-         bytes_read = read( pHandles->pipe_stderr[0], buffer, BUFSIZE );
-      }
+      if( bytes_read >= 0 && FD_ISSET( pHandles->pipe_stderr[0], &fds ) )
+         bytes_read += read( pHandles->pipe_stderr[0], buffer+bytes_read, BUFSIZE-bytes_read );
       if( bytes_read > 0) {
           buffer[bytes_read] = '\0';
           hb_retclen( buffer, bytes_read );
@@ -709,9 +713,10 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    PROCESS_INFORMATION pi;
    STARTUPINFO si;
    BOOL bSuccess;
-
+   int iOutExist = 0, read_all = 0, iOutFirst = 1;
    DWORD dwRead, dwWritten, dwExitCode;
-   CHAR chBuf[BUFSIZE];
+   CHAR chBuf[BUFSIZE], *pOut;
+
    HANDLE hOut = NULL;
 #ifdef UNICODE
    TCHAR wc1[256], wc2[256];
@@ -777,7 +782,11 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       hOut = CreateFile( ( LPTSTR )hb_parc( 2 ), GENERIC_WRITE, 0, 0,
             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
 #endif
+      iOutExist = 1;
    }
+   else if( HB_ISBYREF( 3 ) )
+      iOutExist = 2;
+
    while( 1 )
    {
       bSuccess =
@@ -785,16 +794,34 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
       if( !bSuccess || dwRead == 0 )
          break;
 
-      if( !HB_ISNIL( 2 ) )
+      if( iOutExist == 1 )
       {
          bSuccess = WriteFile( hOut, chBuf, dwRead, &dwWritten, NULL );
          if( !bSuccess )
             break;
       }
+      else if( iOutExist == 2 )
+      {
+         read_all += (int) dwRead;
+         if( iOutFirst )
+         {
+            pOut = (char*) hb_xgrab( (int)dwRead + 1 );
+            memcpy( pOut, chBuf, (int)dwRead );
+            iOutFirst = 0;
+         }
+         else
+         {
+            pOut = ( char * ) hb_xrealloc( pOut, read_all + 1 );
+            memcpy( pOut+read_all-(int)dwRead, chBuf, (int)dwRead );
+         }
+      }
    }
 
-   if( !HB_ISNIL( 2 ) )
+   if( iOutExist == 1 )
       CloseHandle( hOut );
+   else if( iOutExist == 2 )
+      hb_storclen_buffer( pOut, read_all, 3 );
+
    CloseHandle( g_hChildStd_OUT_Rd );
 
    hb_retni( ( int ) dwExitCode );
