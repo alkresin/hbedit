@@ -161,7 +161,7 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
 FUNCTION hbc_DoAuC( oHbc, cmd )
 
    LOCAL oy, ox
-   LOCAL cPrefix, cRes := ""
+   LOCAL cRes := ""
    LOCAL arr, hTrie
    LOCAL x1, y1, x2, y2, h, w, nSel, nFirst
    LOCAL bufc, cColor, cColorSel
@@ -176,11 +176,11 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
       IF lRecalc
          oy := Row()
          ox := Col()
-         cPrefix := cmd
-         arr := MakeArr( hTrie,, cPrefix )
+         arr := MakeArr( hTrie,, cmd )
 
          bufc := Nil
          IF Empty( arr )
+            cRes := cmd
             EXIT
          ENDIF
 	
@@ -207,12 +207,14 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
       IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE ;
          .OR. nKey == K_LBUTTONUP .OR. nKey == K_RBUTTONUP
          LOOP
-/*
-      ELSEIF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( oEdit:lUtf8 .AND. nKey > 3000 )
+
+      ELSEIF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( oHbc:lUtf8 .AND. nKey > 3000 )
          RestScreen( y1, x1, y2, x2, bufc )
-         oEdit:onKey( nKeyExt )
+         cmd += Chr( nKey )
+         DevPos( oy, ox )
+         DevOut( Chr(nKey) )
          lRecalc := .T.
-*/
+
       ELSEIF nKey == K_ESC
          DevPos( oy, ox )
          EXIT
@@ -261,8 +263,8 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          lRedraw := .T.
 
       ELSEIF nKey == K_ENTER
-         RestScreen( y1, x1, y2, x2, bufc )
-         bufc := Nil
+         //RestScreen( y1, x1, y2, x2, bufc )
+         //bufc := Nil
          cRes := arr[nFirst-1+nSel]
          EXIT
 
