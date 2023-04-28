@@ -640,9 +640,7 @@ STATIC FUNCTION ReadIni( cIniName )
          arr := hb_hKeys( aSect )
          FOR i := 1 TO Len( arr )
             IF !Empty( cTemp := aSect[ arr[i] ] )
-               IF ( n := Ascan( aHiliOpt, arr[i] ) ) > 0
-                  FilePane():aHiliAttrs[n] := cTemp
-               ELSEIF arr[i] == "colorbox"
+               IF arr[i] == "colorbox"
                   FilePane():cClrBox := cTemp
                ELSEIF arr[i] == "colordir"
                   FilePane():cClrDir := cTemp
