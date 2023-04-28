@@ -818,6 +818,7 @@ CLASS FilePane
    CLASS VAR aExtView, aExtEdit, aExtEnter SHARED
    CLASS VAR aCmdHis   SHARED
    CLASS VAR lCmdHis   SHARED INIT .F.
+   CLASS VAR hCmdTrie  SHARED INIT Nil
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
    CLASS VAR vx2 SHARED  INIT nScreenW-1
@@ -2370,8 +2371,8 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL bKeys := {|nKeyExt|
-      LOCAL nKey := hb_keyStd( nKeyExt )
+   LOCAL bKeys := {|nKeyExt,cmd|
+      LOCAL nKey := hb_keyStd( nKeyExt ), cTmp
       IF nKey == K_DOWN
          IF nHis <= Len( FilePane():aCmdHis )
             nHis ++
@@ -2394,6 +2395,10 @@ FUNCTION hbc_Console( xCommand )
          FilePane():nLastKey := K_CTRL_Q
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
+      ELSEIF nKey == K_TAB
+         IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
+            RETURN cTmp
+         ENDIF
       ENDIF
       RETURN Nil
    }
@@ -2439,6 +2444,8 @@ FUNCTION hbc_Console( xCommand )
          ENDIF
          IF ( i := Ascan( FilePane():aCmdHis, {|s|s == cCommand} ) ) > 0
             FilePane():aCmdHis := hb_ADel( FilePane():aCmdHis, i, .T. )
+         ELSE
+            trie_Add( FilePane():hCmdTrie, cCommand )
          ENDIF
          Aadd( FilePane():aCmdHis, cCommand )
          FilePane():lCmdHis := .T.
@@ -2575,7 +2582,7 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    ELSEIF nKey == K_ESC
       cRes := ""
       RETURN cRes
-   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt ) ) == "C"
+   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes ) ) == "C"
       cRes := cTemp
       nPos := Len( cRes ) + 1
       lChg := .T.
@@ -2710,6 +2717,10 @@ STATIC FUNCTION CmdHisLoad()
    NEXT
 
    FilePane():aCmdHis := arr
+   FilePane():hCmdTrie := trie_Create( .F. )
+   FOR i := 1 TO Len( arr )
+      trie_Add( FilePane():hCmdTrie, arr[i] )
+   NEXT
 
    RETURN Nil
 
@@ -2726,6 +2737,9 @@ STATIC FUNCTION CmdHisSave()
       NEXT
       hb_MemoWrit( hb_DirBase() + "hbc.his", s )
       FilePane():lCmdHis := .F.
+   ENDIF
+   IF !Empty( FilePane():hCmdTrie )
+      trie_Close( FilePane():hCmdTrie )
    ENDIF
 
    RETURN Nil
