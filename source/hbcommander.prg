@@ -844,6 +844,7 @@ CLASS FilePane
    CLASS VAR nConsVar SHARED INIT 1
    CLASS VAR lConsMode SHARED INIT .F.
    CLASS VAR nLastKey SHARED INIT 0
+   CLASS VAR cConsCmd SHARED INIT ""
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -2385,14 +2386,17 @@ FUNCTION hbc_Console( xCommand )
          ENDIF
       ELSEIF nKey == K_CTRL_O
          FilePane():nLastKey := 0
+         FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_CTRL_TAB
          FilePane():nLastKey := nKeyExt
+         FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ELSEIF nKey == K_CTRL_Q
          FilePane():nLastKey := K_CTRL_Q
+         FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ELSEIF nKey == K_TAB
@@ -2433,6 +2437,8 @@ FUNCTION hbc_Console( xCommand )
       ENDIF
       IF !Empty( cCommand )
          KEYBOARD Chr( K_ENTER )
+      ELSEIF !Empty( FilePane():cConsCmd )
+         cCommand := FilePane():cConsCmd
       ENDIF
       cCommand := GetLine( NameShortcut(Curdir(),28,'~' ) + ">", cCommand, bKeys )
       IF !Empty( cCommand )
@@ -2495,6 +2501,10 @@ FUNCTION hbc_Console( xCommand )
             ENDIF
          ENDIF
          cCommand := ""
+      ELSEIF Lastkey() == K_ESC
+         FilePane():lConsMode := .F.
+         FilePane():cConsCmd := ""
+         EXIT
       ENDIF
    ENDDO
    cOutBuff := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
@@ -2527,7 +2537,14 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
       IF (nKey := hb_keyStd( nKeyExt )) == K_ENTER
          RETURN cRes
       ELSEIF nKey == K_ESC
-         RETURN ""
+         IF Empty( cRes )
+            RETURN ""
+         ELSE
+            DevPos( nRow, nColInit )
+            DevOut( Space( Len(cRes) ) )
+            cRes := ""
+            DevPos( nRow, nColInit )
+         ENDIF
       ELSE
          cRes := ProcessKey( nColInit, cRes, nKeyExt, bKeys )
       ENDIF
