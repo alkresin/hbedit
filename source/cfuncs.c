@@ -643,18 +643,20 @@ HB_FUNC( CEDI_READFROMCONSOLEAPP )
    } else if( result > 0 ) {
       if( FD_ISSET( pHandles->pipe_stdout[0], &fds ) )
          bytes_read = read( pHandles->pipe_stdout[0], buffer, BUFSIZE );
-      if( bytes_read >= 0 && FD_ISSET( pHandles->pipe_stderr[0], &fds ) )
+      if( bytes_read < 0 || bytes_read > BUFSIZE )
+         bytes_read = 0;
+      if( FD_ISSET( pHandles->pipe_stderr[0], &fds ) ) {
          bytes_read += read( pHandles->pipe_stderr[0], buffer+bytes_read, BUFSIZE-bytes_read );
-      if( bytes_read > 0) {
+      }
+      if( bytes_read > 0 && bytes_read <= BUFSIZE ) {
           buffer[bytes_read] = '\0';
           hb_retclen( buffer, bytes_read );
           return;
-      } else if (bytes_read == -1) {
+      } else if( bytes_read != 0 ) {
           hb_ret();
           return;
       }
    }
-
    if( ( result = waitpid( pHandles->pid, &status, WNOHANG ) ) == pHandles->pid || result == -1 ) {
       hb_ret();
       return;
