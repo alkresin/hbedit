@@ -2447,12 +2447,16 @@ METHOD OnExit() CLASS TEdit
 
    RETURN Nil
 
-FUNCTION NameShortcut( cName, nWidth, cIns )
+FUNCTION NameShortcut( cName, nWidth, cIns, lUtf8 )
 
-   IF Len( cName ) > nWidth
+   LOCAL nLen
+
+   lUtf8 := !Empty( lUtf8 )
+   IF ( nLen := cp_Len( lUtf8, cName ) ) > nWidth
       cIns := Iif( cIns==Nil, "...", cIns )
       IF nWidth > Len(cIns) + 3
-         cName := Left( cName,3 ) + cIns + Substr( cName, Len(cName)-(nWidth-3-Len(cIns)) )
+         cName := cp_Left( lUtf8, cName,3 ) + cIns + ;
+            cp_Substr( lUtf8, cName, nLen-(nWidth-3-Len(cIns)) )
       ELSE
          cName := ""
       ENDIF

@@ -89,6 +89,7 @@ FUNCTION Hbc( oEdit )
       aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
       //edi_SetPalette( oHbc, "default" )
       hb_cdpSelect( oHbc:cp := FilePane():cp )
+      oHbc:lUtf8 := ( Lower(oHbc:cp) == "utf8" )
       SetPanes( aPanes )
       cFileOut := hb_DirTemp() + "hbc_cons.out"
    ENDIF
@@ -1169,7 +1170,7 @@ METHOD Draw() CLASS FilePane
 
 METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
-   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel
+   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen
    LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
 
    IF ::nCurrent == 0
@@ -1202,10 +1203,13 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    ENDIF
    SetColor( Iif( lCurr, Iif( lSel, ::cClrSelCurr, ::cClrCurr ), ;
       Iif( lSel, ::cClrSel, cClrFil ) ) )
-   IF Len( cText ) > ::nWidth
-      cText := Left( cText, ::nWidth-1 ) + '>'
+   IF ( nLen := cp_Len( oHbc:lUtf8, cText ) ) > ::nWidth
+      cText := cp_Left( oHbc:lUtf8, cText, ::nWidth-1 ) + '>'
    ENDIF
-   @ ::y1 + nRow, x1 SAY PAdr( cText, ::nWidth )
+   @ ::y1 + nRow, x1 SAY cText
+   IF nLen < ::nWidth
+      @ ::y1 + nRow, x1+nLen SAY Space( ::nWidth-nLen )
+   ENDIF
 
    SetColor( ::cClrFil )
    IF ::lViewStatus .AND. lCurr
@@ -1220,7 +1224,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       ENDIF
       cDop := Iif( 'D' $ arr[5], "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
       nWidth := ::x2 - ::x1 - 3 - Len(cDop)
-      cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~" )
+      cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~", oHbc:lUtf8 )
       @ ::y2 - 1, ::x1 + 1 SAY cText
       @ ::y2 - 1, ::x1 + 1 + Len(cText) SAY Space( ::x2 - ::x1 - 1 - Len(cText) )
       @ ::y2 - 1, ::x2 - Len(cDop) SAY cDop
@@ -1240,14 +1244,14 @@ METHOD DrawHead( lCurr ) CLASS FilePane
 
    SetColor( Iif( lCurr, ::cClrCurr, ::cClrFil ) )
    IF ::nPanelMod == 0
-      cPath := NameShortcut( ::cIOpref + ::net_cAddress + ::cCurrPath, ::x2-::x1-6, '~' )
+      cPath := NameShortcut( ::cIOpref + ::net_cAddress + ::cCurrPath, ::x2-::x1-6, '~', oHbc:lUtf8 )
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 1
       cPath := "Search results"
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 2
       cPath := ::net_cAddress + ":" + ::zip_cCurrDir
-      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3 )
+      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3, oHbc:lUtf8 )
    ENDIF
 
    RETURN Nil
@@ -1461,7 +1465,7 @@ STATIC FUNCTION hbc_FCopyFile()
    LOCAL cScBuf, oldc, nRes, cTemp, lDir, cInitDir, nStart := 0, aWnd
    LOCAL cFileName := aDir[1]
    LOCAL aGets := { ;
-      {06,12,11,"Copy " + NameShortcut( cFileName, 48 ) + " to:"}, ;
+      {06,12,11,"Copy " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,"[Copy]",6,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
@@ -1597,7 +1601,7 @@ STATIC FUNCTION hbc_FRename()
 
    Set COLOR TO N/W
    @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 06, 12 SAY "Rename " + NameShortcut( cFileName, 46 ) + " to:"
+   @ 06, 12 SAY "Rename " + NameShortcut( cFileName, 46,, oHbc:lUtf8 ) + " to:"
    Set COLOR TO N/BG,B/BG
    @ 09, 24 SAY "[Enter - Ok]  [ESC - Cancel]"
    cNewName := PAdr( cFileName, 200 )
@@ -1811,7 +1815,7 @@ STATIC FUNCTION hbc_Dirlist()
    LOCAL i, aMenu := {}, cDir
 
    FOR i := 1 TO Len( TEdit():aEditHis )
-      cDir := NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~' )
+      cDir := NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~',oHbc:lUtf8 )
       IF Ascan( aMenu, {|a|a[1]==cDir} ) == 0
          AAdd( aMenu, { cDir,Nil,i} )
       ENDIF
