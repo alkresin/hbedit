@@ -87,9 +87,9 @@ FUNCTION Hbc( oEdit )
       oHbc:lIns := Nil
 
       aPanes := ReadIni( hb_DirBase() + "hbc.ini" )
-      //edi_SetPalette( oHbc, "default" )
       hb_cdpSelect( oHbc:cp := FilePane():cp )
       oHbc:lUtf8 := ( Lower(oHbc:cp) == "utf8" )
+      Set( _SET_DATEFORMAT, FilePane():cDateFormat )
       SetPanes( aPanes )
       cFileOut := hb_DirTemp() + "hbc_cons.out"
    ENDIF
@@ -846,6 +846,7 @@ CLASS FilePane
    CLASS VAR lConsMode SHARED INIT .F.
    CLASS VAR nLastKey SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
+   CLASS VAR cDateFormat SHARED INIT "dd.mm.yy"
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -857,6 +858,7 @@ CLASS FilePane
    DATA lViewStatus   INIT .T.
 
    DATA nDispMode     INIT 1
+   DATA nSortMode     INIT 1
    DATA nShift        INIT 0
    DATA nCells, nRows, nWidth
    DATA nPanelMod     INIT 0
@@ -872,7 +874,7 @@ CLASS FilePane
    DATA aSelected     INIT {}
 
    METHOD New( x1, y1, x2, y2, nMode, cPath )
-   METHOD ChangeMode( nMode )
+   METHOD ChangeMode( nMode, nSort )
    METHOD ChangeDir()
    METHOD ParsePath( cPath )
    METHOD SetDir( cPath )
@@ -905,10 +907,24 @@ METHOD New( x1, y1, x2, y2, nMode, cPath ) CLASS FilePane
 
    RETURN Self
 
-METHOD ChangeMode( nMode ) CLASS FilePane
+METHOD ChangeMode( nMode, nSort ) CLASS FilePane
 
-   IF ::nDispMode != nMode
-      ::nDispMode := nMode
+   LOCAL lUpd := .F.
+
+   IF nMode != Nil
+      IF ::nDispMode != nMode
+         ::nDispMode := nMode
+         lUpd := .T.
+      ENDIF
+   ENDIF
+   IF nSort != Nil
+      IF ::nSortMode != nSort
+         ::nSortMode := nSort
+         ::Refresh( .T. )
+         lUpd := .T.
+      ENDIF
+   ENDIF
+   IF lUpd
       ::Draw()
       ::DrawCell( ,.T. )
    ENDIF
@@ -1080,7 +1096,7 @@ METHOD SetDir( cPath ) CLASS FilePane
 
    RETURN Nil
 
-METHOD Refresh() CLASS FilePane
+METHOD Refresh( lResort ) CLASS FilePane
 
    LOCAL aDirTmp, i, l1 := .F., l2 := .F., nPos
    LOCAL cPath := ::cCurrPath
@@ -1088,7 +1104,11 @@ METHOD Refresh() CLASS FilePane
    IF ::nPanelMod > 0
       RETURN .F.
    ENDIF
-   aDirTmp := hb_vfDirectory( ::cIOpref + ::net_cAddress + ::net_cPort + cPath, "HSD" )
+   IF !Empty( lResort )
+      aDirTmp := ::aDir
+   ELSE
+      aDirTmp := hb_vfDirectory( ::cIOpref + ::net_cAddress + ::net_cPort + cPath, "HSD" )
+   ENDIF
    IF Empty( aDirTmp )
       ::aDir := {}
       RETURN .F.
@@ -1105,8 +1125,15 @@ METHOD Refresh() CLASS FilePane
          IF aDirTmp[i,1] == ".."
             aDirTmp[i,1] := " .."
             l2 := .T.
+            IF ::nSortMode == 2
+               aDirTmp[i,3] += 100000
+            ENDIF
          ENDIF
-         aDirTmp[i,1] := " " + aDirTmp[i,1]
+         IF ::nSortMode == 1
+            aDirTmp[i,1] := " " + aDirTmp[i,1]
+         ELSEIF ::nSortMode == 2
+            aDirTmp[i,3] += 365000
+         ENDIF
       ENDIF
    NEXT
    IF l1
@@ -1117,16 +1144,23 @@ METHOD Refresh() CLASS FilePane
       IF ( hb_Rat( '/',cPath,nPos ) != 0 .OR. hb_Rat( '\',cPath,nPos ) != 0 ) .AND. Substr(cPath,2,1) != ':'
          Aadd( aDirTmp, Nil )
          AIns( aDirTmp, 1 )
-         aDirTmp[1] := { "  ..",0,Date(),"","D" }
+         aDirTmp[1] := { "  ..",0,Iif(::nSortMode == 2,Date()+365000+100000,Date()),"","D" }
       ENDIF
    ENDIF
-   aDirTmp := ASort( aDirTmp,,, {|z,y|Lower(z[1]) < Lower(y[1])} )
+   IF ::nSortMode == 1
+      aDirTmp := ASort( aDirTmp,,, {|z,y|Lower(z[1]) < Lower(y[1])} )
+   ELSEIF ::nSortMode == 2
+      aDirTmp := ASort( aDirTmp,,, {|z,y|z[3] > y[3]} )
+   ENDIF
    FOR i := 1 TO Len( aDirTmp )
       IF "D" $ aDirTmp[i,5]
          IF aDirTmp[i,1] == "  .."
             aDirTmp[i,1] := ".."
          ELSEIF Left( aDirTmp[i,1],1 ) == " "
             aDirTmp[i,1] := Substr( aDirTmp[i,1],2 )
+         ENDIF
+         IF ::nSortMode == 2
+            aDirTmp[i,3] -= Iif( aDirTmp[i,1] = "..", 365000+100000, 365000 )
          ENDIF
       ENDIF
    NEXT
@@ -1143,7 +1177,7 @@ METHOD Draw() CLASS FilePane
    @ ::y1, ::x1, ::y2, ::x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
    ::nRows := ::y2 - ::y1 - Iif( ::lViewStatus, 3, 1 )
-   IF ::nDispMode == 1
+   IF ::nDispMode == 1 .OR. ::nDispMode == 3
       ::nCells := ::nRows
       ::nWidth := ::x2 - ::x1 - 1
    ELSEIF ::nDispMode == 2
@@ -1162,7 +1196,7 @@ METHOD Draw() CLASS FilePane
       ::DrawCell( i, .F. )
    NEXT
    IF Len(FilePane():aPanes) > 1 .AND. Self == FilePane():aPanes[2] .AND. !Empty( TEdit():aWindows )
-      cTemp := Ltrim( Str(Len(TEdit():aWindows)) )
+      cTemp := Iif( (i:=Len(TEdit():aWindows))==1, " ", Ltrim( Str(i-1) ) )
       @ ::y1, ::x2-Len(cTemp)-2 SAY "[" + cTemp + "]" COLOR ::cClrSelCurr
    ENDIF
 
@@ -1182,11 +1216,14 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    arr := ::aDir[nCell+::nShift]
    lSel := ( Ascan( ::aSelected, nCell+::nShift ) > 0 )
 
+   nWidth := ::nWidth
    IF ::nDispMode == 2 .AND. nRow > ::nRows
       x1 += ( ::nWidth+1 )
       IF ( nRow := (nRow % ::nRows) ) == 0
          nRow := ::nRows
       ENDIF
+   ELSEIF ::nDispMode == 3
+      nWidth -= Len(::cDateFormat) - 2
    ENDIF
    cText := Trim( arr[1] )
    cExt := hb_fnameExt( cText )
@@ -1203,12 +1240,15 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    ENDIF
    SetColor( Iif( lCurr, Iif( lSel, ::cClrSelCurr, ::cClrCurr ), ;
       Iif( lSel, ::cClrSel, cClrFil ) ) )
-   IF ( nLen := cp_Len( oHbc:lUtf8, cText ) ) > ::nWidth
-      cText := cp_Left( oHbc:lUtf8, cText, ::nWidth-1 ) + '>'
+   IF ( nLen := cp_Len( oHbc:lUtf8, cText ) ) > nWidth
+      cText := cp_Left( oHbc:lUtf8, cText, nWidth-1 ) + '>'
    ENDIF
    @ ::y1 + nRow, x1 SAY cText
-   IF nLen < ::nWidth
-      @ ::y1 + nRow, x1+nLen SAY Space( ::nWidth-nLen )
+   IF nLen < nWidth
+      @ ::y1 + nRow, x1+nLen SAY Space( nWidth-nLen )
+   ENDIF
+   IF ::nDispMode == 3
+      @ ::y1 + nRow, ::x2 - Len(FilePane():cDateFormat) SAY hb_Dtoc( arr[3] )
    ENDIF
 
    SetColor( ::cClrFil )
@@ -1263,19 +1303,19 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,,"Alt-D"}, {"File edit history",,}, {"Find file",,,"Alt-F7"}, ;
       {"Plugins",,,"F11"}, {"Apps",,,"Alt-F12"}, {"Buffers",,,"F12"}, {"Refresh",,,"Ctrl-R"}, ;
       {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
-   LOCAL aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
-      "Mode 2 " + Iif(::nDispMode==2,"x"," ") }
+   LOCAL aMenu1
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,,"Ctrl-Q"}, .T. )
    ENDIF
    nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2,, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
+      aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
+         "Mode 2 " + Iif(::nDispMode==2,"x"," "), "Mode 3 " + Iif(::nDispMode==3,"x"," "), ;
+         cSep, "Sort by name " + Iif(::nSortMode==1,"x"," "), "Sort by date " + Iif(::nSortMode==2,"x"," ") }
       nChoic := FMenu( oHbc, aMenu1, ::y1+2, ::x1+14, ::y1+Len(aMenu1)+3, ::x1+38, ::aClrMenu[1], ::aClrMenu[2] )
-      IF nChoic == 1
-         ::ChangeMode( 1 )
-      ELSEIF nChoic == 2
-         ::ChangeMode( 2 )
+      IF nChoic > 0
+         ::ChangeMode( Iif(nChoic<=3,nChoic,Nil), Iif(nChoic>3,nChoic-4,Nil) )
       ENDIF
 
    ELSEIF nChoic == 2
