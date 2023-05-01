@@ -1630,10 +1630,11 @@ STATIC FUNCTION hbc_FCopySele()
 
 STATIC FUNCTION hbc_FRename()
 
-   LOCAL cFileName, cBuf, cNewName
+   LOCAL cFileName, cBuf, cNewName, lDir
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-   IF oPaneCurr:nPanelMod > 0 .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
+   lDir := ( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
+   IF oPaneCurr:nPanelMod > 0 // .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
 
@@ -1648,13 +1649,14 @@ STATIC FUNCTION hbc_FRename()
    @ 7, 12 GET cNewName PICTURE "@S56"
    READ
    IF LastKey() != 27 .AND. !Empty( cNewName )
-      cNewName := Trim( cNewName )
-      IF hb_vfExists( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cNewName )
+      cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( cNewName )
+      IF ( lDir .AND. hb_vfDirExists( cNewName ) ) .OR. ( !lDir .AND. hb_vfExists( cNewName ) )
          edi_Alert( "Such a file exists already!" )
          Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
          RETURN Nil
       ENDIF
-      IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, oPaneCurr:cCurrPath + cNewName ) == 0
+      IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+         oPaneCurr:cCurrPath + cFileName, cNewName ) == 0
          Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
          oPaneCurr:Refresh()
          oPaneCurr:Draw()
