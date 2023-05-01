@@ -67,7 +67,7 @@ FUNCTION Hbc( oEdit )
       RETURN TEdit():aWindows[i]
    ENDIF
 
-   IF !FilePane():lReadIni
+   IF Empty( FilePane():cp )
 #if defined (GTHWG) || defined (GTWVT)
       lGuiVer := .T.
 #endif
@@ -621,7 +621,6 @@ STATIC FUNCTION ReadIni( cIniName )
    LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s, nPos
    LOCAL aPanes := { Nil, Nil }, cp, lPalette := .F.
 
-   FilePane():lReadIni := .T.
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, cTmp := "OPTIONS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -635,34 +634,37 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "context_menu_plugin" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():xContextMenu := cTmp
          ENDIF
+         IF hb_hHaskey( aSect, cTmp := "consauto" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():lConsAuto := ( Lower(cTemp) == "on" )
+         ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
          arr := hb_hKeys( aSect )
          FOR i := 1 TO Len( arr )
-            IF !Empty( cTemp := aSect[ arr[i] ] )
+            IF !Empty( cTmp := aSect[ arr[i] ] )
                IF arr[i] == "colorbox"
-                  FilePane():cClrBox := cTemp
+                  FilePane():cClrBox := cTmp
                ELSEIF arr[i] == "colordir"
-                  FilePane():cClrDir := cTemp
+                  FilePane():cClrDir := cTmp
                ELSEIF arr[i] == "colorfile"
-                  FilePane():cClrFil := cTemp
+                  FilePane():cClrFil := cTmp
                ELSEIF arr[i] == "colorfileexe"
-                  FilePane():cClrExe := cTemp
+                  FilePane():cClrExe := cTmp
                ELSEIF arr[i] == "colorfilezip"
-                  FilePane():cClrZip := cTemp
+                  FilePane():cClrZip := cTmp
                ELSEIF arr[i] == "colorfilehidden"
-                  FilePane():cClrHid := cTemp
+                  FilePane():cClrHid := cTmp
                ELSEIF arr[i] == "colorcurr"
-                  FilePane():cClrCurr := cTemp
+                  FilePane():cClrCurr := cTmp
                ELSEIF arr[i] == "colorsel"
-                  FilePane():cClrSel := cTemp
+                  FilePane():cClrSel := cTmp
                ELSEIF arr[i] == "colorselcurr"
-                  FilePane():cClrSelCurr := cTemp
+                  FilePane():cClrSelCurr := cTmp
                ELSEIF arr[i] == "colormenuf"
-                  FilePane():aClrMenu[1] := cTemp
+                  FilePane():aClrMenu[1] := cTmp
                ELSEIF arr[i] == "colormenub"
-                  FilePane():aClrMenu[2] := cTemp
+                  FilePane():aClrMenu[2] := cTmp
                ENDIF
             ENDIF
          NEXT
@@ -838,7 +840,7 @@ CLASS FilePane
    CLASS VAR cp       SHARED
    CLASS VAR aPlugins SHARED   INIT {}
    CLASS VAR aAppList SHARED   INIT {}
-   CLASS VAR lReadIni SHARED   INIT .F.
+   CLASS VAR lConsAuto SHARED   INIT .F.
    CLASS VAR cConsOut SHARED   INIT ""
    CLASS VAR nConsMax SHARED   INIT 20000
    CLASS VAR xContextMenu SHARED
