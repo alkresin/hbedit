@@ -143,7 +143,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_F6
-      hbc_FRename()
+      hbc_FRename( .F. )
+
+   ELSEIF nKey == K_SH_F6
+      hbc_FRename( .T. )
 
    ELSEIF nKey == K_F7
       hbc_FMakeDir()
@@ -635,7 +638,7 @@ STATIC FUNCTION ReadIni( cIniName )
             FilePane():xContextMenu := cTmp
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "consauto" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            FilePane():lConsAuto := ( Lower(cTemp) == "on" )
+            FilePane():lConsAuto := ( Lower(cTmp) == "on" )
          ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -936,15 +939,15 @@ METHOD ChangeMode( nMode, nSort ) CLASS FilePane
 METHOD ChangeDir( cNewPath ) CLASS FilePane
 
    LOCAL cBuf
-   LOCAL aGets := { { ::y1+7,::x1+10, 0, "", 26 } }
+   LOCAL aGets := { { ::y1+3,::x1+4, 0, "", 26 } }
    LOCAL nRes
 
    IF Empty( cNewPath )
       cNewPath := Space( 200 )
-      cBuf := Savescreen( ::y1 + 6, ::x1 + 8, ::y1 + 8, ::x1 + 36 )
+      cBuf := Savescreen( ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 )
       Set COLOR TO +GR/B,N/BG
-      @ ::y1 + 6, ::x1 + 8, ::y1 + 8, ::x1 + 36 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ ::y1 + 6, ::x1 + 12 SAY " Set new path:"
+      @ ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ ::y1 + 2, ::x1 + 6 SAY " Set new path:"
       KEYBOARD Chr(K_ENTER)
 
       DO WHILE .T.
@@ -952,14 +955,14 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
             cNewPath := aGets[1,4]
          ENDIF
          IF LastKey() == 13 .AND. Empty( cNewPath )
-            IF !Empty( cNewPath := hbc_SelePath( ::y1 + 7, ::x1 + 10 ) )
+            IF !Empty( cNewPath := hbc_SelePath( ::y1 + 3, ::x1 + 4 ) )
                EXIT
             ENDIF
          ELSE
             EXIT
          ENDIF
       ENDDO
-      Restscreen( ::y1 + 6, ::x1 + 8, ::y1 + 8, ::x1 + 36, cBuf )
+      Restscreen( ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36, cBuf )
       IF LastKey() == 27
          cNewPath := ""
       ENDIF
@@ -1068,6 +1071,11 @@ METHOD ParsePath( cPath ) CLASS FilePane
             netio_DisConnect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1) )
          ENDIF
       ENDIF
+#ifndef __PLATFORM__UNIX
+      IF !( ':' $ cPath )
+         cPath := hb_CurDrive() + ":" + cPath
+      ENDIF
+#endif
       ::cCurrPath := cPath
    ENDIF
    IF !( Right( ::cCurrPath,1 ) $ "\/" )
@@ -1386,7 +1394,7 @@ METHOD ContextMenu() CLASS FilePane
          hbc_FCopySele()
       ENDIF
    ELSEIF aMenu[nChoic,3] == 2
-      hbc_FRename()
+      hbc_FRename( .F. )
    ELSEIF aMenu[nChoic,3] == 3
       IF Empty( oPaneCurr:aSelected )
          hbc_FDelete()
@@ -1630,47 +1638,71 @@ STATIC FUNCTION hbc_FCopySele()
 
    RETURN Nil
 
-STATIC FUNCTION hbc_FRename()
+STATIC FUNCTION hbc_FRename( lRename )
 
-   LOCAL cFileName, cBuf, cNewName, lDir
+   LOCAL cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+   LOCAL cBuf, oldc, cNewName, lDir, lCopyDel := .F., nRes
+   LOCAL aGets := { ;
+      {06,12,11,"Rename " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
+      {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {09,25,2,"[Enter - Ok]",12,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,50,2,"[ESC - Cancel]",14,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
-   cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    lDir := ( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
    IF oPaneCurr:nPanelMod > 0 // .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
+   IF oPaneTo:nPanelMod > 0
+      lRename := .T.
+   ENDIF
 
-   cBuf := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-
-   Set COLOR TO N/W
+   cBuf := Savescreen( 05, 10, 10, 70 )
+   oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
+   hb_cdpSelect( "RU866" )
    @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 06, 12 SAY "Rename " + NameShortcut( cFileName, 46,, oHbc:lUtf8 ) + " to:"
-   Set COLOR TO N/BG,B/BG
-   @ 09, 24 SAY "[Enter - Ok]  [ESC - Cancel]"
-   cNewName := PAdr( cFileName, 200 )
-   @ 7, 12 GET cNewName PICTURE "@S56"
-   READ
-   IF LastKey() != 27 .AND. !Empty( cNewName )
-      cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( cNewName )
+   @ 08, 10 SAY "Ã"
+   @ 08, 70 SAY "´"
+   @ 08, 11 TO 08, 69
+   hb_cdpSelect( oHbc:cp )
+
+   aGets[2,4] := Iif( Empty(lRename), oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
+      oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName, cFileName )
+   nRes := edi_READ( aGets )
+   Restscreen( 05, 10, 10, 70, cBuf )
+
+   IF nRes > 0 .AND. nRes < Len(aGets)
+      cNewName := Trim( aGets[2,4] )
+      IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
+         IF Left( cNewName,4 ) == "net:" .OR. oPaneCurr:cIOpref == "net:"
+            lCopyDel := .T.
+         ENDIF
+         IF lCopyDel
+            RETURN edi_Alert( "Operation isn't permitted" )
+         ENDIF
+      ELSE
+         cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( aGets[2,4] )
+      ENDIF
       IF ( lDir .AND. hb_vfDirExists( cNewName ) ) .OR. ( !lDir .AND. hb_vfExists( cNewName ) )
          edi_Alert( "Such a file exists already!" )
-         Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
          RETURN Nil
       ENDIF
       IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
          oPaneCurr:cCurrPath + cFileName, cNewName ) == 0
-         Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
          oPaneCurr:Refresh()
+         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+            IF oPaneCurr:nCurrent == 1
+               oPaneCurr:nShift --
+            ELSE
+               oPaneCurr:nCurrent --
+            ENDIF
+         ENDIF
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)
       ELSE
          edi_Alert( "Error renaming " + cFileName )
-         Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
       ENDIF
       RETURN Nil
    ENDIF
-
-   Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
 
    RETURN Nil
 
@@ -1807,13 +1839,32 @@ STATIC FUNCTION hbc_FMakeDir()
 
 STATIC FUNCTION hbc_SelePath( y1, x1 )
 
-   LOCAL i, nHeight, nWidth := 16, cRes := "", aPaths := Array( Len(FilePane():aDefPaths) )
-   LOCAL nwMax := FilePane():vx2 - 1 - x1
+   LOCAL i, nHeight, nWidth := 16, cRes := "", aPaths, nLen
+   LOCAL nwMax := FilePane():vx2 - 1 - x1, l := Empty(oPaneTo:cIOpref) .AND. !(oPaneCurr:cCurrPath == oPaneTo:cCurrPath)
+   LOCAL cDrives := "", j, iType
 
-   IF !Empty( FilePane():aDefPaths )
-      nHeight := Min( Len(aPaths),20 )
-      FOR i := 1 TO Len(aPaths)
-         aPaths[i] := { FilePane():aDefPaths[i,1],,, FilePane():aDefPaths[i,2] }
+#ifndef __PLATFORM__UNIX
+   LOCAL aDriveTypes := { "", "", "Removable", "Fixed", "Remote", "Cdrom", "Ram" }
+   cDrives := cedi_GetDrives()
+#endif
+
+   IF !Empty( FilePane():aDefPaths ) .OR. !Empty( cDrives ) .OR. l
+      j := Iif( Empty(cDrives), 0, Len( cDrives ) + 1 )
+      aPaths := Array( nLen := ( Len(FilePane():aDefPaths) + Iif(l,1,0) + Iif(j>0,j,0) ) )
+      nHeight := Min( nLen,22 )
+      FOR i := 1 TO nLen
+         IF l .AND. i == nLen
+            aPaths[i] := { oPaneTo:cCurrPath,,, }
+         ELSEIF i < j
+#ifndef __PLATFORM__UNIX
+            iType := cedi_GetDriveType( Substr(cDrives,i,1)+":" )
+            aPaths[i] := { Substr(cDrives,i,1)+":",,, Iif( iType+1>Len(aDriveTypes),"",aDriveTypes[iType+1] ) }
+#endif
+         ELSEIF i == j
+            aPaths[i] := { "---",,, }
+         ELSE
+            aPaths[i] := { FilePane():aDefPaths[i-j,1],,, FilePane():aDefPaths[i-j,2] }
+         ENDIF
          nWidth := Min( Max( Len(aPaths[i,1])+5, nWidth ), nwMax )
       NEXT
       i := FMenu( oHbc, aPaths, y1+2, x1+2, y1+3+nHeight, x1+3+nWidth, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
@@ -2451,6 +2502,12 @@ FUNCTION hbc_Console( xCommand )
          IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
             RETURN cTmp
          ENDIF
+      ELSEIF nKey >= 32 .AND. nKey <= 250 .AND. FilePane():lConsAuto .AND. Len(cmd) > 1
+         DevPos( Row(), Col() - Len(cmd) + 1 )
+         DevOut( cmd )
+         IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
+            RETURN cTmp
+         ENDIF
       ENDIF
       RETURN Nil
    }
@@ -2647,7 +2704,8 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    ELSEIF nKey == K_ESC
       cRes := ""
       RETURN cRes
-   ELSEIF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes ) ) == "C"
+   ENDIF
+   IF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes ) ) == "C"
       cRes := cTemp
       nPos := Len( cRes ) + 1
       lChg := .T.

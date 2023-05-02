@@ -216,7 +216,8 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          lRecalc := .T.
 
       ELSEIF nKey == K_ESC
-         DevPos( oy, ox )
+         cRes := cmd
+         //DevPos( oy, ox )
          EXIT
 
       ELSEIF nKey == K_UP
