@@ -576,21 +576,21 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    ELSEIF nKey == K_ALT_D
       oPaneCurr:ChangeDir()
-   ELSEIF nKey == K_ALT_F1
+   ELSEIF nKey == K_CTRL_F1
       IF !Empty( cTemp := hbc_SelePath( FilePane():vy1-1, FilePane():aPanes[1]:x1-1 ) )
          FilePane():aPanes[1]:ChangeDir( cTemp )
       ENDIF
-   ELSEIF nKey == K_ALT_F2
+   ELSEIF nKey == K_CTRL_F2
       IF !Empty( cTemp := hbc_SelePath( FilePane():vy1-1, FilePane():aPanes[2]:x1-1 ) )
          FilePane():aPanes[2]:ChangeDir( cTemp )
       ENDIF
-   ELSEIF nKey == K_ALT_F7
+   ELSEIF nKey == K_CTRL_F7
       hbc_Search()
-   ELSEIF nKey == K_ALT_F12
+   ELSEIF nKey == K_CTRL_F12
       AppList( oPaneCurr )
    ELSEIF nKey == K_SH_F1
       hbc_Zip()
-   ELSEIF nKey == K_ALT_F8
+   ELSEIF nKey == K_CTRL_F8
       IF Valtype( FilePane():aCmdHis ) != "A"
          CmdHisLoad()
       ENDIF
@@ -1454,7 +1454,7 @@ STATIC FUNCTION FAsk_Overwrite( n, cFile )
    LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+5, x2 := x1+50
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
-      {y1+1,x1+2, 11, cFile + " exists already! Owerwrite it?"}, ;
+      {y1+1,x1+2, 11, cFile + " exists already! Overwrite it?"}, ;
       {y1+2,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+2,x1+2, 11, "[ ] Don's ask anymore"}, ;
       {y1+4,x1+16, 2, "[Yes]", 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+4,x1+28, 2,"[No]", 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
@@ -1728,7 +1728,8 @@ STATIC FUNCTION hbc_FRename( lRename )
          cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( aGets[2,4] )
          lRename := .T.
       ENDIF
-      IF ( lDir .AND. hb_vfDirExists( cNewName + Iif(lDir,cFileName,"") ) ) .OR. ( !lDir .AND. hb_vfExists( cNewName ) )
+      IF ( lDir .AND. lRename .AND. hb_vfDirExists( cNewName + cFileName ) ) .OR. ;
+         ( !lDir .AND. hb_vfExists( cNewName ) )
          edi_Alert( "Such a file exists already!" )
          RETURN Nil
       ENDIF
@@ -1752,22 +1753,22 @@ STATIC FUNCTION hbc_FRename( lRename )
             ENDIF
          ENDIF
       ENDIF
-   ENDIF
-   IF lRes
-      oPaneCurr:Refresh()
-      IF !lRename
-         oPaneTo:Refresh()
-      ENDIF
-      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-         IF oPaneCurr:nCurrent == 1
-            oPaneCurr:nShift --
-         ELSE
-            oPaneCurr:nCurrent --
+      IF lRes
+         oPaneCurr:Refresh()
+         IF !lRename
+            oPaneTo:Refresh()
          ENDIF
+         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+            IF oPaneCurr:nCurrent == 1
+               oPaneCurr:nShift --
+            ELSE
+               oPaneCurr:nCurrent --
+            ENDIF
+         ENDIF
+         oPaneCurr:RedrawAll()
+      ELSE
+         edi_Alert( "Error " + Iif(lRename,"renaming ","moving ") + cFileName )
       ENDIF
-      oPaneCurr:RedrawAll()
-   ELSE
-      edi_Alert( "Error " + Iif(lRename,"renaming ","moving ") + cFileName )
    ENDIF
 
    RETURN Nil
@@ -2048,7 +2049,7 @@ STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
    LOCAL i, res, nCount := 0, arlen, aFiles, nPos1 := 1, nPos2, cMsk, lDo := .T.
 
    IF !( Right( cInitDir,1 ) $ "/\" ); cInitDir += hb_ps(); ENDIF
-   cMask := Iif( cMask==Nil, "*.*", Upper(cMask) )
+   cMask := Iif( cMask==Nil, "*", Upper(cMask) )
 
    DO WHILE lDo
       IF ( nPos2 := hb_At( ";", cMask, nPos1 ) ) > 0
@@ -2058,7 +2059,7 @@ STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
          cMsk := Substr( cMask, nPos1 )
          lDo := .F.
       ENDIF
-      aFiles := hb_vfDirectory( cInitDir + "*.*", "HSD" )
+      aFiles := hb_vfDirectory( cInitDir + "*", "HSD" )
       arlen := Len( aFiles )
       FOR i := 1 TO arlen
          IF "D" $ aFiles[ i,5 ]
@@ -2070,7 +2071,7 @@ STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
                      Return nCount
                   ENDIF
                ENDIF
-               nCount += DirEval( cInitDir + aFiles[i,1] + hb_OsPathSeparator(), cMsk, .T., bCode, lEvalDir )
+               nCount += DirEval( cInitDir + aFiles[i,1] + hb_OsPathSeparator(), "*", .T., bCode, lEvalDir )
             ENDIF
          ELSEIF hb_FileMatch( UPPER( aFiles[ i,1 ] ), cMsk )
             nCount ++
@@ -2591,7 +2592,7 @@ FUNCTION hbc_Console( xCommand )
          IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
             RETURN cTmp
          ENDIF
-      ELSEIF nKey == K_ALT_F8
+      ELSEIF nKey == K_CTRL_F8
          KEYBOARD Chr(K_END)
          n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
             oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )

@@ -19,11 +19,14 @@ HbCommander - built-in file manager
    F12      - Editor buffers
    Ctrl-A   - View/Set file attributes
 
-   Alt-D    - Change path
+   Alt-D    - Change directory
+   Ctrl-F1  - Change directory for a left pane
+   Ctrl-F2  - Change directory for a right pane
    Ctrl-R   - Refresh panel
-   Alt-F7   - Search
+   Ctrl-F7   - Search
    +        - Search/select
-   Alt-F12  - Quick access to apps, declared in hbc.ini in [APPLIST] section
+   Ctrl-F8   - Commands History
+   Ctrl-F12  - Quick access to apps, declared in hbc.ini in [APPLIST] section
    Shift-F1 - Add file/folder to a zip
    Shift-F2 - Extract files from a zip
    Ctrl-O   - Open console
@@ -42,3 +45,4 @@ Console mode
    Ctrl-Q   - View stdout window
    Ctrl-Tab - Switch between buffers
    Tab      - Command completition
+   Ctrl-F8   - Commands History
