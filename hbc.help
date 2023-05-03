@@ -5,7 +5,7 @@ HbCommander - built-in file manager
 
    F1       - Help
    F2       - Context menu
-   F3       - File view
+   F3       - File view; directory size
    Ctrl-F3  - File view with external viewer, declared in hbc.ini in [EXTVIEW] section
    F4       - File edit
    Ctrl-F4  - File edit with external editor, declared in hbc.ini in [EXTEDIT] section

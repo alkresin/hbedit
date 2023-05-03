@@ -171,10 +171,13 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
       RETURN ""
    ENDIF
 
+   x1 := Col() - Len(cmd)
+   y2 := ( oy := Row() ) - 1
+
    DO WHILE .T.
 
       IF lRecalc
-         oy := Row()
+         //oy := Row()
          ox := Col()
          arr := MakeArr( hTrie,, cmd )
 
@@ -187,9 +190,10 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          h := Min( Len( arr ),12 ) + 2
          w := 0
          AEval( arr, {|s|w := Max( w, Len(s) )} )
-         y1 := Iif( oy < oHbc:y1+h, oy, oy-h+1 )
-         x1 := ox
-         y2 := y1 + h - 1
+         //y1 := Iif( oy < oHbc:y1+h, oy, oy-h+1 )
+         y1 := Iif( oy < oHbc:y1+h, oy-1, oy-h )
+         //x1 := ox
+         //y2 := y1 + h - 1
          x2 := x1 + w + 2
          nSel := 1
          nFirst := 1
@@ -216,8 +220,9 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          lRecalc := .T.
 
       ELSEIF nKey == K_ESC
-         cRes := ""
+         //cRes := ""
          //DevPos( oy, ox )
+         cRes := cmd
          EXIT
 
       ELSEIF nKey == K_UP
