@@ -31,3 +31,14 @@ HbCommander - built-in file manager
               ( = allows to calculate expressions, using operators
                 and Harbour functions, for example:
                 =1024*16+25, or =date() )
+   Ctrl-Q   - View stdout window
+   Ctrl-Tab - Switch between buffers
+
+:: :
+Console mode
+   Ctrl-O   - Close console
+   ESC      - Close console
+   Up,Down  - browse commands history
+   Ctrl-Q   - View stdout window
+   Ctrl-Tab - Switch between buffers
+   Tab      - Command completition

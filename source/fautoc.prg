@@ -180,7 +180,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
 
          bufc := Nil
          IF Empty( arr )
-            cRes := cmd
+            cRes := ""
             EXIT
          ENDIF
 	
@@ -216,7 +216,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          lRecalc := .T.
 
       ELSEIF nKey == K_ESC
-         cRes := cmd
+         cRes := ""
          //DevPos( oy, ox )
          EXIT
 
@@ -264,8 +264,6 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
          lRedraw := .T.
 
       ELSEIF nKey == K_ENTER
-         //RestScreen( y1, x1, y2, x2, bufc )
-         //bufc := Nil
          cRes := arr[nFirst-1+nSel]
          EXIT
 

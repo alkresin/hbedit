@@ -165,10 +165,14 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
 
    ELSEIF nKey == K_F1
-      mnu_Help( oHbc, edi_FindPath( "hbc.help" ) )
+      mnu_Help( oHbc, edi_FindPath( "hbc.help" ), Iif( FilePane():lConsMode,":: :",Nil ) )
       edi_SetPalette( oHbc, oHbc:cPalette )
       hb_CdpSelect( FilePane():cp )
-      FilePane():RedrawAll()
+      IF FilePane():lConsMode
+         KEYBOARD Chr( K_CTRL_O )
+      ELSE
+         FilePane():RedrawAll()
+      ENDIF
 
    ELSEIF nKey == K_F2
       oPaneCurr:ContextMenu()
@@ -425,6 +429,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    ELSEIF nKey == K_F3 .OR. nKey == K_CTRL_F3
       IF 'D' $ aDir[5]
+         hbc_FCalcSize()
          RETURN -1
       ENDIF
       nPos := 0
@@ -520,7 +525,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
       IF oPaneCurr:nCurrent > 0 .AND. nRow > 0 .AND. nRow <= o:nRows
          oPaneCurr:DrawCell( ,.F. )
-         IF o:nDispMode == 1 .OR. (o:nDispMode == 2 .AND. nCol <= o:nWidth)
+         IF o:nDispMode != 2 .OR. (o:nDispMode == 2 .AND. nCol <= o:nWidth)
             o:nCurrent := nRow
          ELSE
             o:nCurrent := nRow + o:nRows
@@ -585,6 +590,18 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       AppList( oPaneCurr )
    ELSEIF nKey == K_SH_F1
       hbc_Zip()
+   ELSEIF nKey == K_ALT_F8
+      IF Valtype( FilePane():aCmdHis ) != "A"
+         CmdHisLoad()
+      ENDIF
+      IF !Empty( FilePane():aCmdHis )
+         KEYBOARD Chr(K_END)
+         i := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
+            oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+         IF i > 0
+            hbc_Console( FilePane():aCmdHis[i] )
+         ENDIF
+      ENDIF
    ELSEIF nKey == K_SH_F2
       cExt := Lower( hb_fnameExt( aDir[1] )   )
       IF Ascan( aExtZip, {|s| s==cExt} ) > 0
@@ -1187,7 +1204,7 @@ METHOD Draw() CLASS FilePane
    @ ::y1, ::x1, ::y2, ::x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
    ::nRows := ::y2 - ::y1 - Iif( ::lViewStatus, 3, 1 )
-   IF ::nDispMode == 1 .OR. ::nDispMode == 3
+   IF ::nDispMode == 1 .OR. ::nDispMode == 3 .OR. ::nDispMode == 4
       ::nCells := ::nRows
       ::nWidth := ::x2 - ::x1 - 1
    ELSEIF ::nDispMode == 2
@@ -1234,6 +1251,8 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       ENDIF
    ELSEIF ::nDispMode == 3
       nWidth -= Len(::cDateFormat) - 2
+   ELSEIF ::nDispMode == 4
+      nWidth -= Len(::cDateFormat) - 8
    ENDIF
    cText := Trim( arr[1] )
    cExt := hb_fnameExt( cText )
@@ -1257,7 +1276,18 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    IF nLen < nWidth
       @ ::y1 + nRow, x1+nLen SAY Space( nWidth-nLen )
    ENDIF
-   IF ::nDispMode == 3
+   IF ::nDispMode == 3 .OR. ::nDispMode == 4
+      IF ::nDispMode == 4
+         IF 'D' $ arr[5] .AND. arr[2] == 0
+            cSize := " <dir>"
+         ELSE
+            cSize := Iif( arr[2]<=999999, PAdl(Ltrim(Str(arr[2])),6), ;
+               Iif( arr[2]<10238976,PAdl(Left(Ltrim(Str(Round(arr[2]/1024,2))),5)+"K",6), ;
+               Iif( arr[2]<10484711424, PAdl(Left(Ltrim(Str(Round(arr[2]/1048576,2))),5)+"M",6), ;
+               PAdl(Left(Ltrim(Str(Round(arr[2]/1073741824,2))),5)+"G",6) ) ) )
+         ENDIF
+         @ ::y1 + nRow, ::x2 - Len(FilePane():cDateFormat) - 7 SAY cSize
+      ENDIF
       @ ::y1 + nRow, ::x2 - Len(FilePane():cDateFormat) SAY hb_Dtoc( arr[3] )
    ENDIF
 
@@ -1272,7 +1302,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
             arr[2] := hb_fSize( ::cCurrPath + arr[1] )
          ENDIF
       ENDIF
-      cDop := Iif( 'D' $ arr[5], "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
+      cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
       nWidth := ::x2 - ::x1 - 3 - Len(cDop)
       cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~", oHbc:lUtf8 )
       @ ::y2 - 1, ::x1 + 1 SAY cText
@@ -1322,10 +1352,11 @@ METHOD PaneMenu() CLASS FilePane
    IF nChoic == 1
       aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
          "Mode 2 " + Iif(::nDispMode==2,"x"," "), "Mode 3 " + Iif(::nDispMode==3,"x"," "), ;
+         "Mode 4 " + Iif(::nDispMode==4,"x"," "), ;
          cSep, "Sort by name " + Iif(::nSortMode==1,"x"," "), "Sort by date " + Iif(::nSortMode==2,"x"," ") }
       nChoic := FMenu( oHbc, aMenu1, ::y1+2, ::x1+14, ::y1+Len(aMenu1)+3, ::x1+38, ::aClrMenu[1], ::aClrMenu[2] )
       IF nChoic > 0
-         ::ChangeMode( Iif(nChoic<=3,nChoic,Nil), Iif(nChoic>3,nChoic-4,Nil) )
+         ::ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4,nChoic-5,Nil) )
       ENDIF
 
    ELSEIF nChoic == 2
@@ -1509,11 +1540,11 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
    RETURN lRes
 
-STATIC FUNCTION hbc_FCopyFile()
+STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
 
-   LOCAL cFileTo, aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
+   LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    LOCAL cScBuf, oldc, nRes, cTemp, lDir, cInitDir, nStart := 0, aWnd
-   LOCAL cFileName := aDir[1]
+   LOCAL cFileName := aDir[1], lRes := .F.
    LOCAL aGets := { ;
       {06,12,11,"Copy " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
@@ -1524,13 +1555,13 @@ STATIC FUNCTION hbc_FCopyFile()
       IF "D" $ arr[5]
          IF !( s == "." .OR. s == ".." )
             IF hb_vfDirMake( cFileTo + Substr( s,nLen ) ) != 0
-               RETURN .F.
+               RETURN ( lRes := .F. )
             ENDIF
          ENDIF
       ELSE
          nStart ++
          WndOut( aWnd, Substr( s,nLen ) )
-         RETURN FCopy( {Substr( s,nLen )}, cFileTo + Substr( s,nLen ), nStart )
+         RETURN ( lRes := FCopy( {Substr( s,nLen )}, cFileTo + Substr( s,nLen ), nStart ) )
       ENDIF
       RETURN .T.
    }
@@ -1540,15 +1571,7 @@ STATIC FUNCTION hbc_FCopyFile()
    ENDIF
 
    lDir := ( 'D' $ aDir[5] )
-
-   cScBuf := Savescreen( 05, 10, 10, 70 )
-   oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
-   hb_cdpSelect( "RU866" )
-   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 08, 10 SAY "Ã"
-   @ 08, 70 SAY "´"
-   @ 08, 11 TO 08, 69
-   hb_cdpSelect( oHbc:cp )
+   lSilent := !Empty( lSilent )
 
    IF oPaneTo:nPanelMod == 2
       aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + ":" + oPaneTo:zip_cCurrDir + cFileName
@@ -1560,13 +1583,25 @@ STATIC FUNCTION hbc_FCopyFile()
          Iif( lDir, "", cFileName )
    ENDIF
 
-   nRes := edi_READ( aGets )
-   Restscreen( 05, 10, 10, 70, cScBuf )
+   IF !lSilent
+      cScBuf := Savescreen( 05, 10, 10, 70 )
+      oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
+      hb_cdpSelect( "RU866" )
+      @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
+      @ 08, 10 SAY "Ã"
+      @ 08, 70 SAY "´"
+      @ 08, 11 TO 08, 69
+      hb_cdpSelect( oHbc:cp )
 
-   IF nRes > 0 .AND. nRes < Len(aGets)
+      nRes := edi_READ( aGets )
+      Restscreen( 05, 10, 10, 70, cScBuf )
+   ENDIF
+
+   IF lSilent .OR. ( nRes > 0 .AND. nRes < Len(aGets) )
       cFileTo := AllTrim( aGets[2,4] )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
-         RETURN edi_Alert( "Operation isn't permitted" )
+         edi_Alert( "Operation isn't permitted" )
+         RETURN .F.
       ENDIF
 
       IF lDir
@@ -1576,16 +1611,24 @@ STATIC FUNCTION hbc_FCopyFile()
          cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1] + hb_ps()
          IF hb_vfDirMake( cFileTo  + aDir[1] ) != 0
-            RETURN edi_Alert( "Error copying " + aDir[1] )
+            edi_Alert( "Error copying " + aDir[1] )
+            RETURN .F.
          ENDIF
          aWnd := WndInit( 05, 20, 12, 60 )
+         lRes := .T.
          DirEval( cInitDir, "*", .T., bCopy, .T. )
+         IF lSilent
+            KEYBOARD Chr(K_SPACE)
+         ENDIF
          WndClose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files copied." )
-         oPaneTo:Refresh()
-         oPaneCurr:Refresh()
-         oPaneCurr:RedrawAll()
+         IF !lSilent
+            oPaneTo:Refresh()
+            oPaneCurr:Refresh()
+            oPaneCurr:RedrawAll()
+         ENDIF
       ELSE
          IF FCopy( aDir, cFileTo, 0 )
+            lRes := .T.
             IF Left( cFileTo,4 ) == "zip:"
                // Refresh zip panel
                hb_unzipClose( oPaneTo:hUnzip )
@@ -1601,7 +1644,7 @@ STATIC FUNCTION hbc_FCopyFile()
       ENDIF
    ENDIF
 
-   RETURN Nil
+   RETURN lRes
 
 STATIC FUNCTION hbc_FCopySele()
 
@@ -1640,15 +1683,16 @@ STATIC FUNCTION hbc_FCopySele()
 
 STATIC FUNCTION hbc_FRename( lRename )
 
-   LOCAL cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-   LOCAL cBuf, oldc, cNewName, lDir, lCopyDel := .F., nRes
+   LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
+   LOCAL cFileName := aDir[1]
+   LOCAL cBuf, oldc, cNewName, lDir, lCopyDel := .F., nRes, lRes := .F.
    LOCAL aGets := { ;
       {06,12,11,"Rename " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,"[Enter - Ok]",12,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,"[ESC - Cancel]",14,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
-   lDir := ( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
+   lDir := ( 'D' $ aDir[5] )
    IF oPaneCurr:nPanelMod > 0 // .OR. 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5]
       RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
@@ -1666,47 +1710,69 @@ STATIC FUNCTION hbc_FRename( lRename )
    hb_cdpSelect( oHbc:cp )
 
    aGets[2,4] := Iif( Empty(lRename), oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
-      oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName, cFileName )
+      oPaneTo:net_cPort + oPaneTo:cCurrPath + Iif(lDir,"",cFileName), cFileName )
    nRes := edi_READ( aGets )
    Restscreen( 05, 10, 10, 70, cBuf )
 
    IF nRes > 0 .AND. nRes < Len(aGets)
       cNewName := Trim( aGets[2,4] )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
+         lRename := .F.
          IF Left( cNewName,4 ) == "net:" .OR. oPaneCurr:cIOpref == "net:"
             lCopyDel := .T.
          ENDIF
-         IF lCopyDel
-            RETURN edi_Alert( "Operation isn't permitted" )
+         IF lDir .AND. !( Right(cNewName,1) $ "/\" )
+            cNewName += hb_ps()
          ENDIF
       ELSE
          cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( aGets[2,4] )
+         lRename := .T.
       ENDIF
-      IF ( lDir .AND. hb_vfDirExists( cNewName ) ) .OR. ( !lDir .AND. hb_vfExists( cNewName ) )
+      IF ( lDir .AND. hb_vfDirExists( cNewName + Iif(lDir,cFileName,"") ) ) .OR. ( !lDir .AND. hb_vfExists( cNewName ) )
          edi_Alert( "Such a file exists already!" )
          RETURN Nil
       ENDIF
-      IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cFileName, cNewName ) == 0
-         oPaneCurr:Refresh()
-         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-            IF oPaneCurr:nCurrent == 1
-               oPaneCurr:nShift --
-            ELSE
-               oPaneCurr:nCurrent --
+      IF !lCopyDel
+         IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + cFileName, cNewName+Iif(lDir,cFileName,"") ) == 0
+            lRes := .T.
+         ENDIF
+      ENDIF
+      IF !lRes .AND. ( lCopyDel .OR. !lRename )
+         IF lDir
+            IF hbc_FCopyFile( .T., cNewName )
+               lRes := hbc_FDelete( .T. )
+            ENDIF
+         ELSE
+            IF FCopy( aDir, cNewName, 0 )
+               IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+                  oPaneCurr:cCurrPath + cFileName ) == 0
+                  lRes := .T.
+               ENDIF
             ENDIF
          ENDIF
-         oPaneCurr:Draw()
-         oPaneCurr:DrawCell( ,.T.)
-      ELSE
-         edi_Alert( "Error renaming " + cFileName )
       ENDIF
-      RETURN Nil
+   ENDIF
+   IF lRes
+      oPaneCurr:Refresh()
+      IF !lRename
+         oPaneTo:Refresh()
+      ENDIF
+      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+         IF oPaneCurr:nCurrent == 1
+            oPaneCurr:nShift --
+         ELSE
+            oPaneCurr:nCurrent --
+         ENDIF
+      ENDIF
+      oPaneCurr:RedrawAll()
+   ELSE
+      edi_Alert( "Error " + Iif(lRename,"renaming ","moving ") + cFileName )
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION hbc_FDelete()
+STATIC FUNCTION hbc_FDelete( lSilent )
 
    LOCAL cFileName, lDir, lRes := .F.
    LOCAL cInitDir, aDirs, i, aWnd, nStart := 0
@@ -1734,8 +1800,9 @@ STATIC FUNCTION hbc_FDelete()
 
    cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    lDir := ('D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5])
+   lSilent := !Empty( lSilent )
 
-   IF edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
+   IF lSilent .OR. edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
       IF lDir
          lRes := .T.
          aWnd := WndInit( 05, 20, 12, 60 )
@@ -1750,6 +1817,9 @@ STATIC FUNCTION hbc_FDelete()
                EXIT
             ENDIF
          NEXT
+         IF lSilent
+            KEYBOARD Chr(K_SPACE)
+         ENDIF
          WndClose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files deleted" )
       ELSE
          IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
@@ -1757,23 +1827,25 @@ STATIC FUNCTION hbc_FDelete()
          ENDIF
       ENDIF
       IF lRes
-         oPaneCurr:Refresh()
-         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-            IF oPaneCurr:nCurrent == 1
-               oPaneCurr:nShift --
-            ELSE
-               oPaneCurr:nCurrent --
+         IF !lSilent
+            oPaneCurr:Refresh()
+            IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+               IF oPaneCurr:nCurrent == 1
+                  oPaneCurr:nShift --
+               ELSE
+                  oPaneCurr:nCurrent --
+               ENDIF
             ENDIF
+            oPaneCurr:Draw()
+            oPaneCurr:DrawCell( ,.T.)
+            oPaneCurr:DrawHead( .T. )
          ENDIF
-         oPaneCurr:Draw()
-         oPaneCurr:DrawCell( ,.T.)
-         oPaneCurr:DrawHead( .T. )
       ELSE
          edi_Alert( "Error deleting " + cFileName )
       ENDIF
    ENDIF
 
-   RETURN Nil
+   RETURN lRes
 
 STATIC FUNCTION hbc_FDeleteSele()
 
@@ -1834,6 +1906,18 @@ STATIC FUNCTION hbc_FMakeDir()
    ENDIF
 
    Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
+
+   RETURN Nil
+
+STATIC FUNCTION hbc_FCalcSize()
+
+   LOCAL nSize := 0
+
+   DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+      oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1], ;
+      "*", .T., {|s,a|nSize := nSize + a[2]} )
+   oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,2] := nSize
+   oPaneCurr:DrawCell( ,.T. )
 
    RETURN Nil
 
@@ -2471,8 +2555,8 @@ FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
-   LOCAL bKeys := {|nKeyExt,cmd|
-      LOCAL nKey := hb_keyStd( nKeyExt ), cTmp
+   LOCAL bKeys := {|nKeyExt,cmd,nColInit|
+      LOCAL nKey := hb_keyStd( nKeyExt ), cTmp, n
       IF nKey == K_DOWN
          IF nHis <= Len( FilePane():aCmdHis )
             nHis ++
@@ -2498,12 +2582,25 @@ FUNCTION hbc_Console( xCommand )
          FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
+      ELSEIF nKey == K_F1
+         FilePane():nLastKey := K_F1
+         FilePane():cConsCmd := cmd
+         KEYBOARD Chr(K_ENTER)
+         RETURN "exit"
       ELSEIF nKey == K_TAB
          IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
             RETURN cTmp
          ENDIF
-      ELSEIF nKey >= 32 .AND. nKey <= 250 .AND. FilePane():lConsAuto .AND. Len(cmd) > 1
-         DevPos( Row(), Col() - Len(cmd) + 1 )
+      ELSEIF nKey == K_ALT_F8
+         KEYBOARD Chr(K_END)
+         n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
+            oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+         IF n > 0
+            RETURN FilePane():aCmdHis[n]
+         ENDIF
+      ELSEIF nKey >= 32 .AND. nKey <= 250 .AND. FilePane():lConsAuto .AND. ;
+         ( n := Len(cmd) ) > 1 .AND. n + nColInit - 1 == Col()
+         DevPos( Row(), nColInit )
          DevOut( cmd )
          IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
             RETURN cTmp
@@ -2628,7 +2725,7 @@ FUNCTION hbc_Console( xCommand )
 
 STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
 
-   LOCAL nRow := Row(), nPos := Len(cRes) + 1, nColInit, nKeyExt, nKey
+   LOCAL nRow := Row(), nColInit, nKeyExt, nKey
 
    DevOut( Iif( cMsg==Nil, "", cMsg ) )
    nColInit := Col()
@@ -2705,7 +2802,7 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
       cRes := ""
       RETURN cRes
    ENDIF
-   IF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes ) ) == "C"
+   IF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes,nColInit ) ) == "C"
       cRes := cTemp
       nPos := Len( cRes ) + 1
       lChg := .T.

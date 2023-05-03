@@ -3169,9 +3169,9 @@ FUNCTION edi_ReadIni( xIni )
 
    RETURN Nil
 
-FUNCTION mnu_Help( oEdit, cFullPath )
+FUNCTION mnu_Help( oEdit, cFullPath, cMet )
 
-   LOCAL oHelp, nCurr := TEdit():nCurr
+   LOCAL oHelp, nCurr := TEdit():nCurr, i
    LOCAL cHelp, cPlugHelp
 
    IF Empty( cFullPath )
@@ -3189,6 +3189,14 @@ FUNCTION mnu_Help( oEdit, cFullPath )
 
       oHelp:lReadOnly := .T.
       oHelp:lCtrlTab  := .F.
+      IF !Empty( cMet )
+         FOR i := 1 TO Len( oHelp:aText )
+            IF !Empty( oHelp:aText[i] ) .AND. cMet $ oHelp:aText[i]
+               oHelp:nLine := i
+               EXIT
+            ENDIF
+         NEXT
+      ENDIF
       oHelp:Edit()
       TEdit():nCurr := nCurr
    ENDIF
