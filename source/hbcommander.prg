@@ -573,7 +573,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       hbc_Console()
    ELSEIF nKey == K_CTRL_Q
       ShowStdout()
-
+   ELSEIF nKey == K_CTRL_P
+      hbc_PaneOpt()
    ELSEIF nKey == K_ALT_D
       oPaneCurr:ChangeDir()
    ELSEIF nKey == K_CTRL_F1
@@ -1330,26 +1331,17 @@ METHOD PaneMenu() CLASS FilePane
 
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
-   LOCAL aMenu := { {"Pane mode",,}, {"Change dir",,,"Alt-D"}, ;
+   LOCAL aMenu := { {"Pane mode",,,"Ctrl-P"}, {"Change dir",,,"Alt-D"}, ;
       {"File edit history",,}, {"Commands history",,,"Ctrl-F8"}, {"Find file",,,"Ctrl-F7"}, ;
       {"Plugins",,,"F11"}, {"Apps",,,"Ctrl-F12"}, {"Buffers",,,"F12"}, {"Refresh",,,"Ctrl-R"}, ;
       {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
-   LOCAL aMenu1
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,,"Ctrl-Q"}, .T. )
    ENDIF
    nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2,, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
-      aMenu1 := { "Mode 1 " + Iif(::nDispMode==1,"x"," "), ;
-         "Mode 2 " + Iif(::nDispMode==2,"x"," "), "Mode 3 " + Iif(::nDispMode==3,"x"," "), ;
-         "Mode 4 " + Iif(::nDispMode==4,"x"," "), ;
-         cSep, "Sort by name " + Iif(::nSortMode==1,"x"," "), "Sort by date " + Iif(::nSortMode==2,"x"," ") }
-      nChoic := FMenu( oHbc, aMenu1, ::y1+2, ::x1+14, ::y1+Len(aMenu1)+3, ::x1+38, ::aClrMenu[1], ::aClrMenu[2] )
-      IF nChoic > 0
-         ::ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4,nChoic-5,Nil) )
-      ENDIF
-
+      hbc_PaneOpt()
    ELSEIF nChoic == 2
       ::ChangeDir()
    ELSEIF nChoic == 3
@@ -2023,6 +2015,20 @@ STATIC FUNCTION hbc_CmdHis()
       ENDIF
    ENDIF
    RETURN Nil
+
+STATIC FUNCTION hbc_PaneOpt()
+
+   LOCAL aMenu1 := { "Mode 1 " + Iif(oPaneCurr:nDispMode==1,"x"," "), ;
+      "Mode 2 " + Iif(oPaneCurr:nDispMode==2,"x"," "), "Mode 3 " + Iif(oPaneCurr:nDispMode==3,"x"," "), ;
+      "Mode 4 " + Iif(oPaneCurr:nDispMode==4,"x"," "), ;
+      "---", "Sort by name " + Iif(oPaneCurr:nSortMode==1,"x"," "), "Sort by date " + Iif(oPaneCurr:nSortMode==2,"x"," ") }
+   LOCAL nChoic := FMenu( oHbc, aMenu1, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
+      oPaneCurr:y1+Len(aMenu1)+3, oPaneCurr:x1+38, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+   IF nChoic > 0
+      oPaneCurr:ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4,nChoic-5,Nil) )
+   ENDIF
+
+   RETURN .T.
 
 STATIC FUNCTION zipRead( hUnzip )
 
