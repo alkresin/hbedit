@@ -1603,7 +1603,7 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
             edi_Alert( "Error copying " + aDir[1] )
             RETURN .F.
          ENDIF
-         aWnd := WndInit( 05, 20, 12, 60 )
+         aWnd := WndInit( 05, 20, 12, 60,, "Copy" )
          lRes := .T.
          DirEval( cInitDir, "*", .T., bCopy, .T. )
          IF lSilent
@@ -1644,7 +1644,7 @@ STATIC FUNCTION hbc_FCopySele()
    ENDIF
 
    IF edi_Alert( "Copy " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "Yes", "No" ) == 1
-      aWnd := WndInit( 05, 20, 12, 60 )
+      aWnd := WndInit( 05, 20, 12, 60,, "Copy" )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
@@ -1795,7 +1795,7 @@ STATIC FUNCTION hbc_FDelete( lSilent )
    IF lSilent .OR. edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
       IF lDir
          lRes := .T.
-         aWnd := WndInit( 05, 20, 12, 60 )
+         aWnd := WndInit( 05, 20, 12, 60,, "Delete" )
          cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName
          aDirs := { cInitDir }
          DirEval( cInitDir, "*", .T., bDel, .T. )
@@ -2270,7 +2270,7 @@ STATIC FUNCTION hbc_Zip()
 
       Restscreen( 05, 10, 10, 70, cScBuf )
       IF !Empty( oPaneCurr:aSelected )
-         aWnd := WndInit( 05, 20, 16, 60 )
+         aWnd := WndInit( 05, 20, 16, 60,, "Zip" )
          FOR i := 1 TO Len( oPaneCurr:aSelected )
             cFile := oPaneCurr:aDir[oPaneCurr:aSelected[i],1]
             WndOut( aWnd, cFile )
@@ -2281,7 +2281,7 @@ STATIC FUNCTION hbc_Zip()
          WndClose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files archived" )
          oPaneCurr:aSelected := {}
       ELSEIF 'D' $ aDir[5]
-         aWnd := WndInit( 05, 20, 16, 60 )
+         aWnd := WndInit( 05, 20, 16, 60,, "Zip" )
          aDirToZip := ASort( hb_DirScan( aDir[1], "*", "HSD" ),,, {|a1,a2|a1[1]<a2[1]} )
          cFile := aDir[1] + hb_ps()
          hb_zipStoreFile( hZip, cFile, cFile )
@@ -2354,7 +2354,7 @@ STATIC FUNCTION hbc_Unzip()
 
          hUnzip := hb_unzipOpen( cFileName )
          IF ! Empty( hUnzip )
-            aWnd := WndInit( 05, 20, 16, 60 )
+            aWnd := WndInit( 05, 20, 16, 60,, "Unzip" )
             nErr := hb_unzipFileFirst( hUnzip )
             DO WHILE nErr == 0
                hb_unzipFileInfo( hUnzip, @cFile,,,,,,, @lCrypted )
@@ -2985,7 +2985,7 @@ STATIC FUNCTION CmdHisSave()
 
    RETURN Nil
 
-STATIC FUNCTION WndInit( y1, x1, y2, x2, clr )
+STATIC FUNCTION WndInit( y1, x1, y2, x2, clr, cTitle )
 
    LOCAL cBuf := Savescreen( y1, x1, y2, x2 )
 
@@ -2993,6 +2993,9 @@ STATIC FUNCTION WndInit( y1, x1, y2, x2, clr )
       clr := "N/W"
    ENDIF
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ " COLOR (clr)
+   IF !Empty( cTitle )
+      @ y1, x1+2 SAY cTitle COLOR (clr)
+   ENDIF
 
    RETURN { y1, x1, y2, x2, clr, cBuf }
 
