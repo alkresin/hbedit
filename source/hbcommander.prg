@@ -1433,20 +1433,22 @@ METHOD RedrawAll() CLASS FilePane
 
    RETURN Nil
 
-STATIC FUNCTION FAsk_Overwrite( n, cFile )
+STATIC FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
 
    LOCAL nRes
-   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+5, x2 := x1+50
+   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
       {y1+1,x1+2, 11, cFile + " exists already! Overwrite it?"}, ;
-      {y1+2,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+2,x1+2, 11, "[ ] Don's ask anymore"}, ;
-      {y1+4,x1+16, 2, "[Yes]", 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+28, 2,"[No]", 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
+      {y1+3,x1+2, 11, "New:      "+PAdl(Ltrim(Str(nSouSize)),10)+" "+hb_ttoc(dSouDate)}, ;
+      {y1+4,x1+2, 11, "Existing: "+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
+      {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, "[ ] Don's ask anymore"}, ;
+      {y1+8,x1+16, 2, "[Yes]", 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+8,x1+28, 2,"[No]", 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
    STATIC lNoAsk := .F., lRes := .F.
 
    IF n == 0  // One time
-      aGets[2,3] := aGets[3,3] := -1
+      aGets[4,3] := aGets[5,3] := -1
    ELSEIF n == 1  // First time
       lNoAsk := .F.
    ELSEIF lNoAsk
@@ -1455,12 +1457,18 @@ STATIC FUNCTION FAsk_Overwrite( n, cFile )
 
    cBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ y1+3, x1 SAY "Ã"
-   @ y1+3, x2 SAY "´"
-   @ y1+3, x1+1 TO y1+3, x2-1
+   @ y1+2, x1 SAY "Ã"
+   @ y1+2, x2 SAY "´"
+   @ y1+2, x1+1 TO y1+2, x2-1
+   @ y1+5, x1 SAY "Ã"
+   @ y1+5, x2 SAY "´"
+   @ y1+5, x1+1 TO y1+5, x2-1
+   @ y1+7, x1 SAY "Ã"
+   @ y1+7, x2 SAY "´"
+   @ y1+7, x1+1 TO y1+7, x2-1
 
    lRes := ( ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets) )
-   lNoAsk := aGets[2,4]
+   lNoAsk := aGets[4,4]
 
    Restscreen( y1, x1, y2, x2, cBuf )
    SetColor( oldc )
@@ -1471,8 +1479,11 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
    LOCAL i, cTemp, cIOpref, handle, nRes := 0, hZip
 
-   IF hb_vfExists( cFileTo ) .AND. !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo) )
-      RETURN 1
+   IF hb_vfExists( cFileTo )
+      hb_vfTimeGet( cFileTo, @i )
+      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo), aDir[2], aDir[3], hb_vfSize(cFileTo), i )
+         RETURN 1
+      ENDIF
    ENDIF
 
    IF nFirst == 0
@@ -1528,7 +1539,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
-   LOCAL cScBuf, oldc, nRes, cTemp, lDir, cInitDir, nStart := 0, nCopied := 0, aWnd
+   LOCAL cScBuf, oldc, nRes, l1 := .F., cTemp, lDir, nStart := 0, nCopied := 0, aWnd
    LOCAL cFileName := aDir[1], lRes := .F.
    LOCAL aGets := { ;
       {06,12,11,"Copy " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
@@ -1546,9 +1557,11 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
          ENDIF
       ELSE
          nStart ++
-         IF ( nRes := FCopy( {Substr( s,nLen )}, cFileTo + Substr( s,nLen ), nStart ) ) == 0
+         IF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cFileTo + Substr( s,nLen ), nStart ) ) == 0
             nCopied ++
             WndOut( aWnd, Substr( s,nLen ) )
+         ELSEIF nRes == 1
+            l1 := .T.
          ENDIF
          RETURN ( lRes := (nRes!=2) )
       ENDIF
@@ -1556,7 +1569,8 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
    }
 
    IF oPaneTo:nPanelMod == 1
-      RETURN edi_Alert( "Operation isn't permitted" )
+      edi_Alert( "Operation isn't permitted" )
+      RETURN 2
    ENDIF
 
    lDir := ( 'D' $ aDir[5] )
@@ -1590,22 +1604,21 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
       cFileTo := AllTrim( aGets[2,4] )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
          edi_Alert( "Operation isn't permitted" )
-         RETURN .F.
+         RETURN 2
       ENDIF
 
       IF lDir
          IF !( Right(cFileTo,1) $ "/\" )
             cFileTo += hb_ps()
          ENDIF
-         cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1] + hb_ps()
          IF !hb_vfDirExists( cFileTo  + aDir[1] ) .AND. hb_vfDirMake( cFileTo  + aDir[1] ) != 0
-            edi_Alert( "Error copying " + aDir[1] )
-            RETURN .F.
+            edi_Alert( "Error creating " + aDir[1] )
+            RETURN 2
          ENDIF
          aWnd := WndInit( 05, 20, 12, 60,, "Copy" )
          lRes := .T.
-         DirEval( cInitDir, "*", .T., bCopy, .T. )
+         DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1] + hb_ps(), "*", .T., bCopy, .T. )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
@@ -1633,7 +1646,7 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
       ENDIF
    ENDIF
 
-   RETURN lRes
+   RETURN Iif( !lRes, 2, Iif( l1, 1, 0 ) )
 
 STATIC FUNCTION hbc_FCopySele()
 
@@ -1730,7 +1743,7 @@ STATIC FUNCTION hbc_FRename( lRename )
       ENDIF
       IF !lRes .AND. ( lCopyDel .OR. !lRename )
          IF lDir
-            IF hbc_FCopyFile( .T., cNewName )
+            IF hbc_FCopyFile( .T., cNewName ) == 0
                lRes := hbc_FDelete( .T. )
             ENDIF
          ELSE
@@ -1738,26 +1751,25 @@ STATIC FUNCTION hbc_FRename( lRename )
                IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
                   oPaneCurr:cCurrPath + cFileName ) == 0
                   lRes := .T.
+               ELSE
+                  edi_Alert( "Error " + Iif(lRename,"renaming ","moving ") + cFileName )
+                  RETURN Nil
                ENDIF
             ENDIF
          ENDIF
       ENDIF
-      IF lRes
-         oPaneCurr:Refresh()
-         IF !lRename
-            oPaneTo:Refresh()
-         ENDIF
-         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-            IF oPaneCurr:nCurrent == 1
-               oPaneCurr:nShift --
-            ELSE
-               oPaneCurr:nCurrent --
-            ENDIF
-         ENDIF
-         oPaneCurr:RedrawAll()
-      ELSE
-         edi_Alert( "Error " + Iif(lRename,"renaming ","moving ") + cFileName )
+      oPaneCurr:Refresh()
+      IF !lRename
+         oPaneTo:Refresh()
       ENDIF
+      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+         IF oPaneCurr:nCurrent == 1
+            oPaneCurr:nShift --
+         ELSE
+            oPaneCurr:nCurrent --
+         ENDIF
+      ENDIF
+      oPaneCurr:RedrawAll()
    ENDIF
 
    RETURN Nil
@@ -2323,7 +2335,7 @@ STATIC FUNCTION hbc_Unzip()
 
    LOCAL cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
    LOCAL cExt := Lower( hb_fnameExt( cFileName ) )
-   LOCAL nErr, hUnzip, cFile, lCrypted, aWnd, nSch := 0
+   LOCAL nErr, hUnzip, cFile, dDate, cTime, nSize, lCrypted, dd, aWnd, nSch := 0
    LOCAL aGets := { ;
       {06,12,11,"Extract files to"}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
@@ -2357,14 +2369,16 @@ STATIC FUNCTION hbc_Unzip()
             aWnd := WndInit( 05, 20, 16, 60,, "Unzip" )
             nErr := hb_unzipFileFirst( hUnzip )
             DO WHILE nErr == 0
-               hb_unzipFileInfo( hUnzip, @cFile,,,,,,, @lCrypted )
+               hb_unzipFileInfo( hUnzip, @cFile, @dDate, @cTime, , , , @nSize, @lCrypted )
                WndOut( aWnd, cFile )
                IF Right( cFile,1 ) $ "/\"
                   IF !hb_vfDirExists( cPath+cFile )
                      hb_vfDirMake( cPath+cFile )
                   ENDIF
                ELSE
-                  IF !hb_vfExists( cPath+cFile ) .OR. FAsk_Overwrite( ++nFirst, hb_fnameNameExt(cFile) )
+                  IF !hb_vfExists( cPath+cFile ) .OR. ( Valtype( hb_vfTimeGet(cPath+cFile,@dd) ) == 'L';
+                     .AND. FAsk_Overwrite( ++nFirst, hb_fnameNameExt(cFile), nSize, ;
+                        hb_DToT(dDate,cTime), hb_vfSize(cPath+cFile), dd ) )
                      IF hb_unzipExtractCurrentFile( hUnzip, cPath+cFile ) == 0
                         nSch++
                      ENDIF
