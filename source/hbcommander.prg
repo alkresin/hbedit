@@ -143,7 +143,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_F6
-      hbc_FRename( .F. )
+      IF Empty( oPaneCurr:aSelected )
+         hbc_FRename( .F. )
+      ELSE
+         hbc_FRenameSele()
+      ENDIF
 
    ELSEIF nKey == K_SH_F6
       hbc_FRename( .T. )
@@ -1378,8 +1382,10 @@ METHOD ContextMenu() CLASS FilePane
 
    LOCAL aMenu := {}, nChoic, xPlugin, cFullPath, bMenu
 
-   Aadd( aMenu, { "Copy",,1,"F5" } )
-   IF oPaneCurr:nPanelMod == 0 .AND. !( 'D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5] )
+   IF oPaneTo:nPanelMod != 1
+      Aadd( aMenu, { "Copy",,1,"F5" } )
+   ENDIF
+   IF oPaneCurr:nPanelMod == 0 .AND. oPaneTo:nPanelMod != 1
       Aadd( aMenu, { "Rename",,2,"F6" } )
    ENDIF
    IF oPaneCurr:nPanelMod == 0
@@ -1410,7 +1416,11 @@ METHOD ContextMenu() CLASS FilePane
          hbc_FCopySele()
       ENDIF
    ELSEIF aMenu[nChoic,3] == 2
-      hbc_FRename( .F. )
+      IF Empty( oPaneCurr:aSelected )
+         hbc_FRename( .F. )
+      ELSE
+         hbc_FRenameSele()
+      ENDIF
    ELSEIF aMenu[nChoic,3] == 3
       IF Empty( oPaneCurr:aSelected )
          hbc_FDelete()
@@ -1474,6 +1484,30 @@ STATIC FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDa
    SetColor( oldc )
 
    RETURN lRes
+
+STATIC FUNCTION FAsk_Copy( cTitle, cRes )
+
+   LOCAL cScBuf, oldc, nRes
+   LOCAL aGets := { ;
+      {06,12,11,cTitle}, ;
+      {07,12,0,cRes,56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+
+   cScBuf := Savescreen( 05, 10, 10, 70 )
+   oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
+   hb_cdpSelect( "RU866" )
+   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 08, 10 SAY "Ã"
+   @ 08, 70 SAY "´"
+   @ 08, 11 TO 08, 69
+   hb_cdpSelect( oHbc:cp )
+
+   nRes := edi_READ( aGets )
+   SetColor( oldc )
+   Restscreen( 05, 10, 10, 70, cScBuf )
+
+   RETURN Iif( nRes > 0 .AND. nRes < Len(aGets), AllTrim(aGets[2,4]), Nil )
 
 STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
@@ -1539,13 +1573,8 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
-   LOCAL cScBuf, oldc, nRes, l1 := .F., cTemp, lDir, nStart := 0, nCopied := 0, aWnd
+   LOCAL l1 := .F., cTemp, lDir, nStart := 0, nCopied := 0, aWnd
    LOCAL cFileName := aDir[1], lRes := .F.
-   LOCAL aGets := { ;
-      {06,12,11,"Copy " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
-      {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {09,25,2,"[Copy]",6,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL bCopy := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
       LOCAL nRes
@@ -1577,31 +1606,17 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
    lSilent := !Empty( lSilent )
 
    IF oPaneTo:nPanelMod == 2
-      aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + ":" + oPaneTo:zip_cCurrDir + cFileName
+      cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + ":" + oPaneTo:zip_cCurrDir + cFileName
    ELSEIF oPaneCurr:nPanelMod == 1
-      aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
+      cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
          hb_fnameNameExt( cFileName )
    ELSE
-      aGets[2,4] := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
+      cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + ;
          Iif( lDir, "", cFileName )
    ENDIF
 
-   IF !lSilent
-      cScBuf := Savescreen( 05, 10, 10, 70 )
-      oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
-      hb_cdpSelect( "RU866" )
-      @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ 08, 10 SAY "Ã"
-      @ 08, 70 SAY "´"
-      @ 08, 11 TO 08, 69
-      hb_cdpSelect( oHbc:cp )
-
-      nRes := edi_READ( aGets )
-      Restscreen( 05, 10, 10, 70, cScBuf )
-   ENDIF
-
-   IF lSilent .OR. ( nRes > 0 .AND. nRes < Len(aGets) )
-      cFileTo := AllTrim( aGets[2,4] )
+   IF lSilent .OR. !Empty( cFileTo := FAsk_Copy( ;
+      "Copy " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:", cFileTo ) )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
          edi_Alert( "Operation isn't permitted" )
          RETURN 2
@@ -1687,12 +1702,7 @@ STATIC FUNCTION hbc_FRename( lRename )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    LOCAL cFileName := aDir[1]
-   LOCAL cBuf, oldc, cNewName, lDir, lCopyDel := .F., nRes, lRes := .F.
-   LOCAL aGets := { ;
-      {06,12,11,"Rename " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:"}, ;
-      {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {09,25,2,"[Enter - Ok]",12,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {09,50,2,"[ESC - Cancel]",14,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+   LOCAL cNewName, lDir, lCopyDel := .F., lRes := .F.
 
    lDir := ( 'D' $ aDir[5] )
    IF oPaneCurr:nPanelMod > 0
@@ -1702,22 +1712,11 @@ STATIC FUNCTION hbc_FRename( lRename )
       lRename := .T.
    ENDIF
 
-   cBuf := Savescreen( 05, 10, 10, 70 )
-   oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
-   hb_cdpSelect( "RU866" )
-   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 08, 10 SAY "Ã"
-   @ 08, 70 SAY "´"
-   @ 08, 11 TO 08, 69
-   hb_cdpSelect( oHbc:cp )
-
-   aGets[2,4] := Iif( Empty(lRename), oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
+   cNewName := Iif( Empty(lRename), oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
       oPaneTo:net_cPort + oPaneTo:cCurrPath + Iif(lDir,"",cFileName), cFileName )
-   nRes := edi_READ( aGets )
-   Restscreen( 05, 10, 10, 70, cBuf )
 
-   IF nRes > 0 .AND. nRes < Len(aGets)
-      cNewName := Trim( aGets[2,4] )
+   IF !Empty( cNewName := FAsk_Copy( ;
+      "Rename " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:", cNewName ) )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
          lRename := .F.
          IF Left( cNewName,4 ) == "net:" .OR. oPaneCurr:cIOpref == "net:"
@@ -1768,6 +1767,52 @@ STATIC FUNCTION hbc_FRename( lRename )
          ELSE
             oPaneCurr:nCurrent --
          ENDIF
+      ENDIF
+      oPaneCurr:RedrawAll()
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION hbc_FRenameSele()
+
+   LOCAL aWnd, i, aDir, cFileName, nSch := 0
+   LOCAL cMoveTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
+      oPaneTo:net_cPort + oPaneTo:cCurrPath
+
+   IF oPaneCurr:nPanelMod > 0
+      RETURN edi_Alert( "Operation isn't permitted" )
+   ENDIF
+
+   IF !Empty( cMoveTo := FAsk_Copy( ;
+      "Move selected files to:", cMoveTo ) )
+      aWnd := WndInit( 05, 20, 12, 60,, "Move" )
+
+      FOR i := 1 TO Len( oPaneCurr:aSelected )
+         aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
+         cFileName := aDir[1]
+         cFileTo := cMoveTo + cFileName
+
+         WndOut( aWnd, cFileName )
+         IF FCopy( aDir, cFileTo, i ) == 0
+            IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+                  oPaneCurr:cCurrPath + cFileName ) == 0
+               nSch ++
+            ENDIF
+         ENDIF
+         IF Inkey() == 27
+            EXIT
+         ENDIF
+      NEXT
+
+      WndClose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files moved." )
+      oPaneCurr:aSelected := {}
+      IF nSch > 0
+         oPaneCurr:Refresh()
+         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+            oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
+            oPaneCurr:nShift := 0
+         ENDIF
+         oPaneTo:Refresh()
       ENDIF
       oPaneCurr:RedrawAll()
    ENDIF
