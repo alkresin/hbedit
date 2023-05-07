@@ -1726,7 +1726,7 @@ STATIC FUNCTION hbc_FRename( lRename )
             cNewName += hb_ps()
          ENDIF
       ELSE
-         cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim( aGets[2,4] )
+         cNewName := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cNewName
          lRename := .T.
       ENDIF
       IF lRename .AND. ( ( lDir .AND. hb_vfDirExists( cNewName ) ) .OR. ;
