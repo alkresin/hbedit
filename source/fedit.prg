@@ -3640,6 +3640,9 @@ STATIC FUNCTION mnu_DirList( oEdit, aGet, lDirOnly )
       ENDIF
    NEXT
 
+   IF Empty( aMenu )
+      RETURN Nil
+   ENDIF
    cScBuf := Savescreen( 12, 12, ny2, 67 )
    i := FMenu( oEdit, aMenu, 12, 12, ny2, 67 )
    Restscreen( 12, 12, ny2, 67, cScBuf )

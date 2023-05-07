@@ -2798,6 +2798,10 @@ FUNCTION hbc_Console( xCommand )
       oPaneCurr:Setdir( s )
    ELSE
       oPaneCurr:Refresh()
+      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+         oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
+         oPaneCurr:nShift := 0
+      ENDIF
    ENDIF
    FilePane():RedrawAll()
 
@@ -3063,7 +3067,7 @@ STATIC FUNCTION WndOut( arr, cText )
    LOCAL clr := SetColor( arr[5] )
 
    Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
-   @ arr[3]-1, arr[2]+2 SAY cText
+   @ arr[3]-1, arr[2]+2 SAY NameShortcut( cText, arr[4]-arr[2]-1, "~", oHbc:lUtf8 )
    SetColor( clr )
 
    RETURN Nil
