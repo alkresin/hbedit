@@ -837,6 +837,7 @@ CLASS FilePane
    CLASS VAR aCmdHis   SHARED
    CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR hCmdTrie  SHARED INIT Nil
+   CLASS VAR aNetInfo  SHARED
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
    CLASS VAR vx2 SHARED  INIT nScreenW-1
@@ -3046,6 +3047,12 @@ STATIC FUNCTION CmdHisSave()
       trie_Close( FilePane():hCmdTrie )
    ENDIF
 
+   RETURN Nil
+
+STATIC FUNCTION NetInfoLoad()
+   RETURN Nil
+
+STATIC FUNCTION NetInfoSave()
    RETURN Nil
 
 STATIC FUNCTION WndInit( y1, x1, y2, x2, clr, cTitle )
