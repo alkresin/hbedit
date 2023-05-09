@@ -838,6 +838,7 @@ CLASS FilePane
    CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR hCmdTrie  SHARED INIT Nil
    CLASS VAR aNetInfo  SHARED
+   CLASS VAR lNetInfo  SHARED INIT .F.
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
    CLASS VAR vx2 SHARED  INIT nScreenW-1
@@ -3031,7 +3032,7 @@ STATIC FUNCTION CmdHisLoad()
 
 STATIC FUNCTION CmdHisSave()
 
-   LOCAL i, s := "", nCou := 0, nLen
+   LOCAL i, s := "", nLen
 
    IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
       nLen := Len(FilePane():aCmdHis)
@@ -3050,9 +3051,39 @@ STATIC FUNCTION CmdHisSave()
    RETURN Nil
 
 STATIC FUNCTION NetInfoLoad()
+
+   LOCAL arr := hb_ATokens( Memoread( hb_DirBase() + "hbc.net" ), Chr(10) ), i
+
+   FOR i := Len(arr) TO 1 STEP -1
+      IF Empty( arr[i] )
+         hb_ADel( arr, i, .T. )
+      ELSE
+         arr[i] := hb_ATokens( ;
+            Iif(Right( arr[i],1 ) == Chr(13), hb_strShrink( arr[i], 1 ), arr[i] ), ',' )
+      ENDIF
+   NEXT
+
+   FilePane():aNetInfo := arr
+
    RETURN Nil
 
 STATIC FUNCTION NetInfoSave()
+
+   LOCAL i, j, s := "", nLen, s1
+
+   IF !Empty( FilePane():aNetInfo ) .AND. FilePane():lNetInfo
+      nLen := Len(FilePane():aNetInfo)
+      FOR i := 1 TO nLen
+         s1 := ""
+         FOR j := 1 TO Len(FilePane():aNetInfo[i])
+            s1 += Iif( i==1, "", ',' ) + FilePane():aNetInfo[i,j]
+         NEXT
+         s += s1 + Chr(10)
+      NEXT
+      hb_MemoWrit( hb_DirBase() + "hbc.net", s )
+      FilePane():lNetInfo := .F.
+   ENDIF
+
    RETURN Nil
 
 STATIC FUNCTION WndInit( y1, x1, y2, x2, clr, cTitle )
