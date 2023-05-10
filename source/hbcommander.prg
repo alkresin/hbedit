@@ -838,7 +838,6 @@ CLASS FilePane
    CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR hCmdTrie  SHARED INIT Nil
    CLASS VAR aNetInfo  SHARED
-   CLASS VAR lNetInfo  SHARED INIT .F.
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
    CLASS VAR vx2 SHARED  INIT nScreenW-1
@@ -999,15 +998,17 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 
 METHOD ParsePath( cPath ) CLASS FilePane
 
-   LOCAL nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i
+   LOCAL nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i, lNetFou := .F.
 
    IF Lower( Left( cPath,4 ) ) == "net:"
       cPref := "net:"
+      /*
       IF ( nPos1 := hb_At( '<', cPath, 5 ) ) > 0 .AND. ;
          ( nPos2 := hb_At( '>', cPath, nPos1+1 ) ) > 0
          cPass := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
          cPath := Left( cPath, nPos1-1 ) + Substr( cPath, nPos2+1 )
       ENDIF
+      */
       IF ( nPos1 := hb_At( ':', cPath, 5 ) ) > 0
          cAddr := Substr( cPath, 5, nPos1-5 )
          IF ( nPos2 := hb_At( ':', cPath, nPos1+1 ) ) > 0
@@ -1042,6 +1043,17 @@ METHOD ParsePath( cPath ) CLASS FilePane
             RETURN .T.
          ENDIF
       ENDIF
+      IF Empty( FilePane():aNetInfo )
+         NetInfoLoad()
+      ENDIF
+      FOR i := 1 TO Len( FilePane():aNetInfo )
+         IF FilePane():aNetInfo[i,1] == cPref .AND. FilePane():aNetInfo[i,2] == cAddr .AND. ;
+            FilePane():aNetInfo[i,3] == cPort
+            cPass := hb_MD5Decrypt( hb_base64decode(FilePane():aNetInfo[i,4]),"hbedit" )
+            lNetFou := .T.
+            EXIT
+         ENDIF
+      NEXT
       cAddr += ':'
       cPort += ':'
       l := .F.
@@ -1057,6 +1069,11 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ENDIF
          IF netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
             l := .T.
+            IF !lNetFou
+               Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
+                  hb_base64encode(hb_MD5Encrypt(cPass,"hbedit"))} )
+               NetInfoSave()
+            ENDIF
          ELSE
             RETURN .F.
          ENDIF
@@ -3071,17 +3088,16 @@ STATIC FUNCTION NetInfoSave()
 
    LOCAL i, j, s := "", nLen, s1
 
-   IF !Empty( FilePane():aNetInfo ) .AND. FilePane():lNetInfo
+   IF !Empty( FilePane():aNetInfo )
       nLen := Len(FilePane():aNetInfo)
       FOR i := 1 TO nLen
          s1 := ""
          FOR j := 1 TO Len(FilePane():aNetInfo[i])
-            s1 += Iif( i==1, "", ',' ) + FilePane():aNetInfo[i,j]
+            s1 += Iif( j==1, "", ',' ) + FilePane():aNetInfo[i,j]
          NEXT
          s += s1 + Chr(10)
       NEXT
       hb_MemoWrit( hb_DirBase() + "hbc.net", s )
-      FilePane():lNetInfo := .F.
    ENDIF
 
    RETURN Nil
