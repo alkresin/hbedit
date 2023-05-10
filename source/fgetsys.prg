@@ -17,6 +17,7 @@
 #define G_CLR    6
 #define G_CLRSEL 7
 #define G_CB     8
+#define G_FLAGS  8
 #define G_GROUP  9
 
 #define G2_OPT   1
@@ -82,16 +83,19 @@ FUNCTION edi_READ( aGets, pKeys )
                   cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],xr )
             Scroll( y, aGets[nCurr,G_X], y, aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1 )
             DevPos( y, aGets[nCurr,G_X] )
+            nLen := cp_Len( lUtf8,aGets[nCurr,G_VALUE] )
+            s := Iif( Len(aGets[nCurr])>=G_FLAGS .AND. !Empty(aGets[nCurr,G_FLAGS]) .AND. ;
+               aGets[nCurr,G_FLAGS]==1, Replicate('*',nLen), aGets[nCurr,G_VALUE] )
             IF x < aGets[nCurr,G_WIDTH]
-               IF cp_Len( lUtf8, aGets[nCurr,G_VALUE] ) < aGets[nCurr,G_WIDTH]
-                  DevOut( aGets[nCurr,G_VALUE] )
+               IF nLen < aGets[nCurr,G_WIDTH]
+                  DevOut( s )
                ELSE
-                  DevOut( cp_Substr( lUtf8,aGets[nCurr,G_VALUE],aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
+                  DevOut( cp_Substr( lUtf8,s,aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
                ENDIF
                DevPos( y, ++nx )
             ELSE
                aOpt[nCurr,G2_FIRST]++
-               DevOut( cp_Substr( lUtf8,aGets[nCurr,G_VALUE],aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
+               DevOut( cp_Substr( lUtf8,s,aOpt[nCurr,G2_FIRST],aGets[nCurr,G_WIDTH] ) )
                DevPos( y, nx )
             ENDIF
          ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. aGets[nCurr,G_TYPE] == G_TYPE_RADIO
@@ -339,6 +343,7 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
    LOCAL x, nWidth := Iif( aGet[G_TYPE]==G_TYPE_STATIC, cp_Len( lUtf8,aGet[G_VALUE] ), ;
       Iif( aGet[G_TYPE]==G_TYPE_CHECK.OR.aGet[G_TYPE]==G_TYPE_RADIO, 1, aGet[G_WIDTH] ) )
+   LOCAL cText, nLen
 
    IF lFirst == Nil; lFirst := .F.; ENDIF
    IF lSele
@@ -355,8 +360,10 @@ FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
    Scroll( aGet[G_Y], aGet[G_X], aGet[G_Y], aGet[G_X] + nWidth - 1 )
 
    IF aGet[G_TYPE] == G_TYPE_STRING .OR. aGet[G_TYPE] == G_TYPE_STATIC
-      @ aGet[G_Y], aGet[G_X] SAY Iif( nWidth >= cp_Len( lUtf8,aGet[G_VALUE] ), ;
-         aGet[G_VALUE], cp_Substr( lUtf8, aGet[G_VALUE], ;
+      nLen := cp_Len( lUtf8,aGet[G_VALUE] )
+      cText := Iif( Len(aGet)>=G_FLAGS .AND. !Empty(aGet[G_FLAGS]) .AND. ;
+         aGet[G_FLAGS]==1, Replicate('*',nLen), aGet[G_VALUE] )
+      @ aGet[G_Y], aGet[G_X] SAY Iif( nWidth >= nLen,cText, cp_Substr( lUtf8, cText, ;
          Iif( aOpt==Nil, 1, aOpt[G2_FIRST] ), nWidth ) )
 
    ELSEIF aGet[G_TYPE] == G_TYPE_CHECK .OR. aGet[G_TYPE] == G_TYPE_RADIO

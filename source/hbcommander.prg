@@ -1065,7 +1065,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
       NEXT
       IF !l
          IF Empty( cPass )
-            cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30 )
+            cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
          ENDIF
          IF netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
             l := .T.
