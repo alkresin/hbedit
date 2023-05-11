@@ -3261,7 +3261,7 @@ FUNCTION mnu_Syntax( oEdit, aXY )
 
 FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
-   LOCAL cPal, xPlugin
+   LOCAL cPal, xPlugin, cFullPath
 
    oEdit:Highlighter( Iif( Empty(cLang), Nil, Hili():New( aLangs[cLang] ) ) )
    oEdit:cSyntaxType := cLang

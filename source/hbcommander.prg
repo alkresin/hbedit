@@ -633,7 +633,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
 STATIC FUNCTION ReadIni( cIniName )
 
-   LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s, nPos
+   LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s, nPos, n
    LOCAL aPanes := { Nil, Nil }, cp, lPalette := .F.
 
    IF !Empty( hIni )
@@ -642,7 +642,7 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := cTmp
          ENDIF
-         IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTemp := aSect[ cTmp ] )
+         IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             edi_SetPalette( oHbc, cTmp )
             lPalette := .T.
          ENDIF
@@ -754,11 +754,11 @@ STATIC FUNCTION ReadIni( cIniName )
          FOR i := 1 TO Len( arr )
             s := aSect[ arr[i] ]
             IF ( n := At( ",", s ) ) > 0
-               cTemp := AllTrim( Left( s,n-1 ) )
-               IF !Empty( edi_FindPath( "plugins" + hb_ps() + cTemp ) )
+               cTmp := AllTrim( Left( s,n-1 ) )
+               IF !Empty( edi_FindPath( "plugins" + hb_ps() + cTmp ) )
                   s := Substr( s, n+1 )
                   IF ( n := At( ",", s ) ) > 0
-                     Aadd( FilePane():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim(Left( s,n-1 )), Nil, Nil } )
+                     Aadd( FilePane():aPlugins, { cTmp, Substr( s, n+1 ), AllTrim(Left( s,n-1 )), Nil, Nil } )
                   ENDIF
                ENDIF
             ENDIF
@@ -771,8 +771,8 @@ STATIC FUNCTION ReadIni( cIniName )
          FOR i := 1 TO Len( arr )
             s := aSect[ arr[i] ]
             IF ( n := At( ",", s ) ) > 0
-               cTemp := AllTrim( Left( s,n-1 ) )
-               FilePane():aAppList[i] := { cTemp, Substr( s, n+1 ) }
+               cTmp := AllTrim( Left( s,n-1 ) )
+               FilePane():aAppList[i] := { cTmp, Substr( s, n+1 ) }
             ENDIF
          NEXT
       ENDIF
@@ -998,19 +998,15 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 
 METHOD ParsePath( cPath ) CLASS FilePane
 
-   LOCAL nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i, lNetFou := .F.
+   LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i, lNetFou := .F.
+   STATIC aRemote := { "net:", "sftp:" }
 
-   IF Lower( Left( cPath,4 ) ) == "net:"
-      cPref := "net:"
-      /*
-      IF ( nPos1 := hb_At( '<', cPath, 5 ) ) > 0 .AND. ;
-         ( nPos2 := hb_At( '>', cPath, nPos1+1 ) ) > 0
-         cPass := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
-         cPath := Left( cPath, nPos1-1 ) + Substr( cPath, nPos2+1 )
-      ENDIF
-      */
-      IF ( nPos1 := hb_At( ':', cPath, 5 ) ) > 0
-         cAddr := Substr( cPath, 5, nPos1-5 )
+   //IF Lower( Left( cPath,4 ) ) == "net:"
+   IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0
+      cPref := aRemote[nNet]
+      nPos := Len(cPref) + 1
+      IF ( nPos1 := hb_At( ':', cPath, nPos ) ) > 0
+         cAddr := Substr( cPath, 5, nPos1-nPos )
          IF ( nPos2 := hb_At( ':', cPath, nPos1+1 ) ) > 0
             cPort := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
             cCurrPath := Substr( cPath, nPos2 + 1 )
@@ -1018,12 +1014,12 @@ METHOD ParsePath( cPath ) CLASS FilePane
             cPort := cNetPort
             cCurrPath := Substr( cPath, nPos1 + 1 )
          ENDIF
-      ELSEIF ( nPos1 := hb_At( '\', cPath, 5 ) ) > 0 .OR. ( nPos1 := hb_At( '/', cPath, 5 ) ) > 0
-         cAddr := Substr( cPath, 5, nPos1-5 )
+      ELSEIF ( nPos1 := hb_At( '\', cPath, nPos ) ) > 0 .OR. ( nPos1 := hb_At( '/', cPath, nPos ) ) > 0
+         cAddr := Substr( cPath, nPos, nPos1-nPos )
          cPort := cNetPort
          cCurrPath := Substr( cPath, nPos1 )
       ELSE
-         nPos1 := 4
+         nPos1 := nPos - 1
          nPos2 := 0
          l := .T.
          DO WHILE ++nPos1 <= Len(cPath)
@@ -1035,11 +1031,11 @@ METHOD ParsePath( cPath ) CLASS FilePane
             ENDIF
          ENDDO
          IF l .AND. nPos2 == 3
-            cAddr := Substr( cPath, 5 )
+            cAddr := Substr( cPath, nPos )
             cPort := cNetPort
             cCurrPath := ""
          ELSE
-            ::cCurrPath := Substr( cPath, 5 )
+            ::cCurrPath := Substr( cPath, nPos )
             RETURN .T.
          ENDIF
       ENDIF
@@ -1064,11 +1060,20 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ENDIF
       NEXT
       IF !l
-         IF Empty( cPass )
-            cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
+         IF cPref == "net:"
+            IF Empty( cPass )
+               cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
+            ENDIF
+            l := netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
+#ifdef _USE_SSH2
+         ELSEIF cPref == "sftp:"
+            IF Empty( cPass )
+               cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
+            ENDIF
+            l := hbc_ssh2_Connect()
+#endif
          ENDIF
-         IF netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
-            l := .T.
+         IF l
             IF !lNetFou
                Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
                   hb_base64encode(hb_MD5Encrypt(cPass,"hbedit"))} )
@@ -1795,8 +1800,7 @@ STATIC FUNCTION hbc_FRename( lRename )
 STATIC FUNCTION hbc_FRenameSele()
 
    LOCAL aWnd, i, aDir, cFileName, nSch := 0
-   LOCAL cMoveTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + ;
-      oPaneTo:net_cPort + oPaneTo:cCurrPath
+   LOCAL cMoveTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath, cFileTo
 
    IF oPaneCurr:nPanelMod > 0
       RETURN edi_Alert( "Operation isn't permitted" )
