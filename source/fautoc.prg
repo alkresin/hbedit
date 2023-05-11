@@ -183,7 +183,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
 
          bufc := Nil
          IF Empty( arr )
-            cRes := ""
+            cRes := cmd
             EXIT
          ENDIF
 	
