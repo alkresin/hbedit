@@ -9,24 +9,9 @@
 #include "inkey.ch"
 #include "fileio.ch"
 #include "setcurs.ch"
-
-#ifdef __PLATFORM__UNIX
-   #define  LASTROW  23
-#else
-   #define  LASTROW  24
-#endif
-
 #include "hbgtinfo.ch"
 
-#define SHIFT_PRESSED 0x010000
-#define CTRL_PRESSED  0x020000
-#define ALT_PRESSED   0x040000
-#define KP_PRESSED    0x080000
-
-#define HB_ZIP_OPEN_ADDINZIP   2
-
-#define ADIR_POS      6
-#define AZF_POS       6
+#include "hbc.ch"
 
 REQUEST HB_CODEPAGE_RU866
 REQUEST HB_CODEPAGE_RU1251
