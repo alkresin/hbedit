@@ -42,7 +42,7 @@ FUNCTION hbc_vfLoad( cFileName, nMaxSize )
 FUNCTION hbc_vfDirectory( cDirSpec, cAttr )
 
    IF cFileName = "sftp:"
-      RETURN Nil
+      RETURN hb_ssh2_Directory( cDirSpec, cAttr )
    ENDIF
    RETURN hb_vfDirectory( cDirSpec, cAttr )
 
@@ -101,3 +101,4 @@ FUNCTION hbc_vfDirMake( cDirName )
       RETURN -1
    ENDIF
    RETURN hb_vfDirMake( cDirName )
+

@@ -983,10 +983,10 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 
 METHOD ParsePath( cPath ) CLASS FilePane
 
-   LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cPass, c, l, i, lNetFou := .F.
+   LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cLogin, cPass
+   LOCAL c, l, i, lNetFou := .F.
    STATIC aRemote := { "net:", "sftp:" }
 
-   //IF Lower( Left( cPath,4 ) ) == "net:"
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0
       cPref := aRemote[nNet]
       nPos := Len(cPref) + 1
@@ -1031,6 +1031,10 @@ METHOD ParsePath( cPath ) CLASS FilePane
          IF FilePane():aNetInfo[i,1] == cPref .AND. FilePane():aNetInfo[i,2] == cAddr .AND. ;
             FilePane():aNetInfo[i,3] == cPort
             cPass := hb_MD5Decrypt( hb_base64decode(FilePane():aNetInfo[i,4]),"hbedit" )
+#ifdef _USE_SSH2
+            cLogin := Iif( Len(FilePane():aNetInfo[i]) > 4, ;
+               hb_MD5Decrypt( hb_base64decode(FilePane():aNetInfo[i,5]),"hbedit" ), "" )
+#endif
             lNetFou := .T.
             EXIT
          ENDIF
@@ -1049,19 +1053,22 @@ METHOD ParsePath( cPath ) CLASS FilePane
             IF Empty( cPass )
                cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
             ENDIF
-            l := netio_Connect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1), 2000, cPass )
+            l := netio_Connect( hb_strShrink(cAddr,1), hb_strShrink(cPort,1), 2000, cPass )
 #ifdef _USE_SSH2
          ELSEIF cPref == "sftp:"
-            IF Empty( cPass )
-               cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
-            ENDIF
-            l := hbc_ssh2_Connect()
+            l := hbc_ssh2_Connect( hb_strShrink(cAddr,1), Val(cPort), cLogin, cPass )
 #endif
          ENDIF
          IF l
             IF !lNetFou
+#ifdef _USE_SSH2
+               Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
+                  hb_base64encode(hb_MD5Encrypt(cPass,"hbedit")), ;
+                  hb_base64encode(hb_MD5Encrypt(cLogin,"hbedit"))} )
+#else
                Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
                   hb_base64encode(hb_MD5Encrypt(cPass,"hbedit"))} )
+#endif
                NetInfoSave()
             ENDIF
          ELSE
