@@ -30,8 +30,10 @@ FUNCTION hbc_vfWrite( handle, cBuff, nToWrite, nTimeOut )
 
 FUNCTION hbc_vfLoad( cFileName, nMaxSize )
 
+   LOCAL pSess
+
    IF cFileName = "sftp:"
-      RETURN Nil
+      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), "", hb_ssh2_MemoRead( _GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfLoad( cFileName, nMaxSize )
 
@@ -40,11 +42,7 @@ FUNCTION hbc_vfDirectory( cDirSpec, cAttr )
    LOCAL pSess
 
    IF cDirSpec = "sftp:"
-      IF !Empty( pSess := _GetpSess( cDirSpec ) )
-         RETURN hb_ssh2_Directory( pSess, _GetDir(cDirSpec), cAttr )
-      ELSE
-         RETURN {}
-      ENDIF
+      RETURN Iif( Empty( pSess := _GetpSess(cDirSpec) ), {}, hb_ssh2_Directory( pSess, _GetDir(cDirSpec), cAttr ) )
    ENDIF
    RETURN hb_vfDirectory( cDirSpec, cAttr )
 

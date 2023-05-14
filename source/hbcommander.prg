@@ -472,7 +472,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:cCurrPath + aDir[1]
          IF Empty( oPaneCurr:cIOpref ) .OR. oPaneCurr:nPanelMod == 1
             mnu_NewBuf( oHbc, cTemp )
-         ELSEIF oPaneCurr:cIOpref == "net:"
+         ELSEIF oPaneCurr:cIOpref == "net:" .OR. oPaneCurr:cIOpref == "sftp:"
             mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfWrit_Net() )
          ELSEIF oPaneCurr:cIOpref == "zip:"
             i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )

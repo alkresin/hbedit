@@ -41,11 +41,28 @@ FUNCTION hb_ssh2_Directory( pSess, cDirSpec )
          cAttr := Iif( hb_BitAnd( nAttr, 0x4000 ) > 0, "D", "" )
          Aadd( aDir, { cName, nSize, dDate, "", cAttr } )
       ENDDO
+      ssh2_sftp_Close( pSess )
    ELSE
       _Writelog( "Opendir error " + cDir )
    ENDIF
 
    RETURN aDir
+
+FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
+
+   LOCAL cBuff, cBuffer := ""
+
+   IF ssh2_Sftp_OpenFile( pSess, cFileName ) == 0
+      _Writelog( "Openfile: " + cDir )
+      DO WHILE !Empty( cBuff := ssh2_SftpRead( pSess ) )
+         cBuffer += cBuff
+      ENDDO
+      ssh2_sftp_Close( pSess )
+   ELSE
+      _Writelog( "Openfile error " + cFileName )
+   ENDIF
+
+   RETURN cBuffer
 
 STATIC FUNCTION GetLogin( cLogin, cPass )
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
