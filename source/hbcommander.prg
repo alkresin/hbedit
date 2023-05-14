@@ -36,6 +36,11 @@ STATIC aExtExe := { ".sh" }
 STATIC aExtExe := { ".exe", ".com", ".bat" }
 #endif
 STATIC aExtZip := { ".zip", ".rar", ".7z", ".lha", ".arj", ".gz" }
+#ifdef _USE_SSH2
+STATIC aRemote := { "net:", "sftp:" }
+#else
+STATIC aRemote := { "net:" }
+#endif
 
 MEMVAR GETLIST
 
@@ -472,7 +477,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:cCurrPath + aDir[1]
          IF Empty( oPaneCurr:cIOpref ) .OR. oPaneCurr:nPanelMod == 1
             mnu_NewBuf( oHbc, cTemp )
-         ELSEIF oPaneCurr:cIOpref == "net:" .OR. oPaneCurr:cIOpref == "sftp:"
+         ELSEIF Ascan( aRemote, oPaneCurr:cIOpref ) > 0
+            //oPaneCurr:cIOpref == "net:" .OR. oPaneCurr:cIOpref == "sftp:"
             mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfWrit_Net() )
          ELSEIF oPaneCurr:cIOpref == "zip:"
             i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
@@ -987,7 +993,6 @@ METHOD ParsePath( cPath ) CLASS FilePane
 
    LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cLogin, cPass
    LOCAL c, l, i, lNetFou := .F.
-   STATIC aRemote := { "net:", "sftp:" }
 
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0
       cPref := aRemote[nNet]
@@ -2710,6 +2715,8 @@ FUNCTION hbc_Console( xCommand )
          IF n > 0
             RETURN FilePane():aCmdHis[n]
          ENDIF
+      ELSEIF nKey == K_F2 .OR. nKey == K_RBUTTONDOWN
+
       ELSEIF nKey >= 32 .AND. nKey <= 250 .AND. FilePane():lConsAuto .AND. ;
          ( n := Len(cmd) ) > 1 .AND. n + nColInit - 1 == Col()
          DevPos( Row(), nColInit )
@@ -2852,7 +2859,10 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
    ENDIF
    DO WHILE .T.
       nKeyExt := Inkey( 0, INKEY_KEYBOARD + HB_INKEY_EXT )
-      IF (nKey := hb_keyStd( nKeyExt )) == K_ENTER
+      IF ((nKey := hb_keyStd( nKeyExt )) >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+         LOOP
+      ENDIF
+      IF nKey == K_ENTER
          RETURN cRes
       ELSEIF nKey == K_ESC
          IF Empty( cRes )
