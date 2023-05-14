@@ -866,7 +866,9 @@ CLASS FilePane
    DATA nCells, nRows, nWidth
    DATA nPanelMod     INIT 0
    DATA hUnzip
-
+#ifdef _USE_SSH2
+   DATA pSess
+#endif
    DATA cCurrPath
 
    DATA nCurrent     INIT 1
@@ -991,19 +993,27 @@ METHOD ParsePath( cPath ) CLASS FilePane
       cPref := aRemote[nNet]
       nPos := Len(cPref) + 1
       IF ( nPos1 := hb_At( ':', cPath, nPos ) ) > 0
-         cAddr := Substr( cPath, 5, nPos1-nPos )
+         // net:10.8.0.1:...
+         cAddr := Substr( cPath, nPos, nPos1-nPos )   // cAddr = 10.8.0.1
          IF ( nPos2 := hb_At( ':', cPath, nPos1+1 ) ) > 0
+            // net:10.8.0.1:2941:...
             cPort := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
             cCurrPath := Substr( cPath, nPos2 + 1 )
+         ELSEIF IsDigit( Substr( cPath, nPos1+1, 1 ) )
+            cPort := Ltrim( Str( Val(Substr(cPath,nPos1+1)) ) )
+            cCurrPath := ""
          ELSE
             cPort := cNetPort
             cCurrPath := Substr( cPath, nPos1 + 1 )
          ENDIF
       ELSEIF ( nPos1 := hb_At( '\', cPath, nPos ) ) > 0 .OR. ( nPos1 := hb_At( '/', cPath, nPos ) ) > 0
+         // net:10.8.0.1/Directory
          cAddr := Substr( cPath, nPos, nPos1-nPos )
          cPort := cNetPort
          cCurrPath := Substr( cPath, nPos1 )
       ELSE
+         // net:10.8.0.1 or net:Directory
+         // Checking if there is an ip after net:
          nPos1 := nPos - 1
          nPos2 := 0
          l := .T.
@@ -1056,7 +1066,8 @@ METHOD ParsePath( cPath ) CLASS FilePane
             l := netio_Connect( hb_strShrink(cAddr,1), hb_strShrink(cPort,1), 2000, cPass )
 #ifdef _USE_SSH2
          ELSEIF cPref == "sftp:"
-            l := hbc_ssh2_Connect( hb_strShrink(cAddr,1), Val(cPort), cLogin, cPass )
+            ::pSess := hbc_ssh2_Connect( hb_strShrink(cAddr,1), Val(cPort), @cLogin, @cPass )
+            l := !Empty( ::pSess )
 #endif
          ENDIF
          IF l
@@ -1120,6 +1131,12 @@ METHOD SetDir( cPath ) CLASS FilePane
       RETURN Nil
    ENDIF
 
+#ifdef _USE_SSH2
+   IF !Empty( ::pSess ) .AND. !( cPath = ::cIOpref + ::net_cAddress )
+      ssh2_Close( ::pSess )
+      ::pSess := Nil
+   ENDIF
+#endif
    IF ::nPanelMod == 2
       hb_unzipClose( ::hUnzip )
       ::hUnzip := Nil

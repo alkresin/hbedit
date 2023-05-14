@@ -17,10 +17,6 @@ FUNCTION hbc_vfSize( cFileName )
    RETURN hb_vfSize( xFile )
 
 FUNCTION hbc_vfClose( handle )
-
-   IF cFileName = "sftp:"
-      RETURN -1
-   ENDIF
    RETURN hb_vfClose( handle )
 
 FUNCTION hbc_vfSeek( handle, nShift )
@@ -41,8 +37,14 @@ FUNCTION hbc_vfLoad( cFileName, nMaxSize )
 
 FUNCTION hbc_vfDirectory( cDirSpec, cAttr )
 
-   IF cFileName = "sftp:"
-      RETURN hb_ssh2_Directory( cDirSpec, cAttr )
+   LOCAL pSess
+
+   IF cDirSpec = "sftp:"
+      IF !Empty( pSess := _GetpSess( cDirSpec ) )
+         RETURN hb_ssh2_Directory( pSess, _GetDir(cDirSpec), cAttr )
+      ELSE
+         RETURN {}
+      ENDIF
    ENDIF
    RETURN hb_vfDirectory( cDirSpec, cAttr )
 
@@ -62,7 +64,7 @@ FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
 
 FUNCTION hbc_vfDirExists( cDirName )
 
-   IF cFileName = "sftp:"
+   IF cDirName = "sftp:"
       RETURN .F.
    ENDIF
    RETURN hb_vfDirExists( cDirName )
@@ -76,7 +78,7 @@ FUNCTION hbc_vfExists( cFileName )
 
 FUNCTION hbc_vfRename( cFileSrc, cFileDst )
 
-   IF cFileName = "sftp:"
+   IF cFileSrc = "sftp:"
       RETURN -1
    ENDIF
    RETURN hb_vfRename( cFileSrc, cFileDst )
@@ -90,15 +92,31 @@ FUNCTION hbc_vfErase( cFileName )
 
 FUNCTION hbc_vfDirRemove( cDirName )
 
-   IF cFileName = "sftp:"
+   IF cDirName = "sftp:"
       RETURN -1
    ENDIF
    RETURN hb_vfDirRemove( cDirName )
 
 FUNCTION hbc_vfDirMake( cDirName )
 
-   IF cFileName = "sftp:"
+   IF cDirName = "sftp:"
       RETURN -1
    ENDIF
    RETURN hb_vfDirMake( cDirName )
 
+STATIC FUNCTION _GetpSess( cName )
+
+   LOCAL nPos := cedi_Strpbrk( ":/\", cName, 6 )
+   LOCAL cAddr := Iif( nPos > 0, Substr( cName, 6, nPos - 6 ), Substr( cName, 6 ) ) + ':'
+
+   IF FilePane():aPanes[1]:net_cAddress == cAddr
+      RETURN FilePane():aPanes[1]:pSess
+   ELSEIF FilePane():aPanes[2]:net_cAddress == cAddr
+      RETURN FilePane():aPanes[2]:pSess
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _GetDir( cName )
+   LOCAL nPos := cedi_Strpbrk( "/\", cName, 6 )
+   RETURN Iif( nPos > 0, Substr( cName, nPos ), "" )
