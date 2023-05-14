@@ -53,7 +53,6 @@ FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
    LOCAL cBuff, cBuffer := ""
 
    IF ssh2_Sftp_OpenFile( pSess, cFileName ) == 0
-      _Writelog( "Openfile: " + cDir )
       DO WHILE !Empty( cBuff := ssh2_SftpRead( pSess ) )
          cBuffer += cBuff
       ENDDO

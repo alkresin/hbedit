@@ -33,7 +33,7 @@ FUNCTION hbc_vfLoad( cFileName, nMaxSize )
    LOCAL pSess
 
    IF cFileName = "sftp:"
-      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), "", hb_ssh2_MemoRead( _GetDir(cFileName) ) )
+      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), "", hb_ssh2_MemoRead( pSess,_GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfLoad( cFileName, nMaxSize )
 
