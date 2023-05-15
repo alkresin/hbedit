@@ -2,6 +2,11 @@
  *
  */
 
+#include "fileio.ch"
+#include "hbssh2.ch"
+
+#define  BUFFSIZE  16384
+
 FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass )
 
    LOCAL pSess
@@ -62,6 +67,43 @@ FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
    ENDIF
 
    RETURN cBuffer
+
+FUNCTION hb_ssh2_Download( pSess, cFileName, cFileLocal )
+
+   LOCAL handle, cBuff
+
+   IF ssh2_Sftp_OpenFile( pSess, cFileName ) == 0
+      handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
+      DO WHILE !Empty( cBuff := ssh2_SftpRead( pSess ) )
+         fWrite( handle, cBuff )
+      ENDDO
+      fClose( handle )
+      ssh2_Sftp_Close( pSess )
+   ELSE
+      RETURN -1
+   ENDIF
+
+   RETURN 0
+
+FUNCTION hb_ssh2_Upload( pSess, cFileName, cFileLocal )
+
+   LOCAL handle, nBytes, cBuff := Space( BUFFSIZE )
+
+   IF ssh2_Sftp_OpenFile( pSess, cFileName, LIBSSH2_FXF_WRITE + LIBSSH2_FXF_CREAT, ;
+      LIBSSH2_SFTP_S_IRUSR + LIBSSH2_SFTP_S_IWUSR + ;
+      LIBSSH2_SFTP_S_IRGRP + LIBSSH2_SFTP_S_IROTH ) == 0
+      handle := fOpen( cFileLocal )
+      DO WHILE ( nBytes := fRead( handle, @cBuff, BUFFSIZE ) > 0 )
+         ssh2_SFtpWrite( pSess, cBuff, nBytes )
+      ENDDO
+      fClose( handle )
+      ssh2_Sftp_Close( pSess )
+   ELSE
+      _Writelog( "Openfile error " + cFileName )
+      RETURN -1
+   ENDIF
+
+   RETURN 0
 
 STATIC FUNCTION GetLogin( cLogin, cPass )
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30

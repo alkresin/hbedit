@@ -55,8 +55,14 @@ FUNCTION hbc_vfTimeGet( cFileName, tsDateTime )
 
 FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
 
-   IF cFileName = "sftp:"
-      RETURN -1
+   IF cFileSrc = "sftp:"
+      IF cFileDst = "sftp:"
+         RETURN -1
+      ELSE
+         RETURN Iif( Empty( pSess := _GetpSess(cFileSrc) ), -1, hb_ssh2_Download( pSess,_GetDir(cFileSrc),cFileDst ) )
+      ENDIF
+   ELSEIF cFileDst = "sftp:"
+      RETURN Iif( Empty( pSess := _GetpSess(cFileDst) ), -1, hb_ssh2_Upload( pSess,_GetDir(cFileDst),cFileSrc ) )
    ENDIF
    RETURN hb_vfCopyFile( cFileSrc, cFileDst )
 

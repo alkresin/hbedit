@@ -361,6 +361,28 @@ int hb_ssh2_SftpRead( HB_SSH2_SESSION * pSess, char *buffer, int nBufferLen )
    return iBytesRead;
 }
 
+int hb_ssh2_SftpWrite( HB_SSH2_SESSION * pSess, char *buffer, int nBufferLen )
+{
+
+   char * ptr = buffer;
+   int rc, iWritten = 0;
+
+   do
+   {
+      /* write data in a loop until we block */
+      rc = libssh2_sftp_write( pSess->sftp_handle, ptr, nBufferLen );
+      if( rc < 0 )
+         break;
+      ptr += rc;
+      nBufferLen -= rc;
+      iWritten += rc;
+   }
+   while( nBufferLen );
+
+   pSess->iRes = ( rc < 0 )? -1 : 0;
+   return iWritten;
+}
+
 #ifdef _USE_HB
 
 #include "hbapi.h"
@@ -528,6 +550,16 @@ HB_FUNC( SSH2_SFTPREAD )
       hb_retclen( buffer, iBytesRead );
    else
       hb_ret();
+}
+
+HB_FUNC( SSH2_SFTPWRITE )
+{
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
+   int iWrite = ( hb_pcount() > 2 && HB_ISNUM(2) )? hb_parni( 3 ) : hb_parclen(2);
+   int iBytesWritten;
+
+   iBytesWritten = hb_ssh2_SftpWrite( pSess, (char*) hb_parc(2), iWrite );
+   hb_retni( iBytesWritten );
 }
 
 #endif

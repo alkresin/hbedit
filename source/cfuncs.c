@@ -984,7 +984,7 @@ HB_FUNC( CEDI_READFROMCONSOLEAPP )
    int iRead;
    DWORD dwAvail;
 
-   if( !PeekNamedPipe( pHandles->g_hChildStd_OUT_Rd, NULL, NULL, NULL, &dwAvail, NULL ) )
+   if( !PeekNamedPipe( pHandles->g_hChildStd_OUT_Rd, NULL, 0, NULL, &dwAvail, NULL ) )
    {
       hb_ret();
    }

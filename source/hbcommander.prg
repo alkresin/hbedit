@@ -361,7 +361,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          ELSEIF oPaneCurr:nPanelMod == 2
             zipDirRefresh( oPaneCurr, oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
          ELSE
-            cPath := oPaneCurr:cCurrPath + Iif(Right(oPaneCurr:cCurrPath,1) $ "\/", "", hb_ps() ) + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] + hb_ps()
+            cPath := oPaneCurr:cCurrPath + Iif(Right(oPaneCurr:cCurrPath,1) $ "\/", "", hb_ps() ) + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] //+ hb_ps()
          ENDIF
          oPaneCurr:nCurrent := Iif( Empty( oPaneCurr:aDir ), 0, 1 )
          oPaneCurr:nShift := 0
@@ -1011,7 +1011,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
             cPort := cNetPort
             cCurrPath := Substr( cPath, nPos1 + 1 )
          ENDIF
-      ELSEIF ( nPos1 := hb_At( '\', cPath, nPos ) ) > 0 .OR. ( nPos1 := hb_At( '/', cPath, nPos ) ) > 0
+      ELSEIF ( nPos1 := cedi_Strpbrk( "/\", cPath, nPos ) ) > 0
          // net:10.8.0.1/Directory
          cAddr := Substr( cPath, nPos, nPos1-nPos )
          cPort := cNetPort
@@ -1123,6 +1123,12 @@ METHOD ParsePath( cPath ) CLASS FilePane
       ::cCurrPath := cPath
    ENDIF
    IF !( Right( ::cCurrPath,1 ) $ "\/" )
+#ifdef _USE_SSH2
+      IF ::cIOpref == "sftp:"
+         ::cCurrPath += '/'
+         RETURN .T.
+      ENDIF
+#endif
       ::cCurrPath += hb_ps()
    ENDIF
 
