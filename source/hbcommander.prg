@@ -2795,8 +2795,8 @@ FUNCTION hbc_Console( xCommand )
       ELSEIF !Empty( FilePane():cConsCmd )
          cCommand := FilePane():cConsCmd
       ENDIF
-      cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,">", ;
-          NameShortcut(Curdir(),28,'~' ) + ">" ), cCommand, bKeys )
+      cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,oPaneCurr:cIOpref+">", ;
+          Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) + ">" ), cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
             IF FilePane():nLastKey == 0
@@ -2858,10 +2858,10 @@ FUNCTION hbc_Console( xCommand )
             IF !Empty( oPaneCurr:pSess )
                ssh2_OpenChannel( oPaneCurr:pSess )
                IF ssh2_LastRes( oPaneCurr:pSess ) == 0
-                  ? "> " + cCmd
-                  ssh2_Exec( pSess, cCommand )
-                  IF ssh2_LastRes( pSess ) == 0
-                     IF !Empty( xRes := ssh2_ChannelRead( pSess ) )
+                  ? "> " + cCommand
+                  ssh2_Exec( oPaneCurr:pSess, cCommand )
+                  IF ssh2_LastRes( oPaneCurr:pSess ) == 0
+                     IF !Empty( xRes := ssh2_ChannelRead( oPaneCurr:pSess ) )
                         ? xRes
                      ENDIF
                   ELSE
