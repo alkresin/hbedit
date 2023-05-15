@@ -25,7 +25,6 @@ REQUEST NETIO_PROCEXISTS, NETIO_PROCEXEC, NETIO_FUNCEXEC
 
 STATIC oHbc
 STATIC lGuiVer := .F.
-STATIC cNetPort := "2941"
 STATIC nScreenH := 25, nScreenW := 80
 STATIC cFileOut, cOutBuff
 STATIC oPaneCurr, oPaneTo
@@ -38,8 +37,9 @@ STATIC aExtExe := { ".exe", ".com", ".bat" }
 STATIC aExtZip := { ".zip", ".rar", ".7z", ".lha", ".arj", ".gz" }
 #ifdef _USE_SSH2
 STATIC aRemote := { "net:", "sftp:" }
+STATIC aRemotePorts := { "2941", "22" }
 #else
-STATIC aRemote := { "net:" }
+STATIC aRemote := { "2941" }
 #endif
 
 MEMVAR GETLIST
@@ -1008,13 +1008,13 @@ METHOD ParsePath( cPath ) CLASS FilePane
             cPort := Ltrim( Str( Val(Substr(cPath,nPos1+1)) ) )
             cCurrPath := ""
          ELSE
-            cPort := cNetPort
+            cPort := aRemotePorts[nNet]
             cCurrPath := Substr( cPath, nPos1 + 1 )
          ENDIF
       ELSEIF ( nPos1 := cedi_Strpbrk( "/\", cPath, nPos ) ) > 0
          // net:10.8.0.1/Directory
          cAddr := Substr( cPath, nPos, nPos1-nPos )
-         cPort := cNetPort
+         cPort := aRemotePorts[nNet]
          cCurrPath := Substr( cPath, nPos1 )
       ELSE
          // net:10.8.0.1 or net:Directory
@@ -1032,7 +1032,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ENDDO
          IF l .AND. nPos2 == 3
             cAddr := Substr( cPath, nPos )
-            cPort := cNetPort
+            cPort := aRemotePorts[nNet]
             cCurrPath := ""
          ELSE
             ::cCurrPath := Substr( cPath, nPos )
