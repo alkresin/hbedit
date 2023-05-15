@@ -3172,8 +3172,21 @@ FUNCTION edi_ReadIni( xIni )
 FUNCTION mnu_Help( oEdit, cFullPath, cMet )
 
    LOCAL oHelp, nCurr := TEdit():nCurr, i
-   LOCAL cHelp, cPlugHelp
+   LOCAL cDop := "", cHelp, cPlugHelp
 
+#ifdef _USE_SSH2
+   cDop += " (with libssh2 support)"
+#endif
+#ifdef __BUILT_IN
+   cDop += " built-in version"
+#else
+  #ifndef _FULL
+   cDop += " basic version"
+  #endif
+  #ifdef _NO_HBC
+   cDop += " without HbCommander"
+  #endif
+#endif
    IF Empty( cFullPath )
       cFullPath := edi_FindPath( "hbedit.help" )
    ENDIF
@@ -3182,7 +3195,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
       IF !Empty( oEdit:oHili ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
-      cHelp := "HbEdit - " + HBEDIT_VERSION + Chr(10) + ;
+      cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
          "Copyright (C) 2019-2023  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, "$Help", ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
