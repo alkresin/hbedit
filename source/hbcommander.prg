@@ -2674,6 +2674,31 @@ STATIC FUNCTION ShowStdout()
 
    RETURN Nil
 
+STATIC FUNCTION hbc_Cons_Menu( cmd )
+
+   LOCAL cSep := "---"
+   LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {cSep,,}, {"Close",,} }
+   LOCAL n
+
+   nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-12),, ;
+      Int(MaxCol()/2+12), oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+   IF nChoic == 1
+      //KEYBOARD Chr(K_CTRL_F8)
+      KEYBOARD Chr(K_END)
+      n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
+         oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+      IF n > 0
+         RETURN FilePane():aCmdHis[n]
+      ENDIF
+   ELSEIF nChoic == Len( aMenu )
+      FilePane():nLastKey := 0
+      FilePane():cConsCmd := cmd
+      KEYBOARD Chr(K_ENTER)
+      RETURN "exit"
+   ENDIF
+
+   RETURN Nil
+
 FUNCTION hbc_Console( xCommand )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
@@ -2721,7 +2746,8 @@ FUNCTION hbc_Console( xCommand )
          IF n > 0
             RETURN FilePane():aCmdHis[n]
          ENDIF
-      ELSEIF nKey == K_F2 .OR. nKey == K_RBUTTONDOWN
+      ELSEIF nKey == K_F9 .OR. nKey == K_RBUTTONDOWN
+         RETURN hbc_Cons_Menu( cmd )
 
       ELSEIF nKey >= 32 .AND. nKey <= 250 .AND. FilePane():lConsAuto .AND. ;
          ( n := Len(cmd) ) > 1 .AND. n + nColInit - 1 == Col()
@@ -2742,6 +2768,8 @@ FUNCTION hbc_Console( xCommand )
 
    IF Empty( cOutBuff )
       CLEAR SCREEN
+      @ Int(MaxRow()/2-1), Int(MaxCol()/2-10) SAY "F1 - Help"
+      @ Int(MaxRow()/2), Int(MaxCol()/2-10) SAY "F9,Right Click - Menu"
    ELSE
       RestScreen( 0, 0, nScreenH-1, nScreenW-1, cOutBuff )
    ENDIF
@@ -2767,7 +2795,8 @@ FUNCTION hbc_Console( xCommand )
       ELSEIF !Empty( FilePane():cConsCmd )
          cCommand := FilePane():cConsCmd
       ENDIF
-      cCommand := GetLine( NameShortcut(Curdir(),28,'~' ) + ">", cCommand, bKeys )
+      cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,">", ;
+          NameShortcut(Curdir(),28,'~' ) + ">" ), cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
             IF FilePane():nLastKey == 0
@@ -2820,6 +2849,30 @@ FUNCTION hbc_Console( xCommand )
             Errorblock( bOldError )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
+         ELSEIF oPaneCurr:nPanelMod > 0
+            edi_Alert( "Pane is in "+Iif(oPaneCurr:nPanelMod==1,"search","zip") + " mode" )
+         ELSEIF oPaneCurr:cIOpref == "net:"
+            edi_Alert( "Can't run commands in net environment" )
+#ifdef _USE_SSH2
+         ELSEIF oPaneCurr:cIOpref == "sftp:"
+            IF !Empty( oPaneCurr:pSess )
+               ssh2_OpenChannel( oPaneCurr:pSess )
+               IF ssh2_LastRes( oPaneCurr:pSess ) == 0
+                  ? "> " + cCmd
+                  ssh2_Exec( pSess, cCommand )
+                  IF ssh2_LastRes( pSess ) == 0
+                     IF !Empty( xRes := ssh2_ChannelRead( pSess ) )
+                        ? xRes
+                     ENDIF
+                  ELSE
+                     ? "Exec failed"
+                  ENDIF
+               ELSE
+                  ? "OpenChannel failed"
+               ENDIF
+               ssh2_CloseChannel( oPaneCurr:pSess )
+            ENDIF
+#endif
          ELSE
             IF FilePane():nConsVar == 1
                Cons_My( cCommand )
@@ -2864,7 +2917,7 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
       DevOut( cRes )
    ENDIF
    DO WHILE .T.
-      nKeyExt := Inkey( 0, INKEY_KEYBOARD + HB_INKEY_EXT )
+      nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
       IF ((nKey := hb_keyStd( nKeyExt )) >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
          LOOP
       ENDIF
