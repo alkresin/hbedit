@@ -2776,9 +2776,18 @@ FUNCTION hbc_Console( xCommand )
          ( n := Len(cmd) ) > 1 .AND. n + nColInit - 1 == Col()
          DevPos( Row(), nColInit )
          DevOut( cmd )
+         IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
+            IF ' ' $ cmd .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
+               RETURN cTmp
+            ENDIF
+         ELSE
+            RETURN cTmp
+         ENDIF
+         /*
          IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
             RETURN cTmp
          ENDIF
+         */
       ENDIF
       RETURN Nil
    }
