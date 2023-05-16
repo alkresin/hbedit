@@ -2756,7 +2756,7 @@ FUNCTION hbc_Console( xCommand )
          RETURN "exit"
       ELSEIF nKey == K_TAB
          IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
-            IF ' ' $ cmd .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
+            IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
                RETURN cTmp
             ENDIF
          ELSE
@@ -2777,17 +2777,12 @@ FUNCTION hbc_Console( xCommand )
          DevPos( Row(), nColInit )
          DevOut( cmd )
          IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
-            IF ' ' $ cmd .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
+            IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
                RETURN cTmp
             ENDIF
          ELSE
             RETURN cTmp
          ENDIF
-         /*
-         IF !Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
-            RETURN cTmp
-         ENDIF
-         */
       ENDIF
       RETURN Nil
    }
