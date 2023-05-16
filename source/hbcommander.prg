@@ -1005,9 +1005,18 @@ METHOD ParsePath( cPath ) CLASS FilePane
             cPort := Substr( cPath, nPos1+1, nPos2-nPos1-1 )
             cCurrPath := Substr( cPath, nPos2 + 1 )
          ELSEIF IsDigit( Substr( cPath, nPos1+1, 1 ) )
-            cPort := Ltrim( Str( Val(Substr(cPath,nPos1+1)) ) )
-            cCurrPath := ""
+            // net:10.8.0.1:2941...
+            IF ( nPos2 := cedi_Strpbrk( "/\", cPath, nPos1 ) ) > 0
+               // net:10.8.0.1:2941/...
+               cPort := Ltrim( Str( Val(Substr(cPath,nPos1+1)) ) )
+               cCurrPath := Substr( cPath, nPos2 )
+            ELSE
+               // net:10.8.0.1:100abc
+               cPort := aRemotePorts[nNet]
+               cCurrPath := Substr( cPath, nPos1+1 )
+            ENDIF
          ELSE
+            // net:10.8.0.1:...
             cPort := aRemotePorts[nNet]
             cCurrPath := Substr( cPath, nPos1 + 1 )
          ENDIF
@@ -1018,6 +1027,10 @@ METHOD ParsePath( cPath ) CLASS FilePane
          cCurrPath := Substr( cPath, nPos1 )
       ELSE
          // net:10.8.0.1 or net:Directory
+         cPort := aRemotePorts[nNet]
+         cAddr := Substr( cPath, nPos )
+         cCurrPath := ""
+         /*
          // Checking if there is an ip after net:
          nPos1 := nPos - 1
          nPos2 := 0
@@ -1038,6 +1051,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
             ::cCurrPath := Substr( cPath, nPos )
             RETURN .T.
          ENDIF
+         */
       ENDIF
       IF Empty( FilePane():aNetInfo )
          NetInfoLoad()
@@ -1568,6 +1582,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
       @ 08, 28 SAY PAdc( "Wait", 28 )
    ENDIF
 
+   edi_Writelog( "1: " + aDir[1] )
    IF oPaneCurr:nPanelMod == 2
       i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
       IF i == 0
@@ -1603,8 +1618,10 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
          nRes := 2
       ENDIF
    ELSE
+      edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
       IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
+         edi_Writelog( "Err" )
          nRes := 2
       ENDIF
    ENDIF
@@ -2856,12 +2873,12 @@ FUNCTION hbc_Console( xCommand )
 #ifdef _USE_SSH2
          ELSEIF oPaneCurr:cIOpref == "sftp:"
             IF !Empty( oPaneCurr:pSess )
-               ssh2_OpenChannel( oPaneCurr:pSess )
+               ssh2_Channel_Open( oPaneCurr:pSess )
                IF ssh2_LastRes( oPaneCurr:pSess ) == 0
                   ? "> " + cCommand
                   ssh2_Exec( oPaneCurr:pSess, cCommand )
                   IF ssh2_LastRes( oPaneCurr:pSess ) == 0
-                     IF !Empty( xRes := ssh2_ChannelRead( oPaneCurr:pSess ) )
+                     IF !Empty( xRes := ssh2_Channel_Read( oPaneCurr:pSess ) )
                         ? xRes
                      ENDIF
                   ELSE
@@ -2870,7 +2887,7 @@ FUNCTION hbc_Console( xCommand )
                ELSE
                   ? "OpenChannel failed"
                ENDIF
-               ssh2_CloseChannel( oPaneCurr:pSess )
+               ssh2_Channel_Close( oPaneCurr:pSess )
             ENDIF
 #endif
          ELSE

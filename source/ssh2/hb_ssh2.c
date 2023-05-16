@@ -396,6 +396,17 @@ int hb_ssh2_SftpWrite( HB_SSH2_SESSION * pSess, char *buffer, int nBufferLen )
    return iWritten;
 }
 
+int hb_ssh2_SftpStat( HB_SSH2_SESSION * pSess, char *cPath, int iStat_type, LIBSSH2_SFTP_ATTRIBUTES *attrs )
+{
+   int rc;
+
+   rc = libssh2_sftp_stat_ex( pSess->sftp_session, cPath, strlen( cPath ),
+      iStat_type, attrs );
+   pSess->iRes = ( rc < 0 )? -1 : 0;
+   return rc;
+
+}
+
 #ifdef _USE_HB
 
 #include "hbapi.h"
@@ -437,12 +448,12 @@ HB_FUNC( SSH2_LOGIN )
                hb_parc( 2 ), hb_parc( 3 ) ) );
 }
 
-HB_FUNC( SSH2_OPENCHANNEL )
+HB_FUNC( SSH2_CHANNEL_OPEN )
 {
    hb_retni( hb_ssh2_OpenChannel( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) ) );
 }
 
-HB_FUNC( SSH2_CLOSECHANNEL )
+HB_FUNC( SSH2_CHANNEL_CLOSE )
 {
    hb_ssh2_CloseChannel( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) );
 }
@@ -474,7 +485,9 @@ HB_FUNC( SSH2_SFTP_CLOSE )
 
 HB_FUNC( SSH2_SFTP_MKDIR )
 {
-   hb_retni( hb_ssh2_SftpMkDir( ( HB_SSH2_SESSION * ) hb_parptr( 1 ), hb_parc( 2 ), hb_parnl( 3 ) ) );
+   long lMode = (hb_pcount()>2 && ISNUM(3))? hb_parnl(3) :
+      LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR | LIBSSH2_SFTP_S_IXUSR | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH;
+   hb_retni( hb_ssh2_SftpMkDir( ( HB_SSH2_SESSION * ) hb_parptr( 1 ), hb_parc( 2 ), lMode ) );
 }
 
 HB_FUNC( SSH2_SFTP_READDIR )
@@ -509,7 +522,7 @@ HB_FUNC( SSH2_SFTP_EXEC )
    hb_retni( hb_ssh2_Exec( ( HB_SSH2_SESSION * ) hb_parptr( 1 ), hb_parc( 2 ) ) );
 }
 
-HB_FUNC( SSH2_CHANNELREAD )
+HB_FUNC( SSH2_CHANNEL_READ )
 {
    HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    char buffer[BUFFSIZE], *pOut = NULL;
@@ -562,7 +575,7 @@ HB_FUNC( SSH2_CHANNELREAD )
 
 }
 
-HB_FUNC( SSH2_SFTPREAD )
+HB_FUNC( SSH2_SFTP_READ )
 {
    HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    char buffer[BUFFSIZE];
@@ -575,7 +588,7 @@ HB_FUNC( SSH2_SFTPREAD )
       hb_ret();
 }
 
-HB_FUNC( SSH2_SFTPWRITE )
+HB_FUNC( SSH2_SFTP_WRITE )
 {
    HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int iWrite = ( hb_pcount() > 2 && HB_ISNUM(2) )? hb_parni( 3 ) : hb_parclen(2);
@@ -585,4 +598,55 @@ HB_FUNC( SSH2_SFTPWRITE )
    hb_retni( iBytesWritten );
 }
 
+HB_FUNC( SSH2_SFTP_STAT )
+{
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
+   int rc;
+   LIBSSH2_SFTP_ATTRIBUTES attrs;
+
+   rc = hb_ssh2_SftpStat( pSess, (char *) hb_parc(2), LIBSSH2_SFTP_STAT, &attrs );
+
+   if( rc > 0 )
+   {
+      if( hb_pcount() > 2 )
+         hb_stornl( attrs.filesize, 3 );
+      if( hb_pcount() > 3 )
+         hb_stornl( attrs.mtime, 4 );
+      if( hb_pcount() > 4 )
+         hb_stornl( attrs.permissions, 5 );
+   }
+   hb_retni( rc );
+}
+
+HB_FUNC( SSH2_SFTP_FILEDELETE )
+{
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
+   int rc;
+
+   rc =  libssh2_sftp_unlink( pSess->sftp_session, hb_parc(2) );
+   hb_retni( rc );
+}
+
+HB_FUNC( SSH2_SFTP_DIRDELETE )
+{
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
+   int rc;
+
+   rc =  libssh2_sftp_rmdir( pSess->sftp_session, hb_parc(2) );
+   hb_retni( rc );
+}
+
+HB_FUNC( SSH2_SFTP_RENAME )
+{
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
+   int rc;
+
+   rc =  libssh2_sftp_rename( pSess->sftp_session, hb_parc(2), hb_parc(3) );
+   hb_retni( rc );
+}
+
+HB_FUNC( SSH2_VERSION )
+{
+   hb_retc( libssh2_version( LIBSSH2_VERSION_NUM ) );
+}
 #endif

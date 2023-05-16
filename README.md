@@ -9,6 +9,8 @@ A fullscreen console multiplatform text editor with built-in file manager
   + bld_edit_full.bat   - command file to build full Hbedit for Windows (Borland C compiler),
                         its only difference is that the full version requests most of Harbour
                         functions to provide a possibility to use them in plugins.
+  + bld_edit_hwg_ssh.sh - shell script to build Hbedit for Linux with GTHWG driver and ssh2 support
+  + bld_gcc_ssh.bat     - command file to build full Hbedit for Windows (Mingw C compiler) with ssh2 support
   + bld_plugins.bat     - command file to build plugins.
   + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
@@ -24,21 +26,26 @@ A fullscreen console multiplatform text editor with built-in file manager
     + hbfuncsfull.ch    - header file.
 
     + cfuncs.c
+    + errorsys.prg
+    + falert.prg
+    + fautoc.prg
     + fcmd.prg
     + fedit.prg
+    + fdiff.prg
     + ffiles.prg
-    + fkeymaps.prg
     + fgetsys.prg
-    + falert.prg
+    + fkeymaps.prg
     + fmenu.prg
     + hilight.prg       - editor source files, which implements the TEdit class.
                         To include the TEdit in your application you need to link them all.
     + hbcommander.prg
+    + hbcvf.prg
     + fview.prg         - built-in file manager source files
     
-    + errorsys.prg
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
+  + source/trie/*       - a subsystem, implementing prefix tree subsystem
+  + source/ssh2/*       - a subsystem, implementing libssh2 support
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
     + hwg_funcs.txt         - HwGUI functions list for plug_prg_init

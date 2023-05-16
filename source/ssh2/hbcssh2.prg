@@ -38,13 +38,16 @@ FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass )
 
 FUNCTION hb_ssh2_Directory( pSess, cDirSpec )
 
-   LOCAL aDir := {}, cDir := hb_fnameDir( cDirSpec )
-   LOCAL cName, nAttr, nSize, dDate, cAttr
+   LOCAL cDir := StrTran( hb_fnameDir( cDirSpec ), '\', '/' )
+   LOCAL cMask := Substr( cDirSpec, Len(cDir)+1 )
+   LOCAL aDir := {}, cName, nAttr, nSize, dDate, cAttr
 
    IF ssh2_Sftp_OpenDir( pSess, cDir ) == 0
       DO WHILE !Empty( cName := ssh2_Sftp_ReadDir( pSess, @nSize, @dDate, @nAttr ) )
-         cAttr := Iif( hb_BitAnd( nAttr, 0x4000 ) > 0, "D", "" )
-         Aadd( aDir, { cName, nSize, dDate, "", cAttr } )
+         IF Empty( cMask ) .OR. hb_FileMatch( UPPER( cName ), cMask )
+            cAttr := Iif( hb_BitAnd( nAttr, LIBSSH2_SFTP_S_IFDIR ) > 0, "D", "" )
+            Aadd( aDir, { cName, nSize, dDate, "", cAttr } )
+         ENDIF
       ENDDO
       ssh2_sftp_Close( pSess )
    ELSE
@@ -57,8 +60,11 @@ FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
 
    LOCAL cBuff, cBuffer := ""
 
+   IF '\' $ cFileName
+      cFileName := StrTran( cFileName, '\', '/' )
+   ENDIF
    IF ssh2_Sftp_OpenFile( pSess, cFileName ) == 0
-      DO WHILE !Empty( cBuff := ssh2_SftpRead( pSess ) )
+      DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pSess ) )
          cBuffer += cBuff
       ENDDO
       ssh2_sftp_Close( pSess )
@@ -72,9 +78,12 @@ FUNCTION hb_ssh2_Download( pSess, cFileName, cFileLocal )
 
    LOCAL handle, cBuff
 
+   IF '\' $ cFileName
+      cFileName := StrTran( cFileName, '\', '/' )
+   ENDIF
    IF ssh2_Sftp_OpenFile( pSess, cFileName ) == 0
       handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
-      DO WHILE !Empty( cBuff := ssh2_SftpRead( pSess ) )
+      DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pSess ) )
          fWrite( handle, cBuff )
       ENDDO
       fClose( handle )
@@ -89,12 +98,15 @@ FUNCTION hb_ssh2_Upload( pSess, cFileName, cFileLocal )
 
    LOCAL handle, nBytes, cBuff := Space( BUFFSIZE )
 
+   IF '\' $ cFileName
+      cFileName := StrTran( cFileName, '\', '/' )
+   ENDIF
    IF ssh2_Sftp_OpenFile( pSess, cFileName, LIBSSH2_FXF_WRITE + LIBSSH2_FXF_CREAT, ;
       LIBSSH2_SFTP_S_IRUSR + LIBSSH2_SFTP_S_IWUSR + ;
       LIBSSH2_SFTP_S_IRGRP + LIBSSH2_SFTP_S_IROTH ) == 0
       handle := fOpen( cFileLocal )
       DO WHILE ( nBytes := fRead( handle, @cBuff, BUFFSIZE ) > 0 )
-         ssh2_SFtpWrite( pSess, cBuff, nBytes )
+         ssh2_SFtp_Write( pSess, cBuff, nBytes )
       ENDDO
       fClose( handle )
       ssh2_Sftp_Close( pSess )
@@ -104,6 +116,26 @@ FUNCTION hb_ssh2_Upload( pSess, cFileName, cFileLocal )
    ENDIF
 
    RETURN 0
+
+FUNCTION hb_ssh2_isFileExists( pSess, cFileName )
+
+   LOCAL nAttr
+
+   IF ssh2_Sftp_stat( pSess, cFileName,,, @nAttr ) == 0
+      RETURN ( hb_BitAnd( nAttr, LIBSSH2_SFTP_S_IFDIR ) == 0 )
+   ENDIF
+
+   RETURN .F.
+
+FUNCTION hb_ssh2_isDirExists( pSess, cFileName )
+
+   LOCAL nAttr
+
+   IF ssh2_Sftp_stat( pSess, cFileName,,, @nAttr ) == 0
+      RETURN ( hb_BitAnd( nAttr, LIBSSH2_SFTP_S_IFDIR ) > 0 )
+   ENDIF
+
+   RETURN .F.
 
 STATIC FUNCTION GetLogin( cLogin, cPass )
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30

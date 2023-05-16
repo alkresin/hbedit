@@ -75,3 +75,4 @@ int hb_ssh2_SftpReadDir( HB_SSH2_SESSION *, char *, int, unsigned long *, unsign
 int hb_ssh2_SftpOpenFile( HB_SSH2_SESSION *, const char *, unsigned long, long );
 int hb_ssh2_SftpRead( HB_SSH2_SESSION *, char *, int );
 int hb_ssh2_SftpWrite( HB_SSH2_SESSION *, char *, int );
+int hb_ssh2_SftpStat( HB_SSH2_SESSION *, char *, int, LIBSSH2_SFTP_ATTRIBUTES * );

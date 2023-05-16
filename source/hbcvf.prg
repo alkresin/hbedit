@@ -9,13 +9,6 @@ FUNCTION hbc_vfOpen( cFileName, cFlags )
    ENDIF
    RETURN hb_vfOpen( cFileName, cFlags )
 
-FUNCTION hbc_vfSize( cFileName )
-
-   IF cFileName = "sftp:"
-      RETURN -1
-   ENDIF
-   RETURN hb_vfSize( xFile )
-
 FUNCTION hbc_vfClose( handle )
    RETURN hb_vfClose( handle )
 
@@ -27,6 +20,19 @@ FUNCTION hbc_vfReadLen( handle, nSize )
 
 FUNCTION hbc_vfWrite( handle, cBuff, nToWrite, nTimeOut )
    RETURN hb_vfWrite( handle, cBuff, nToWrite, nTimeOut )
+
+FUNCTION hbc_vfSize( cFileName )
+
+   LOCAL pSess, nSize
+
+   IF cFileName = "sftp:"
+      IF !Empty( pSess := _GetpSess(cFileName) ) .AND. ;
+         ssh2_Sftp_stat( pSess, _GetDir(cFileName), @nSize ) == 0
+         RETURN nSize
+      ENDIF
+      RETURN -1
+   ENDIF
+   RETURN hb_vfSize( xFile )
 
 FUNCTION hbc_vfLoad( cFileName, nMaxSize )
 
@@ -48,13 +54,21 @@ FUNCTION hbc_vfDirectory( cDirSpec, cAttr )
 
 FUNCTION hbc_vfTimeGet( cFileName, tsDateTime )
 
+   LOCAL pSess, dDT
+
    IF cFileName = "sftp:"
+      IF !Empty( pSess := _GetpSess(cFileName) ) .AND. ;
+         ssh2_Sftp_stat( pSess, _GetDir(cFileName),, @dDT ) == 0
+         tsDateTime := dDT
+         RETURN .T.
+      ENDIF
       RETURN .F.
    ENDIF
    RETURN hb_vfTimeGet( cFileName, @tsDateTime )
 
 FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
 
+   LOCAL pSess
    IF cFileSrc = "sftp:"
       IF cFileDst = "sftp:"
          RETURN -1
@@ -68,43 +82,67 @@ FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
 
 FUNCTION hbc_vfDirExists( cDirName )
 
+   LOCAL pSess
    IF cDirName = "sftp:"
-      RETURN .F.
+      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), .F., ;
+         hb_ssh2_isDirExists( pSess, _GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfDirExists( cDirName )
 
 FUNCTION hbc_vfExists( cFileName )
 
+   LOCAL pSess
    IF cFileName = "sftp:"
-      RETURN .F.
+      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), .F., ;
+         hb_ssh2_isFileExists( pSess, _GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfExists( cFileName )
 
 FUNCTION hbc_vfRename( cFileSrc, cFileDst )
 
-   IF cFileSrc = "sftp:"
-      RETURN -1
+   LOCAL pSess
+   IF cFileSrc = "sftp:" .OR. cFileDst = "sftp:"
+      IF cFileSrc = "sftp:" .AND. cFileDst = "sftp:" .AND. !Empty( pSess := _GetpSess(cFileSrc) )
+         RETURN ssh2_Sftp_Rename( pSess, _GetDir(cFileSrc), _GetDir(cFileDst ) )
+      ELSE
+         RETURN -1
+      ENDIF
    ENDIF
    RETURN hb_vfRename( cFileSrc, cFileDst )
 
 FUNCTION hbc_vfErase( cFileName )
 
+   LOCAL pSess
    IF cFileName = "sftp:"
-      RETURN -1
+      IF !Empty( pSess := _GetpSess(cDirSpec) )
+         RETURN ssh2_Sftp_FileDelete( pSess, _GetDir(cFileName) )
+      ELSE
+         RETURN -1
+      ENDIF
    ENDIF
    RETURN hb_vfErase( cFileName )
 
 FUNCTION hbc_vfDirRemove( cDirName )
 
+   LOCAL pSess
    IF cDirName = "sftp:"
-      RETURN -1
+      IF !Empty( pSess := _GetpSess(cDirName) )
+         RETURN ssh2_Sftp_DirDelete( pSess, _GetDir(cDirName) )
+      ELSE
+         RETURN -1
+      ENDIF
    ENDIF
    RETURN hb_vfDirRemove( cDirName )
 
 FUNCTION hbc_vfDirMake( cDirName )
 
+   LOCAL pSess
    IF cDirName = "sftp:"
-      RETURN -1
+      IF !Empty( pSess := _GetpSess(cDirName) )
+         RETURN ssh2_Sftp_MkDir( pSess, _GetDir(cDirName) )
+      ELSE
+         RETURN -1
+      ENDIF
    ENDIF
    RETURN hb_vfDirMake( cDirName )
 
