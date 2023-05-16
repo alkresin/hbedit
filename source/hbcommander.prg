@@ -1396,7 +1396,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu := { {"Pane mode",,,"Ctrl-P"}, {"Change dir",,,"Alt-D"}, ;
       {"File edit history",,}, {"Commands history",,,"Ctrl-F8"}, {"Find file",,,"Ctrl-F7"}, ;
       {"Plugins",,,"F11"}, {"Apps",,,"Ctrl-F12"}, {"Buffers",,,"F12"}, {"Refresh",,,"Ctrl-R"}, ;
-      {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
+      {"Console",,,"Ctrl-O"}, {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,,"Ctrl-Q"}, .T. )
@@ -1425,6 +1425,8 @@ METHOD PaneMenu() CLASS FilePane
          ::nCurrent := Len( ::aDir ) - ::nShift
       ENDIF
       ::RedrawAll()
+   ELSEIF nChoic == 10
+      hbc_Console()
    ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
       ShowStdout()
    ELSEIF nChoic == Len( aMenu ) - 2
