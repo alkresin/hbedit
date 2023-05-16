@@ -2755,8 +2755,9 @@ FUNCTION hbc_Console( xCommand )
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ELSEIF nKey == K_TAB
-         IF Empty( cTmp := hbc_DoAuC( oHbc, cmd ) )
-            IF ' ' $ cmd
+         IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
+            IF ' ' $ cmd .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
+               RETURN cTmp
             ENDIF
          ELSE
             RETURN cTmp

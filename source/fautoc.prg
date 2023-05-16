@@ -182,7 +182,9 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
          IF Empty(aDir)
             arr := MakeArr( hTrie,, cmd )
          ELSE
-            arr := MakeArr( aDir,, Iif( (nPos := Rat(' ',cmd)) > 0, Substr( cmd,nPos+1 ), cmd ) )
+            arr := MakeArr( aDir,, Iif( (nPos := Rat(' ',cmd)) > 0, Substr( cmd,nPos+1 ), cmd ), ;
+               Iif( nPos > 0, Left( cmd,nPos ), "" ) )
+            //edi_Alert( str(Len(arr))+" " + str(nPos) + " " + Substr( cmd,nPos+1 ) )
          ENDIF
 
          bufc := Nil
@@ -286,7 +288,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
 
    RETURN cRes
 
-STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
+STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix, cAdd )
 
    LOCAL arr, cList, arr1, i
 
@@ -294,7 +296,7 @@ STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
       arr := {}
       FOR i := 1 TO Len( hTrieLang )
          IF hTrieLang[i,1] = cPrefix
-            Aadd( arr, hTrieLang[i,1] )
+            Aadd( arr, cAdd + hTrieLang[i,1] )
          ENDIF
       NEXT
    ELSE
