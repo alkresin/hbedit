@@ -158,16 +158,16 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
 
    RETURN .T.
 
-FUNCTION hbc_DoAuC( oHbc, cmd )
+FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
 
    LOCAL oy, ox
    LOCAL cRes := ""
-   LOCAL arr, hTrie
+   LOCAL arr, hTrie, nPos
    LOCAL x1, y1, x2, y2, h, w, nSel, nFirst
    LOCAL bufc, cColor, cColorSel
    LOCAL nKeyExt, nKey, lRedraw, lRecalc := .T.
 
-   IF Empty( hTrie := FilePane():hCmdTrie )
+   IF Empty( hTrie := FilePane():hCmdTrie ) .AND. Empty( aDir )
       RETURN ""
    ENDIF
 
@@ -179,7 +179,11 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
       IF lRecalc
          //oy := Row()
          ox := Col()
-         arr := MakeArr( hTrie,, cmd )
+         IF Empty(aDir)
+            arr := MakeArr( hTrie,, cmd )
+         ELSE
+            arr := MakeArr( aDir,, Iif( (nPos := Rat(' ',cmd)) > 0, Substr( cmd,nPos+1 ), cmd ) )
+         ENDIF
 
          bufc := Nil
          IF Empty( arr )
@@ -284,21 +288,30 @@ FUNCTION hbc_DoAuC( oHbc, cmd )
 
 STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix )
 
-   LOCAL arr, cList, arr1
+   LOCAL arr, cList, arr1, i
 
-   IF !Empty( hTrieLang )
-      IF !Empty( cList := trie_List( hTrieLang, cPrefix ) )
-         arr := hb_ATokens( cList, Chr(10) )
+   IF Valtype( hTrieLang ) == "A"
+      arr := {}
+      FOR i := 1 TO Len( hTrieLang )
+         IF hTrieLang[i,1] = cPrefix
+            Aadd( arr, hTrieLang[i,1] )
+         ENDIF
+      NEXT
+   ELSE
+      IF !Empty( hTrieLang )
+         IF !Empty( cList := trie_List( hTrieLang, cPrefix ) )
+            arr := hb_ATokens( cList, Chr(10) )
+         ENDIF
       ENDIF
-   ENDIF
-   IF !Empty( hTrie )
-      IF !Empty( cList := trie_List( hTrie, cPrefix ) )
-         arr1 := hb_ATokens( cList, Chr(10) )
-         IF Empty( arr )
-            arr := arr1
-         ELSE
-            arr := ASize( arr, Len(arr) + Len(arr1) )
-            ACopy( arr1, arr,,, Len(arr) - Len(arr1) + 1 )
+      IF !Empty( hTrie )
+         IF !Empty( cList := trie_List( hTrie, cPrefix ) )
+            arr1 := hb_ATokens( cList, Chr(10) )
+            IF Empty( arr )
+               arr := arr1
+            ELSE
+               arr := ASize( arr, Len(arr) + Len(arr1) )
+               ACopy( arr1, arr,,, Len(arr) - Len(arr1) + 1 )
+            ENDIF
          ENDIF
       ENDIF
    ENDIF
