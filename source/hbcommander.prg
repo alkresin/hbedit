@@ -2716,19 +2716,21 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
-   LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {cSep,,}, {"Close",,} }
-   LOCAL n
+   LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {"Stdout window",,,"Ctrl-Q"}, ;
+      {cSep,,}, {"Close",,} }
+   LOCAL n, nChoic
 
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-12),, ;
       Int(MaxCol()/2+12), oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
-      //KEYBOARD Chr(K_CTRL_F8)
       KEYBOARD Chr(K_END)
       n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
          oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
       IF n > 0
          RETURN FilePane():aCmdHis[n]
       ENDIF
+   ELSEIF nChoic == 2
+      KEYBOARD Chr(K_CTRL_Q)
    ELSEIF nChoic == Len( aMenu )
       FilePane():nLastKey := 0
       FilePane():cConsCmd := cmd
