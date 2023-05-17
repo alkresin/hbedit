@@ -2853,6 +2853,8 @@ FUNCTION hbc_Console( xCommand )
                s := hb_fnameName( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] )
             ELSEIF s == 'd'
                s := oPaneCurr:cCurrPath
+            ELSEIF s == 'o'
+               s := oPaneTo:cCurrPath
             ELSEIF s == 'm'
                s := edi_MsgGet( "Input text", oPaneCurr:y1+10, oPaneCurr:x1+6, oPaneCurr:x2-6 )
             ELSEIF s == '/'

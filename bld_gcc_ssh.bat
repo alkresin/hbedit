@@ -1,5 +1,5 @@
 @echo off
-rem Uncomment two following lines to create libssh.a for the first time
+rem Uncomment two following lines to create libssh.a from a libssh2.dll for the first time
 rem gendef libssh2.dll 2>dummy
 rem dlltool -v --dllname libssh2.dll --def libssh2.def --output-lib libssh2.a 2>dummy
 set HB_INSTALL=c:\harbour

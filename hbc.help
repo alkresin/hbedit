@@ -40,12 +40,29 @@ HbCommander - built-in file manager
    Ctrl-Q   - View stdout window
    Ctrl-Tab - Switch between buffers
 
+   Mouse left button click on a header calls main menu.
+   Mouse right button click on a header calls context menu.
+
 :: :
 Console mode
+   F1       - Help
+   F9       - Menu
    Ctrl-O   - Close console
    ESC      - Close console
    Up,Down  - browse commands history
    Ctrl-Q   - View stdout window
    Ctrl-Tab - Switch between buffers
    Tab      - Command completition
-   Ctrl-F8   - Commands History
+   Ctrl-F8  - Commands History
+
+   Mouse right button click calls console menu.
+
+  Command line abbreviations:
+  %p        - Current file name
+  %f        - Current file name with full path
+  %n        - Current file name without extention
+  %d        - Current path
+  %o        - Current path in other pane
+  %m        - Call a dialog window to input a text
+  %/        - os file separator
+  %%        - % symbol
