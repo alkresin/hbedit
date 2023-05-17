@@ -2717,11 +2717,11 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
    LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {"Stdout window",,,"Ctrl-Q"}, ;
-      {cSep,,}, {"Close",,} }
+      {cSep,,}, {"Close",,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic
 
-   nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-12),, ;
-      Int(MaxCol()/2+12), oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+   nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
+      oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
       KEYBOARD Chr(K_END)
       n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
