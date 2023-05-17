@@ -2598,7 +2598,8 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    LOCAL arr := oPane:aDir[oPane:nCurrent + oPane:nShift], arrD[Len(aDefs)], i
    LOCAL nAttr, nAttrNew
 
-   IF !hb_fGetAttr( arr[1], @nAttr )
+   IF !hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+      oPaneCurr:cCurrPath + arr[1], @nAttr )
       edi_Alert( "Can't read attributes" )
       RETURN Nil
    ENDIF
@@ -2693,6 +2694,25 @@ STATIC FUNCTION ShowStdout()
 
    RETURN Nil
 
+STATIC FUNCTION hbc_Cons_Auto( cmd )
+
+   LOCAL cTmp
+
+   IF Left( cmd,2 ) == "./" .AND. !( ' ' $ cmd ) .AND. ;
+      !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir, aExtExe )) == cmd
+      RETURN cTmp
+   ELSE
+      IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
+         IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
+            RETURN cTmp
+         ENDIF
+      ELSE
+         RETURN cTmp
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
@@ -2755,13 +2775,7 @@ FUNCTION hbc_Console( xCommand )
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
       ELSEIF nKey == K_TAB
-         IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
-            IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
-               RETURN cTmp
-            ENDIF
-         ELSE
-            RETURN cTmp
-         ENDIF
+         RETURN hbc_Cons_Auto( cmd )
       ELSEIF nKey == K_CTRL_F8
          KEYBOARD Chr(K_END)
          n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
@@ -2776,13 +2790,7 @@ FUNCTION hbc_Console( xCommand )
          ( n := Len(cmd) ) > 1 .AND. n + nColInit - 1 == Col()
          DevPos( Row(), nColInit )
          DevOut( cmd )
-         IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
-            IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
-               RETURN cTmp
-            ENDIF
-         ELSE
-            RETURN cTmp
-         ENDIF
+         RETURN hbc_Cons_Auto( cmd )
       ENDIF
       RETURN Nil
    }

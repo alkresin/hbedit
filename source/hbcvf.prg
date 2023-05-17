@@ -146,6 +146,18 @@ FUNCTION hbc_vfDirMake( cDirName )
    ENDIF
    RETURN hb_vfDirMake( cDirName )
 
+FUNCTION hbc_vfAttrGet( cFileName, nAttr )
+
+   LOCAL pSess
+   IF cDirName = "sftp:"
+      IF !Empty( pSess := _GetpSess(cDirName) )
+         RETURN .F.
+      ELSE
+         RETURN .F.
+      ENDIF
+   ENDIF
+   RETURN hb_vfAttrGet( cFileName, nAttr )
+
 STATIC FUNCTION _GetpSess( cName )
 
    LOCAL nPos := cedi_Strpbrk( ":/\", cName, 6 )

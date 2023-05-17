@@ -158,7 +158,7 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
 
    RETURN .T.
 
-FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
+FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
 
    LOCAL oy, ox
    LOCAL cRes := ""
@@ -183,7 +183,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
             arr := MakeArr( hTrie,, cmd )
          ELSE
             arr := MakeArr( aDir,, Iif( (nPos := Rat(' ',cmd)) > 0, Substr( cmd,nPos+1 ), cmd ), ;
-               Iif( nPos > 0, Left( cmd,nPos ), "" ) )
+               Iif( nPos > 0, Left( cmd,nPos ), "" ), aExe )
             //edi_Alert( str(Len(arr))+" " + str(nPos) + " " + Substr( cmd,nPos+1 ) )
          ENDIF
 
@@ -288,14 +288,19 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir )
 
    RETURN cRes
 
-STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix, cAdd )
+STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix, cAdd, aExe )
 
    LOCAL arr, cList, arr1, i
 
    IF Valtype( hTrieLang ) == "A"
+      IF !Empty(aExe)
+         cPrefix := Substr( cPrefix,3 )
+      ENDIF
       arr := {}
       FOR i := 1 TO Len( hTrieLang )
-         IF hTrieLang[i,1] = cPrefix
+         IF ( Empty(aExe) .AND. hTrieLang[i,1] = cPrefix ) .OR. ;
+            ( !Empty(aExe) .AND. hTrieLang[i,1] = cPrefix .AND. ;
+            Ascan( aExe,{|s|s==hb_fnameExt(hTrieLang[i,1])} ) > 0 )
             Aadd( arr, cAdd + hTrieLang[i,1] )
          ENDIF
       NEXT

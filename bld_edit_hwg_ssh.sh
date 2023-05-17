@@ -6,7 +6,7 @@ export HWGUI_LIBS="-lhwgui -lhbxml -lprocmisc -lhwgdebug"
 export HARBOUR_LIBS="-lhbdebug -lhbvm -lhbrtl -lgthwg -lgtcgi -lhblang -lhbrdd -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix -lhbct -lhbcpage -lpcre -lhbcplr -lhbsqlit3 -lhbnetio -lhbmzip -lminizip"
 
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbedit.prg  -n -q0 -es2 -gc0 -dGTHWG -I$HB_INS/include
-$HB_INS/bin/linux/gcc/harbour $SRC_DIR/fedit.prg -n -q0 -es2 -gc0 -d_FULL -d_SQLITE3 -dGTHWG -I$HB_INS/include
+$HB_INS/bin/linux/gcc/harbour $SRC_DIR/fedit.prg -n -q0 -es2 -gc0 -d_FULL -d_USE_SSH2 -dGTHWG -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fcmd.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fmenu.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fgetsys.prg  -n -q0 -es2 -gc0 -I$HB_INS/include

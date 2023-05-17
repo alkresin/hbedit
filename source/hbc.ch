@@ -35,4 +35,5 @@
 #xtranslate hb_vfErase([<n,...>])         => hbc_vfErase(<n>)
 #xtranslate hb_vfDirRemove([<n,...>])     => hbc_vfDirRemove(<n>)
 #xtranslate hb_vfDirMake([<n,...>])       => hbc_vfDirMake(<n>)
+#xtranslate hb_vfAttrGet([<n,...>])       => hbc_vfAttrGet(<n>)
 #endif
