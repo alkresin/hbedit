@@ -497,7 +497,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       RETURN 0
 
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_ALT_TAB
-      RETURN 0
+      IF Len( TEdit():aWindows ) == 1
+         RETURN edi_KeyCToN( "Shift-F4" )
+      ELSE
+         RETURN 0
+      ENDIF
 
    ELSEIF nKey == K_LBUTTONDOWN .OR. nKey == K_RBUTTONDOWN
       nRow := MRow(); nCol := MCol()
@@ -563,7 +567,15 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:aSelected := hb_ADel( oPaneCurr:aSelected, nPos, .T. )
       ENDIF
       KEYBOARD Chr( K_DOWN )
-
+   ELSEIF nKey == K_CTRL_INS .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+      cTemp := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+      IF cTemp == ".."
+         cTemp := oPaneCurr:cCurrPath
+      ENDIF
+      s_t2cb( oHbc, cTemp )
+   ELSEIF nKey == K_CTRL_ENTER .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+      FilePane():cConsCmd += oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+      hbc_Console()
    ELSEIF nKey == K_CTRL_O
       hbc_Console()
    ELSEIF nKey == K_CTRL_Q

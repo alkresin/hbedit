@@ -2686,7 +2686,7 @@ FUNCTION edi_2cb( oEdit, nReg, s )
 
    RETURN Nil
 
-STATIC FUNCTION s_t2cb( oEdit, s )
+FUNCTION s_t2cb( oEdit, s )
 
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
