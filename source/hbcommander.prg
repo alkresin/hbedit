@@ -1596,7 +1596,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
       @ 08, 28 SAY PAdc( "Wait", 28 )
    ENDIF
 
-   edi_Writelog( "1: " + aDir[1] )
+   //edi_Writelog( "1: " + aDir[1] )
    IF oPaneCurr:nPanelMod == 2
       i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
       IF i == 0
@@ -1632,10 +1632,10 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
          nRes := 2
       ENDIF
    ELSE
-      edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
+      //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
       IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
-         edi_Writelog( "Err" )
+         //edi_Writelog( "Err" )
          nRes := 2
       ENDIF
    ENDIF
