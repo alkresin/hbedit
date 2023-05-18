@@ -3526,18 +3526,21 @@ FUNCTION mnu_NewBuf( oEdit, cFileName, cText, funSave )
       ENDIF
    ENDIF
 
-   hb_cdpSelect( oEdit:cpInit )
-   oNew := TEdit():New( cText, cFileName, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
-   oNew:funSave := Iif( Empty(funSave), oEdit:funSave, funSave )
-   hb_cdpSelect( oEdit:cp )
-   oEdit:lShow := .F.
+   hb_cdpSelect( TEdit():cpInit )
+   //oNew := TEdit():New( cText, cFileName, TEdit():aRectFull[1], TEdit():aRectFull[2], TEdit():aRectFull[3], TEdit():aRectFull[4] )
+   oNew := TEdit():New( cText, cFileName )
+   IF !Empty( oEdit )
+      oNew:funSave := Iif( Empty(funSave), oEdit:funSave, funSave )
+      hb_cdpSelect( oEdit:cp )
+      oEdit:lShow := .F.
 
-   IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
-         .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
-   ELSE
-      oEdit:lClose := .T.
+      IF ( !Empty( oEdit:aText ) .AND. !Empty( oEdit:aText[1] ) ) ;
+            .OR. oEdit:lUpdated .OR. !Empty( oEdit:cFilename )
+      ELSE
+         oEdit:lClose := .T.
+      ENDIF
    ENDIF
-   oEdit:nCurr := Len( oEdit:aWindows )
+   TEdit():nCurr := Len( TEdit():aWindows )
 
    RETURN oNew
 

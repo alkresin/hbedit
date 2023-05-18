@@ -62,12 +62,12 @@ FUNCTION Hbc( oEdit )
       lGuiVer := .T.
 #endif
 
-      IF !Empty( oEdit )
-         FilePane():vy2 := TEdit():aRectFull[3]; nScreenH := FilePane():vy2 + 1
-         FilePane():vx2 := TEdit():aRectFull[4]; nScreenW := FilePane():vx2 + 1
-      ENDIF
-
       oHbc := mnu_NewBuf( oEdit )
+      FilePane():vy2 := TEdit():aRectFull[3]
+      FilePane():vx2 := TEdit():aRectFull[4]
+      nScreenH := FilePane():vy2 + 1
+      nScreenW := FilePane():vx2 + 1
+
       oHbc:cFileName := cName
       oHbc:lTopPane := .F.
       oHbc:bOnKey := {|o,n| _Hbc_OnKey(o,n) }

@@ -164,20 +164,21 @@ FUNCTION Main( ... )
       NEXT
    ENDIF
 
-   IF Empty( TEdit():aWindows )
-      TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
-   ENDIF
+   SetCancel( .F. )
+   TEdit():nCurr := 1
 
+   IF Empty( TEdit():aWindows )
+      IF lHbc //.AND. Len( TEdit():aWindows ) == 1
+         Hbc()
+      ELSE
+        TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
+      ENDIF
+   ENDIF
    IF nStartLine != Nil
-      IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
+     IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
       TEdit():aWindows[1]:Goto( nStartLine,,, .T. )
    ENDIF
 
-   SetCancel( .F. )
-   TEdit():nCurr := 1
-   IF lHbc .AND. Len( TEdit():aWindows ) == 1
-      Hbc( TEdit():aWindows[1] )
-   ENDIF
    DO WHILE !Empty( TEdit():aWindows )
       IF TEdit():nCurr > Len(TEdit():aWindows)
          TEdit():nCurr := 1
