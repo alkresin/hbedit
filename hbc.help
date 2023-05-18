@@ -3,66 +3,69 @@ HbCommander - built-in file manager
   Copyright (C) Alexander S. Kresin
 컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴�
 
-   F1       - Help
-   F2       - Context menu
-   F3       - File view; directory size
-   Ctrl-F3  - File view with external viewer, declared in hbc.ini in [EXTVIEW] section
-   F4       - File edit
-   Shift-F4 - Open editor with empty file
-   Ctrl-F4  - File edit with external editor, declared in hbc.ini in [EXTEDIT] section
-   F5       - File copy
-   F6       - File move
-   Shift-F6 - File rename
-   F7       - Create directory
-   F8       - File delete
-   F9       - Menu
-   F10      - Exit
-   F11      - Plugins, declared in hbc.ini in [PLUGINS] section
-   F12      - Editor buffers
-   Ctrl-A   - View/Set file attributes
-   Ctrl-P   - Pane display mode menu
+   F1         - Help
+   F2         - Context menu
+   F3         - File view; directory size
+   Ctrl-F3    - File view with external viewer, declared in hbc.ini in [EXTVIEW] section
+   F4         - File edit
+   Shift-F4   - Open editor with empty file
+   Ctrl-F4    - File edit with external editor, declared in hbc.ini in [EXTEDIT] section
+   F5         - File copy
+   F6         - File move
+   Shift-F6   - File rename
+   F7         - Create directory
+   F8         - File delete
+   F9         - Menu
+   F10        - Exit
+   F11        - Plugins, declared in hbc.ini in [PLUGINS] section
+   F12        - Editor buffers
+   Ctrl-A     - View/Set file attributes
+   Ctrl-P     - Pane display mode menu
 
-   Alt-D    - Change directory
-   Ctrl-F1  - Change directory for a left pane
-   Ctrl-F2  - Change directory for a right pane
-   Ctrl-R   - Refresh panel
-   Ctrl-F7   - Search
-   +        - Search/select
-   Ctrl-F8   - Commands History
-   Ctrl-F12  - Quick access to apps, declared in hbc.ini in [APPLIST] section
-   Shift-F1 - Add file/folder to a zip
-   Shift-F2 - Extract files from a zip
-   Ctrl-O   - Open console
-   =        - Open console and puts '=' to a command line
-              ( = allows to calculate expressions, using operators
-                and Harbour functions, for example:
-                =1024*16+25, or =date() )
-   Ctrl-Q   - View stdout window
-   Ctrl-Tab - Switch between buffers
+   Alt-D      - Change directory
+   Ctrl-F1    - Change directory for a left pane
+   Ctrl-F2    - Change directory for a right pane
+   Ctrl-R     - Refresh panel
+   Ctrl-F7     - Search
+   +          - Search/select
+   Ctrl-F8     - Commands History
+   Ctrl-F12    - Quick access to apps, declared in hbc.ini in [APPLIST] section
+   Shift-F1   - Add file/folder to a zip
+   Shift-F2   - Extract files from a zip
+   Ctrl-O     - Open console
+   =          - Open console and puts '=' to a command line
+                ( = allows to calculate expressions, using operators
+                  and Harbour functions, for example:
+                  =1024*16+25, or =date() )
+   Ctrl-Enter - Open Console and add a current file to a command line
+   Ctrl-Ins   - Put current file name to a clipboard
+   Ctrl-Q     - View stdout window
+   Ctrl-Tab   - Switch between buffers
+
 
    Mouse left button click on a header calls main menu.
    Mouse right button click on a header calls context menu.
 
 :: :
 Console mode
-   F1       - Help
-   F9       - Menu
-   Ctrl-O   - Close console
-   ESC      - Close console
-   Up,Down  - browse commands history
-   Ctrl-Q   - View stdout window
-   Ctrl-Tab - Switch between buffers
-   Tab      - Command completition
-   Ctrl-F8  - Commands History
+   F1         - Help
+   F9         - Menu
+   Ctrl-O     - Close console
+   ESC        - Close console
+   Up,Down    - browse commands history
+   Ctrl-Q     - View stdout window
+   Ctrl-Tab   - Switch between buffers
+   Tab        - Command completition
+   Ctrl-F8    - Commands History
 
    Mouse right button click calls console menu.
 
   Command line abbreviations:
-  %p        - Current file name
-  %f        - Current file name with full path
-  %n        - Current file name without extention
-  %d        - Current path
-  %o        - Current path in other pane
-  %m        - Call a dialog window to input a text
-  %/        - os file separator
-  %%        - % symbol
+  %p          - Current file name
+  %f          - Current file name with full path
+  %n          - Current file name without extention
+  %d          - Current path
+  %o          - Current path in other pane
+  %m          - Call a dialog window to input a text
+  %/          - os file separator
+  %%          - % symbol
