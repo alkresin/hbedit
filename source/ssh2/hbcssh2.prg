@@ -10,12 +10,12 @@
 
 #define  BUFFSIZE  16384
 
-FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass )
+FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass, lSave )
 
    LOCAL pSess
 
-   IF Empty( cLogin )
-      IF !GetLogin( @cLogin, @cPass )
+   IF Empty( cLogin ) .OR. Empty( cPass )
+      IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
          RETURN .F.
       ENDIF
    ENDIF
@@ -139,27 +139,6 @@ FUNCTION hbc_ssh2_isDirExists( pSess, cFileName )
    ENDIF
 
    RETURN .F.
-
-STATIC FUNCTION GetLogin( cLogin, cPass )
-   LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
-   LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets := { ;
-      {y1+1,x1+2, 11, "Login:"}, ;
-      { y1+1,x1+10, 0, "", x2-x1-12 }, ;
-      {y1+2,x1+2, 11, "Passw:"}, ;
-      { y1+2,x1+10, 0, "", x2-x1-12,,,1 } }
-
-      cBuf := Savescreen( y1, x1, y1 + 3, x2 )
-      @ y1, x1, y1 + 3, x2 BOX "ÚÄ¿³ÙÄÀ³ "
-
-      edi_READ( aGets )
-      IF LastKey() == 13
-         cLogin := aGets[2,4]
-         cPass  := aGets[4,4]
-      ENDIF
-      Restscreen( y1, x1, y1 + 3, x2, cBuf )
-
-   RETURN .T.
 
 STATIC FUNCTION _Writelog( cText )
    RETURN edi_Writelog( Dtoc(Date())+" "+Time()+" " + cText, "hbcnet.err" )

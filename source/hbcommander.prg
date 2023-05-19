@@ -873,7 +873,7 @@ CLASS FilePane
    CLASS VAR cConsOut SHARED   INIT ""
    CLASS VAR nConsMax SHARED   INIT 20000
    CLASS VAR xContextMenu SHARED
-   CLASS VAR nConsVar SHARED INIT 1
+   //CLASS VAR nConsVar SHARED INIT 1
    CLASS VAR lConsMode SHARED INIT .F.
    CLASS VAR nLastKey SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
@@ -894,9 +894,7 @@ CLASS FilePane
    DATA nCells, nRows, nWidth
    DATA nPanelMod     INIT 0
    DATA hUnzip
-#ifdef _USE_SSH2
    DATA pSess
-#endif
    DATA cCurrPath
 
    DATA nCurrent     INIT 1
@@ -1015,12 +1013,21 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 
 METHOD ParsePath( cPath ) CLASS FilePane
 
-   LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cLogin, cPass
-   LOCAL c, l, i, lNetFou := .F.
+   LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cDefPort, cLogin := "", cPass := ""
+   LOCAL c, l, i, lNetFou := .F., lSave := .F., aParam
 
-   IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0
-      cPref := aRemote[nNet]
-      nPos := Len(cPref) + 1
+   IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0 .OR. ;
+      ( nPos := At( ':', cPath ) ) > 2 .AND. ;
+      ( i := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
+      IF nNet > 0
+         cPref := aRemote[nNet]
+         nPos := Len(cPref) + 1
+         cDefPort := aRemotePorts[nNet]
+      ELSE
+         cPref := Left( cPath, nPos )
+         nPos ++
+         cDefPort := ""
+      ENDIF
       IF ( nPos1 := hb_At( ':', cPath, nPos ) ) > 0
          // net:10.8.0.1:...
          cAddr := Substr( cPath, nPos, nPos1-nPos )   // cAddr = 10.8.0.1
@@ -1036,46 +1043,24 @@ METHOD ParsePath( cPath ) CLASS FilePane
                cCurrPath := Substr( cPath, nPos2 )
             ELSE
                // net:10.8.0.1:100abc
-               cPort := aRemotePorts[nNet]
+               cPort := cDefPort
                cCurrPath := Substr( cPath, nPos1+1 )
             ENDIF
          ELSE
             // net:10.8.0.1:...
-            cPort := aRemotePorts[nNet]
-            cCurrPath := Substr( cPath, nPos1 + 1 )
+            cPort := cDefPort
+            cCurrPath := Substr( cPath, nPos1+1 )
          ENDIF
       ELSEIF ( nPos1 := cedi_Strpbrk( "/\", cPath, nPos ) ) > 0
          // net:10.8.0.1/Directory
          cAddr := Substr( cPath, nPos, nPos1-nPos )
-         cPort := aRemotePorts[nNet]
+         cPort := cDefPort
          cCurrPath := Substr( cPath, nPos1 )
       ELSE
          // net:10.8.0.1 or net:Directory
-         cPort := aRemotePorts[nNet]
+         cPort := cDefPort
          cAddr := Substr( cPath, nPos )
          cCurrPath := ""
-         /*
-         // Checking if there is an ip after net:
-         nPos1 := nPos - 1
-         nPos2 := 0
-         l := .T.
-         DO WHILE ++nPos1 <= Len(cPath)
-            IF ( c := Substr( cPath, nPos1, 1 ) ) == '.'
-               nPos2 ++
-            ELSEIF !isDigit( c )
-               l := .F.
-               EXIT
-            ENDIF
-         ENDDO
-         IF l .AND. nPos2 == 3
-            cAddr := Substr( cPath, nPos )
-            cPort := aRemotePorts[nNet]
-            cCurrPath := ""
-         ELSE
-            ::cCurrPath := Substr( cPath, nPos )
-            RETURN .T.
-         ENDIF
-         */
       ENDIF
       IF Empty( FilePane():aNetInfo )
          NetInfoLoad()
@@ -1109,9 +1094,19 @@ METHOD ParsePath( cPath ) CLASS FilePane
             l := netio_Connect( hb_strShrink(cAddr,1), hb_strShrink(cPort,1), 2000, cPass )
 #ifdef _USE_SSH2
          ELSEIF cPref == "sftp:"
-            ::pSess := hbc_ssh2_Connect( hb_strShrink(cAddr,1), Val(cPort), @cLogin, @cPass )
+            ::pSess := hbc_ssh2_Connect( hb_strShrink(cAddr,1), Val(cPort), @cLogin, @cPass, @lSave )
             l := !Empty( ::pSess )
+            IF !l .OR. !lSave
+               cPass := ""
+            ENDIF
 #endif
+         ELSE
+            aParam := { cAddr, cPort, cCurrPath, cLogin, cPass, lSave }
+            l := edi_RunPlugin( Self, FilePane():aPlugins, i, aParam )
+            IF l .AND. aParam[6]
+               cLogin := aParam[4]
+               cPass := aParam[5]
+            ENDIF
          ENDIF
          IF l
             IF !lNetFou
@@ -1136,9 +1131,6 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ::cCurrPath := cCurrPath
          ::cIOpref_bak := ::net_cAddress_bak := ""
       ENDIF
-   ELSEIF ( nPos := At( ':', cPath ) ) > 2 .AND. ;
-      ( i := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
-      RETURN edi_RunPlugin( Self, FilePane():aPlugins, i, {cPath} )
    ELSE
       IF !Empty( ::cIOpref )
          cPref := ::cIOpref
@@ -1177,18 +1169,27 @@ METHOD ParsePath( cPath ) CLASS FilePane
 
 METHOD SetDir( cPath ) CLASS FilePane
 
+   LOCAL cProc
+
    ::aSelected := {}
    IF Empty( cPath )
       ::aDir := {}
       RETURN Nil
    ENDIF
 
-#ifdef _USE_SSH2
    IF !Empty( ::pSess ) .AND. !( cPath = ::cIOpref + ::net_cAddress )
-      ssh2_Close( ::pSess )
+      IF hb_isFunction( cProc := "PLUG_HBC_URL_" + hb_strShrink(::cIOpref,1) + "_CLOSE" )
+         Eval( &( "{||" + cProc + "(" + Iif( Self==FilePane():aPanes[1],"1","2" ) + ")}" ) )
+      ELSE
+#ifdef _USE_SSH2
+         IF ::cIOpref == "sftp:"
+            ssh2_Close( ::pSess )
+         ENDIF
+#endif
+      ENDIF
       ::pSess := Nil
    ENDIF
-#endif
+
    IF ::nPanelMod == 2
       hb_unzipClose( ::hUnzip )
       ::hUnzip := Nil
@@ -2954,11 +2955,11 @@ FUNCTION hbc_Console( xCommand )
             ENDIF
 #endif
          ELSE
-            IF FilePane():nConsVar == 1
+            //IF FilePane():nConsVar == 1
                Cons_My( cCommand )
-            ELSE
-               Cons_Hrb( cCommand )
-            ENDIF
+            //ELSE
+            //   Cons_Hrb( cCommand )
+            //ENDIF
          ENDIF
          cCommand := ""
       ELSEIF Lastkey() == K_ESC
@@ -3083,6 +3084,7 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
 
    RETURN cRes
 
+/*
 STATIC FUNCTION Cons_Hrb( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
@@ -3127,7 +3129,7 @@ STATIC FUNCTION Cons_Hrb( cCommand )
    oCons:End()
 
    RETURN Nil
-
+*/
 STATIC FUNCTION Cons_My( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
@@ -3188,6 +3190,35 @@ STATIC FUNCTION Cons_My( cCommand )
    cedi_EndConsoleApp( pApp )
 
    RETURN Nil
+
+FUNCTION hbc_GetLogin( cLogin, cPass, lSave )
+   LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets := { ;
+      {y1+1,x1+2, 11, "Login:"}, ;
+      { y1+1,x1+10, 0, cLogin, x2-x1-12 }, ;
+      {y1+2,x1+2, 11, "Passw:"}, ;
+      { y1+2,x1+10, 0, cPass, x2-x1-12,,,1 }, ;
+      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] Save password"} ;
+      }
+
+   cBuf := Savescreen( y1, x1, y1 + 5, x2 )
+   @ y1, x1, y1 + 5, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+3, x1 SAY "Ã"
+   @ y1+3, x2 SAY "´"
+   @ y1+3, x1+1 TO y1+3, x2-1
+
+   edi_READ( aGets )
+   Restscreen( y1, x1, y1 + 5, x2, cBuf )
+   IF LastKey() == 13
+      cLogin := aGets[2,4]
+      cPass  := aGets[4,4]
+      lSave  := aGets[5,4]
+   ELSE
+      RETURN .F.
+   ENDIF
+
+   RETURN .T.
 
 STATIC FUNCTION CmdHisLoad()
 
@@ -3304,6 +3335,7 @@ STATIC FUNCTION WndClose( arr, cText )
 FUNCTION Ascan2( arr, xItem )
    RETURN Ascan( arr, {|a|a[1]==xItem} )
 
+/*
 #define BUFFER_SIZE  1024
 
 CLASS RCons
@@ -3354,3 +3386,4 @@ METHOD End() CLASS RCons
    cedi_waitpid( ::hProcess )
 #endif
    RETURN hb_processClose( ::hProcess )
+*/
