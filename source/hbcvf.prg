@@ -1,5 +1,8 @@
 /*
+ * Replacement for hb_vf... functions
  *
+ * Copyright 2023 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
  */
 
 FUNCTION hbc_vfOpen( cFileName, cFlags )
@@ -39,7 +42,7 @@ FUNCTION hbc_vfLoad( cFileName, nMaxSize )
    LOCAL pSess
 
    IF cFileName = "sftp:"
-      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), "", hb_ssh2_MemoRead( pSess,_GetDir(cFileName) ) )
+      RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), "", hbc_ssh2_MemoRead( pSess,_GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfLoad( cFileName, nMaxSize )
 
@@ -48,7 +51,7 @@ FUNCTION hbc_vfDirectory( cDirSpec, cAttr )
    LOCAL pSess
 
    IF cDirSpec = "sftp:"
-      RETURN Iif( Empty( pSess := _GetpSess(cDirSpec) ), {}, hb_ssh2_Directory( pSess, _GetDir(cDirSpec), cAttr ) )
+      RETURN Iif( Empty( pSess := _GetpSess(cDirSpec) ), {}, hbc_ssh2_Directory( pSess, _GetDir(cDirSpec), cAttr ) )
    ENDIF
    RETURN hb_vfDirectory( cDirSpec, cAttr )
 
@@ -73,10 +76,10 @@ FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
       IF cFileDst = "sftp:"
          RETURN -1
       ELSE
-         RETURN Iif( Empty( pSess := _GetpSess(cFileSrc) ), -1, hb_ssh2_Download( pSess,_GetDir(cFileSrc),cFileDst ) )
+         RETURN Iif( Empty( pSess := _GetpSess(cFileSrc) ), -1, hbc_ssh2_Download( pSess,_GetDir(cFileSrc),cFileDst ) )
       ENDIF
    ELSEIF cFileDst = "sftp:"
-      RETURN Iif( Empty( pSess := _GetpSess(cFileDst) ), -1, hb_ssh2_Upload( pSess,_GetDir(cFileDst),cFileSrc ) )
+      RETURN Iif( Empty( pSess := _GetpSess(cFileDst) ), -1, hbc_ssh2_Upload( pSess,_GetDir(cFileDst),cFileSrc ) )
    ENDIF
    RETURN hb_vfCopyFile( cFileSrc, cFileDst )
 
@@ -85,7 +88,7 @@ FUNCTION hbc_vfDirExists( cDirName )
    LOCAL pSess
    IF cDirName = "sftp:"
       RETURN Iif( Empty( pSess := _GetpSess(cDirName) ), .F., ;
-         hb_ssh2_isDirExists( pSess, _GetDir(cDirName) ) )
+         hbc_ssh2_isDirExists( pSess, _GetDir(cDirName) ) )
    ENDIF
    RETURN hb_vfDirExists( cDirName )
 
@@ -94,7 +97,7 @@ FUNCTION hbc_vfExists( cFileName )
    LOCAL pSess
    IF cFileName = "sftp:"
       RETURN Iif( Empty( pSess := _GetpSess(cFileName) ), .F., ;
-         hb_ssh2_isFileExists( pSess, _GetDir(cFileName) ) )
+         hbc_ssh2_isFileExists( pSess, _GetDir(cFileName) ) )
    ENDIF
    RETURN hb_vfExists( cFileName )
 

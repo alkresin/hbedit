@@ -1,3 +1,9 @@
+/*
+ * Harbour wrappers for libssh2
+ *
+ * Copyright 2023 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 #include "hb_ssh2.h"
 

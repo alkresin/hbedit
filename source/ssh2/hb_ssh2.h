@@ -1,3 +1,9 @@
+/*
+ * Harbour wrappers for libssh2 - headers
+ *
+ * Copyright 2023 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 #include "libssh2_config.h"
 #ifdef WIN32

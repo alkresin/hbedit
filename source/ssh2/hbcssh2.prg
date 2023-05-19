@@ -1,5 +1,8 @@
 /*
+ * Ssh2, sftp for HbCommander
  *
+ * Copyright 2023 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
  */
 
 #include "fileio.ch"
@@ -36,7 +39,7 @@ FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass )
 
    RETURN pSess
 
-FUNCTION hb_ssh2_Directory( pSess, cDirSpec )
+FUNCTION hbc_ssh2_Directory( pSess, cDirSpec )
 
    LOCAL cDir := StrTran( hb_fnameDir( cDirSpec ), '\', '/' )
    LOCAL cMask := Substr( cDirSpec, Len(cDir)+1 )
@@ -56,7 +59,7 @@ FUNCTION hb_ssh2_Directory( pSess, cDirSpec )
 
    RETURN aDir
 
-FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
+FUNCTION hbc_ssh2_MemoRead( pSess, cFileName )
 
    LOCAL cBuff, cBuffer := ""
 
@@ -74,7 +77,7 @@ FUNCTION hb_ssh2_MemoRead( pSess, cFileName )
 
    RETURN cBuffer
 
-FUNCTION hb_ssh2_Download( pSess, cFileName, cFileLocal )
+FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
 
    LOCAL handle, cBuff
 
@@ -94,7 +97,7 @@ FUNCTION hb_ssh2_Download( pSess, cFileName, cFileLocal )
 
    RETURN 0
 
-FUNCTION hb_ssh2_Upload( pSess, cFileName, cFileLocal )
+FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
 
    LOCAL handle, nBytes, cBuff := Space( BUFFSIZE )
 
@@ -117,7 +120,7 @@ FUNCTION hb_ssh2_Upload( pSess, cFileName, cFileLocal )
 
    RETURN 0
 
-FUNCTION hb_ssh2_isFileExists( pSess, cFileName )
+FUNCTION hbc_ssh2_isFileExists( pSess, cFileName )
 
    LOCAL nAttr
 
@@ -127,7 +130,7 @@ FUNCTION hb_ssh2_isFileExists( pSess, cFileName )
 
    RETURN .F.
 
-FUNCTION hb_ssh2_isDirExists( pSess, cFileName )
+FUNCTION hbc_ssh2_isDirExists( pSess, cFileName )
 
    LOCAL nAttr
 

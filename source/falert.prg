@@ -63,20 +63,27 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, "", x2-x1-4,,,Iif(Empty(lPass),Nil,1) } }
+   LOCAL aGets
 
-      cBuf := Savescreen( y1, x1, y1 + 2, x2 )
-      @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   y1 := Iif( y1 == Nil, Int( MaxRow()/2 ) - 1, y1 )
+   x1 := Iif( x1 == Nil, Int( MaxCol()/2 ) - 15, x1 )
+   x2 := Iif( x2 == Nil, x1 + 30, x2 )
 
-      edi_READ( aGets )
-      IF LastKey() == 13
-         xRes := aGets[2,4]
-      ENDIF
-      Restscreen( y1, x1, y1 + 2, x2, cBuf )
+   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, "", x2-x1-4,,,Iif(Empty(lPass),Nil,1) } }
+
+   cBuf := Savescreen( y1, x1, y1 + 2, x2 )
+   @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+
+   edi_READ( aGets )
+   IF LastKey() == 13
+      xRes := aGets[2,4]
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y1 + 2, x2, cBuf )
 
    RETURN xRes
 
-FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin )
+FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin, aParams )
 
    LOCAL i, cPlugin, cFullPath
 
@@ -94,7 +101,7 @@ FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin )
          ENDIF
       ENDIF
       IF !Empty( aPlugins[i,4] )
-         hb_hrbDo( aPlugins[i,4], oEdit, hb_fnameDir( aPlugins[i,5] ) )
+         hb_hrbDo( aPlugins[i,4], oEdit, hb_fnameDir( aPlugins[i,5] ), aParams )
       ENDIF
    ENDIF
 

@@ -103,6 +103,15 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i, aDir
    LOCAL bufsc
 
+   IF !Empty( oPaneCurr:bOnKey )
+      i := Eval( oPaneCurr:bOnKey, oPaneCurr, nKeyExt )
+      IF i == - 1
+         RETURN Nil
+      ELSEIF i > 0
+         nKeyExt := i
+      ENDIF
+   ENDIF
+
    nKey := hb_keyStd( nKeyExt )
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
@@ -332,7 +341,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                      cTemp := Left( cTemp,nPos )
                   ENDIF
                   zipDirRefresh( oPaneCurr, cTemp )
-                  //edi_Alert( ltrim(str(len(oPaneCurr:adir))) + " " + ltrim(str(len(cTemp))) + ":" + cTemp )
                ENDIF
                oPaneCurr:nCurrent := 1
                oPaneCurr:Draw()
@@ -393,6 +401,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
             IF nPos > 0
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+            ELSEIF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_"+cExtFull+".hrb" ) ) > 0
+               edi_RunPlugin( oPaneCurr, FilePane():aPlugins, i, {cTemp} )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
                hbc_Console( cTemp )
@@ -896,6 +906,8 @@ CLASS FilePane
    DATA aZipFull
    DATA aSelected     INIT {}
 
+   DATA bOnKey, bDraw, bDrawCell, bDrawHead
+
    METHOD New( x1, y1, x2, y2, nMode, cPath )
    METHOD ChangeMode( nMode, nSort )
    METHOD ChangeDir()
@@ -1124,6 +1136,9 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ::cCurrPath := cCurrPath
          ::cIOpref_bak := ::net_cAddress_bak := ""
       ENDIF
+   ELSEIF ( nPos := At( ':', cPath ) ) > 2 .AND. ;
+      ( i := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
+      RETURN edi_RunPlugin( Self, FilePane():aPlugins, i, {cPath} )
    ELSE
       IF !Empty( ::cIOpref )
          cPref := ::cIOpref
@@ -1265,6 +1280,10 @@ METHOD Draw() CLASS FilePane
 
    LOCAL i, cTemp
 
+   IF !Empty( ::bDraw )
+      RETURN Eval( ::bDraw, Self )
+   ENDIF
+
    SetColor( ::cClrBox )
    @ ::y1, ::x1, ::y2, ::x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
@@ -1298,6 +1317,10 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
    LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen
    LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
+
+   IF !Empty( ::bDrawCell )
+      RETURN Eval( ::bDrawCell, Self )
+   ENDIF
 
    IF ::nCurrent == 0
       @ ::y2 - 1, ::x1 + 1 SAY "Not available"
@@ -1386,6 +1409,10 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 METHOD DrawHead( lCurr ) CLASS FilePane
 
    LOCAL cPath
+
+   IF !Empty( ::bDrawHead )
+      RETURN Eval( ::bDrawHead, Self )
+   ENDIF
 
    SetColor( Iif( lCurr, ::cClrCurr, ::cClrFil ) )
    IF ::nPanelMod == 0
@@ -2729,7 +2756,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
    LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {"Stdout window",,,"Ctrl-Q"}, ;
-      {cSep,,}, {"Close",,,"Ctrl-O,Esc"} }
+      {"Set autocompletion "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, {"Close",,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic
 
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
@@ -2743,6 +2770,8 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
       ENDIF
    ELSEIF nChoic == 2
       KEYBOARD Chr(K_CTRL_Q)
+   ELSEIF nChoic == 3
+      FilePane():lConsAuto := !FilePane():lConsAuto
    ELSEIF nChoic == Len( aMenu )
       FilePane():nLastKey := 0
       FilePane():cConsCmd := cmd
