@@ -101,9 +101,9 @@ FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin, aParams )
          ENDIF
       ENDIF
       IF !Empty( aPlugins[i,4] )
-         hb_hrbDo( aPlugins[i,4], oEdit, hb_fnameDir( aPlugins[i,5] ), aParams )
+         RETURN hb_hrbDo( aPlugins[i,4], oEdit, hb_fnameDir( aPlugins[i,5] ), aParams )
       ENDIF
    ENDIF
 
-   RETURN Nil
+   RETURN .F.
 

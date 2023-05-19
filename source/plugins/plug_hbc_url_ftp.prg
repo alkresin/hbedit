@@ -1,7 +1,8 @@
 
-FUNCTION plug_hbc_url_ftp( oPane, cPath, aParams )
+FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
 
    LOCAL cAddr, nPorts, cPath, cLogin := "", cPass := "", lSave := .F.
+   LOCAL hSocket, nPort
 
    IF Empty( aParams )
       IF Empty( cAddr := edi_MsgGet( "FTP Address:" ) )
@@ -9,7 +10,7 @@ FUNCTION plug_hbc_url_ftp( oPane, cPath, aParams )
       ENDIF
    ELSE
       cAddr := aParams[1]
-      nPort := Iif( Empty(aParams[2]), 21, Val(aParams[2]) )
+      nPort := Iif( Empty(Val(aParams[2])), 21, Val(aParams[2]) )
       cPath := aParams[3]
       cLogin := aParams[4]
       cPass := aParams[5]
@@ -18,16 +19,27 @@ FUNCTION plug_hbc_url_ftp( oPane, cPath, aParams )
    IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
       RETURN .F.
    ENDIF
-
-   hb_inetInit()
-   IF Empty( hSocket := FtpConnect( cAddr, 21 ) )
-      hb_inetCleanup()
-      RETURN Nil
+   IF Empty( cLogin )
+      cLogin := "anonymous"
    ENDIF
 
-   FtpLogin( hSocket, cLogin, cPass )
-   FtpSendCmd( hSocket, "TYPE I" )
-   FtpList( hSocket, cPath )
+   hb_inetInit()
+   ftplog( "Connect to: " + cAddr + ":" + Ltrim(str(nPort)) )
+   IF Empty( hSocket := FtpConnect( cAddr, nPort ) )
+      hb_inetCleanup()
+      RETURN .F.
+   ENDIF
+
+   IF FtpLogin( hSocket, cLogin, cPass )
+      FtpSendCmd( hSocket, "TYPE I" )
+      FtpList( hSocket, cPath )
+      aParams[4] := cLogin
+      aParams[5] := cPass
+      aParams[6] := lSave
+      RETURN .T.
+   ELSE
+      edi_Alert( "Can't login" )
+   ENDIF
 
    RETURN .F.
 
@@ -80,15 +92,22 @@ STATIC FUNCTION FtpConnect( cAddr, nPort )
 
 STATIC FUNCTION FtpLogin( hSocket, cLogin, cPass )
 
+   LOCAL cRes
    FtpLog( "--- User ---" )
    hb_inetSendAll( hSocket, "USER " + cLogin + Chr(13)+Chr(10) )
-   FtpGetReply( hSocket )
+   cRes := FtpGetReply( hSocket )
+   IF Left( cRes,1 ) > '3'
+      RETURN .F.
+   ENDIF
 
    FtpLog( "--- Pass ---" )
    hb_inetSendAll( hSocket, "PASS " + cPass + Chr(13)+Chr(10) )
-   FtpGetReply( hSocket )
+   cRes := FtpGetReply( hSocket )
+   IF Left( cRes,1 ) > '3'
+      RETURN .F.
+   ENDIF
 
-   RETURN Nil
+   RETURN .T.
 
 STATIC FUNCTION FtpSendCmd( hSocket, cmd )
 
@@ -169,7 +188,7 @@ STATIC FUNCTION FtpGetReply( hSocket )
    RETURN cBuffer
 
 STATIC FUNCTION FtpLog( cText )
-   ? cText
+   //? cText
    edi_Writelog( cText, "_ftp1.log" )
 
    RETURN Nil

@@ -1014,11 +1014,11 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 METHOD ParsePath( cPath ) CLASS FilePane
 
    LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cDefPort, cLogin := "", cPass := ""
-   LOCAL c, l, i, lNetFou := .F., lSave := .F., aParam
+   LOCAL c, l, i, lNetFou := .F., lSave := .F., aParam, nPlug
 
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0 .OR. ;
       ( nPos := At( ':', cPath ) ) > 2 .AND. ;
-      ( i := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
+      ( nPlug := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
       IF nNet > 0
          cPref := aRemote[nNet]
          nPos := Len(cPref) + 1
@@ -1101,8 +1101,8 @@ METHOD ParsePath( cPath ) CLASS FilePane
             ENDIF
 #endif
          ELSE
-            aParam := { cAddr, cPort, cCurrPath, cLogin, cPass, lSave }
-            l := edi_RunPlugin( Self, FilePane():aPlugins, i, aParam )
+            aParam := { hb_strShrink(cAddr,1), cPort, cCurrPath, cLogin, cPass, lSave }
+            l := edi_RunPlugin( Self, FilePane():aPlugins, nPlug, aParam )
             IF l .AND. aParam[6]
                cLogin := aParam[4]
                cPass := aParam[5]
