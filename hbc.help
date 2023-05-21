@@ -42,6 +42,10 @@ HbCommander - built-in file manager
    Ctrl-Q     - View stdout window
    Ctrl-Tab   - Switch between buffers
 
+   m          - Set bookmark on current directory, then press a,s,d
+                to select a bookmark
+   '          - Go to directory, saved in a bookmark (a,s,d)
+
 
    Mouse left button click on a header calls main menu.
    Mouse right button click on a header calls context menu.

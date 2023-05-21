@@ -1,20 +1,29 @@
 
+#include "/home/alkresin/apps/harbour/include/inkey.ch"
+
+STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
+   K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_ENTER, ;
+   K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D }
+STATIC aMonths := { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" }
+
 FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
 
-   LOCAL cAddr, nPorts, cPath, cLogin := "", cPass := "", lSave := .F.
+   LOCAL cAddr, cPath, cLogin := "", cPass := "", lSave := .F.
    LOCAL hSocket, nPort
 
    IF Empty( aParams )
       IF Empty( cAddr := edi_MsgGet( "FTP Address:" ) )
          RETURN .F.
+      ELSE
+         RETURN oPane:ChangeDir( "ftp:" + cAddr )
       ENDIF
-   ELSE
-      cAddr := aParams[1]
-      nPort := Iif( Empty(Val(aParams[2])), 21, Val(aParams[2]) )
-      cPath := aParams[3]
-      cLogin := aParams[4]
-      cPass := aParams[5]
    ENDIF
+
+   cAddr := aParams[1]
+   nPort := Iif( Empty(Val(aParams[2])), 21, Val(aParams[2]) )
+   cPath := aParams[3]
+   cLogin := aParams[4]
+   cPass := aParams[5]                    	
 
    IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
       RETURN .F.
@@ -32,10 +41,15 @@ FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
 
    IF FtpLogin( hSocket, cLogin, cPass )
       FtpSendCmd( hSocket, "TYPE I" )
-      FtpList( hSocket, cPath )
+
+      oPane:pSess := hSocket
+      oPane:bRefresh := {|o|_plug_Refresh(o)}
+      oPane:bOnKey := {|o,n|_plug_OnKey(o,n)}
+
       aParams[4] := cLogin
       aParams[5] := cPass
       aParams[6] := lSave
+
       RETURN .T.
    ELSE
       edi_Alert( "Can't login" )
@@ -49,30 +63,31 @@ FUNCTION plug_hbc_url_ftp_close( n )
 
    RETURN Nil
 
-STATIC FUNCTION FtpTest
+STATIC FUNCTION _plug_Refresh( oPane )
 
-   LOCAL hSocket, cBuf, cBuffer, nRet, cPass := "", lSave := .F.
-   LOCAL cAddr := "ftp.gnu.org", cLogin := "anonymous"
+   oPane:aDir := FtpList( oPane:pSess, oPane:cCurrPath )
 
-   IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
-      RETURN Nil
+   RETURN 0
+
+STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
+
+   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, oPaneTo, cName
+
+   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+      RETURN -1
+   ENDIF
+   IF Ascan( aKeys1, nKey ) > 0
+      RETURN 0
    ENDIF
 
-   hb_inetInit()
-   IF Empty( hSocket := FtpConnect( cAddr, 21 ) )
-      hb_inetCleanup()
-      RETURN Nil
+   IF nKey == K_F5
+      cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
+      oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
+      cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName )
+      hb_MemoWrit( oPaneTo:cCurrPath+cName, cBuffer )
    ENDIF
 
-   FtpLogin( hSocket, cLogin, cPass )
-
-   FtpSendCmd( hSocket, "TYPE I" )
-
-   FtpList( hSocket, "/" )
-
-   hb_inetClose( hSocket )
-   hb_inetCleanup()
-   RETURN Nil
+   RETURN -1
 
 STATIC FUNCTION FtpConnect( cAddr, nPort )
 
@@ -151,6 +166,7 @@ STATIC FUNCTION FtpPASV( hSocket )
 STATIC FUNCTION FtpList( hSocket, cPath )
 
    LOCAL hSockNew, cBuffer := "", cBuf, nRet
+   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
 
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       RETURN Nil
@@ -169,7 +185,50 @@ STATIC FUNCTION FtpList( hSocket, cPath )
    FtpLog( cBuffer )
    FtpGetReply( hSocket )
 
-   RETURN Nil
+   arr := hb_ATokens( cBuffer, Chr(10) )
+   FOR i := 1 TO Len( arr )
+      IF !Empty( arr[i] ) .AND. Len( arr[i] := hb_Atokens( arr[i] ) ) == 9
+         cName := Iif( Right(arr[i,9],1) == Chr(13), hb_strShrink(arr[i,9],1), arr[i,9] )
+         IF !( cName == "." )
+            cAttr := Upper( arr[i,1] )
+            nSize := Iif( "D" $ cAttr, 0, Val(arr[i,5]) )
+            IF ( j := Ascan( aMonths, Lower(arr[i,6]) ) ) > 0
+               cYear := Iif( ':' $ arr[i,8], Str( Year(Date()),4 ), arr[i,8] )
+               dDate := Stod( cYear + PAdl( Ltrim(Str(j)),2,'0' ) + PAdl( arr[i,7],2,'0' ) )
+            ELSE
+               dDate := Stod( "19000101" )
+            ENDIF
+            AAdd( aDir, { cName, nSize, dDate, "", cAttr } )
+            //edi_writelog( cName + " " + Ltrim(Str(nSize)) + " " + arr[i,5] + " " + cAttr )
+         ENDIF
+      ENDIF
+   NEXT
+
+   RETURN aDir
+
+STATIC FUNCTION FtpReadFile( hSocket, cFileName )
+
+   LOCAL hSockNew, cBuffer := "", cBuf, nRet
+   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
+
+   IF Empty( hSockNew := FtpPASV( hSocket ) )
+      RETURN Nil
+   ENDIF
+
+   FtpLog( "--- Retr ---" )
+   hb_inetSendAll( hSocket, "RETR " + cFileName + Chr(13)+Chr(10) )
+
+   cBuf := Space( 512 )
+   DO WHILE ( nRet := hb_inetRecvAll( hSockNew, @cBuf, 512 ) ) > 0
+      cBuffer += Iif( nRet == 512, cBuf, Left( cBuf,nRet ) )
+   ENDDO
+
+   hb_inetClose( hSockNew )
+
+   FtpLog( cBuffer )
+   FtpGetReply( hSocket )
+
+   RETURN cBuffer
 
 STATIC FUNCTION FtpGetReply( hSocket )
 

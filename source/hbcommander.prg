@@ -106,7 +106,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    IF !Empty( oPaneCurr:bOnKey )
       i := Eval( oPaneCurr:bOnKey, oPaneCurr, nKeyExt )
       IF i == - 1
-         RETURN Nil
+         RETURN -1
       ELSEIF i > 0
          nKeyExt := i
       ENDIF
@@ -622,11 +622,27 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
       ENDIF
       oPaneCurr:RedrawAll()
-   ELSEIF nKey == 43 //.AND. hb_BitAnd( nKeyExt, KP_PRESSED ) != 0
+   ELSEIF nKey == 43     // +
       hbc_Search( .T. )
-   ELSEIF nKey == 61 //.OR. (nKey >= 65 .AND. nKey <= 90) .OR. (nKey >= 97 .AND. nKey <= 122)
+   ELSEIF nKey == 61     // =
       KEYBOARD Chr(nKey)
       hbc_Console()
+   ELSEIF nKey == 109    // m
+      i := WndInit( 2, 4, 3, 30,, "Set Bookmark (a,s,d)" )
+      nKey := Inkey(0)
+      WndClose( i )
+      IF Chr( nKey ) $ "asd"
+         oHbc:hBookMarks[nKey] := { oPaneCurr:cIOpref, oPaneCurr:net_cAddress, ;
+            oPaneCurr:net_cPort, oPaneCurr:cCurrPath }
+      ENDIF
+   ELSEIF nKey == 39     // '
+      i := WndInit( 2, 4, 3, 24,, "Go to Bookmark" )
+      nKey := Inkey(0)
+      WndClose( i )
+      IF Chr( nKey ) $ "asd" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
+         aDir := oHbc:hBookMarks[nKey]
+         oPaneCurr:ChangeDir( aDir[1]+aDir[2]+aDir[3]+aDir[4] )
+      ENDIF
    ELSE
       IF !Empty( FilePane():aDefPaths )
          FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -904,7 +920,7 @@ CLASS FilePane
    DATA aZipFull
    DATA aSelected     INIT {}
 
-   DATA bOnKey, bDraw, bDrawCell, bDrawHead
+   DATA bOnKey, bDraw, bDrawCell, bDrawHead, bRefresh
 
    METHOD New( x1, y1, x2, y2, nMode, cPath )
    METHOD ChangeMode( nMode, nSort )
@@ -935,8 +951,6 @@ METHOD New( x1, y1, x2, y2, nMode, cPath ) CLASS FilePane
 
    ::SetDir( cPath )
    ::nCurrent := Iif( Empty( ::aDir ), 0, 1 )
-   //::Draw()
-   //::DrawHead( .F. )
 
    RETURN Self
 
@@ -1132,22 +1146,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ::cIOpref_bak := ::net_cAddress_bak := ""
       ENDIF
    ELSE
-      IF !Empty( ::cIOpref )
-         cPref := ::cIOpref
-         cAddr := ::net_cAddress
-         cPort := ::net_cPort
-         ::cIOpref := ::net_cAddress := ::net_cPort := ::cIOpref_bak := ::net_cAddress_bak := ""
-         l := .F.
-         FOR i := 1 TO Len( FilePane():aPanes )
-            IF ( FilePane():aPanes[i]:cIOpref == cPref ) .AND. ( FilePane():aPanes[i]:net_cAddress == cAddr ) .AND. ( FilePane():aPanes[i]:net_cPort == cPort )
-               l := .T.
-               EXIT
-            ENDIF
-         NEXT
-         IF !l
-            netio_DisConnect( Left(cAddr,Len(cAddr)-1), Left(cPort,Len(cPort)-1) )
-         ENDIF
-      ENDIF
+      ::cIOpref := ::net_cAddress := ::net_cPort := ::cIOpref_bak := ::net_cAddress_bak := ""
 #ifndef __PLATFORM__UNIX
       IF !( ':' $ cPath )
          cPath := hb_CurDrive() + ":" + cPath
@@ -1169,7 +1168,9 @@ METHOD ParsePath( cPath ) CLASS FilePane
 
 METHOD SetDir( cPath ) CLASS FilePane
 
-   LOCAL cProc
+   LOCAL aOldPath := { ::cIOpref, ::net_cAddress, ::net_cPort, ::pSess, ;
+      ::bOnKey, ::bDraw, ::bDrawCell, ::bDrawHead, ::bRefresh }
+   LOCAL cProc, l, i, pSess
 
    ::aSelected := {}
    IF Empty( cPath )
@@ -1177,17 +1178,8 @@ METHOD SetDir( cPath ) CLASS FilePane
       RETURN Nil
    ENDIF
 
-   IF !Empty( ::pSess ) .AND. !( cPath = ::cIOpref + ::net_cAddress )
-      IF hb_isFunction( cProc := "PLUG_HBC_URL_" + hb_strShrink(::cIOpref,1) + "_CLOSE" )
-         Eval( &( "{||" + cProc + "(" + Iif( Self==FilePane():aPanes[1],"1","2" ) + ")}" ) )
-      ELSE
-#ifdef _USE_SSH2
-         IF ::cIOpref == "sftp:"
-            ssh2_Close( ::pSess )
-         ENDIF
-#endif
-      ENDIF
-      ::pSess := Nil
+   IF !( cPath = ::cIOpref + ::net_cAddress )
+      ::bOnKey := ::bDraw := ::bDrawCell := ::bDrawHead := ::bRefresh := Nil
    ENDIF
 
    IF ::nPanelMod == 2
@@ -1196,10 +1188,47 @@ METHOD SetDir( cPath ) CLASS FilePane
    ENDIF
    ::nPanelMod := 0
 
-   ::ParsePath( cPath )
-   ::Refresh()
-   IF Empty( ::cIOpref )
-      DirChange( ::cCurrPath )
+   IF ::ParsePath( cPath )
+
+      IF !Empty( aOldPath[1] )
+         l := .F.
+         FOR i := 1 TO Len( FilePane():aPanes )
+            IF ( FilePane():aPanes[i]:cIOpref == aOldPath[1] ) .AND. ;
+               ( FilePane():aPanes[i]:net_cAddress == aOldPath[2] ) .AND. ;
+               ( FilePane():aPanes[i]:net_cPort == aOldPath[3] )
+               l := .T.
+               EXIT
+            ENDIF
+         NEXT
+         IF !l
+            pSess := ::pSess
+            ::pSess := aOldPath[4]
+            IF aOldPath[1] == "net:"
+               netio_DisConnect( hb_strShrink( aOldPath[2],1 ), hb_strShrink( aOldPath[3],1 ) )
+#ifdef _USE_SSH2
+            ELSEIF aOldPath[1] == "sftp:"
+               IF !Empty( ::pSess )
+                  ssh2_Close( ::pSess )
+               ENDIF
+#endif
+           ELSEIF hb_isFunction( cProc := "PLUG_HBC_URL_" + hb_strShrink(::cIOpref,1) + "_CLOSE" )
+              Eval( &( "{||" + cProc + "(" + Iif( Self==FilePane():aPanes[1],"1","2" ) + ")}" ) )
+           ENDIF
+           IF ::pSess == pSess
+              ::pSess := Nil
+           ELSE
+              ::pSess := pSess
+           ENDIF
+         ENDIF
+      ENDIF
+
+      ::Refresh()
+      IF Empty( ::cIOpref )
+         DirChange( ::cCurrPath )
+      ENDIF
+   ELSE
+      ::bOnKey := aOldPath[5]; ::bDraw := aOldPath[6]; ::bDrawCell := aOldPath[7]
+      ::bDrawHead := aOldPath[8]; ::bRefresh := aOldPath[9]
    ENDIF
 
    RETURN Nil
@@ -1208,6 +1237,14 @@ METHOD Refresh( lResort ) CLASS FilePane
 
    LOCAL aDirTmp, i, l1 := .F., l2 := .F., nPos
    LOCAL cPath := ::cCurrPath
+
+   IF !Empty( ::bRefresh )
+      IF Eval( ::bRefresh, Self ) == -1
+         RETURN .T.
+      ELSE
+         lResort := .T.
+      ENDIF
+   ENDIF
 
    IF ::nPanelMod > 0
       RETURN .F.
@@ -3321,13 +3358,15 @@ STATIC FUNCTION WndOut( arr, cText )
 
 STATIC FUNCTION WndClose( arr, cText )
 
-   LOCAL clr := SetColor( arr[5] )
+   LOCAL clr
 
-   Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
-   @ arr[3]-1, arr[2]+2 SAY cText COLOR (arr[5])
-
-   Inkey( 0 )
-   SetColor( clr )
+   IF cText != Nil
+      clr := SetColor( arr[5] )
+      Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
+      @ arr[3]-1, arr[2]+2 SAY cText COLOR (arr[5])
+      Inkey( 0 )
+      SetColor( clr )
+   ENDIF
    Restscreen( arr[1], arr[2], arr[3], arr[4], arr[6] )
 
    RETURN Nil
