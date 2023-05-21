@@ -1805,19 +1805,22 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
 
 STATIC FUNCTION hbc_FCopySele()
 
-   LOCAL cFileName, cFileTo, i, aWnd, nSch := 0, aDir
+   LOCAL cFileName, cDirTo, cFileTo, i, aWnd, nSch := 0, aDir
 
-   IF oPaneTo:nPanelMod > 0
+   IF oPaneTo:nPanelMod == 1
       RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
 
-   IF edi_Alert( "Copy " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "Yes", "No" ) == 1
+   //IF edi_Alert( "Copy " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "Yes", "No" ) == 1
+   cDirTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath
+   IF !Empty( cDirTo := FAsk_Copy( ;
+      "Copy seleted files to:", cDirTo ) )
       aWnd := WndInit( 05, 20, 12, 60,, "Copy" )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
          cFileName := aDir[1]
-         cFileTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath + cFileName
+         cFileTo := cDirTo + cFileName
 
          WndOut( aWnd, cFileName )
          IF FCopy( aDir, cFileTo, i ) == 0
