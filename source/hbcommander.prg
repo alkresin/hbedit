@@ -237,7 +237,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
      oPaneCurr:DrawCell( ,.T. )
 
    ELSEIF nKey == K_LEFT
-     IF oPaneCurr:nCurrent > oPaneCurr:nRows
+     IF oPaneCurr:nDispMode == 2 .AND. oPaneCurr:nCurrent > oPaneCurr:nRows
          oPaneCurr:DrawCell( ,.F. )
          oPaneCurr:nCurrent -= oPaneCurr:nRows
          oPaneCurr:DrawCell( ,.T. )
@@ -246,13 +246,15 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_RIGHT
       IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
          RETURN -1
-      ELSE
+      ELSEIF oPaneCurr:nDispMode == 2
+         oPaneCurr:DrawCell( ,.F. )
          IF oPaneCurr:nCurrent + oPaneCurr:nRows < oPaneCurr:nCells .AND. ;
             oPaneCurr:nCurrent + oPaneCurr:nRows < Len( oPaneCurr:aDir )
-            oPaneCurr:DrawCell( ,.F. )
             oPaneCurr:nCurrent += oPaneCurr:nRows
-            oPaneCurr:DrawCell( ,.T. )
+         ELSE
+            oPaneCurr:nCurrent := Len( oPaneCurr:aDir )
          ENDIF
+         oPaneCurr:DrawCell( ,.T. )
       ENDIF
 
    ELSEIF nKey == K_PGDN
@@ -1032,7 +1034,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
 
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0 .OR. ;
       ( nPos := At( ':', cPath ) ) > 2 .AND. ;
-      ( nPlug := Ascan2( FilePane():aPlugins, "plug_hbc_url_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
+      ( nPlug := Ascan2( FilePane():aPlugins, "plug_hbc_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
       IF nNet > 0
          cPref := aRemote[nNet]
          nPos := Len(cPref) + 1
@@ -1155,13 +1157,11 @@ METHOD ParsePath( cPath ) CLASS FilePane
       ::cCurrPath := cPath
    ENDIF
    IF !( Right( ::cCurrPath,1 ) $ "\/" )
-#ifdef _USE_SSH2
-      IF ::cIOpref == "sftp:"
-         ::cCurrPath += '/'
-         RETURN .T.
+      IF Empty( ::cIOpref )
+         ::cCurrPath += hb_ps()
+      ELSE
+         ::cCurrPath += Iif( '\' $ ::cCurrPath, '\', '/' )
       ENDIF
-#endif
-      ::cCurrPath += hb_ps()
    ENDIF
 
    RETURN .T.
@@ -1211,8 +1211,12 @@ METHOD SetDir( cPath ) CLASS FilePane
                   ssh2_Close( ::pSess )
                ENDIF
 #endif
-           ELSEIF hb_isFunction( cProc := "PLUG_HBC_URL_" + hb_strShrink(::cIOpref,1) + "_CLOSE" )
+/*
+           ELSEIF hb_isFunction( cProc := "PLUG_HBC_" + hb_strShrink(::cIOpref,1) + "_CLOSE" )
               Eval( &( "{||" + cProc + "(" + Iif( Self==FilePane():aPanes[1],"1","2" ) + ")}" ) )
+*/
+           ELSE
+              PlugFunc( oPaneCurr, aOldPath[1], "CLOSE" )
            ENDIF
            IF ::pSess == pSess
               ::pSess := Nil
@@ -1622,7 +1626,7 @@ STATIC FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDa
 
    RETURN lRes
 
-STATIC FUNCTION FAsk_Copy( cTitle, cRes )
+FUNCTION FAsk_Copy( cTitle, cRes )
 
    LOCAL cScBuf, oldc, nRes
    LOCAL aGets := { ;
@@ -1714,7 +1718,7 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    LOCAL l1 := .F., cTemp, lDir, nStart := 0, nCopied := 0, aWnd
-   LOCAL cFileName := aDir[1], lRes := .F.
+   LOCAL cFileName := aDir[1], lRes := .F., nRes
    LOCAL bCopy := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
       LOCAL nRes
@@ -1762,18 +1766,23 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
          RETURN 2
       ENDIF
 
+      IF !Empty( oPaneTo:cIOpref ) .AND. ;
+         ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPY", {oPaneCurr:cIOpref + ;
+         oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, cFileTo, lDir} ) ) != 0
+         RETURN Iif( nRes == -1, 2, 0 )
+      ENDIF
       IF lDir
          IF !( Right(cFileTo,1) $ "/\" )
             cFileTo += hb_ps()
          ENDIF
-         IF !hb_vfDirExists( cFileTo  + aDir[1] ) .AND. hb_vfDirMake( cFileTo  + aDir[1] ) != 0
-            edi_Alert( "Error creating " + aDir[1] )
+         IF !hb_vfDirExists( cFileTo  + cFileName ) .AND. hb_vfDirMake( cFileTo  + cFileName ) != 0
+            edi_Alert( "Error creating " + cFileName )
             RETURN 2
          ENDIF
          aWnd := WndInit( 05, 20, 12, 60,, "Copy" )
          lRes := .T.
          DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1] + hb_ps(), "*", .T., bCopy, .T. )
+            oPaneCurr:cCurrPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
@@ -1862,7 +1871,8 @@ STATIC FUNCTION hbc_FRename( lRename )
       "Rename " + NameShortcut( cFileName, 48,, oHbc:lUtf8 ) + " to:", cNewName ) )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
          lRename := .F.
-         IF Left( cNewName,4 ) == "net:" .OR. oPaneCurr:cIOpref == "net:"
+         //IF Left( cNewName,4 ) == "net:" .OR. oPaneCurr:cIOpref == "net:"
+         IF !Empty( oPaneCurr:cIOpref ) .OR. At( ':', cNewName ) > 2
             lCopyDel := .T.
          ENDIF
          IF lDir .AND. !( Right(cNewName,1) $ "/\" )
@@ -1884,10 +1894,11 @@ STATIC FUNCTION hbc_FRename( lRename )
          ENDIF
       ENDIF
       IF !lRes .AND. ( lCopyDel .OR. !lRename )
-         IF lDir
+         //IF lDir
             IF hbc_FCopyFile( .T., cNewName ) == 0
                lRes := hbc_FDelete( .T. )
             ENDIF
+         /*
          ELSE
             IF FCopy( aDir, cNewName, 0 ) != 2
                IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
@@ -1899,6 +1910,7 @@ STATIC FUNCTION hbc_FRename( lRename )
                ENDIF
             ENDIF
          ENDIF
+         */
       ENDIF
       oPaneCurr:Refresh()
       IF !lRename
@@ -1935,6 +1947,14 @@ STATIC FUNCTION hbc_FRenameSele()
          cFileTo := cMoveTo + cFileName
 
          WndOut( aWnd, cFileName )
+         /*
+         IF hbc_FCopyFile( .T., cFileTo ) == 0
+            IF hbc_FDelete( .T., oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+                  oPaneCurr:cCurrPath + cFileName, .F. )
+               nSch ++
+            ENDIF
+         ENDIF
+         */
          IF FCopy( aDir, cFileTo, i ) == 0
             IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
                   oPaneCurr:cCurrPath + cFileName ) == 0
@@ -1961,9 +1981,9 @@ STATIC FUNCTION hbc_FRenameSele()
 
    RETURN Nil
 
-STATIC FUNCTION hbc_FDelete( lSilent )
+STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
 
-   LOCAL cFileName, lDir, lRes := .F.
+   LOCAL lRes := .F.
    LOCAL cInitDir, aDirs, i, aWnd, nStart := 0
    LOCAL bDel := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
@@ -1987,8 +2007,10 @@ STATIC FUNCTION hbc_FDelete( lSilent )
       RETURN edi_Alert( "Operation isn't permitted" )
    ENDIF
 
-   cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
-   lDir := ('D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5])
+   IF Empty( cFileName )
+      cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
+      lDir := ('D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5])
+   ENDIF
    lSilent := !Empty( lSilent )
 
    IF lSilent .OR. edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
@@ -3250,12 +3272,12 @@ FUNCTION hbc_GetLogin( cLogin, cPass, lSave )
 
    edi_READ( aGets )
    Restscreen( y1, x1, y1 + 5, x2, cBuf )
-   IF LastKey() == 13
+   IF LastKey() == K_ESC
+      RETURN .F.
+   ELSE
       cLogin := aGets[2,4]
       cPass  := aGets[4,4]
       lSave  := aGets[5,4]
-   ELSE
-      RETURN .F.
    ENDIF
 
    RETURN .T.
@@ -3334,6 +3356,16 @@ STATIC FUNCTION NetInfoSave()
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
+
+   LOCAL cFunc := "PLUG_HBC_" + hb_strShrink(cIOpref,1) + "_" + cName
+
+   //edi_Alert( cFunc )
+   IF hb_isFunction( cFunc )
+      RETURN Eval( &( "{|o,a|" + cFunc + "(o,a)}" ), oPane, aParams )
+   ENDIF
+   RETURN 0
 
 STATIC FUNCTION WndInit( y1, x1, y2, x2, clr, cTitle )
 

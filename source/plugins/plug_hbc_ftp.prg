@@ -1,12 +1,13 @@
 
-#include "/home/alkresin/apps/harbour/include/inkey.ch"
+#include "inkey.ch"
 
 STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_ENTER, ;
    K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D }
 STATIC aMonths := { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" }
+STATIC cNotPerm := "Operation not permitted!"
 
-FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
+FUNCTION plug_hbc_ftp( oPane, cPlugPath, aParams )
 
    LOCAL cAddr, cPath, cLogin := "", cPass := "", lSave := .F.
    LOCAL hSocket, nPort
@@ -25,11 +26,13 @@ FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
    cLogin := aParams[4]
    cPass := aParams[5]                    	
 
-   IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
-      RETURN .F.
-   ENDIF
-   IF Empty( cLogin )
-      cLogin := "anonymous"
+   IF Empty( cLogin ) .OR. Empty( cPass )
+      IF !hbc_GetLogin( @cLogin, @cPass, @lSave )
+         RETURN .F.
+      ENDIF
+      IF Empty( cLogin )
+         cLogin := "anonymous"
+      ENDIF
    ENDIF
 
    hb_inetInit()
@@ -57,11 +60,30 @@ FUNCTION plug_hbc_url_ftp( oPane, cPlugPath, aParams )
 
    RETURN .F.
 
-FUNCTION plug_hbc_url_ftp_close( n )
+FUNCTION plug_hbc_ftp_close( o )
 
-   hb_inetClose( FilePane():aPanes[n]:pSess )
+   hb_inetClose( o:pSess )
 
    RETURN Nil
+
+FUNCTION plug_hbc_ftp_copy( o, aParams )
+
+   LOCAL cFileName, cFileTo, nPos
+
+   cFileName := aParams[1]
+   cFileTo := aParams[2]
+
+   IF aParams[3] .OR. !( cFileTo = "ftp:" )
+      edi_Alert( cNotPerm )
+      RETURN -1
+   ENDIF
+
+   nPos := At( '/', cFileTo )
+   IF FtpWriteFile( o:pSess, cFileName, Substr( cFileTo, nPos ) ) <= 0
+      RETURN -1
+   ENDIF
+
+   RETURN 1
 
 STATIC FUNCTION _plug_Refresh( oPane )
 
@@ -71,7 +93,7 @@ STATIC FUNCTION _plug_Refresh( oPane )
 
 STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
 
-   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, oPaneTo, cName
+   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, oPaneTo, cFileTo, cName, o
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN -1
@@ -81,10 +103,49 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
    ENDIF
 
    IF nKey == K_F5
+      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
+         edi_Alert( cNotPerm )
+         RETURN -1
+      ENDIF
       cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
       oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
-      cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName )
-      hb_MemoWrit( oPaneTo:cCurrPath+cName, cBuffer )
+      IF oPaneTo:nPanelMod > 0
+         edi_Alert( cNotPerm )
+         RETURN -1
+      ENDIF
+
+      IF !Empty( cFileTo := FAsk_Copy( "Copy " + NameShortcut( cName, 48 ) + ;
+         " to:", oPane:cCurrPath + cName ) )
+         cBuffer := FtpReadFile( oPane:pSess, cFileTo )
+         hb_MemoWrit( oPaneTo:cCurrPath+cName, cBuffer )
+         oPaneTo:Refresh()
+         oPaneTo:RedrawAll()
+      ENDIF
+
+   ELSEIF nKey == K_F8
+      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
+         edi_Alert( cNotPerm )
+         RETURN -1
+      ENDIF
+      cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
+      IF edi_Alert( "Really delete " + cName + "?", "No", "Yes" ) == 2
+         IF FtpDeleFile( oPane:pSess, oPane:cCurrPath + cName )
+            oPane:Refresh()
+            oPane:RedrawAll()
+         ELSE
+            edi_Alert( "Can't delete " + cName )
+         ENDIF
+      ENDIF
+   ELSEIF nKey == K_F4
+      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
+         RETURN 0
+      ELSE
+         o := TEdit():aWindows[TEdit():nCurr]
+         cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
+         IF !Empty( cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName ) )
+            mnu_NewBuf( o, cName, cBuffer, ):lReadOnly := .T.
+         ENDIF
+      ENDIF
    ENDIF
 
    RETURN -1
@@ -215,7 +276,9 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName )
       RETURN Nil
    ENDIF
 
-   FtpLog( "--- Retr ---" )
+   hb_inetTimeout( hSockNew , 10000 )
+
+   FtpLog( "--- Retr " + cFileName + " ---" )
    hb_inetSendAll( hSocket, "RETR " + cFileName + Chr(13)+Chr(10) )
 
    cBuf := Space( 512 )
@@ -225,10 +288,46 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName )
 
    hb_inetClose( hSockNew )
 
-   FtpLog( cBuffer )
+   //FtpLog( cBuffer )
    FtpGetReply( hSocket )
 
    RETURN cBuffer
+
+STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
+
+   LOCAL hSockNew, cBuffer := "", cBuf, nRet
+   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
+
+   IF Empty( cBuf := hb_vfLoad( cFileName ) )
+      RETURN -1
+   ENDIF
+
+   IF Empty( hSockNew := FtpPASV( hSocket ) )
+      RETURN Nil
+   ENDIF
+
+   FtpLog( "--- Stor " + cFileTo + " ---" )
+   IF ( nRet := hb_inetSendAll( hSocket, "STOR " + cFileTo + Chr(13)+Chr(10) ) ) > 0
+      nRet :=  hb_inetSendAll( hSockNew, cBuf )
+   ENDIF
+
+   hb_inetClose( hSockNew )
+
+   //FtpLog( cBuffer )
+   FtpGetReply( hSocket )
+
+   RETURN nRet
+
+STATIC FUNCTION FtpDeleFile( hSocket, cFileName )
+
+   FtpLog( "--- Stor " + cFileName + " ---" )
+   IF hb_inetSendAll( hSocket, "DELE " + cFileName + Chr(13)+Chr(10) ) > 0
+      IF Left( FtpGetReply( hSocket ),1 ) > '3'
+         RETURN .F.
+      ENDIF
+   ENDIF
+
+   RETURN .T.
 
 STATIC FUNCTION FtpGetReply( hSocket )
 
