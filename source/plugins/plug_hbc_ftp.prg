@@ -3,7 +3,7 @@
 
 STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_ENTER, ;
-   K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D }
+   K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D, K_F5, K_F8 }
 STATIC aMonths := { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" }
 STATIC cNotPerm := "Operation not permitted!"
 
@@ -66,7 +66,28 @@ FUNCTION plug_hbc_ftp_close( o )
 
    RETURN Nil
 
-FUNCTION plug_hbc_ftp_copy( o, aParams )
+FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
+
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer
+
+   cFileName := aParams[1]
+   cFileTo := aParams[2]
+
+   IF aParams[3]
+      edi_Alert( cNotPerm )
+      RETURN -1
+   ENDIF
+
+   oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
+   nPos := At( '/', cFileName )
+   cBuffer := FtpReadFile( oPane:pSess, Substr(cFileName,nPos) )
+   hb_MemoWrit( cFileTo, cBuffer )
+   oPaneTo:Refresh()
+   oPaneTo:RedrawAll()
+
+   RETURN 1
+
+FUNCTION plug_hbc_ftp_copyto( o, aParams )
 
    LOCAL cFileName, cFileTo, nPos
 
@@ -85,6 +106,28 @@ FUNCTION plug_hbc_ftp_copy( o, aParams )
 
    RETURN 1
 
+FUNCTION plug_hbc_ftp_delete( oPane, aParams )
+
+   LOCAL cFileName, nPos
+
+   cFileName := aParams[1]
+
+   IF aParams[2] .OR. !( cFileName = "ftp:" )
+      edi_Alert( cNotPerm )
+      RETURN -1
+   ENDIF
+
+   nPos := At( '/', cFileName )
+   IF FtpDeleFile( oPane:pSess, Substr(cFileName,nPos) )
+      //oPane:Refresh()
+      //oPane:RedrawAll()
+   ELSE
+      //edi_Alert( "Can't delete " + cFileName )
+      RETURN -1
+   ENDIF
+
+   RETURN 1
+
 STATIC FUNCTION _plug_Refresh( oPane )
 
    oPane:aDir := FtpList( oPane:pSess, oPane:cCurrPath )
@@ -93,7 +136,7 @@ STATIC FUNCTION _plug_Refresh( oPane )
 
 STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
 
-   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, oPaneTo, cFileTo, cName, o
+   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, cFileTo, cName, o
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN -1
@@ -102,41 +145,7 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
       RETURN 0
    ENDIF
 
-   IF nKey == K_F5
-      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
-         edi_Alert( cNotPerm )
-         RETURN -1
-      ENDIF
-      cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
-      oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
-      IF oPaneTo:nPanelMod > 0
-         edi_Alert( cNotPerm )
-         RETURN -1
-      ENDIF
-
-      IF !Empty( cFileTo := FAsk_Copy( "Copy " + NameShortcut( cName, 48 ) + ;
-         " to:", oPane:cCurrPath + cName ) )
-         cBuffer := FtpReadFile( oPane:pSess, cFileTo )
-         hb_MemoWrit( oPaneTo:cCurrPath+cName, cBuffer )
-         oPaneTo:Refresh()
-         oPaneTo:RedrawAll()
-      ENDIF
-
-   ELSEIF nKey == K_F8
-      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
-         edi_Alert( cNotPerm )
-         RETURN -1
-      ENDIF
-      cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
-      IF edi_Alert( "Really delete " + cName + "?", "No", "Yes" ) == 2
-         IF FtpDeleFile( oPane:pSess, oPane:cCurrPath + cName )
-            oPane:Refresh()
-            oPane:RedrawAll()
-         ELSE
-            edi_Alert( "Can't delete " + cName )
-         ENDIF
-      ENDIF
-   ELSEIF nKey == K_F4
+   IF nKey == K_F4
       IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
          RETURN 0
       ELSE
@@ -347,6 +356,6 @@ STATIC FUNCTION FtpGetReply( hSocket )
 
 STATIC FUNCTION FtpLog( cText )
    //? cText
-   edi_Writelog( cText, "_ftp1.log" )
+   //edi_Writelog( cText, "_ftp1.log" )
 
    RETURN Nil

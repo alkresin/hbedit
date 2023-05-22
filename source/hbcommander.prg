@@ -1766,8 +1766,13 @@ STATIC FUNCTION hbc_FCopyFile( lSilent, cFileTo )
          RETURN 2
       ENDIF
 
+      IF !Empty( oPaneCurr:cIOpref ) .AND. ;
+         ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "COPYFROM", {oPaneCurr:cIOpref + ;
+         oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, cFileTo, lDir} ) ) != 0
+         RETURN Iif( nRes == -1, 2, 0 )
+      ENDIF
       IF !Empty( oPaneTo:cIOpref ) .AND. ;
-         ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPY", {oPaneCurr:cIOpref + ;
+         ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPYTO", {oPaneCurr:cIOpref + ;
          oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, cFileTo, lDir} ) ) != 0
          RETURN Iif( nRes == -1, 2, 0 )
       ENDIF
@@ -1983,7 +1988,7 @@ STATIC FUNCTION hbc_FRenameSele()
 
 STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
 
-   LOCAL lRes := .F.
+   LOCAL lRes := .F., nRes := 0
    LOCAL cInitDir, aDirs, i, aWnd, nStart := 0
    LOCAL bDel := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
@@ -2014,27 +2019,34 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    lSilent := !Empty( lSilent )
 
    IF lSilent .OR. edi_Alert( "Really delete " + cFileName + "?", "No", "Yes" ) == 2
-      IF lDir
-         lRes := .T.
-         aWnd := WndInit( 05, 20, 12, 60,, "Delete" )
-         cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName
-         aDirs := { cInitDir }
-         DirEval( cInitDir, "*", .T., bDel, .T. )
-         aDirs := ASort( aDirs,,, {|s1,s2|Len(s1)>Len(s2)} )
-         FOR i := 1 TO Len(aDirs)
-            IF hb_vfDirRemove( aDirs[i] ) != 0
-               lRes := .F.
-               edi_Alert( "Error deleting " + aDirs[i] )
-               EXIT
-            ENDIF
-         NEXT
-         IF lSilent
-            KEYBOARD Chr(K_SPACE)
-         ENDIF
-         WndClose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files deleted" )
-      ELSE
-         IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
+      IF !Empty( oPaneCurr:cIOpref ) .AND. ;
+         ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "DELETE", {oPaneCurr:cIOpref + ;
+         oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, lDir} ) ) != 0
+         lRes := ( nRes == 1 )
+      ENDIF
+      IF nRes == 0
+         IF lDir
             lRes := .T.
+            aWnd := WndInit( 05, 20, 12, 60,, "Delete" )
+            cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName
+            aDirs := { cInitDir }
+            DirEval( cInitDir, "*", .T., bDel, .T. )
+            aDirs := ASort( aDirs,,, {|s1,s2|Len(s1)>Len(s2)} )
+            FOR i := 1 TO Len(aDirs)
+               IF hb_vfDirRemove( aDirs[i] ) != 0
+                  lRes := .F.
+                  edi_Alert( "Error deleting " + aDirs[i] )
+                  EXIT
+               ENDIF
+            NEXT
+            IF lSilent
+               KEYBOARD Chr(K_SPACE)
+            ENDIF
+            WndClose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files deleted" )
+         ELSE
+            IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
+               lRes := .T.
+            ENDIF
          ENDIF
       ENDIF
       IF lRes
@@ -2069,9 +2081,8 @@ STATIC FUNCTION hbc_FDeleteSele()
    IF edi_Alert( "Really delete " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "No", "Yes" ) == 2
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          cFileName := oPaneCurr:aDir[oPaneCurr:aSelected[i],1]
-         IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
-         ELSE
-         ENDIF
+         //IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
+         hbc_FDelete( .T., cFileName, .F. )
       NEXT
       oPaneCurr:aSelected := {}
       oPaneCurr:Refresh()
@@ -2700,7 +2711,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    LOCAL arr := oPane:aDir[oPane:nCurrent + oPane:nShift], arrD[Len(aDefs)], i
    LOCAL nAttr, nAttrNew
 
-   IF !hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+   IF !hb_fGetAttr( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
       oPaneCurr:cCurrPath + arr[1], @nAttr )
       edi_Alert( "Can't read attributes" )
       RETURN Nil
