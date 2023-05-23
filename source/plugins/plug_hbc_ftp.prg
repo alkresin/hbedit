@@ -67,7 +67,7 @@ FUNCTION plug_hbc_ftp_close( o )
 
    hb_inetClose( o:pSess )
 
-   RETURN Nil
+   RETURN 0
 
 FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
@@ -82,8 +82,8 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
       RETURN 2
    ENDIF
 
-   aDir := oPane:aDir[oPane:nCurrent + oPane:nShift]
    IF hb_vfExists( cFileTo )
+      aDir := oPane:aDir[oPane:nCurrent + oPane:nShift]
       hb_vfTimeGet( cFileTo, @i )
       IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo), aDir[2], aDir[3], hb_vfSize(cFileTo), i )
          RETURN  1
@@ -105,22 +105,31 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
 FUNCTION plug_hbc_ftp_copyto( o, aParams )
 
-   LOCAL cFileName, cFileTo, nPos
+   LOCAL cFileName, cFileTo, nPos, nFirst, n, aDir
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
+   nFirst := aParams[4]
 
    IF aParams[3] .OR. !( cFileTo = "ftp:" )
       edi_Alert( cNotPerm )
-      RETURN -1
+      RETURN 2
+   ENDIF
+
+   IF ( n := Ascan2( o:aDir, hb_fnameNameExt(cFileName) ) ) > 0
+      aDir := o:aDir[n]
+      hb_vfTimeGet( cFileName, @n )
+      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileName), hb_vfSize(cFileTo), n, aDir[2], aDir[3] )
+         RETURN  1
+      ENDIF
    ENDIF
 
    nPos := At( '/', cFileTo )
    IF FtpWriteFile( o:pSess, cFileName, Substr( cFileTo, nPos ) ) <= 0
-      RETURN -1
+      RETURN 2
    ENDIF
 
-   RETURN 1
+   RETURN 0
 
 FUNCTION plug_hbc_ftp_delete( oPane, aParams )
 
@@ -128,17 +137,41 @@ FUNCTION plug_hbc_ftp_delete( oPane, aParams )
 
    cFileName := aParams[1]
 
-   IF aParams[2] .OR. !( cFileName = "ftp:" )
+   IF !( cFileName = "ftp:" )
       edi_Alert( cNotPerm )
-      RETURN -1
+      RETURN 2
    ENDIF
 
    nPos := At( '/', cFileName )
-   IF !FtpDeleFile( oPane:pSess, Substr(cFileName,nPos) )
-      RETURN -1
+   //IF !FtpDeleFile( oPane:pSess, Substr(cFileName,nPos) )
+   IF aParams[2]
+      IF !FtpSendCmd( oPane:pSess, "RMD " + Substr(cFileName,nPos) )
+         RETURN 2
+      ENDIF
+   ELSE
+      IF !FtpSendCmd( oPane:pSess, "DELE " + Substr(cFileName,nPos) )
+         RETURN 2
+      ENDIF
+   ENDIF
+   RETURN 0
+
+FUNCTION plug_hbc_ftp_mkdir( oPane, aParams )
+
+   LOCAL cDirName, nPos
+
+   cDirName := aParams[1]
+
+   IF !( cDirName = "ftp:" )
+      edi_Alert( cNotPerm )
+      RETURN 2
    ENDIF
 
-   RETURN 1
+   nPos := At( '/', cDirName )
+   IF !FtpSendCmd( oPane:pSess, "MKD " + Substr(cDirName,nPos) )
+      RETURN 2
+   ENDIF
+
+   RETURN 0
 
 STATIC FUNCTION _plug_Refresh( oPane )
 
@@ -176,13 +209,14 @@ STATIC FUNCTION FtpConnect( cAddr, nPort )
    LOCAL hSocket, nErr
 
    hSocket := hb_inetCreate()
+   hb_inetTimeout( hSocket , 3000 )
    hb_inetConnect( cAddr, nPort, hSocket )
    IF ( nErr := hb_inetErrorCode( hSocket ) ) != 0
+      edi_Alert( "Connect failed: " + Ltrim(Str(nErr)) )
       FtpLog( "Connect failed: " + Ltrim(Str(nErr)) )
       hb_inetClose( hSocket )
       RETURN Nil
    ENDIF
-   hb_inetTimeout( hSocket , 3000 )
    FtpGetReply( hSocket )
 
    RETURN hSocket
@@ -209,8 +243,11 @@ STATIC FUNCTION FtpLogin( hSocket, cLogin, cPass )
 STATIC FUNCTION FtpSendCmd( hSocket, cmd )
 
    FtpLog( "--- " + cmd + " ---" )
-   hb_inetSendAll( hSocket, cmd + Chr(13)+Chr(10) )
-   FtpGetReply( hSocket )
+   IF hb_inetSendAll( hSocket, cmd + Chr(13)+Chr(10) ) > 0
+      IF Left( FtpGetReply( hSocket ),1 ) > '3'
+         RETURN .F.
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
@@ -363,6 +400,7 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
 
    RETURN nRet
 
+/*
 STATIC FUNCTION FtpDeleFile( hSocket, cFileName )
 
    FtpLog( "--- Stor " + cFileName + " ---" )
@@ -373,6 +411,7 @@ STATIC FUNCTION FtpDeleFile( hSocket, cFileName )
    ENDIF
 
    RETURN .T.
+*/
 
 STATIC FUNCTION FtpGetReply( hSocket )
 

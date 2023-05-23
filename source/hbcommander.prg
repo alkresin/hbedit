@@ -2012,9 +2012,9 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "DELETE", {oPaneCurr:cIOpref + ;
          oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, lDir} ) ) != Nil
-         lRes := ( nRes == 1 )
+         lRes := ( nRes == 0 )
       ENDIF
-      IF nRes == 0
+      IF nRes == Nil
          IF lDir
             lRes := .T.
             aWnd := hbc_Wndinit( 05, 20, 12, 60,, "Delete" )
@@ -2087,7 +2087,7 @@ STATIC FUNCTION hbc_FDeleteSele()
 
 STATIC FUNCTION hbc_FMakeDir()
 
-   LOCAL cBuf, cNewName
+   LOCAL cBuf, cNewName, nRes
 
    IF oPaneCurr:nPanelMod > 0
       edi_Alert( "Operation isn't permitted" )
@@ -2104,15 +2104,20 @@ STATIC FUNCTION hbc_FMakeDir()
    cNewName := Space( 200 )
    @ 7, 12 GET cNewName PICTURE "@S56"
    READ
+   Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
    IF LastKey() != 27 .AND. !Empty( cNewName )
-      IF hb_vfDirMake( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim(cNewName) ) == 0
-         Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
+      IF !Empty( oPaneCurr:cIOpref )
+         nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "MKDIR", ;
+         {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+         oPaneCurr:cCurrPath + cNewName} )
+      ENDIF
+      IF nRes == 0 .OR. ( nRes == Nil .AND. hb_vfDirMake( oPaneCurr:cIOpref + ;
+         oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim(cNewName) ) == 0 )
          oPaneCurr:Refresh()
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)
       ELSE
          Alert( "Error creaing " + cNewName )
-         Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
       ENDIF
       RETURN Nil
    ENDIF
