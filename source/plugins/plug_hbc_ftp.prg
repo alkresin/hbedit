@@ -1,5 +1,8 @@
 
 #include "inkey.ch"
+#include "fileio.ch"
+
+#define  READ_BUFF_LEN  4096
 
 STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_ENTER, ;
@@ -68,24 +71,37 @@ FUNCTION plug_hbc_ftp_close( o )
 
 FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
+   nFirst := aParams[4]
 
    IF aParams[3]
       edi_Alert( cNotPerm )
-      RETURN -1
+      RETURN 2
+   ENDIF
+
+   aDir := oPane:aDir[oPane:nCurrent + oPane:nShift]
+   IF hb_vfExists( cFileTo )
+      hb_vfTimeGet( cFileTo, @i )
+      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo), aDir[2], aDir[3], hb_vfSize(cFileTo), i )
+         RETURN  1
+      ENDIF
    ENDIF
 
    oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
    nPos := At( '/', cFileName )
-   cBuffer := FtpReadFile( oPane:pSess, Substr(cFileName,nPos) )
-   hb_MemoWrit( cFileTo, cBuffer )
-   oPaneTo:Refresh()
-   oPaneTo:RedrawAll()
+   IF FtpReadFile( oPane:pSess, Substr(cFileName,nPos), cFileTo )
+      IF nFirst == 0
+         oPaneTo:Refresh()
+         oPaneTo:RedrawAll()
+      ENDIF
+   ELSE
+      RETURN 2
+   ENDIF
 
-   RETURN 1
+   RETURN 0
 
 FUNCTION plug_hbc_ftp_copyto( o, aParams )
 
@@ -118,11 +134,7 @@ FUNCTION plug_hbc_ftp_delete( oPane, aParams )
    ENDIF
 
    nPos := At( '/', cFileName )
-   IF FtpDeleFile( oPane:pSess, Substr(cFileName,nPos) )
-      //oPane:Refresh()
-      //oPane:RedrawAll()
-   ELSE
-      //edi_Alert( "Can't delete " + cFileName )
+   IF !FtpDeleFile( oPane:pSess, Substr(cFileName,nPos) )
       RETURN -1
    ENDIF
 
@@ -212,7 +224,7 @@ STATIC FUNCTION FtpPASV( hSocket )
    cBuf := FtpGetReply( hSocket )
 
    IF ( nPos := At( ',', cBuf ) ) == 0
-      FtpLog( "Error1" )
+      FtpLog( "PASV Error1" )
       RETURN Nil
    ENDIF
    nPos --
@@ -222,7 +234,7 @@ STATIC FUNCTION FtpPASV( hSocket )
    cBuf := Substr( cBuf, nPos+1 )
    aPasv := hb_ATokens( cBuf, ',' )
    IF Len( aPasv ) < 6
-      FtpLog( "Error2" )
+      FtpLog( "PASV Error2" )
       RETURN Nil
    ENDIF
    cNewIp := Alltrim(aPasv[1])+"."+ALLtrim(aPasv[2])+"."+ALLtrim(aPasv[3])+"."+ALLtrim(aPasv[4])
@@ -276,13 +288,20 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 
    RETURN aDir
 
-STATIC FUNCTION FtpReadFile( hSocket, cFileName )
+STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo )
 
-   LOCAL hSockNew, cBuffer := "", cBuf, nRet
+   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, lToFile := .F.
    LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
 
+   IF !Empty( cFileTo )
+      IF Empty( handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC ) )
+         edi_Alert( "Can't create " + cFileTo )
+         RETURN .F.
+      ENDIF
+      lToFile := .T.
+   ENDIF
    IF Empty( hSockNew := FtpPASV( hSocket ) )
-      RETURN Nil
+      RETURN Iif( lToFile, .F., Nil )
    ENDIF
 
    hb_inetTimeout( hSockNew , 10000 )
@@ -290,36 +309,53 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName )
    FtpLog( "--- Retr " + cFileName + " ---" )
    hb_inetSendAll( hSocket, "RETR " + cFileName + Chr(13)+Chr(10) )
 
-   cBuf := Space( 512 )
-   DO WHILE ( nRet := hb_inetRecvAll( hSockNew, @cBuf, 512 ) ) > 0
-      cBuffer += Iif( nRet == 512, cBuf, Left( cBuf,nRet ) )
+   cBuf := Space( READ_BUFF_LEN )
+   DO WHILE ( nRet := hb_inetRecvAll( hSockNew, @cBuf, READ_BUFF_LEN ) ) > 0
+      IF lToFile
+         hb_vfWrite( handle, Iif( nRet == READ_BUFF_LEN, cBuf, Left( cBuf,nRet ) ) )
+      ELSE
+         cBuffer += Iif( nRet == READ_BUFF_LEN, cBuf, Left( cBuf,nRet ) )
+      ENDIF
    ENDDO
 
-   hb_inetClose( hSockNew )
+   IF lToFile
+      hb_vfClose( handle )
+   ENDIF
 
-   //FtpLog( cBuffer )
+   hb_inetClose( hSockNew )
    FtpGetReply( hSocket )
 
-   RETURN cBuffer
+   RETURN Iif( lToFile, .T., cBuffer )
 
 STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
 
-   LOCAL hSockNew, cBuffer := "", cBuf, nRet
+   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet
    LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
-
+/*
    IF Empty( cBuf := hb_vfLoad( cFileName ) )
       RETURN -1
    ENDIF
-
+*/
+   IF Empty( handle := hb_vfOpen( cFileName ) )
+      edi_Alert( "Can't open " + cFileName )
+      RETURN -1
+   ENDIF
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       RETURN Nil
    ENDIF
 
    FtpLog( "--- Stor " + cFileTo + " ---" )
    IF ( nRet := hb_inetSendAll( hSocket, "STOR " + cFileTo + Chr(13)+Chr(10) ) ) > 0
-      nRet :=  hb_inetSendAll( hSockNew, cBuf )
+      cBuf := Space( READ_BUFF_LEN )
+      DO WHILE ( nRet := hb_vfRead( handle, @cBuf, READ_BUFF_LEN ) ) > 0 .AND. ;
+         ( nRet :=  hb_inetSendAll( hSockNew, cBuf, nRet ) ) > 0
+      ENDDO
+      nRet := Iif( nRet<0, -1, 1 )
+   ELSE
+      nRet := -1
    ENDIF
 
+   hb_vfClose( handle )
    hb_inetClose( hSockNew )
 
    //FtpLog( cBuffer )

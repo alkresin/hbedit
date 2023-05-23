@@ -159,7 +159,7 @@ FUNCTION hbc_vfAttrGet( cFileName, nAttr )
          RETURN .F.
       ENDIF
    ENDIF
-   RETURN hb_vfAttrGet( cFileName, nAttr )
+   RETURN hb_vfAttrGet( cFileName, @nAttr )
 
 STATIC FUNCTION _GetpSess( cName )
 
