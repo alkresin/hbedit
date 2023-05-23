@@ -2107,7 +2107,7 @@ STATIC FUNCTION hbc_FMakeDir()
    @ 7, 12 GET cNewName PICTURE "@S56"
    READ
    Restscreen( 0, 0, nScreenH-1, nScreenW-1, cBuf )
-   IF LastKey() != 27 .AND. !Empty( cNewName )
+   IF LastKey() != 27 .AND. !Empty( cNewName := AllTrim(cNewName) )
       IF !Empty( oPaneCurr:cIOpref )
          nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "MKDIR", ;
          {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;

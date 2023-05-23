@@ -197,7 +197,8 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
          o := TEdit():aWindows[TEdit():nCurr]
          cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
          IF !Empty( cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName ) )
-            mnu_NewBuf( o, cName, cBuffer, ):lReadOnly := .T.
+            mnu_NewBuf( o, oPane:cIOpref + oPane:net_cAddress + oPane:net_cPort + ;
+            oPane:cCurrPath + cName, cBuffer, ):lReadOnly := .T.
          ENDIF
       ENDIF
    ENDIF
