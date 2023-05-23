@@ -6,7 +6,7 @@
 
 STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_ENTER, ;
-   K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D, K_F5, K_F6, K_F8 }
+   K_INS, K_CTRL_R, K_CTRL_P, K_F9, K_F10, K_ALT_D, K_F5, K_F6, K_F7, K_F8 }
 STATIC aMonths := { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" }
 STATIC cNotPerm := "Operation not permitted!"
 
@@ -119,7 +119,7 @@ FUNCTION plug_hbc_ftp_copyto( o, aParams )
    IF ( n := Ascan2( o:aDir, hb_fnameNameExt(cFileName) ) ) > 0
       aDir := o:aDir[n]
       hb_vfTimeGet( cFileName, @n )
-      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileName), hb_vfSize(cFileTo), n, aDir[2], aDir[3] )
+      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileName), hb_vfSize(cFileName), n, aDir[2], aDir[3] )
          RETURN  1
       ENDIF
    ENDIF
@@ -249,7 +249,7 @@ STATIC FUNCTION FtpSendCmd( hSocket, cmd )
       ENDIF
    ENDIF
 
-   RETURN Nil
+   RETURN .T.
 
 STATIC FUNCTION FtpPASV( hSocket )
 
@@ -431,6 +431,6 @@ STATIC FUNCTION FtpGetReply( hSocket )
 
 STATIC FUNCTION FtpLog( cText )
    //? cText
-   //edi_Writelog( cText, "_ftp1.log" )
+   edi_Writelog( cText, "_ftp1.log" )
 
    RETURN Nil

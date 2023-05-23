@@ -1978,7 +1978,7 @@ STATIC FUNCTION hbc_FRenameSele()
 
 STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
 
-   LOCAL lRes := .F., nRes := 0
+   LOCAL lRes := .F., nRes
    LOCAL cInitDir, aDirs, i, aWnd, nStart := 0
    LOCAL bDel := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
@@ -2014,6 +2014,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
          oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, lDir} ) ) != Nil
          lRes := ( nRes == 0 )
       ENDIF
+      //edi_Alert( valtype(nRes) )
       IF nRes == Nil
          IF lDir
             lRes := .T.
@@ -2034,6 +2035,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
             ENDIF
             hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files deleted" )
          ELSE
+            //edi_Alert( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName )
             IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
                lRes := .T.
             ENDIF
@@ -2117,7 +2119,7 @@ STATIC FUNCTION hbc_FMakeDir()
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)
       ELSE
-         Alert( "Error creaing " + cNewName )
+         edi_Alert( "Error creaing " + cNewName )
       ENDIF
       RETURN Nil
    ENDIF
