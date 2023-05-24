@@ -460,6 +460,6 @@ STATIC FUNCTION FtpGetReply( hSocket )
 
 STATIC FUNCTION FtpLog( cText )
    //? cText
-   edi_Writelog( cText, "_ftp1.log" )
+   //edi_Writelog( cText, "_ftp1.log" )
 
    RETURN Nil

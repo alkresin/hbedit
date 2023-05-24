@@ -1516,15 +1516,23 @@ METHOD PaneMenu() CLASS FilePane
 METHOD ContextMenu() CLASS FilePane
 
    LOCAL aMenu := {}, nChoic, xPlugin, cFullPath, bMenu
+   LOCAL aDir
 
-   IF oPaneTo:nPanelMod != 1
-      Aadd( aMenu, { "Copy",,1,"F5" } )
+   aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
+   IF Empty( aDir )
+      RETURN Nil
    ENDIF
-   IF oPaneCurr:nPanelMod == 0 .AND. oPaneTo:nPanelMod != 1
-      Aadd( aMenu, { "Rename",,2,"F6" } )
-   ENDIF
-   IF oPaneCurr:nPanelMod == 0
-      Aadd( aMenu, { "Delete",,3,"F8" } )
+
+   IF !( aDir[1] == ".." )
+      IF oPaneTo:nPanelMod != 1
+         Aadd( aMenu, { "Copy",,1,"F5" } )
+      ENDIF
+      IF oPaneCurr:nPanelMod == 0 .AND. oPaneTo:nPanelMod != 1
+         Aadd( aMenu, { "Rename",,2,"F6" } )
+      ENDIF
+      IF oPaneCurr:nPanelMod == 0
+         Aadd( aMenu, { "Delete",,3,"F8" } )
+      ENDIF
    ENDIF
 
    IF !Empty( xPlugin := FilePane():xContextMenu )
@@ -1546,7 +1554,7 @@ METHOD ContextMenu() CLASS FilePane
       RETURN Nil
    ELSEIF aMenu[nChoic,3] == 1
       IF Empty( oPaneCurr:aSelected )
-         hbc_FCopyFile( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
+         hbc_FCopyFile( aDir )
       ELSE
          hbc_FCopySele()
       ENDIF
