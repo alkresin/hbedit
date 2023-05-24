@@ -123,7 +123,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       RETURN -1
    ENDIF
 
-   aDir := Iif( Empty(oPaneCurr:aDir), {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
+   aDir := Iif( Empty(oPaneCurr:aDir).OR.oPaneCurr:nCurrent==0, {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
    IF nKey == K_F9
      IF !oPaneCurr:PaneMenu()
         CmdHisSave()
@@ -1078,9 +1078,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
          cAddr := Substr( cPath, nPos )
          cCurrPath := ""
       ENDIF
-      IF Empty( FilePane():aNetInfo )
-         NetInfoLoad()
-      ENDIF
+      NetInfoLoad()
       FOR i := 1 TO Len( FilePane():aNetInfo )
          IF FilePane():aNetInfo[i,1] == cPref .AND. FilePane():aNetInfo[i,2] == cAddr .AND. ;
             FilePane():aNetInfo[i,3] == cPort
@@ -1240,7 +1238,7 @@ METHOD Refresh( lResort ) CLASS FilePane
 
    IF !Empty( ::bRefresh )
       IF Eval( ::bRefresh, Self ) == -1
-         RETURN .T.
+         RETURN .F.
       ELSE
          lResort := .T.
       ENDIF
@@ -3330,10 +3328,13 @@ STATIC FUNCTION CmdHisSave()
 
    RETURN Nil
 
-STATIC FUNCTION NetInfoLoad()
+FUNCTION NetInfoLoad()
 
    LOCAL arr := hb_ATokens( Memoread( hb_DirBase() + "hbc.net" ), Chr(10) ), i
 
+   IF !Empty( FilePane():aNetInfo )
+      RETURN Nil
+   ENDIF
    FOR i := Len(arr) TO 1 STEP -1
       IF Empty( arr[i] )
          hb_ADel( arr, i, .T. )

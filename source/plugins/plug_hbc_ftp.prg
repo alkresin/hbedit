@@ -14,12 +14,33 @@ FUNCTION plug_hbc_ftp( oPane, cPlugPath, aParams )
 
    LOCAL cAddr, cPath, cLogin := "", cPass := "", lSave := .F.
    LOCAL hSocket, nPort
+   LOCAL i, aMenu
 
    IF Empty( aParams )
-      IF Empty( cAddr := edi_MsgGet( "FTP Address:" ) )
+      aMenu := { "New address" }
+      FOR i := 1 TO Len( FilePane():aDefPaths )
+         IF FilePane():aDefPaths[i,1] = "ftp:"
+            Aadd( aMenu, Substr( FilePane():aDefPaths[i,1],5 ) )
+         ENDIF
+      NEXT
+      NetInfoLoad()
+      FOR i := 1 TO Len( FilePane():aNetInfo )
+         IF FilePane():aNetInfo[i,1] == "ftp:" .AND. Ascan( aMenu, {|s|s=FilePane():aNetInfo[i,2]} ) == 0
+            Aadd( aMenu, FilePane():aNetInfo[i,2] + Iif( Empty(FilePane():aNetInfo[i,3]), "", ;
+               ":"+Ltrim(Str(FilePane():aNetInfo[i,3])) ) )
+         ENDIF
+      NEXT
+      i := FMenu( oPane, aMenu, oPane:y1+1, oPane:x1+1, oPane:y1+Len(aMenu)+2,, oPane:aClrMenu[1], oPane:aClrMenu[2] )
+      IF i == 0
          RETURN .F.
+      ELSEIF i == 1
+         IF Empty( cAddr := edi_MsgGet( "FTP Address:" ) )
+            RETURN .F.
+         ELSE
+            RETURN oPane:ChangeDir( "ftp:" + cAddr )
+         ENDIF
       ELSE
-         RETURN oPane:ChangeDir( "ftp:" + cAddr )
+         RETURN oPane:ChangeDir( "ftp:" + aMenu[i] )
       ENDIF
    ENDIF
 
@@ -128,6 +149,10 @@ FUNCTION plug_hbc_ftp_copyto( o, aParams )
    IF FtpWriteFile( o:pSess, cFileName, Substr( cFileTo, nPos ) ) <= 0
       RETURN 2
    ENDIF
+   IF nFirst == 0
+      o:Refresh()
+      o:RedrawAll()
+   ENDIF
 
    RETURN 0
 
@@ -176,6 +201,9 @@ FUNCTION plug_hbc_ftp_mkdir( oPane, aParams )
 STATIC FUNCTION _plug_Refresh( oPane )
 
    oPane:aDir := FtpList( oPane:pSess, oPane:cCurrPath )
+   IF Empty( oPane:aDir )
+      AAdd( oPane:aDir, { "..", 0, Date(), "", "D" } )
+   ENDIF
 
    RETURN 0
 
