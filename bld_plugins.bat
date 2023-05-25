@@ -1,5 +1,5 @@
 @echo off
-set HB_INSTALL_BIN=c:\harbour\bin
+set HB_INSTALL=c:\harbour
 
 cd source\plugins
 harbour plug_1c_spis.prg -n -gh -q
@@ -36,6 +36,6 @@ harbour plug_vcs.prg -n -gh -q
 harbour lisp_run.prg -n -gh -q
 harbour plug_hbc_menu.prg -n -gh -q
 harbour plug_hbc_latin.prg -n -gh -q
-harbour plug_hbc_ftp.prg -n -gh -q
+harbour plug_hbc_ftp.prg -n -gh -q -I%HB_INSTALL%\include
 cd ..\..\
 

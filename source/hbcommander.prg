@@ -2971,7 +2971,8 @@ FUNCTION hbc_Console( xCommand )
             cCommand := ""
             LOOP
          ENDIF
-         DO WHILE ( i := At( '%', cCommand ) ) > 0
+         i := 0
+         DO WHILE ( i := hb_At( '%', cCommand,i+1 ) ) > 0
             s := Substr( cCommand,i+1,1 )
             IF s == 'p'
                s := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
