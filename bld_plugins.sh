@@ -36,5 +36,6 @@ $HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour lisp_run.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_menu.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_latin.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_hbc_ftp.prg -n -gh
 cd ../../
 

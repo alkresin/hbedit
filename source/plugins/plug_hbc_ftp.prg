@@ -432,19 +432,6 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
 
    RETURN nRet
 
-/*
-STATIC FUNCTION FtpDeleFile( hSocket, cFileName )
-
-   FtpLog( "--- Stor " + cFileName + " ---" )
-   IF hb_inetSendAll( hSocket, "DELE " + cFileName + Chr(13)+Chr(10) ) > 0
-      IF Left( FtpGetReply( hSocket ),1 ) > '3'
-         RETURN .F.
-      ENDIF
-   ENDIF
-
-   RETURN .T.
-*/
-
 STATIC FUNCTION FtpGetReply( hSocket )
 
    LOCAL cBuffer := "", cBuf, n

@@ -36,5 +36,6 @@ harbour plug_vcs.prg -n -gh -q
 harbour lisp_run.prg -n -gh -q
 harbour plug_hbc_menu.prg -n -gh -q
 harbour plug_hbc_latin.prg -n -gh -q
+harbour plug_hbc_ftp.prg -n -gh -q
 cd ..\..\
 
