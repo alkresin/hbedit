@@ -1117,8 +1117,8 @@ METHOD ParsePath( cPath ) CLASS FilePane
          ELSE
             aParam := { hb_strShrink(cAddr,1), cPort, cCurrPath, cLogin, cPass, lSave }
             l := edi_RunPlugin( Self, FilePane():aPlugins, nPlug, aParam )
+            cLogin := aParam[4]
             IF l .AND. aParam[6]
-               cLogin := aParam[4]
                cPass := aParam[5]
             ENDIF
          ENDIF
