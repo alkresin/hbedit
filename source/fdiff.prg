@@ -26,7 +26,7 @@ STATIC aShort, aDiff, aFull, aFrom, nminus, nplus
 
 STATIC FUNCTION _DiffTool()
 
-   LOCAL cFileRes := hb_DirTemp() + "hbedit.out", cBuff
+   LOCAL cBuff
    STATIC nDiffTool := 0
 
    IF nDiffTool == 0
@@ -35,13 +35,13 @@ STATIC FUNCTION _DiffTool()
          RETURN (nDiffTool := 1)
       ENDIF
 #endif
-      cedi_RunConsoleApp( 'diff -v', cFileRes )
-      IF !Empty( cBuff := MemoRead( cFileRes ) ) .AND. Lower( Left( cBuff,4 ) ) == "diff"
+      cedi_RunConsoleApp( 'diff -v',, @cBuff )
+      IF !Empty( cBuff ) .AND. Lower( Left( cBuff,4 ) ) == "diff"
          RETURN (nDiffTool := 2)
       ENDIF
 
-      cedi_RunConsoleApp( 'git --version', cFileRes )
-      IF !Empty( cBuff := MemoRead( cFileRes ) ) .AND. Lower( Left( cBuff,3 ) ) == "git"
+      cedi_RunConsoleApp( 'git --version',, @cBuff )
+      IF !Empty( cBuff ) .AND. Lower( Left( cBuff,3 ) ) == "git"
          RETURN (nDiffTool := 3)
       ENDIF
 
@@ -52,18 +52,18 @@ STATIC FUNCTION _DiffTool()
 FUNCTION edi_MakeDiff( oEdit, cFileName )
 
    LOCAL nDiffTool := _DiffTool()
-   LOCAL cFileRes := hb_DirTemp() + "hbedit.out"
+   LOCAL cBuff
 
    cFileFrom := cFileName
    IF nDiffTool > 0
       IF nDiffTool == 1
-         cedi_RunConsoleApp( hb_dirBase() + 'diff -u ' + cFileName + " " + oEdit:cFileName, cFileRes )
+         cedi_RunConsoleApp( hb_dirBase() + 'diff -u ' + cFileName + " " + oEdit:cFileName,, @cBuff )
       ELSEIF nDiffTool == 2
-         cedi_RunConsoleApp( 'diff -u ' + cFileName + " " + oEdit:cFileName, cFileRes )
+         cedi_RunConsoleApp( 'diff -u ' + cFileName + " " + oEdit:cFileName,, @cBuff )
       ELSEIF nDiffTool == 3
-         cedi_RunConsoleApp( 'git diff ' + cFileName + " " + oEdit:cFileName, cFileRes )
+         cedi_RunConsoleApp( 'git diff ' + cFileName + " " + oEdit:cFileName,, @cBuff )
       ENDIF
-      RETURN MemoRead( cFileRes )
+      RETURN cBuff
    ENDIF
 
    RETURN Nil

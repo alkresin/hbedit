@@ -26,7 +26,7 @@ REQUEST NETIO_PROCEXISTS, NETIO_PROCEXEC, NETIO_FUNCEXEC
 STATIC oHbc
 STATIC lGuiVer := .F.
 STATIC nScreenH := 25, nScreenW := 80
-STATIC cFileOut, cOutBuff
+STATIC cOutBuff
 STATIC oPaneCurr, oPaneTo
 STATIC lCase_Sea := .F., lRegex_Sea := .F.
 #ifdef __PLATFORM__UNIX
@@ -81,7 +81,6 @@ FUNCTION Hbc( oEdit )
       oHbc:lUtf8 := ( Lower(oHbc:cp) == "utf8" )
       Set( _SET_DATEFORMAT, FilePane():cDateFormat )
       SetPanes( aPanes )
-      cFileOut := hb_DirTemp() + "hbc_cons.out"
    ENDIF
 
    RETURN Nil
@@ -2414,9 +2413,8 @@ STATIC FUNCTION hbc_Search( lSele )
             cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
                '-l ' + '"' + cSearch + '" ' + aGets[1,4]
          ENDIF
-         FErase( cFileOut )
-         cedi_RunConsoleApp( cCmd, cFileOut )
-         IF !Empty( cRes := MemoRead( cFileOut ) )
+         cedi_RunConsoleApp( cCmd,, @cRes )
+         IF !Empty( cRes )
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
                IF !Empty( aRes[i] )
