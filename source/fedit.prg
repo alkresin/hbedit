@@ -324,8 +324,8 @@ METHOD Edit( lShowOnly ) CLASS TEdit
 
    LOCAL i, nKeyExt, cFile_utf8, n
 
-   IF !Empty( ::oParent ) .AND. ( Len( ::aWindows ) > ::nCurrPrev .OR. ;
-      !( ::aWindows[::nCurrPrev]:oParent == ::oParent ) )
+   IF !Empty( ::oParent ) .AND. Len( ::aWindows ) > ::nCurrPrev .AND. ;
+      ( ::aWindows[::nCurrPrev]:oParent == ::oParent )
       ::oParent:Edit( .T. )
    ENDIF
    hb_cdpSelect( ::cp )

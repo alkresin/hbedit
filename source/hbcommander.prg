@@ -682,6 +682,9 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "consauto" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():lConsAuto := ( Lower(cTmp) == "on" )
          ENDIF
+         IF hb_hHaskey( aSect, cTmp := "stdout_size" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():nConsMax := Val( cTmp )
+         ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
@@ -888,7 +891,7 @@ CLASS FilePane
    CLASS VAR aAppList SHARED   INIT {}
    CLASS VAR lConsAuto SHARED   INIT .F.
    CLASS VAR cConsOut SHARED   INIT ""
-   CLASS VAR nConsMax SHARED   INIT 20000
+   CLASS VAR nConsMax SHARED   INIT 40000
    CLASS VAR xContextMenu SHARED
    //CLASS VAR nConsVar SHARED INIT 1
    CLASS VAR lConsMode SHARED INIT .F.
@@ -3019,6 +3022,7 @@ FUNCTION hbc_Console( xCommand )
                   IF ssh2_LastRes( oPaneCurr:pSess ) == 0
                      IF !Empty( xRes := ssh2_Channel_Read( oPaneCurr:pSess ) )
                         ? xRes
+                        Add2Consout( xRes )
                      ENDIF
                   ELSE
                      ? "Exec failed"
@@ -3178,11 +3182,7 @@ STATIC FUNCTION Cons_Hrb( cCommand )
             xRes := StrTran( xRes, Chr(9), Space(8) )
          ENDIF
          SetColor( "W/N" )
-         FilePane():cConsOut += xRes
-         IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-            i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-            FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-         ENDIF
+         Add2Consout( xRes )
          ?? xRes
          nColInit := Col()
          cmd := ""
@@ -3205,6 +3205,19 @@ STATIC FUNCTION Cons_Hrb( cCommand )
 
    RETURN Nil
 */
+
+STATIC FUNCTION Add2Consout( cText )
+
+   LOCAL i
+
+   FilePane():cConsOut += cText
+   IF Len( FilePane():cConsOut ) > FilePane():nConsMax
+      i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
+      FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
+   ENDIF
+
+   RETURN Nil
+
 STATIC FUNCTION Cons_My( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
@@ -3225,11 +3238,7 @@ STATIC FUNCTION Cons_My( cCommand )
             xRes := StrTran( xRes, Chr(9), Space(8) )
          ENDIF
          SetColor( "W/N" )
-         FilePane():cConsOut += xRes
-         IF Len( FilePane():cConsOut ) > FilePane():nConsMax
-            i := hb_At( Chr(10), FilePane():cConsOut, Len(FilePane():cConsOut)-FilePane():nConsMax )
-            FilePane():cConsOut := Substr( FilePane():cConsOut, i + 1 )
-         ENDIF
+         Add2Consout( xRes )
          ?? xRes
          nColInit := Col()
          cmd := ""
