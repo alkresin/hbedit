@@ -809,6 +809,15 @@ STATIC FUNCTION ReadIni( cIniName )
             ENDIF
          NEXT
       ENDIF
+
+      IF hb_hHaskey( hIni, cTmp := "MISC" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         arr := hb_hKeys( aSect )
+         FilePane():hMisc := hb_Hash()
+         FOR i := 1 TO Len( arr )
+            FilePane():hMisc[Lower(arr[i])] := aSect[ arr[i] ]
+         NEXT
+      ENDIF
    ENDIF
 
    IF Empty(cp) //.OR. Ascan( TEdit():aCpages, cp ) == 0
@@ -898,6 +907,7 @@ CLASS FilePane
    CLASS VAR nLastKey SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
    CLASS VAR cDateFormat SHARED INIT "dd.mm.yy"
+   CLASS VAR hMisc SHARED
 
    DATA cIOpref       INIT ""
    DATA net_cAddress  INIT ""
@@ -2301,7 +2311,7 @@ STATIC FUNCTION zipDirRefresh( oPane, cDir )
 
    RETURN Nil
 
-STATIC FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
+FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
 
    LOCAL i, res, nCount := 0, arlen, aFiles, nPos1 := 1, nPos2, cMsk, lDo := .T.
 

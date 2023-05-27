@@ -103,14 +103,14 @@ FUNCTION edi_READ( aGets, pKeys )
                IF aGets[nCurr,G_TYPE] == G_TYPE_CHECK .OR. ;
                   ( aGets[nCurr,G_TYPE] == G_TYPE_RADIO .AND. !aGets[nCurr,G_VALUE] )
                   aGets[nCurr,G_VALUE] := !aGets[nCurr,G_VALUE]
-                  DevPos( y, aGets[nCurr,G_X] )
+                  DevPos( aGets[nCurr,G_Y], aGets[nCurr,G_X] )
                   DevOut( Iif( aGets[nCurr,G_VALUE], "x"," " ) )
                   IF aGets[nCurr,G_TYPE] == G_TYPE_RADIO
                      FOR i := 1 TO Len( aGets )
                         IF i != nCurr .AND. aGets[i,G_TYPE] == G_TYPE_RADIO .AND. ;
                               (Len(aGets[i]) < G_GROUP .OR. aGets[i,G_GROUP] == aGets[nCurr,G_GROUP])
                            aGets[i,G_VALUE] := .F.
-                           DevPos( y, aGets[i,G_X] )
+                           DevPos( aGets[i,G_Y], aGets[i,G_X] )
                            DevOut( " " )
                         ENDIF
                      NEXT
@@ -130,9 +130,9 @@ FUNCTION edi_READ( aGets, pKeys )
       ELSEIF nKey == K_DEL
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
             aOpt[nCurr,G2_OPT] := .F.
-            IF x <= cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
-               aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-1 ) + ;
-                  cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x+1 )
+            IF xr <= cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
+               aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], xr-1 ) + ;
+                  cp_Substr( lUtf8, aGets[nCurr,G_VALUE], xr+1 )
                ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                DevPos( y, nx )
             ENDIF
@@ -140,10 +140,10 @@ FUNCTION edi_READ( aGets, pKeys )
 
       ELSEIF nKey == K_BS
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
-            IF x > 1
+            IF xr > 1
                aOpt[nCurr,G2_OPT] := .F.
-               aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], x-2 ) + ;
-                  cp_Substr( lUtf8, aGets[nCurr,G_VALUE], x )
+               aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], xr-2 ) + ;
+                  cp_Substr( lUtf8, aGets[nCurr,G_VALUE], xr )
                ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                DevPos( y, --nx )
             ENDIF
