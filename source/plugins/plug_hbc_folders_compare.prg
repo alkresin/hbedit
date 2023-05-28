@@ -1,7 +1,11 @@
 
 #define  K_ENTER   13
 #define  K_ESC     27
+#define  K_TAB      9
+#define  K_F1      28
 #define  READ_BUFF_LEN 8192
+
+STATIC aCount
 
 FUNCTION plug_hbc_folders_compare( oPane )
 
@@ -38,6 +42,7 @@ FUNCTION plug_hbc_folders_compare( oPane )
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cScBuf )
    IF i > 0
+      aCount := { {oPane1, 0, 0}, {oPane2, 0, 0} }
       cDir1 := oPane1:cCurrPath
       cDir2 := oPane2:cCurrPath
       lSizOnly := aGets[5,4]
@@ -51,25 +56,27 @@ FUNCTION plug_hbc_folders_compare( oPane )
          IF Empty( arr1 ) .AND. Empty( arr2 )
             edi_Alert( "Folders are identical" )
          ELSE
-            hb_AIns( arr1, 1, { "..","","","","D" }, .T. )
+            hb_AIns( arr1, 1, { "..",0,Date(),"","D" }, .T. )
             oPane1:nPanelMod := 1
             oPane1:aDir := arr1
             oPane1:cIOpref_bak := oPane1:cIOpref
             oPane1:net_cAddress_bak := oPane1:net_cAddress
             oPane1:cIOpref := "sea:"
+            oPane1:bOnKey := {|o,n|_plug_OnKey(o,n)}
             oPane1:bDrawCell := {|o,n,l|DrawCell(o,n,l)}
             oPane1:Refresh( .T. )
             oPane1:Draw()
             oPane1:DrawCell( ,.T. )
             oPane1:DrawHead( .T. )
 
-            hb_AIns( arr2, 1, { "..","","","","D" }, .T. )
+            hb_AIns( arr2, 1, { "..",0,Date(),"","D" }, .T. )
             oPane2:nPanelMod := 1
             oPane2:aDir := arr2
             oPane2:cIOpref_bak := oPane2:cIOpref
             oPane2:net_cAddress_bak := oPane2:net_cAddress
             oPane2:cIOpref := "sea:"
             oPane2:bDrawCell := {|o,n,l|DrawCell(o,n,l)}
+            oPane2:bOnKey := {|o,n|_plug_OnKey(o,n)}
             oPane2:Refresh( .T. )
             oPane2:Draw()
             oPane2:DrawCell( ,.T. )
@@ -83,6 +90,21 @@ FUNCTION plug_hbc_folders_compare( oPane )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
+
+   LOCAL nKey := hb_keyStd( nKeyExt ), aDir
+
+   IF nKey == K_TAB
+      aDir := oPane:aDir[oPane:nCurrent+oPane:nShift]
+      IF Len( aDir ) > 5 .AND. aDir[6] == 1
+      ENDIF
+
+   ELSEIF nKey == K_F1
+      RETURN -1
+   ENDIF
+
+   RETURN 0
 
 STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lRecur )
 
@@ -109,26 +131,55 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lR
                ( lSizOnly .OR. !fileCompare( cDir1+aDir1[i,1], cDir2+aDir2[j,1] ) ) )
                AAdd( arr1, { cRel1+aDir1[i,1], aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5], 1 } )
                AAdd( arr2, { cRel2+aDir2[j,1], aDir2[j,2], aDir2[j,3], aDir2[j,4], aDir2[j,5], 1 } )
+               aCount[1,3] ++
+               aCount[2,3] ++
             ENDIF
          ENDIF
          aDir2[j,1] := Nil
       ELSE
          IF 'D' $ aDir1[i,5]
-            AAdd( arr1, { cRel1+aDir1[i,1]+ps, aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5] , 0 } )
+            IF lRecur .AND. !(aDir1[i,1] == "..") .AND. !(aDir1[i,1] == ".")
+               dirAdd( arr1, cDir1+aDir1[i,1], cRel1+aDir1[i,1]+ps, aCount[1] )
+            ENDIF
+            //AAdd( arr1, { cRel1+aDir1[i,1]+ps, aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5] , 0 } )
          ELSE
             AAdd( arr1, { cRel1+aDir1[i,1], aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5], 0 } )
+            aCount[1,2] ++
          ENDIF
       ENDIF
    NEXT
    FOR j := 1 TO Len( aDir2 )
       IF !Empty( aDir2[j,1] )
          IF 'D' $ aDir2[j,5]
-            IF !(aDir2[j,1] == "..") .AND. !(aDir2[j,1] == ".")
-               AAdd( arr2, { cRel2+aDir2[j,1]+ps, aDir2[j,2], aDir2[j,3], aDir2[j,4], aDir2[j,5], 0 } )
+            IF lRecur .AND. !(aDir2[j,1] == "..") .AND. !(aDir2[j,1] == ".")
+               dirAdd( arr2, cDir2+aDir2[j,1], cRel2+aDir2[j,1]+ps, aCount[2] )
             ENDIF
          ELSE
             AAdd( arr2, { cRel2+aDir2[j,1], aDir2[j,2], aDir2[j,3], aDir2[j,4], aDir2[j,5], 0 } )
+            aCount[2,2] ++
          ENDIF
+      ENDIF
+   NEXT
+
+   RETURN Nil
+
+STATIC FUNCTION dirAdd( arr, cDir, cRel, aCou )
+
+   LOCAL aDir, i, ps := hb_ps()
+
+   IF !( Right( cDir, ) $ "/\" )
+      cDir += ps
+   ENDIF
+
+   aDir := hb_vfDirectory( cDir, "HSD" )
+   FOR i := 1 TO Len( aDir )
+      IF 'D' $ aDir[i,5]
+         IF !(aDir[i,1] == "..") .AND. !(aDir[i,1] == ".")
+            dirAdd( arr, cDir+aDir[i,1], cRel+aDir[i,1]+ps, aCou )
+         ENDIF
+      ELSE
+         AAdd( arr, { cRel+aDir[i,1], aDir[i,2], aDir[i,3], aDir[i,4], aDir[i,5], 0 } )
+         aCou[2] ++
       ENDIF
    NEXT
 
@@ -198,6 +249,9 @@ STATIC FUNCTION DrawCell( oPane, nCell, lCurr )
       @ oPane:y2 - 1, oPane:x1 + 1 SAY cText
       @ oPane:y2 - 1, oPane:x1 + 1 + Len(cText) SAY Space( oPane:x2 - oPane:x1 - 1 - Len(cText) )
       @ oPane:y2 - 1, oPane:x2 - Len(cDop) SAY cDop
+      nRow := Iif( oPane == aCount[1,1], 1, 2 )
+      @ oPane:y2 - 2, Int( (oPane:x2-oPane:x1-15)/2 ) SAY ;
+         Ltrim(Str(aCount[nRow,2])) + "/" + Ltrim(Str(aCount[nRow,3])) COLOR oPane:cClrSel
    ENDIF
 
    RETURN Nil
