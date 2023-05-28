@@ -327,6 +327,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          IF Empty( oPaneCurr:aDir ) .OR. aDir[1] == ".."
             IF oPaneCurr:nPanelMod > 0
                IF oPaneCurr:nPanelMod == 1 .OR. Empty( cTemp := aDir[6] )
+                  oPaneCurr:bOnKey := oPaneCurr:bDraw := oPaneCurr:bDrawCell := oPaneCurr:bDrawHead := oPaneCurr:bRefresh := Nil
                   oPaneCurr:cIOpref := oPaneCurr:cIOpref_bak
                   oPaneCurr:net_cAddress := oPaneCurr:net_cAddress_bak
                   IF oPaneCurr:nPanelMod == 2
@@ -1256,7 +1257,7 @@ METHOD Refresh( lResort ) CLASS FilePane
       ENDIF
    ENDIF
 
-   IF ::nPanelMod > 0
+   IF ::nPanelMod > 0 .AND. Empty( lResort )
       RETURN .F.
    ENDIF
    IF !Empty( lResort )
@@ -1367,7 +1368,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt
 
    IF !Empty( ::bDrawCell )
-      RETURN Eval( ::bDrawCell, Self )
+      RETURN Eval( ::bDrawCell, Self, nCell, lCurr )
    ENDIF
 
    IF ::nCurrent == 0
