@@ -1477,7 +1477,7 @@ METHOD DrawHead( lCurr ) CLASS FilePane
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 2
       cPath := ::net_cAddress + ":" + ::zip_cCurrDir
-      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3, oHbc:lUtf8 )
+      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3,, oHbc:lUtf8 )
    ENDIF
 
    RETURN Nil
