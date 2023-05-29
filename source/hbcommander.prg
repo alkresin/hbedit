@@ -1043,7 +1043,7 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
 METHOD ParsePath( cPath ) CLASS FilePane
 
    LOCAL nNet, nPos, nPos1, nPos2, cCurrPath, cPref, cAddr, cPort, cDefPort, cLogin := "", cPass := ""
-   LOCAL c, l, i, lNetFou := .F., lSave := .F., aParam, nPlug
+   LOCAL c, l, i, nNetFou := 0, lPassEmpty, lSave := .F., aParam, nPlug
 
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0 .OR. ;
       ( nPos := At( ':', cPath ) ) > 2 .AND. ;
@@ -1100,10 +1100,11 @@ METHOD ParsePath( cPath ) CLASS FilePane
             cLogin := Iif( Len(FilePane():aNetInfo[i]) > 4, ;
                hb_MD5Decrypt( hb_base64decode(FilePane():aNetInfo[i,5]),"hbedit" ), "" )
 #endif
-            lNetFou := .T.
+            nNetFou := i
             EXIT
          ENDIF
       NEXT
+      lPassEmpty := Empty( cPass )
       cAddr += ':'
       cPort += ':'
       l := .F.
@@ -1136,7 +1137,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
             ENDIF
          ENDIF
          IF l
-            IF !lNetFou
+            IF nNetFou == 0
 #ifdef _USE_SSH2
                Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
                   hb_base64encode(hb_MD5Encrypt(cPass,"hbedit")), ;
@@ -1145,6 +1146,9 @@ METHOD ParsePath( cPath ) CLASS FilePane
                Aadd( FilePane():aNetInfo, {cPref, hb_strShrink(cAddr,1), hb_strShrink(cPort,1), ;
                   hb_base64encode(hb_MD5Encrypt(cPass,"hbedit"))} )
 #endif
+               NetInfoSave()
+            ELSEIF lPassEmpty .AND. !Empty( cPass )
+               FilePane():aNetInfo[nNetFou,4] := hb_base64encode(hb_MD5Encrypt(cPass,"hbedit"))
                NetInfoSave()
             ENDIF
          ELSE

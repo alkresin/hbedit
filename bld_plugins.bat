@@ -34,8 +34,10 @@ harbour plug_gm_ugolki.prg -n -gh -q
 harbour plug_webservices.prg -n -gh -q
 harbour plug_vcs.prg -n -gh -q
 harbour lisp_run.prg -n -gh -q
-harbour plug_hbc_menu.prg -n -gh -q
-harbour plug_hbc_latin.prg -n -gh -q
+harbour plug_hbc_files_compare.prg -n -gh -q
+harbour plug_hbc_folders_compare.prg -n -gh -q
 harbour plug_hbc_ftp.prg -n -gh -q -I%HB_INSTALL%\include
+harbour plug_hbc_latin.prg -n -gh -q
+harbour plug_hbc_menu.prg -n -gh -q
 cd ..\..\
 
