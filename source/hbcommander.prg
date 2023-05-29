@@ -922,7 +922,8 @@ CLASS FilePane
    DATA nDispMode     INIT 1
    DATA nSortMode     INIT 1
    DATA nShift        INIT 0
-   DATA nCells, nRows, nWidth
+   DATA nCells
+   DATA nRows, nWidth
    DATA nPanelMod     INIT 0
    DATA hUnzip
    DATA pSess
@@ -1449,7 +1450,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       @ ::y2 - 1, ::x1 + 1 SAY cText
       @ ::y2 - 1, ::x1 + 1 + Len(cText) SAY Space( ::x2 - ::x1 - 1 - Len(cText) )
       @ ::y2 - 1, ::x2 - Len(cDop) SAY cDop
-      x1 := Int( (::x2-::x1-15)/2 )
+      x1 := ::x1 + Int( (::x2-::x1-15)/2 )
       IF Empty( ::aSelected )
          @ ::y2 - 2, x1, ::y2 - 2, x1 + 15 BOX "ÚÄ¿³ÙÄÀ³ " COLOR ::cClrBox
       ELSE

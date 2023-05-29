@@ -432,7 +432,7 @@ STATIC FUNCTION _prg_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie
    LOCAL arr := { "STATIC", "MEMVAR", "PRIVATE", "PUBLIC", "CONTINUE", "SWITCH", "FUNCTION", ;
-      "RETURN", "ELSEIF", "ENDIF", "ENDDO", "ENDCASE", "ENDSWITCH", "OTHERWISE", "DO WHILE", ;
+      "RETURN", "ENDIF", "ENDDO", "ENDCASE", "ENDSWITCH", "OTHERWISE", "DO WHILE", ;
       "FIELD", "REQUEST", "#define", "#ifdef", "#ifndef", "#else", "#endif", "#include" }
    LOCAL i, nPos, nLen, nPrefLen := Len( cPrefix )
 

@@ -162,6 +162,15 @@ HB_FUNC( CEDI_GETLASTPOS )
    hb_retnl( nLastX + 1 );
 }
 
+/*
+ * cedi_Strncmp( cBuf1, nStart1, cBuf2, nStart2, nLen ) --> lEqual
+ */
+HB_FUNC( CEDI_STRNCMP )
+{
+
+   hb_retl( memcmp( hb_parc(1)+hb_parni(2)-1, hb_parc(3)+hb_parni(4)-1, hb_parni(5) ) == 0 );
+}
+
 HB_FUNC( CEDI_SUBSTR )
 {
    int bUtf8 = hb_parl( 1 );
