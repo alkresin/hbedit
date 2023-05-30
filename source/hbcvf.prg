@@ -118,6 +118,9 @@ FUNCTION hbc_vfErase( cFileName )
    LOCAL pSess
    IF cFileName = "sftp:"
       IF !Empty( pSess := _GetpSess(cFileName) )
+         IF '\' $ cFileName
+            cFileName := StrTran( cFileName, '\', '/' )
+         ENDIF
          RETURN ssh2_Sftp_FileDelete( pSess, _GetDir(cFileName) )
       ELSE
          RETURN -1
@@ -130,6 +133,9 @@ FUNCTION hbc_vfDirRemove( cDirName )
    LOCAL pSess
    IF cDirName = "sftp:"
       IF !Empty( pSess := _GetpSess(cDirName) )
+         IF '\' $ cDirName
+            cDirName := StrTran( cDirName, '\', '/' )
+         ENDIF
          RETURN ssh2_Sftp_DirDelete( pSess, _GetDir(cDirName) )
       ELSE
          RETURN -1
@@ -142,6 +148,9 @@ FUNCTION hbc_vfDirMake( cDirName )
    LOCAL pSess
    IF cDirName = "sftp:"
       IF !Empty( pSess := _GetpSess(cDirName) )
+         IF '\' $ cDirName
+            cDirName := StrTran( cDirName, '\', '/' )
+         ENDIF
          RETURN ssh2_Sftp_MkDir( pSess, _GetDir(cDirName) )
       ELSE
          RETURN -1
@@ -153,6 +162,9 @@ FUNCTION hbc_vfAttrGet( cFileName, nAttr )
 
    LOCAL pSess
    IF cFileName = "sftp:"
+      IF '\' $ cFileName
+         cFileName := StrTran( cFileName, '\', '/' )
+      ENDIF
       IF !Empty( pSess := _GetpSess(cFileName) )
          RETURN .F.
       ELSE
