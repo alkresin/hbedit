@@ -7,6 +7,7 @@
 
 #include "inkey.ch"
 #include "fileio.ch"
+#include "hbc.ch"
 
 #define RDBUFFERSIZE  16384
 #define MAXLEN       100000
@@ -29,10 +30,11 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
    PRIVATE lShowCR := .F., nCodePage := 1
 
    IF Empty( handle )
+      edi_Alert( "Can't open " + cFileName )
       RETURN .F.
    ENDIF
 
-   nFileLen := hb_vfSize( handle )
+   nFileLen := hb_vfSize( cFileName )
    nLenATmp := (y2-y1-1) * 2
    arrtmp := Iif( nFileLen > MAXLEN, Array( nLenATmp ), Nil )
    nSize := Iif( nFileLen > MAXLEN, RDBUFFERSIZE, nFileLen )
@@ -158,6 +160,7 @@ STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
          ENDIF
       ENDIF
    NEXT
+   DevPos( y1 + 1, x1 + 1 )
 
    RETURN Nil
 

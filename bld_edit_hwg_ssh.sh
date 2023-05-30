@@ -18,7 +18,7 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hilight.prg  -n -q0 -es2 -gc0 -I$HB_INS/i
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fautoc.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/errorsys.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcommander.prg  -n -q0 -es2 -gc0 -dGTHWG -d_USE_SSH2 -I$HB_INS/include
-$HB_INS/bin/linux/gcc/harbour $SRC_DIR/fview.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
+$HB_INS/bin/linux/gcc/harbour $SRC_DIR/fview.prg -n -q0 -es2 -gc0 -d_USE_SSH2 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcvf.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/ssh2/hbcssh2.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 

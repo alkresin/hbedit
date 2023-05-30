@@ -5,23 +5,46 @@
  * www - http://www.kresin.ru
  */
 
-FUNCTION hbc_vfOpen( cFileName, cFlags )
+FUNCTION hbc_vfOpen( cFileName, nFlags )
+
+   LOCAL pSess, pHandle
 
    IF cFileName = "sftp:"
-      RETURN -1
+      IF !Empty( pSess := _GetpSess(cFileName) )
+         IF !Empty( pHandle := ssh2_Sftp_Openfile( pSess, _GetDir(cFileName), nFlags ) )
+            RETURN { "sftp:", pHandle }
+         ENDIF
+      ENDIF
+      RETURN Nil
    ENDIF
-   RETURN hb_vfOpen( cFileName, cFlags )
+   RETURN hb_vfOpen( cFileName, nFlags )
 
 FUNCTION hbc_vfClose( handle )
+
+   IF Valtype( handle ) == "A"
+      RETURN ssh2_Sftp_Close( handle[2] )
+   ENDIF
    RETURN hb_vfClose( handle )
 
 FUNCTION hbc_vfSeek( handle, nShift )
+
+   IF Valtype( handle ) == "A"
+      RETURN ssh2_Sftp_Seek( handle[2], nShift )
+   ENDIF
    RETURN hb_vfSeek( handle, nShift )
 
 FUNCTION hbc_vfReadLen( handle, nSize )
+
+   IF Valtype( handle ) == "A"
+      RETURN ssh2_Sftp_Readlen( handle[2], nSize )
+   ENDIF
    RETURN hb_vfReadLen( handle, nSize )
 
 FUNCTION hbc_vfWrite( handle, cBuff, nToWrite, nTimeOut )
+
+   IF Valtype( handle ) == "A"
+      RETURN ssh2_Sftp_Write( handle[2], cBuff, nToWrite )
+   ENDIF
    RETURN hb_vfWrite( handle, cBuff, nToWrite, nTimeOut )
 
 FUNCTION hbc_vfSize( cFileName )

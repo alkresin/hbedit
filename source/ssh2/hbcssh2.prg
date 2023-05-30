@@ -6,9 +6,10 @@
  */
 
 #include "fileio.ch"
-#include "hbssh2.ch"
+//#include "hbssh2.ch"
 
 #define  BUFFSIZE  16384
+#define  LIBSSH2_SFTP_S_IFDIR        0x04000     /* directory */
 
 FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass, lSave )
 
@@ -104,9 +105,8 @@ FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
-   IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName, LIBSSH2_FXF_WRITE + LIBSSH2_FXF_CREAT, ;
-      LIBSSH2_SFTP_S_IRUSR + LIBSSH2_SFTP_S_IWUSR + ;
-      LIBSSH2_SFTP_S_IRGRP + LIBSSH2_SFTP_S_IROTH ) )
+   IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName, FO_WRITE + FO_CREAT, ;
+      HB_FA_RUSR + HB_FA_WUSR + HB_FA_RGRP + HB_FA_ROTH ) )
       handle := fOpen( cFileLocal )
       DO WHILE ( nBytes := fRead( handle, @cBuff, BUFFSIZE ) ) > 0
          ssh2_SFtp_Write( pHandle, cBuff, nBytes )
