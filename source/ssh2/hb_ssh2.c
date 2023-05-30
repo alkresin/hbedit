@@ -655,16 +655,36 @@ HB_FUNC( SSH2_SFTP_WRITE )
 HB_FUNC( SSH2_SFTP_SEEK )
 {
 
-   libssh2_sftp_seek( ( ( HB_SSH2_SFTP_HANDLE * ) hb_parptr( 1 ) )->sftp_handle, hb_parni( 2 ) );
+   libssh2_sftp_seek( ( (HB_SSH2_SFTP_HANDLE *) hb_parptr(1) )->sftp_handle, hb_parni( 2 ) );
 }
 
 HB_FUNC( SSH2_SFTP_STAT )
 {
-   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int rc;
    LIBSSH2_SFTP_ATTRIBUTES attrs;
 
-   rc = hb_ssh2_SftpStat( pSess, (char *) hb_parc(2), LIBSSH2_SFTP_STAT, &attrs );
+   rc = hb_ssh2_SftpStat( (HB_SSH2_SESSION *) hb_parptr(1), (char *) hb_parc(2),
+      LIBSSH2_SFTP_STAT, &attrs );
+
+   if( rc == 0 )
+   {
+      if( hb_pcount() > 2 )
+         hb_stornl( attrs.filesize, 3 );
+      if( hb_pcount() > 3 )
+         //hb_stornl( attrs.mtime, 4 );
+         hb_stortdt( attrs.mtime / 86400 + 2440588, ( attrs.mtime % 86400 ) * 1000, 4 );
+      if( hb_pcount() > 4 )
+         hb_stornl( attrs.permissions, 5 );
+   }
+   hb_retni( rc );
+}
+
+HB_FUNC( SSH2_SFTP_FSTAT )
+{
+   int rc;
+   LIBSSH2_SFTP_ATTRIBUTES attrs;
+
+   rc = libssh2_sftp_fstat( ((HB_SSH2_SFTP_HANDLE *) hb_parptr(1))->sftp_handle, &attrs );
 
    if( rc == 0 )
    {
@@ -681,10 +701,9 @@ HB_FUNC( SSH2_SFTP_STAT )
 
 HB_FUNC( SSH2_SFTP_FILEDELETE )
 {
-   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int rc;
 
-   rc =  libssh2_sftp_unlink( pSess->sftp_session, hb_parc(2) );
+   rc =  libssh2_sftp_unlink( ((HB_SSH2_SESSION *) hb_parptr(1))->sftp_session, hb_parc(2) );
    hb_retni( rc );
 }
 

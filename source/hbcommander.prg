@@ -1604,6 +1604,32 @@ METHOD RedrawAll() CLASS FilePane
 
    RETURN Nil
 
+FUNCTION FAsk_Abort( cFile, nSize, nCopied )
+
+   LOCAL nRes
+   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
+   LOCAL aGets
+
+   aGets := { ;
+      {y1+1,x1+2, 11, cFile }, ;
+      {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + "% copied"}, ;
+      {y1+8,x1+16, 2, "[Continue]", 10,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+8,x1+28, 2,"[Abort]", 7,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+3, x1 SAY "Ã"
+   @ y1+3, x2 SAY "´"
+   @ y1+3, x1+1 TO y1+3, x2-1
+
+   lRes := ( ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets) )
+
+   Restscreen( y1, x1, y2, x2, cBuf )
+   SetColor( oldc )
+
+   RETURN lRes
+
 FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
 
    LOCAL nRes
@@ -1972,14 +1998,6 @@ STATIC FUNCTION hbc_FRenameSele()
                nSch ++
             ENDIF
          ENDIF
-         /*
-         IF FCopy( aDir, cFileTo, i ) == 0
-            IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-                  oPaneCurr:cCurrPath + cFileName ) == 0
-               nSch ++
-            ENDIF
-         ENDIF
-         */
          IF Inkey() == 27
             EXIT
          ENDIF

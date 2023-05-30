@@ -80,15 +80,24 @@ FUNCTION hbc_ssh2_MemoRead( pSess, cFileName )
 
 FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
 
-   LOCAL pHandle, handle, cBuff
+   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0
 
+   CLEAR TYPEAHEAD
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
    IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName ) )
+      ssh2_Sftp_stat( pSess, pHandle, @nSize )
       handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
       DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pHandle ) )
          fWrite( handle, cBuff )
+         nCopied += Len( cBuff )
+         IF Inkey() == 27 .AND. !FAsk_Abort( cFileName, nSize, nCopied )
+            fClose( handle )
+            ssh2_Sftp_Close( pHandle )
+            fErase( cFileLocal )
+            RETURN -2
+         ENDIF
       ENDDO
       fClose( handle )
       ssh2_Sftp_Close( pHandle )
