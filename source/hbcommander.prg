@@ -41,6 +41,7 @@ STATIC aRemotePorts := { "2941", "22" }
 #else
 STATIC aRemote := { "2941" }
 #endif
+STATIC aCpInUse := { "RU866", "RU1251", "UTF8" }
 
 MEMVAR GETLIST
 
@@ -671,7 +672,7 @@ STATIC FUNCTION ReadIni( cIniName )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, cTmp := "OPTIONS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            cp := cTmp
+            cp := Upper( cTmp )
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             edi_SetPalette( oHbc, cTmp )
@@ -685,6 +686,14 @@ STATIC FUNCTION ReadIni( cIniName )
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "stdout_size" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():nConsMax := Val( cTmp )
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "cpinuse" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            aCpInUse := hb_Atokens( cTmp, ',' )
+            FOR i := Len( aCpInUse ) TO 1 STEP -1
+               IF i > 5 .OR. Empty( aCpInUse[i] ) .OR. !hb_cdpExists( aCpInUse[i] := Upper(aCpInUse[i]) )
+                  aCpInUse := hb_ADel( aCpInUse, i, .T. )
+               ENDIF
+            NEXT
          ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -919,6 +928,7 @@ CLASS FilePane
    DATA x1, y1, x2, y2
    DATA lViewStatus   INIT .T.
 
+   DATA cpPane
    DATA nDispMode     INIT 1
    DATA nSortMode     INIT 1
    DATA nShift        INIT 0
@@ -939,7 +949,7 @@ CLASS FilePane
    DATA bOnKey, bDraw, bDrawCell, bDrawHead, bRefresh
 
    METHOD New( x1, y1, x2, y2, nMode, cPath )
-   METHOD ChangeMode( nMode, nSort )
+   METHOD ChangeMode( nMode, nSort, nCP )
    METHOD ChangeDir()
    METHOD ParsePath( cPath )
    METHOD SetDir( cPath )
@@ -961,6 +971,7 @@ METHOD New( x1, y1, x2, y2, nMode, cPath ) CLASS FilePane
    ::y1 := y1
    ::x2 := x2
    ::y2 := y2
+   ::cpPane := ::cp
    IF !Empty( nMode )
       ::nDispMode := nMode
    ENDIF
@@ -970,7 +981,7 @@ METHOD New( x1, y1, x2, y2, nMode, cPath ) CLASS FilePane
 
    RETURN Self
 
-METHOD ChangeMode( nMode, nSort ) CLASS FilePane
+METHOD ChangeMode( nMode, nSort, nCP ) CLASS FilePane
 
    LOCAL lUpd := .F.
 
@@ -984,6 +995,12 @@ METHOD ChangeMode( nMode, nSort ) CLASS FilePane
       IF ::nSortMode != nSort
          ::nSortMode := nSort
          ::Refresh( .T. )
+         lUpd := .T.
+      ENDIF
+   ENDIF
+   IF nCP != Nil
+      IF !( ::cpPane == aCpInUse[nCP] )
+         ::cpPane := aCpInUse[nCP]
          lUpd := .T.
       ENDIF
    ENDIF
@@ -1194,7 +1211,7 @@ METHOD SetDir( cPath ) CLASS FilePane
       RETURN Nil
    ENDIF
 
-   IF !( cPath = ::cIOpref + ::net_cAddress )
+   IF !( cPath = hb_strShrink( ::cIOpref + ::net_cAddress,1 ) )
       ::bOnKey := ::bDraw := ::bDrawCell := ::bDrawHead := ::bRefresh := Nil
    ENDIF
 
@@ -1381,6 +1398,9 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       RETURN Nil
    ENDIF
 
+   IF !( ::cp == ::cpPane )
+      hb_cdpSelect( ::cpPane )
+   ENDIF
    nRow := nCell := Iif( nCell==Nil,::nCurrent,nCell )
    arr := ::aDir[nCell+::nShift]
    lSel := ( Ascan( ::aSelected, nCell+::nShift ) > 0 )
@@ -1457,6 +1477,9 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
          @ ::y2 - 2, x1 SAY "Selected: " + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
       ENDIF
    ENDIF
+   IF !( ::cp == ::cpPane )
+      hb_cdpSelect( ::cp )
+   ENDIF
 
    RETURN Nil
 
@@ -1468,6 +1491,9 @@ METHOD DrawHead( lCurr ) CLASS FilePane
       RETURN Eval( ::bDrawHead, Self )
    ENDIF
 
+   IF !( ::cp == ::cpPane )
+      hb_cdpSelect( ::cpPane )
+   ENDIF
    SetColor( Iif( lCurr, ::cClrCurr, ::cClrFil ) )
    IF ::nPanelMod == 0
       cPath := NameShortcut( ::cIOpref + ::net_cAddress + ::cCurrPath, ::x2-::x1-6, '~', oHbc:lUtf8 )
@@ -1478,6 +1504,9 @@ METHOD DrawHead( lCurr ) CLASS FilePane
    ELSEIF ::nPanelMod == 2
       cPath := ::net_cAddress + ":" + ::zip_cCurrDir
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3,, oHbc:lUtf8 )
+   ENDIF
+   IF !( ::cp == ::cpPane )
+      hb_cdpSelect( ::cp )
    ENDIF
 
    RETURN Nil
@@ -2294,11 +2323,18 @@ STATIC FUNCTION hbc_PaneOpt()
    LOCAL aMenu1 := { "Mode 1 " + Iif(oPaneCurr:nDispMode==1,"x"," "), ;
       "Mode 2 " + Iif(oPaneCurr:nDispMode==2,"x"," "), "Mode 3 " + Iif(oPaneCurr:nDispMode==3,"x"," "), ;
       "Mode 4 " + Iif(oPaneCurr:nDispMode==4,"x"," "), ;
-      "---", "Sort by name " + Iif(oPaneCurr:nSortMode==1,"x"," "), "Sort by date " + Iif(oPaneCurr:nSortMode==2,"x"," ") }
-   LOCAL nChoic := FMenu( oHbc, aMenu1, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
+      "---", "Sort by name " + Iif(oPaneCurr:nSortMode==1,"x"," "), ;
+      "Sort by date " + Iif(oPaneCurr:nSortMode==2,"x"," "), "---" }
+   LOCAL nChoic
+
+   FOR nChoic := 1 TO Len( aCpInUse )
+      AAdd( aMenu1, aCpInUse[nChoic] + Iif( aCpInUse[nChoic]==oPaneCurr:cpPane, "   x", "" ) )
+   NEXT
+   nChoic := FMenu( oHbc, aMenu1, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
       oPaneCurr:y1+Len(aMenu1)+3, oPaneCurr:x1+38, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic > 0
-      oPaneCurr:ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4,nChoic-5,Nil) )
+      oPaneCurr:ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4.AND.nChoic<8,nChoic-5,Nil), ;
+         Iif(nChoic>=9,nChoic-8,Nil) )
    ENDIF
 
    RETURN .T.

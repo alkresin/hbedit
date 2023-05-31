@@ -341,7 +341,7 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 
    arr := hb_ATokens( cBuffer, Chr(10) )
    FOR i := 1 TO Len( arr )
-      IF !Empty( arr[i] ) .AND. Len( arr[i] := hb_Atokens( arr[i] ) ) == 9
+      IF !Empty( arr[i] ) .AND. Len( arr[i] := hb_Atokens( arr[i] ) ) >= 9
          cName := Iif( Right(arr[i,9],1) == Chr(13), hb_strShrink(arr[i,9],1), arr[i,9] )
          IF !( cName == "." )
             cAttr := Upper( arr[i,1] )

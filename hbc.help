@@ -26,10 +26,10 @@ HbCommander - built-in file manager
    Ctrl-F1    - Change directory for a left pane
    Ctrl-F2    - Change directory for a right pane
    Ctrl-R     - Refresh panel
-   Ctrl-F7     - Search
+   Ctrl-F7    - Search
    +          - Search/select
-   Ctrl-F8     - Commands History
-   Ctrl-F12    - Quick access to apps, declared in hbc.ini in [APPLIST] section
+   Ctrl-F8    - Commands History
+   Ctrl-F12   - Quick access to apps, declared in hbc.ini in [APPLIST] section
    Shift-F1   - Add file/folder to a zip
    Shift-F2   - Extract files from a zip
    Ctrl-O     - Open console
