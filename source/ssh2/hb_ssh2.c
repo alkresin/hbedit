@@ -688,13 +688,13 @@ HB_FUNC( SSH2_SFTP_FSTAT )
 
    if( rc == 0 )
    {
+      if( hb_pcount() > 1 )
+         hb_stornl( attrs.filesize, 2 );
       if( hb_pcount() > 2 )
-         hb_stornl( attrs.filesize, 3 );
-      if( hb_pcount() > 3 )
          //hb_stornl( attrs.mtime, 4 );
-         hb_stortdt( attrs.mtime / 86400 + 2440588, ( attrs.mtime % 86400 ) * 1000, 4 );
-      if( hb_pcount() > 4 )
-         hb_stornl( attrs.permissions, 5 );
+         hb_stortdt( attrs.mtime / 86400 + 2440588, ( attrs.mtime % 86400 ) * 1000, 3 );
+      if( hb_pcount() > 3 )
+         hb_stornl( attrs.permissions, 4 );
    }
    hb_retni( rc );
 }

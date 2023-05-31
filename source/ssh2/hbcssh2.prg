@@ -87,7 +87,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
    IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName ) )
-      ssh2_Sftp_stat( pSess, pHandle, @nSize )
+      ssh2_Sftp_FStat( pHandle, @nSize )
       handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
       DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pHandle ) )
          fWrite( handle, cBuff )
@@ -96,7 +96,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
             fClose( handle )
             ssh2_Sftp_Close( pHandle )
             fErase( cFileLocal )
-            RETURN -2
+            RETURN -3
          ENDIF
       ENDDO
       fClose( handle )
@@ -109,18 +109,26 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
 
 FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
 
-   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE )
+   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0
 
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
    IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName, FO_WRITE + FO_CREAT, ;
       HB_FA_RUSR + HB_FA_WUSR + HB_FA_RGRP + HB_FA_ROTH ) )
-      handle := fOpen( cFileLocal )
-      DO WHILE ( nBytes := fRead( handle, @cBuff, BUFFSIZE ) ) > 0
+      handle := hb_vfOpen( cFileLocal )
+      nSize := hb_vfSize( handle )
+      DO WHILE ( nBytes := hb_vfRead( handle, @cBuff, BUFFSIZE ) ) > 0
          ssh2_SFtp_Write( pHandle, cBuff, nBytes )
+         nCopied += nBytes
+         IF Inkey() == 27 .AND. !FAsk_Abort( cFileName, nSize, nCopied )
+            hb_vfClose( handle )
+            ssh2_Sftp_Close( pHandle )
+            ssh2_Sftp_FileDelete( pSess, cFileName )
+            RETURN -3
+         ENDIF
       ENDDO
-      fClose( handle )
+      hb_vfClose( handle )
       ssh2_Sftp_Close( pHandle )
    ELSE
       _Writelog( "Openfile error " + cFileName )

@@ -1606,13 +1606,10 @@ METHOD RedrawAll() CLASS FilePane
 
 FUNCTION FAsk_Abort( cFile, nSize, nCopied )
 
-   LOCAL nRes
-   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50
+   LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50, nRes
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
-   LOCAL aGets
-
-   aGets := { ;
-      {y1+1,x1+2, 11, cFile }, ;
+   LOCAL aGets := { ;
+      {y1+1,x1+2, 11, hb_fnameNameExt(cFile) }, ;
       {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + "% copied"}, ;
       {y1+8,x1+16, 2, "[Continue]", 10,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+8,x1+28, 2,"[Abort]", 7,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
@@ -1623,12 +1620,12 @@ FUNCTION FAsk_Abort( cFile, nSize, nCopied )
    @ y1+3, x2 SAY "´"
    @ y1+3, x1+1 TO y1+3, x2-1
 
-   lRes := ( ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets) )
+   nRes := edi_READ( aGets )
 
    Restscreen( y1, x1, y2, x2, cBuf )
    SetColor( oldc )
 
-   RETURN lRes
+   RETURN ( nRes > 0 .AND. nRes < Len(aGets) )
 
 FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
 
@@ -1741,16 +1738,16 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
          nRes := 2
       ENDIF
    ELSEIF oPaneCurr:nPanelMod == 1
-      IF hb_vfCopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
-         nRes := 2
+      IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
+            oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
+         nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
    ELSE
       //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
-      IF hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo ) != 0
+      IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
          //edi_Writelog( "Err" )
-         nRes := 2
+         nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
    ENDIF
    IF nRes == 2
@@ -1780,7 +1777,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          ELSEIF nRes == 1
             l1 := .T.
          ENDIF
-         RETURN ( lRes := (nRes!=2) )
+         RETURN ( lRes := (nRes<2) )
       ENDIF
       RETURN .T.
    }
@@ -1815,13 +1812,13 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "COPYFROM", ;
          {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart} ) ) != Nil
+         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart, aDir[2]} ) ) != Nil
          RETURN nRes
       ENDIF
       IF !Empty( oPaneTo:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPYTO", ;
          {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart} ) ) != Nil
+         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart, aDir[2]} ) ) != Nil
          RETURN nRes
       ENDIF
       IF lDir
@@ -1849,7 +1846,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          IF !lSilent .AND. nStart == 0
             aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, "Wait" )
          ENDIF
-         IF FCopy( aDir, cFileTo, nStart ) != 2
+         IF ( nRes := FCopy( aDir, cFileTo, nStart ) ) < 2
             lRes := .T.
             IF Left( cFileTo,4 ) == "zip:"
                // Refresh zip panel
@@ -1864,8 +1861,13 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
                oPaneCurr:Refresh()
                oPaneCurr:RedrawAll()
             ENDIF
-         ELSEIF !lSilent .AND. nStart == 0
-            hbc_Wndclose( aWnd )
+         ELSE
+            IF !lSilent .AND. nStart == 0
+               hbc_Wndclose( aWnd )
+            ENDIF
+            IF nRes == 3
+               RETURN 3
+            ENDIF
          ENDIF
       ENDIF
    ENDIF
@@ -1874,7 +1876,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
 
 STATIC FUNCTION hbc_FCopySele()
 
-   LOCAL cFileName, cDirTo, cFileTo, i, aWnd, nSch := 0, aDir
+   LOCAL cFileName, cDirTo, cFileTo, i, aWnd, nSch := 0, aDir, nRes
 
    IF oPaneTo:nPanelMod == 1
       RETURN edi_Alert( "Operation isn't permitted" )
@@ -1891,15 +1893,15 @@ STATIC FUNCTION hbc_FCopySele()
          cFileTo := cDirTo + cFileName
 
          hbc_Wndout( aWnd, cFileName )
-         IF hbc_FCopyFile( aDir, cFileTo, i ) == 0
+         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i ) ) == 0
             nSch ++
          ENDIF
-         IF Inkey() == 27
+         IF nRes == 3 .OR. Inkey() == 27
             EXIT
          ENDIF
       NEXT
 
-      hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files copied." )
+      hbc_Wndclose( aWnd, Iif( nRes==3, "Aborted, ","Done, " ) + Ltrim(Str(nSch)) + " files copied." )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneTo:Refresh()
@@ -1975,7 +1977,7 @@ STATIC FUNCTION hbc_FRename( lRename )
 
 STATIC FUNCTION hbc_FRenameSele()
 
-   LOCAL aWnd, i, aDir, cFileName, nSch := 0
+   LOCAL aWnd, i, aDir, cFileName, nSch := 0, nRes
    LOCAL cMoveTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath, cFileTo
 
    IF oPaneCurr:nPanelMod > 0
@@ -1993,17 +1995,17 @@ STATIC FUNCTION hbc_FRenameSele()
 
          hbc_Wndout( aWnd, cFileName )
 
-         IF hbc_FCopyFile( aDir, cFileTo, i ) == 0
+         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i ) ) == 0
             IF hbc_FDelete( .T., cFileName, .F. )
                nSch ++
             ENDIF
          ENDIF
-         IF Inkey() == 27
+         IF nRes == 3 .OR. Inkey() == 27
             EXIT
          ENDIF
       NEXT
 
-      hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files moved." )
+      hbc_Wndclose( aWnd, Iif( nRes==3, "Aborted, ","Done, " ) + Ltrim(Str(nSch)) + " files moved." )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneCurr:Refresh()

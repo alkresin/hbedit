@@ -95,11 +95,12 @@ FUNCTION plug_hbc_ftp_close( o )
 
 FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
    nFirst := aParams[4]
+   nSize := aParams[5]
 
    IF aParams[3]
       edi_Alert( cNotPerm )
@@ -116,24 +117,25 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
    oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
    nPos := At( '/', cFileName )
-   IF FtpReadFile( oPane:pSess, Substr(cFileName,nPos), cFileTo )
+   IF FtpReadFile( oPane:pSess, Substr(cFileName,nPos), cFileTo, nSize )
       IF nFirst == 0
          oPaneTo:Refresh()
          oPaneTo:RedrawAll()
       ENDIF
    ELSE
-      RETURN 2
+      RETURN 3
    ENDIF
 
    RETURN 0
 
 FUNCTION plug_hbc_ftp_copyto( o, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, nFirst, n, aDir
+   LOCAL cFileName, cFileTo, nPos, nFirst, n, aDir, nSize
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
    nFirst := aParams[4]
+   nSize := aParams[5]
 
    IF aParams[3] .OR. !( cFileTo = "ftp:" )
       edi_Alert( cNotPerm )
@@ -149,8 +151,8 @@ FUNCTION plug_hbc_ftp_copyto( o, aParams )
    ENDIF
 
    nPos := At( '/', cFileTo )
-   IF FtpWriteFile( o:pSess, cFileName, Substr( cFileTo, nPos ) ) <= 0
-      RETURN 2
+   IF ( n := FtpWriteFile( o:pSess, cFileName, Substr( cFileTo, nPos ), nSize ) ) <= 0
+      RETURN Iif( n == -3, 3, 2 )
    ENDIF
    IF nFirst == 0
       o:Refresh()
@@ -212,7 +214,7 @@ STATIC FUNCTION _plug_Refresh( oPane )
 
 STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
 
-   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, cFileTo, cName, o
+   LOCAL nKey := hb_keyStd( nKeyExt ), cBuffer, cFileTo, cName, o, aDir
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN -1
@@ -222,12 +224,13 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
    ENDIF
 
    IF nKey == K_F4
-      IF 'D' $ oPane:aDir[oPane:nCurrent + oPane:nShift,5]
+      aDir := oPane:aDir[oPane:nCurrent + oPane:nShift]
+      IF 'D' $ aDir[5]
          RETURN 0
       ELSE
          o := TEdit():aWindows[TEdit():nCurr]
-         cName := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
-         IF !Empty( cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName ) )
+         cName := aDir[1]
+         IF !Empty( cBuffer := FtpReadFile( oPane:pSess, oPane:cCurrPath + cName,, aDir[2] ) )
             mnu_NewBuf( o, oPane:cIOpref + oPane:net_cAddress + oPane:net_cPort + ;
             oPane:cCurrPath + cName, cBuffer, ):lReadOnly := .T.
          ENDIF
@@ -357,10 +360,9 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 
    RETURN aDir
 
-STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo )
+STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
 
-   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, lToFile := .F.
-   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
+   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, lToFile := .F., nCopied := 0, lRes := .T., aWnd
 
    IF !Empty( cFileTo )
       IF Empty( handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC ) )
@@ -369,7 +371,10 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo )
       ENDIF
       lToFile := .T.
    ENDIF
+
+   aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, "Wait" )
    IF Empty( hSockNew := FtpPASV( hSocket ) )
+      hbc_Wndclose( aWnd )
       RETURN Iif( lToFile, .F., Nil )
    ENDIF
 
@@ -380,35 +385,41 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo )
 
    cBuf := Space( READ_BUFF_LEN )
    DO WHILE ( nRet := hb_inetRecvAll( hSockNew, @cBuf, READ_BUFF_LEN ) ) > 0
+      nCopied += nRet
       IF lToFile
          hb_vfWrite( handle, Iif( nRet == READ_BUFF_LEN, cBuf, Left( cBuf,nRet ) ) )
       ELSE
          cBuffer += Iif( nRet == READ_BUFF_LEN, cBuf, Left( cBuf,nRet ) )
       ENDIF
+      IF Inkey() == 27 .AND. !FAsk_Abort( cFileName, nSize, nCopied )
+         lRes := .F.
+         EXIT
+      ENDIF
    ENDDO
 
    IF lToFile
       hb_vfClose( handle )
+      IF !lRes
+         hb_vfErase( cFileTo )
+      ENDIF
    ENDIF
 
    hb_inetClose( hSockNew )
    FtpGetReply( hSocket )
+   hbc_Wndclose( aWnd )
 
-   RETURN Iif( lToFile, .T., cBuffer )
+   RETURN Iif( lToFile, lRes, Iif( lRes, cBuffer, Nil ) )
 
-STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
+STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo, nSize )
 
-   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet
-   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
-/*
-   IF Empty( cBuf := hb_vfLoad( cFileName ) )
-      RETURN -1
-   ENDIF
-*/
+   LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, nCopied := 0, lRes := .T., aWnd
+
    IF Empty( handle := hb_vfOpen( cFileName ) )
       edi_Alert( "Can't open " + cFileName )
       RETURN -1
    ENDIF
+
+   aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, "Wait" )
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       RETURN Nil
    ENDIF
@@ -418,6 +429,11 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
       cBuf := Space( READ_BUFF_LEN )
       DO WHILE ( nRet := hb_vfRead( handle, @cBuf, READ_BUFF_LEN ) ) > 0 .AND. ;
          ( nRet :=  hb_inetSendAll( hSockNew, cBuf, nRet ) ) > 0
+         nCopied += nRet
+         IF Inkey() == 27 .AND. !FAsk_Abort( cFileName, nSize, nCopied )
+            lRes := .F.
+            EXIT
+         ENDIF
       ENDDO
       nRet := Iif( nRet<0, -1, 1 )
    ELSE
@@ -426,11 +442,15 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo )
 
    hb_vfClose( handle )
    hb_inetClose( hSockNew )
+   IF !lRes
+      FtpSendCmd( hSocket, "DELE " + cFileTo )
+   ENDIF
 
    //FtpLog( cBuffer )
    FtpGetReply( hSocket )
+   hbc_Wndclose( aWnd )
 
-   RETURN nRet
+   RETURN Iif( lRes, nRet, -3 )
 
 STATIC FUNCTION FtpGetReply( hSocket )
 
