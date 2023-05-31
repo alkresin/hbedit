@@ -319,8 +319,8 @@ STATIC FUNCTION FtpPASV( hSocket )
 
 STATIC FUNCTION FtpList( hSocket, cPath )
 
-   LOCAL hSockNew, cBuffer := "", cBuf, nRet
-   LOCAL aDir := {}, arr, i, j, cName, nSize, cAttr, dDate, cYear
+   LOCAL hSockNew, cBuffer := "", cBuf, nRet, nPos
+   LOCAL aDir := {}, arr, arr2, i, j, cName, nSize, cAttr, dDate, cYear
 
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       RETURN Nil
@@ -341,19 +341,26 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 
    arr := hb_ATokens( cBuffer, Chr(10) )
    FOR i := 1 TO Len( arr )
-      IF !Empty( arr[i] ) .AND. Len( arr[i] := hb_Atokens( arr[i] ) ) >= 9
-         cName := Iif( Right(arr[i,9],1) == Chr(13), hb_strShrink(arr[i,9],1), arr[i,9] )
+      IF !Empty( arr[i] ) .AND. Len( arr2 := hb_Atokens( arr[i] ) ) >= 9
+         cName := Iif( Right(arr2[9],1) == Chr(13), hb_strShrink(arr2[9],1), arr2[9] )
          IF !( cName == "." )
-            cAttr := Upper( arr[i,1] )
-            nSize := Iif( "D" $ cAttr, 0, Val(arr[i,5]) )
-            IF ( j := Ascan( aMonths, Lower(arr[i,6]) ) ) > 0
-               cYear := Iif( ':' $ arr[i,8], Str( Year(Date()),4 ), arr[i,8] )
-               dDate := Stod( cYear + PAdl( Ltrim(Str(j)),2,'0' ) + PAdl( arr[i,7],2,'0' ) )
+            IF Len(arr2) > 9
+               nPos := At( arr2[6], arr[i] ) + 1
+               nPos := hb_At( arr2[9], arr[i], nPos )
+               cName := Substr( arr[i], nPos )
+               IF Right( cName,1 ) == Chr(13)
+                  cName := hb_strShrink( cName,1 )
+               ENDIF
+            ENDIF
+            cAttr := Upper( arr2[1] )
+            nSize := Iif( "D" $ cAttr, 0, Val(arr2[5]) )
+            IF ( j := Ascan( aMonths, Lower(arr2[6]) ) ) > 0
+               cYear := Iif( ':' $ arr2[8], Str( Year(Date()),4 ), arr2[8] )
+               dDate := Stod( cYear + PAdl( Ltrim(Str(j)),2,'0' ) + PAdl( arr2[7],2,'0' ) )
             ELSE
                dDate := Stod( "19000101" )
             ENDIF
             AAdd( aDir, { cName, nSize, dDate, "", cAttr } )
-            //edi_writelog( cName + " " + Ltrim(Str(nSize)) + " " + arr[i,5] + " " + cAttr )
          ENDIF
       ENDIF
    NEXT
