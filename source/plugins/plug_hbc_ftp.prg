@@ -95,12 +95,13 @@ FUNCTION plug_hbc_ftp_close( o )
 
 FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize, dDate
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
    nFirst := aParams[4]
    nSize := aParams[5]
+   dDate := aParams[6]
 
    IF aParams[3]
       edi_Alert( cNotPerm )
@@ -110,7 +111,7 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
    IF hb_vfExists( cFileTo )
       aDir := oPane:aDir[oPane:nCurrent + oPane:nShift]
       hb_vfTimeGet( cFileTo, @i )
-      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo), aDir[2], aDir[3], hb_vfSize(cFileTo), i )
+      IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileTo), nSize, dDate, hb_vfSize(cFileTo), i )
          RETURN  1
       ENDIF
    ENDIF
@@ -130,7 +131,7 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
 FUNCTION plug_hbc_ftp_copyto( o, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, nFirst, n, aDir, nSize
+   LOCAL cFileName, cFileTo, nPos, nFirst, n, aDir, nSize, oPaneCurr
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
@@ -142,7 +143,8 @@ FUNCTION plug_hbc_ftp_copyto( o, aParams )
       RETURN 2
    ENDIF
 
-   IF ( n := Ascan2( o:aDir, hb_fnameNameExt(cFileName) ) ) > 0
+   oPaneCurr := Iif( o == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
+   IF ( n := Ascan2( o:aDir, FTransl( hb_fnameNameExt(cFileName),oPaneCurr:cpPane,o:cpPane ) ) ) > 0
       aDir := o:aDir[n]
       hb_vfTimeGet( cFileName, @n )
       IF !FAsk_Overwrite( nFirst, hb_fnameNameExt(cFileName), hb_vfSize(cFileName), n, aDir[2], aDir[3] )
