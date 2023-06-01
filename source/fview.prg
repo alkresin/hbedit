@@ -13,6 +13,8 @@
 #define MAXLEN       100000
 #define FILEINFO_LEN      8
 
+#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+
 REQUEST HB_CODEPAGE_RU866
 REQUEST HB_CODEPAGE_RU1251
 REQUEST HB_CODEPAGE_RUKOI8
@@ -30,7 +32,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
    PRIVATE lShowCR := .F., nCodePage := 1
 
    IF Empty( handle )
-      edi_Alert( "Can't open " + cFileName )
+      edi_Alert( _I("Can't open") + " " + cFileName )
       RETURN .F.
    ENDIF
 

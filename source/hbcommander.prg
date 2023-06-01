@@ -1038,7 +1038,7 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
       cBuf := Savescreen( ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 )
       Set COLOR TO +GR/B,N/BG
       @ ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ ::y1 + 2, ::x1 + 6 SAY _I(" Set new path:")
+      @ ::y1 + 2, ::x1 + 6 SAY " " + _I("Set new path")
       KEYBOARD Chr(K_ENTER)
 
       DO WHILE .T.
@@ -1495,7 +1495,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       IF Empty( ::aSelected )
          @ ::y2 - 2, x1, ::y2 - 2, x1 + 15 BOX "ÚÄ¿³ÙÄÀ³ " COLOR ::cClrBox
       ELSE
-         @ ::y2 - 2, x1 SAY _I("Selected: ") + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
+         @ ::y2 - 2, x1 SAY _I("Selected") + ": " + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
       ENDIF
    ENDIF
    IF !( ::cp == ::cpPane )
@@ -1539,7 +1539,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"Alt-D"}, ;
       {_I("File edit history"),,}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Find file"),,,"Ctrl-F7"}, ;
       {_I("Plugins"),,,"F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
-      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
+      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-Q"}, .T. )
@@ -1660,7 +1660,7 @@ FUNCTION FAsk_Abort( cFile, nSize, nCopied )
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
       {y1+1,x1+2, 11, hb_fnameNameExt(cFile) }, ;
-      {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + _I("% copied")}, ;
+      {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + "% " + _I("copied")}, ;
       {y1+8,x1+16, 2, _I("[Continue]"), 10,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+8,x1+28, 2,_I("[Abort]"), 7,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
 
@@ -1683,9 +1683,9 @@ FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
    LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
-      {y1+1,x1+2, 11, cFile + _I(" exists already! Overwrite it?")}, ;
-      {y1+3,x1+2, 11, _I("New: ")+PAdl(Ltrim(Str(nSouSize)),10)+" "+hb_ttoc(dSouDate)}, ;
-      {y1+4,x1+2, 11, _I("Existing: ")+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
+      {y1+1,x1+2, 11, cFile + " " + _I("exists already! Overwrite it?")}, ;
+      {y1+3,x1+2, 11, _I("New")+":"+PAdl(Ltrim(Str(nSouSize)),12)+" "+hb_ttoc(dSouDate)}, ;
+      {y1+4,x1+2, 11, _I("Existing")+":"+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
       {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, _I("[ ] Don's ask anymore")}, ;
       {y1+8,x1+16, 2, _I("[Yes]"), 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+8,x1+28, 2,_I("[No]"), 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }

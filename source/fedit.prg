@@ -36,15 +36,17 @@
 
 #define UNDO_INC       12
 
+#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+
 #ifndef __BUILT_IN
-STATIC aMenuMain := { {"Exit",@mnu_Exit(),Nil,"Esc,F10"}, {"Save",@mnu_Save(),Nil,"F2"}, ;
-   {"Save as",@mnu_Save(),.T.,"Shift-F2"}, {"Open file",@mnu_F4(),{7,16},"F4 >"}, ;
-   {"View",@mnu_View(),Nil,">"}, {"Selection",@mnu_Selection(),Nil,">"}, ;
-   {"Search&GoTo",@mnu_Sea_Goto(),{8,16},">"}, ;
-   {"Codepage",@mnu_CPages(),{11,16},">"}, {"Palette",@mnu_Palettes(),{12,16},">"}, ;
-   {"Syntax",@mnu_Syntax(),{13,16},"F8 >"}, {"Plugins",@mnu_Plugins(),Nil,"F11 >"}, ;
-   {"Windows",@mnu_Windows(),{15,16},">"}, ;
-   {"Buffers",@mnu_Buffers(),{16,16},"F12 >"} }
+STATIC aMenuMain := { {_I("Exit"),@mnu_Exit(),Nil,"Esc,F10"}, {_I("Save"),@mnu_Save(),Nil,"F2"}, ;
+   {_I("Save as"),@mnu_Save(),.T.,"Shift-F2"}, {_I("Open file"),@mnu_F4(),{7,16},"F4 >"}, ;
+   {_I("View"),@mnu_View(),Nil,">"}, {_I("Selection"),@mnu_Selection(),Nil,">"}, ;
+   {_I("Search&GoTo"),@mnu_Sea_Goto(),{8,16},">"}, ;
+   {_I("Codepage"),@mnu_CPages(),{11,16},">"}, {_I("Palette"),@mnu_Palettes(),{12,16},">"}, ;
+   {_I("Syntax"),@mnu_Syntax(),{13,16},"F8 >"}, {_I("Plugins"),@mnu_Plugins(),Nil,"F11 >"}, ;
+   {_I("Windows"),@mnu_Windows(),{15,16},">"}, ;
+   {_I("Buffers"),@mnu_Buffers(),{16,16},"F12 >"} }
 #endif
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }

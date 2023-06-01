@@ -20,6 +20,8 @@
 #define HILIGHT_MCOMM   8
 #define HILIGHT_BLOCK   9
 
+#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+
 STATIC cParent, nDiffs, cFileFrom
 STATIC nDiffMode                   // 1 - diff, 2 - full, 3 - prev. file version
 STATIC aShort, aDiff, aFull, aFrom, nminus, nplus
@@ -225,7 +227,7 @@ STATIC FUNCTION _diff_toppane( o, lClear, y )
 
 STATIC FUNCTION _diff_Switch( oEdit )
 
-   LOCAL aMenu := { {"Diff only",Nil,1}, {"Full",Nil,2}, {"Version 'From'",Nil,3} }, i
+   LOCAL aMenu := { {_I("Diff only"),Nil,1}, {_I("Full"),Nil,2}, {_I("Version 'From'"),Nil,3} }, i
    LOCAL i1, i2, c
    LOCAL nPos, nLine1, nLineNew, aTextBase
 
@@ -321,13 +323,13 @@ STATIC FUNCTION _diff_About( oEdit )
    LOCAL nRow := Row(), nCol := Col()
 
    @ 09, x1, y2, x1+nw BOX "         "
-   @ 10, x1+2 SAY "Differences: " + Ltrim( Str( nDiffs ) )
-   @ 11, x1+4 SAY "N - Next"
-   @ 12, x1+4 SAY "B - Previous"
-   @ 13, x1+4 SAY "S - Switch view mode"
-   @ 14, x1+4 SAY "Enter - GoTo text"
-   @ 15, x1+4 SAY "F1 - this help screen"
-   @ y2-1, x1+2 SAY "Press any key..."
+   @ 10, x1+2 SAY _I("Differences:") + " " + Ltrim( Str( nDiffs ) )
+   @ 11, x1+4 SAY _I("N - Next")
+   @ 12, x1+4 SAY _I("B - Previous")
+   @ 13, x1+4 SAY _I("S - Switch view mode")
+   @ 14, x1+4 SAY _I("Enter - GoTo text")
+   @ 15, x1+4 SAY _I("F1 - this help screen")
+   @ y2-1, x1+2 SAY _I("Press any key...")
    Inkey( 0 )
    Restscreen( 09, x1, y2, x1+nw, cBufScr )
    SetColor( oldc )
