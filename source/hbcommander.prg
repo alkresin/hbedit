@@ -45,6 +45,8 @@ STATIC aRemotePorts := { "2941" }
 STATIC aCpInUse := { "RU866", "RU1251", "UTF8" }
 STATIC aUtf8Auto := { "sftp:", "ftp:" }
 
+#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+
 MEMVAR GETLIST
 
 FUNCTION Hbc( oEdit )
@@ -503,7 +505,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                hb_unzipFileClose( oPaneCurr:hUnzip )
                mnu_NewBuf( oHbc, "zip|"+oPaneCurr:net_cAddress+"|"+aDir[1], cTemp )
             ELSE
-               edi_Alert( "Something goes wrong..." )
+               edi_Alert( _I("Something goes wrong...") )
             ENDIF
          ENDIF
       ENDIF
@@ -633,7 +635,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       KEYBOARD Chr(nKey)
       hbc_Console()
    ELSEIF nKey == 109    // m
-      i := hbc_Wndinit( 2, 4, 3, 30,, "Set Bookmark (a,s,d)" )
+      i := hbc_Wndinit( 2, 4, 3, 30,, _I("Set Bookmark (a,s,d)") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd"
@@ -641,7 +643,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:net_cPort, oPaneCurr:cCurrPath }
       ENDIF
    ELSEIF nKey == 39     // '
-      i := hbc_Wndinit( 2, 4, 3, 24,, "Go to Bookmark" )
+      i := hbc_Wndinit( 2, 4, 3, 24,, _I("Go to Bookmark") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
@@ -1036,7 +1038,7 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
       cBuf := Savescreen( ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 )
       Set COLOR TO +GR/B,N/BG
       @ ::y1 + 2, ::x1 + 2, ::y1 + 4, ::x1 + 36 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ ::y1 + 2, ::x1 + 6 SAY " Set new path:"
+      @ ::y1 + 2, ::x1 + 6 SAY _I(" Set new path:")
       KEYBOARD Chr(K_ENTER)
 
       DO WHILE .T.
@@ -1149,7 +1151,7 @@ METHOD ParsePath( cPath ) CLASS FilePane
       IF !l
          IF cPref == "net:"
             IF Empty( cPass )
-               cPass := edi_MsgGet( "Password", ::y1+5, ::x1+10, ::x1+30, .T. )
+               cPass := edi_MsgGet( _I("Password"), ::y1+5, ::x1+10, ::x1+30, .T. )
             ENDIF
             l := netio_Connect( hb_strShrink(cAddr,1), hb_strShrink(cPort,1), 2000, cPass )
 #ifdef _USE_SSH2
@@ -1412,7 +1414,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    ENDIF
 
    IF ::nCurrent == 0
-      @ ::y2 - 1, ::x1 + 1 SAY "Not available"
+      @ ::y2 - 1, ::x1 + 1 SAY _I("Not available")
       RETURN Nil
    ENDIF
 
@@ -1493,7 +1495,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
       IF Empty( ::aSelected )
          @ ::y2 - 2, x1, ::y2 - 2, x1 + 15 BOX "ÚÄ¿³ÙÄÀ³ " COLOR ::cClrBox
       ELSE
-         @ ::y2 - 2, x1 SAY "Selected: " + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
+         @ ::y2 - 2, x1 SAY _I("Selected: ") + PAdl(Ltrim(Str(Len(::aSelected))),4) COLOR ::cClrSel
       ENDIF
    ENDIF
    IF !( ::cp == ::cpPane )
@@ -1518,7 +1520,7 @@ METHOD DrawHead( lCurr ) CLASS FilePane
       cPath := NameShortcut( ::cIOpref + ::net_cAddress + ::cCurrPath, ::x2-::x1-6, '~', oHbc:lUtf8 )
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 1
-      cPath := "Search results"
+      cPath := _I("Search results")
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 2
       cPath := ::net_cAddress + ":" + ::zip_cCurrDir
@@ -1534,13 +1536,13 @@ METHOD PaneMenu() CLASS FilePane
 
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
-   LOCAL aMenu := { {"Pane mode",,,"Ctrl-P"}, {"Change dir",,,"Alt-D"}, ;
-      {"File edit history",,}, {"Commands history",,,"Ctrl-F8"}, {"Find file",,,"Ctrl-F7"}, ;
-      {"Plugins",,,"F11"}, {"Apps",,,"Ctrl-F12"}, {"Buffers",,,"F12"}, {"Refresh",,,"Ctrl-R"}, ;
-      {"Console",,,"Ctrl-O"}, {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {"Exit",,} }
+   LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"Alt-D"}, ;
+      {_I("File edit history"),,}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Find file"),,,"Ctrl-F7"}, ;
+      {_I("Plugins"),,,"F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
+      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {"Edit hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
 
    IF !Empty( FilePane():cConsOut )
-      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {"Stdout window",,,"Ctrl-Q"}, .T. )
+      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-Q"}, .T. )
    ENDIF
    nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2,, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
@@ -1591,13 +1593,13 @@ METHOD ContextMenu() CLASS FilePane
 
    IF !( aDir[1] == ".." )
       IF oPaneTo:nPanelMod != 1
-         Aadd( aMenu, { "Copy",,1,"F5" } )
+         Aadd( aMenu, { _I("Copy"),,1,"F5" } )
       ENDIF
       IF oPaneCurr:nPanelMod == 0 .AND. oPaneTo:nPanelMod != 1
-         Aadd( aMenu, { "Rename",,2,"F6" } )
+         Aadd( aMenu, { _I("Rename"),,2,"F6" } )
       ENDIF
       IF oPaneCurr:nPanelMod == 0
-         Aadd( aMenu, { "Delete",,3,"F8" } )
+         Aadd( aMenu, { _I("Delete"),,3,"F8" } )
       ENDIF
    ENDIF
 
@@ -1658,9 +1660,9 @@ FUNCTION FAsk_Abort( cFile, nSize, nCopied )
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
       {y1+1,x1+2, 11, hb_fnameNameExt(cFile) }, ;
-      {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + "% copied"}, ;
-      {y1+8,x1+16, 2, "[Continue]", 10,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+8,x1+28, 2,"[Abort]", 7,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
+      {y1+2,x1+2, 11, Ltrim(Str(Int(nCopied*100/nSize))) + _I("% copied")}, ;
+      {y1+8,x1+16, 2, _I("[Continue]"), 10,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+8,x1+28, 2,_I("[Abort]"), 7,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
 
    cBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -1681,12 +1683,12 @@ FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
    LOCAL y1 := 6, x1 := Int( (FilePane():vx2-FilePane():vx1-50)/2 ), y2 := y1+9, x2 := x1+50
    LOCAL cBuf, oldc := SetColor( TEdit():cColorWR + "," + TEdit():cColorWR )
    LOCAL aGets := { ;
-      {y1+1,x1+2, 11, cFile + " exists already! Overwrite it?"}, ;
-      {y1+3,x1+2, 11, "New:      "+PAdl(Ltrim(Str(nSouSize)),10)+" "+hb_ttoc(dSouDate)}, ;
-      {y1+4,x1+2, 11, "Existing: "+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
-      {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, "[ ] Don's ask anymore"}, ;
-      {y1+8,x1+16, 2, "[Yes]", 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+8,x1+28, 2,"[No]", 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
+      {y1+1,x1+2, 11, cFile + _I(" exists already! Overwrite it?")}, ;
+      {y1+3,x1+2, 11, _I("New: ")+PAdl(Ltrim(Str(nSouSize)),10)+" "+hb_ttoc(dSouDate)}, ;
+      {y1+4,x1+2, 11, _I("Existing: ")+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
+      {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, _I("[ ] Don's ask anymore")}, ;
+      {y1+8,x1+16, 2, _I("[Yes]"), 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+8,x1+28, 2,_I("[No]"), 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
    STATIC lNoAsk := .F., lRes := .F.
 
    IF n == 0  // One time
@@ -1724,7 +1726,7 @@ FUNCTION FAsk_Copy( cTitle, cRes )
       {06,12,11,cTitle}, ;
       {07,12,0,cRes,56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
    cScBuf := Savescreen( 05, 10, 10, 70 )
    oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )

@@ -55,6 +55,9 @@ FUNCTION plug_hbc_latin( oPane )
          IF aGets[3,4]
             cOut := hb_strReplace( cIn, cTrnl, aTranslL )
             cOut := hb_strReplace( cOut, cTrnu, aTranslU )
+            IF ' ' $ cOut
+               cOut := StrTran( cOut, ' ', '_' )
+            ENDIF
          ELSEIF aGets[5,4]
             cOut := Lower( cIn )
          ELSE
