@@ -1899,7 +1899,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
-         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nCopied)) + " "+_I("files copied.") )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nCopied)) + " "+_I("files copied") )
          IF !lSilent
             oPaneTo:Refresh()
             oPaneCurr:Refresh()
@@ -2226,7 +2226,7 @@ STATIC FUNCTION hbc_FMakeDir()
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)
       ELSE
-         edi_Alert( _I("Error creaing") + " " + cNewName )
+         edi_Alert( _I("Error creating") + " " + cNewName )
       ENDIF
       RETURN Nil
    ENDIF

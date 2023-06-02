@@ -130,7 +130,7 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/fedit.prg:3947
 #, c-format
 msgid "With"
-msgstr ""
+msgstr "На"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3591
 #, c-format
@@ -190,12 +190,12 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/fedit.prg:2062
 #, c-format
 msgid "File was modified by other program!"
-msgstr ""
+msgstr "Файл был изменен другой программой!"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3718 /papps/gitapps/hbedit/source/hbcommander.prg:2467
 #, c-format
 msgid "[Search]"
-msgstr ""
+msgstr "[Искать]"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3701 /papps/gitapps/hbedit/source/fedit.prg:3946
 #, c-format
@@ -205,7 +205,7 @@ msgstr "Заменить"
 #: /papps/gitapps/hbedit/source/fedit.prg:3732 /papps/gitapps/hbedit/source/fedit.prg:3833 /papps/gitapps/hbedit/source/hbcommander.prg:2488
 #, c-format
 msgid "Whole word"
-msgstr ""
+msgstr "Целое слово"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3501
 #, c-format
@@ -275,32 +275,32 @@ msgstr "Файловый менеджер"
 #: /papps/gitapps/hbedit/source/fedit.prg:3204
 #, c-format
 msgid " basic version"
-msgstr ""
+msgstr " базовая версия"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3729 /papps/gitapps/hbedit/source/fedit.prg:3829 /papps/gitapps/hbedit/source/hbcommander.prg:2485
 #, c-format
 msgid "Search for"
-msgstr ""
+msgstr "Искать"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3244
 #, c-format
 msgid "File has been modified. Save?"
-msgstr ""
+msgstr "Файл был изменен. Сохранить?"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3818 /papps/gitapps/hbedit/source/fedit.prg:3926
 #, c-format
 msgid "[Replace]"
-msgstr ""
+msgstr "[Заменить]"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3926
 #, c-format
 msgid "[All]"
-msgstr ""
+msgstr "Все"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "lower case"
-msgstr ""
+msgstr "нижний регистр"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3324
 #, c-format
@@ -310,27 +310,27 @@ msgstr "Переключить окно"
 #: /papps/gitapps/hbedit/source/fedit.prg:3324
 #, c-format
 msgid "To full size"
-msgstr ""
+msgstr "В полный размер"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3324 /papps/gitapps/hbedit/source/hbcommander.prg:2945
 #, c-format
 msgid "Close"
-msgstr ""
+msgstr "Закрыть"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3324
 #, c-format
 msgid "Add window horizontally"
-msgstr ""
+msgstr "Добавить окно по горизонтали"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3324
 #, c-format
 msgid "Add window vertically"
-msgstr ""
+msgstr "Добавить окно по вертикали"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3926
 #, c-format
 msgid "[Skip]"
-msgstr ""
+msgstr "[Пропустить]"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3543
 #, c-format
@@ -360,12 +360,12 @@ msgstr "Автоотступ"
 #: /papps/gitapps/hbedit/source/fedit.prg:3441
 #, c-format
 msgid "Mark block"
-msgstr ""
+msgstr "Пометить блок"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3441
 #, c-format
 msgid "Vertical block"
-msgstr ""
+msgstr "Вертикальный блок"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3602
 #, c-format
@@ -380,72 +380,72 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "UPPER CASE"
-msgstr ""
+msgstr "ВЕРХНИЙ РЕГИСТР"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "Indent right"
-msgstr ""
+msgstr "Выровнять вправо"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "Indent left"
-msgstr ""
+msgstr "Выровнять влево"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "Insert right"
-msgstr ""
+msgstr "Вставить справа"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
 msgid "Insert left"
-msgstr ""
+msgstr "Вставить слева"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4021
 #, c-format
 msgid "Sorting"
-msgstr ""
+msgstr "Сортировка"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4047
 #, c-format
 msgid "Columns"
-msgstr ""
+msgstr "Колонки"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4600
 #, c-format
 msgid "Save file as"
-msgstr ""
+msgstr "Сохранить файл как"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4080
 #, c-format
 msgid "Input"
-msgstr ""
+msgstr "Ввод"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4124
 #, c-format
 msgid "Ascending"
-msgstr ""
+msgstr "Возрастание"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4124
 #, c-format
 msgid "Descending"
-msgstr ""
+msgstr "Убывание"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4603
 #, c-format
 msgid "[Save]"
-msgstr ""
+msgstr "[Сохранить]"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4601
 #, c-format
 msgid "in directory"
-msgstr ""
+msgstr " в каталоге"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4602
 #, c-format
 msgid "Do not change"
-msgstr ""
+msgstr "Не изменять"
 
 #: /papps/gitapps/hbedit/source/fmenu.prg:132 /papps/gitapps/hbedit/source/hbcommander.prg:1910
 #, c-format
@@ -460,22 +460,22 @@ msgstr "Не могу открыть"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2052
 #, c-format
 msgid "Move"
-msgstr ""
+msgstr "Перемещение"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2072
 #, c-format
 msgid "files moved"
-msgstr ""
+msgstr "файлов перемещено"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2144
 #, c-format
 msgid "files deleted"
-msgstr ""
+msgstr "файлов удалено"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2051
 #, c-format
 msgid "Move selected files to"
-msgstr ""
+msgstr "Переместить отмеченные файлы в"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1418
 #, c-format
@@ -490,12 +490,12 @@ msgstr "Другой каталог"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2484
 #, c-format
 msgid "File mask"
-msgstr ""
+msgstr "Маска файла"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2210
 #, c-format
 msgid "Create new directory"
-msgstr ""
+msgstr "Создать новый каталог"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1155
 #, c-format
@@ -510,12 +510,12 @@ msgstr "Старый"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2102 /papps/gitapps/hbedit/source/hbcommander.prg:2137 /papps/gitapps/hbedit/source/hbcommander.prg:2166
 #, c-format
 msgid "Error deleting"
-msgstr ""
+msgstr "Ошибка удаления"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2119 /papps/gitapps/hbedit/source/hbcommander.prg:2181
 #, c-format
 msgid "Really delete"
-msgstr ""
+msgstr "Действительно удалить"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1692
 #, c-format
@@ -526,11 +526,6 @@ msgstr "уже существует! Переписать?"
 #, c-format
 msgid "Error creating"
 msgstr "Ошибка создания"
-
-#: /papps/gitapps/hbedit/source/hbcommander.prg:2229
-#, c-format
-msgid "Error creaing"
-msgstr ""
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1692
 #, c-format
@@ -645,32 +640,32 @@ msgstr "Результаты поиска"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3361
 #, c-format
 msgid "Application has a window"
-msgstr ""
+msgstr "У приложения есть окно"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3335
 #, c-format
 msgid "Error starting app"
-msgstr ""
+msgstr "Не удалось запустить"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2011
 #, c-format
 msgid "Such a file exists already!"
-msgstr ""
+msgstr "Такой файл уже существует!"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3361
 #, c-format
 msgid "Show it"
-msgstr ""
+msgstr "Показать"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3361
 #, c-format
 msgid "Ignore"
-msgstr ""
+msgstr "Игнорировать"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3035
 #, c-format
 msgid "Help"
-msgstr ""
+msgstr "Помощь"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1543
 #, c-format
@@ -685,7 +680,7 @@ msgstr "[Прервать]"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2362
 #, c-format
 msgid "Sort by name"
-msgstr ""
+msgstr "Упорядочить по имени"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1866 /papps/gitapps/hbedit/source/hbcommander.prg:1995
 #, c-format
@@ -705,7 +700,7 @@ msgstr "Что-то пошло не так..."
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2362
 #, c-format
 msgid "Sort by date"
-msgstr ""
+msgstr "Упорядочить по дате"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1543
 #, c-format
@@ -720,12 +715,7 @@ msgstr "Установить закладку"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1967 /papps/gitapps/hbedit/source/hbcommander.prg:2072
 #, c-format
 msgid "Aborted"
-msgstr ""
-
-#: /papps/gitapps/hbedit/source/hbcommander.prg:1967
-#, c-format
-msgid "files copied"
-msgstr ""
+msgstr "Прервано"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:647
 #, c-format
@@ -744,23 +734,23 @@ msgstr "Окно Stdout"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1902
 #, c-format
-msgid "files copied."
+msgid "files copied"
 msgstr "файлов скопировано"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2489
 #, c-format
 msgid "Recursive"
-msgstr ""
+msgstr "Рекурсивно"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2490
 #, c-format
 msgid "Select"
-msgstr ""
+msgstr "Выбрать"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2894
 #, c-format
 msgid "Can't set attributes"
-msgstr ""
+msgstr "Не получилось установить аттрибуты"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2866
 #, c-format
@@ -825,12 +815,12 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2576
 #, c-format
 msgid "Nothing found"
-msgstr ""
+msgstr "Не найдено"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2588
 #, c-format
 msgid "Create archive"
-msgstr ""
+msgstr "Создать архив"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2827
 #, c-format

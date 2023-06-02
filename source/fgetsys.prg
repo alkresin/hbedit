@@ -49,6 +49,9 @@ FUNCTION edi_READ( aGets, pKeys )
    FOR i := 1 TO Len( aGets )
       aOpt[i,G2_OPT] := .T.
       aOpt[i,G2_FIRST] := 1
+      IF Len(aGets[i])>=G_WIDTH .AND. Empty(aGets[i,G_WIDTH]) .AND. Valtype(aGets[i,G_VALUE]) == "C"
+         aGets[i,G_WIDTH] := cp_Len( lUtf8,aGets[i,G_VALUE] )
+      ENDIF
       IF aGets[i,G_TYPE] >= 0
          ShowGetItem( aGets[i], .F., lUtf8,, aOpt[i] )
       ENDIF
