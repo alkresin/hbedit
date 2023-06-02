@@ -10,7 +10,7 @@
 
 #define CTRL_PRESSED  0x020000
 
-#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+#xtranslate _I( <x,...> ) => TrnMsg( hb_i18n_gettext( <x> ) )
 
 STATIC lSea, cSea, aSea
 STATIC lDown := .T.
@@ -129,7 +129,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
             IF lSea
                Scroll( y2, x1+3, y2, x2-4 )
                DevPos( y2, x1+3 )
-               DevOut( _I("Wait...") )
+               DevOut( _I("Wait")+"..." )
                tmparr := MakeArr( aMenu, x2-x1-3, lUtf8, cSea+cp_Chr(lUtf8,nKey), bSea )
                IF !( tmparr == Nil )
                   cSea += cp_Chr( lUtf8, nKey )

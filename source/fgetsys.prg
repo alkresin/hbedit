@@ -341,10 +341,13 @@ FUNCTION edi_READ( aGets, pKeys )
 
 FUNCTION ShowGetItem( aGet, lSele, lUtf8, lFirst, aOpt )
 
-   LOCAL x, nWidth := Iif( aGet[G_TYPE]==G_TYPE_STATIC, cp_Len( lUtf8,aGet[G_VALUE] ), ;
-      Iif( aGet[G_TYPE]==G_TYPE_CHECK.OR.aGet[G_TYPE]==G_TYPE_RADIO, 1, aGet[G_WIDTH] ) )
+   LOCAL x, nWidth := Iif( aGet[G_TYPE]==G_TYPE_CHECK.OR.aGet[G_TYPE]==G_TYPE_RADIO, 1, ;
+      Iif( Len(aGet)>=G_WIDTH,aGet[G_WIDTH],0 ) )
    LOCAL cText, nLen
 
+   IF Empty( nWidth ) .AND. Valtype( aGet[G_VALUE] ) == "C"
+      nWidth := cp_Len( lUtf8,aGet[G_VALUE] )
+   ENDIF
    IF lFirst == Nil; lFirst := .F.; ENDIF
    IF lSele
       IF lFirst .AND. aGet[G_TYPE] == G_TYPE_STRING .AND. ;

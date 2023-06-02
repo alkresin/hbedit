@@ -36,18 +36,8 @@
 
 #define UNDO_INC       12
 
-#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+#xtranslate _I( <x,...> ) => TrnMsg( hb_i18n_gettext( <x> ) )
 
-#ifndef __BUILT_IN
-STATIC aMenuMain := { {_I("Exit"),@mnu_Exit(),Nil,"Esc,F10"}, {_I("Save"),@mnu_Save(),Nil,"F2"}, ;
-   {_I("Save as"),@mnu_Save(),.T.,"Shift-F2"}, {_I("Open file"),@mnu_F4(),{7,16},"F4 >"}, ;
-   {_I("View"),@mnu_View(),Nil,">"}, {_I("Selection"),@mnu_Selection(),Nil,">"}, ;
-   {_I("Search&GoTo"),@mnu_Sea_Goto(),{8,16},">"}, ;
-   {_I("Codepage"),@mnu_CPages(),{11,16},">"}, {_I("Palette"),@mnu_Palettes(),{12,16},">"}, ;
-   {_I("Syntax"),@mnu_Syntax(),{13,16},"F8 >"}, {_I("Plugins"),@mnu_Plugins(),Nil,"F11 >"}, ;
-   {_I("Windows"),@mnu_Windows(),{15,16},">"}, ;
-   {_I("Buffers"),@mnu_Buffers(),{16,16},"F12 >"} }
-#endif
 STATIC aKeysMove := { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_HOME, K_END, K_PGDN, K_PGUP, K_CTRL_PGUP, K_CTRL_PGDN }
 STATIC aAltKeysMove := { K_ALT_UP, K_ALT_DOWN, K_ALT_LEFT, K_ALT_RIGHT, K_ALT_HOME, K_ALT_END, K_ALT_PGDN, K_ALT_PGUP }
 STATIC cKeysMove := "hjklwWeEbBG0$^"
@@ -103,6 +93,7 @@ CLASS TEdit
    CLASS VAR bNew       SHARED
    CLASS VAR hMacros    SHARED
    CLASS VAR hSelePlug  SHARED
+   CLASS VAR cLangCP    SHARED
 #ifdef __PLATFORM__UNIX
 #ifndef GTHWG
    CLASS VAR cClipCmd   SHARED
@@ -188,14 +179,19 @@ ENDCLASS
 
 METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
-   LOCAL i, cExt
+   LOCAL i, cTmp
 
    IF !::lReadIni
       edi_ReadIni( edi_FindPath( "hbedit.ini" ) )
    ENDIF
    IF Empty( ::aRectFull )
-#ifndef _NO_HBC
-      aMenuMain := hb_AIns( aMenuMain, Len(aMenuMain), { "File Manager",@hbc(),Nil }, .T. )
+#ifndef __BUILT_IN
+      IF !Empty( ::cLangCP ) .AND. !Empty( cTmp := edi_FindPath( "hbedit_"+Lower(::cLangCP)+".hbl" ) )
+         cTmp := hb_MemoRead( cTmp )
+         IF hb_i18n_Check( cTmp )
+            hb_i18n_Set( hb_i18n_RestoreTable(cTmp) )
+         ENDIF
+      ENDIF
 #endif
       ::aRectFull := { 0, 0, MaxRow(), MaxCol() }
       IF y1 != Nil; ::aRectFull[1] := y1; ENDIF
@@ -428,9 +424,9 @@ METHOD Edit( lShowOnly ) CLASS TEdit
          IF ::nCurr > 1
             ::nCurr --
          ENDIF
-      ELSEIF edi_Alert( "There are child windows.;Close anyway?", "Yes", "No" ) == 1
+      ELSEIF edi_Alert( _I("There are child windows.;Close anyway?"), _I("Yes"), _I("No") ) == 1
          IF ( n := edi_WindowUpdated( Self ) ) > 0
-            IF ( i := edi_Alert( "Some files are updated.", "Cancel", "GoTo", "Close anyway" ) ) <= 1
+            IF ( i := edi_Alert( _I("Some files are updated"), _I("Cancel"), _I("GoTo"), _I("Close anyway") ) ) <= 1
                ::lClose := .F.
                RETURN Nil
             ELSEIF i == 2
@@ -1018,7 +1014,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             IF nKey == 90      // Z
                FOR i := Len( ::aWindows ) TO 1 STEP -1
                   IF ::aWindows[i]:lUpdated .AND. Empty(::aWindows[i]:cFileName)
-                     edi_Alert( "Set file name" )
+                     edi_Alert( _I("Set file name") )
                      ::lShow := .F.
                      ::nCurr := i
                      nLastKey := nKeyExt
@@ -1611,7 +1607,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         mnu_Sele( Self )
                      ELSE
 #ifndef __BUILT_IN
-                        FMenu( Self, aMenuMain, 2, 6 )
+                        mnu_Main( Self )
 #endif
                      ENDIF
                      lNoDeselect := .T.
@@ -1684,7 +1680,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   mnu_Sele( Self )
                ELSE
 #ifndef __BUILT_IN
-                  FMenu( Self, aMenuMain, 2, 6 )
+                  mnu_Main( Self )
 #endif
                ENDIF
                nKey := K_RIGHT
@@ -1794,7 +1790,7 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
          IF Empty( lClear )
             DevPos( y, ::x1 )
             IF ::x2 - ::x1 > 54
-               DevOut( "F9-menu" )
+               DevOut( "F9-"+_I("menu") )
                DevPos( y, ::x1+8 )
                nF9 := 8
             ENDIF
@@ -2063,7 +2059,7 @@ METHOD Save( cFileName ) CLASS TEdit
 
    IF !Empty( ::dDateMod ) .AND. hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod ) .AND. ;
       ( ::dDateMod != dDateMod .OR. ::cTimeMod != cTimeMod ) .AND. ;
-      edi_Alert( "File was modified by other program!", "Save", "Cancel" ) != 1
+      edi_Alert( _I("File was modified by other program!"), _I("Save"), _I("Cancel") ) != 1
       RETURN .F.
    ENDIF
 
@@ -2814,6 +2810,9 @@ FUNCTION edi_ReadIni( xIni )
                IF hb_hHaskey( aSect, cTemp := "eol" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   nEol := Val(cTemp)
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "langcp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():cLangCP := Upper( Alltrim( cTemp ) )
+               ENDIF
                IF hb_hHaskey( aSect, cTemp := "langmap_cp" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   IF hb_cdpExists( cTemp )
                      cLangMapCP := cTemp
@@ -3171,22 +3170,41 @@ FUNCTION edi_ReadIni( xIni )
 
    RETURN Nil
 
+STATIC FUNCTION mnu_Main( o )
+
+   LOCAL aMenuMain := { {_I("Exit"),@mnu_Exit(),Nil,"Esc,F10"}, {_I("Save"),@mnu_Save(),Nil,"F2"}, ;
+      {_I("Save as"),@mnu_Save(),.T.,"Shift-F2"}, {_I("Open file"),@mnu_F4(),{7,16},"F4 >"}, ;
+      {_I("View"),@mnu_View(),Nil,">"}, {_I("Selection"),@mnu_Selection(),Nil,">"}, ;
+      {_I("Search&GoTo"),@mnu_Sea_Goto(),{8,16},">"}, ;
+      {_I("Codepage"),@mnu_CPages(),{11,16},">"}, {_I("Palette"),@mnu_Palettes(),{12,16},">"}, ;
+      {_I("Syntax"),@mnu_Syntax(),{13,16},"F8 >"}, {_I("Plugins"),@mnu_Plugins(),Nil,"F11 >"}, ;
+      {_I("Windows"),@mnu_Windows(),{15,16},">"}, ;
+      {_I("Buffers"),@mnu_Buffers(),{16,16},"F12 >"} }
+
+#ifndef _NO_HBC
+   aMenuMain := hb_AIns( aMenuMain, Len(aMenuMain), { _I("File Manager"),@hbc(),Nil }, .T. )
+#endif
+
+   FMenu( o, aMenuMain, 2, 6 )
+
+   RETURN Nil
+
 FUNCTION mnu_Help( oEdit, cFullPath, cMet )
 
    LOCAL oHelp, nCurr := TEdit():nCurr, i
    LOCAL cDop := "", cHelp, cPlugHelp
 
 #ifdef _USE_SSH2
-   cDop += " (with libssh2 support)"
+   cDop += _I(" (with libssh2 support)")
 #endif
 #ifdef __BUILT_IN
-   cDop += " built-in version"
+   cDop += _I(" built-in version")
 #else
   #ifndef _FULL
-   cDop += " basic version"
+   cDop += _I(" basic version")
   #endif
   #ifdef _NO_HBC
-   cDop += " without HbCommander"
+   cDop += _I(" without HbCommander")
   #endif
 #endif
    IF Empty( cFullPath )
@@ -3223,7 +3241,7 @@ FUNCTION mnu_Exit( oEdit )
    LOCAL nRes := 2
 
    IF oEdit:lUpdated
-      nRes := edi_Alert( "File has been modified. Save?", "Yes", "No", "Cancel" )
+      nRes := edi_Alert( _I("File has been modified. Save?"), _I("Yes"), _I("No"), _I("Cancel") )
    ENDIF
    IF nRes == 1 .OR. nRes == 2
       IF nRes == 1
@@ -3299,11 +3317,11 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
 FUNCTION mnu_Windows( oEdit, aXY, n )
 
-   LOCAL aMenu := { {"Switch window",Nil,Nil,"Ctrl-w,w"}, ;
-      {"To full size",Nil,Nil,"Ctrl-w,o"}, ;
-      {"Close",Nil,Nil,"Ctrl-w,c"}, ;
-      {"Add window horizontally",Nil,Nil,"Ctrl-w,s"}, ;
-      {"Add window vertically",Nil,Nil,"Ctrl-w,v"} }
+   LOCAL aMenu := { {_I("Switch window"),Nil,Nil,"Ctrl-w,w"}, ;
+      {_I("To full size"),Nil,Nil,"Ctrl-w,o"}, ;
+      {_I("Close"),Nil,Nil,"Ctrl-w,c"}, ;
+      {_I("Add window horizontally"),Nil,Nil,"Ctrl-w,s"}, ;
+      {_I("Add window vertically"),Nil,Nil,"Ctrl-w,v"} }
    LOCAL i, o
 
    IF n == Nil
@@ -3392,8 +3410,8 @@ FUNCTION mnu_Save( oEdit, lAs )
 FUNCTION mnu_View( oEdit )
 
    LOCAL lAutoC := TEdit():options["autocomplete"], lAutoI := TEdit():options["autoindent"], lAutoVert := TEdit():options["autovertical"]
-   LOCAL aMenu := { {"Wrap ",,,Iif(!oEdit:lWrap,"Off","On")}, {"Autocomplete ",,,Iif(!lAutoC,"Off","On")}, ;
-      {"Autovertical ",,,Iif(!lAutoVert,"Off","On")}, {"Autoindent ",,,Iif(!lAutoI,"Off","On")} }
+   LOCAL aMenu := { {_I("Wrap"),,,Iif(!oEdit:lWrap,"Off","On")}, {_I("Autocomplete"),,,Iif(!lAutoC,"Off","On")}, ;
+      {_I("Autovertical"),,,Iif(!lAutoVert,"Off","On")}, {_I("Autoindent"),,,Iif(!lAutoI,"Off","On")} }
    LOCAL y1 := Row(), x1 := Col()-6, i
 
    i := FMenu( oEdit, aMenu, y1, x1 )
@@ -3420,7 +3438,7 @@ FUNCTION mnu_View( oEdit )
 
 FUNCTION mnu_Selection( oEdit )
 
-   LOCAL aMenu := { {"Mark block",@mnu_F3(),Nil,"F3"}, {"Vertical block",@mnu_F3(),2,"Ctrl-F3"} }
+   LOCAL aMenu := { {_I("Mark block"),@mnu_F3(),Nil,"F3"}, {_I("Vertical block"),@mnu_F3(),2,"Ctrl-F3"} }
    LOCAL y1 := Row(), x1 := Col()-6
 
    FMenu( oEdit, aMenu, y1, x1 )
@@ -3480,7 +3498,7 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
 
 FUNCTION mnu_F4( oEdit, aXY )
 
-   LOCAL aMenu := { {"New file",@mnu_NewBuf(),Nil,"Shift-F4"}, {"Open file",@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
+   LOCAL aMenu := { {_I("New file"),@mnu_NewBuf(),Nil,"Shift-F4"}, {_I("Open file"),@mnu_OpenFile(),Nil,"Ctrl-F4"} }, i
    STATIC lChecked := .F.
 
    FOR i := 1 TO Len( oEdit:aEditHis )
@@ -3522,14 +3540,13 @@ FUNCTION mnu_NewBuf( oEdit, cFileName, cText, funSave )
          IF File( cFileName )
             cText := Memoread( cFileName )
          ELSE
-            edi_Alert( "File not found" )
+            edi_Alert( _I("File not found") )
             RETURN Nil
          ENDIF
       ENDIF
    ENDIF
 
    hb_cdpSelect( TEdit():cpInit )
-   //oNew := TEdit():New( cText, cFileName, TEdit():aRectFull[1], TEdit():aRectFull[2], TEdit():aRectFull[3], TEdit():aRectFull[4] )
    oNew := TEdit():New( cText, cFileName )
    IF !Empty( oEdit )
       oNew:funSave := Iif( Empty(funSave), oEdit:funSave, funSave )
@@ -3555,8 +3572,8 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
       {11,68,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[1],.F.)}}, ;
       {12,13,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, {12,28,1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
       {12,56,-1,.F.,1,oEdit:cColorSel,oEdit:cColorMenu}, ;
-      {14,26,2,"[Open]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {14,46,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {14,26,2,_I("[Open]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {14,46,2,_I("[Cancel]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    STATIC pKeys
 
    IF Empty( pKeys )
@@ -3569,12 +3586,12 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    @ 13, 60 SAY "´"
    @ 13, 11 TO 13, 71
    hb_cdpSelect( oEdit:cp )
-   @ 10, 12 SAY "Open file"
-   @ 12, 12 SAY "[ ] ReadOnly"
-   @ 12, 27 SAY "[ ] In a current window"
+   @ 10, 12 SAY _I("Open file")
+   @ 12, 12 SAY "[ ] " + _I("ReadOnly")
+   @ 12, 27 SAY "[ ] " + _I("In a current window")
    IF !Empty( oEdit:cFileName )
       aGets[5,3] := 1
-      @ 12, 55 SAY "[ ] Diff"
+      @ 12, 55 SAY "[ ] " + _I("Diff")
    ENDIF
    SetColor( oEdit:cColorMenu )
 
@@ -3582,7 +3599,7 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
       IF !Empty( cName := aGets[1,4] ) .AND. File( cName )
          IF aGets[6,4]
             IF ( cText := edi_MakeDiff( oEdit, cName ) ) == Nil
-               edi_Alert( "Diff tool not found" )
+               edi_Alert( _I("Diff tool not found") )
             ELSE
                edi_AddDiff( oEdit, cText, .T. )
             ENDIF
@@ -3679,9 +3696,9 @@ STATIC FUNCTION mnu_DirList( oEdit, aGet, lDirOnly )
 
 FUNCTION mnu_Sea_goto( oEdit, aXY )
 
-   LOCAL aMenu := { {"Search",@mnu_Search(),Nil,"F7"}, {"Next",@mnu_SeaNext(),.T.,"Shift-F7"}, ;
-      {"Previous",@mnu_SeaNext(),.F.,"Alt-F7"}, {"Replace",@mnu_SeaAndRepl(),Nil,"Ctrl-F7"}, ;
-      {"Go to",@mnu_GoTo(),Nil,"Alt-F8"}, {"Back",@mnu_Back(),Nil,"Alt-B"} }
+   LOCAL aMenu := { {_I("Search"),@mnu_Search(),Nil,"F7"}, {_I("Next"),@mnu_SeaNext(),.T.,"Shift-F7"}, ;
+      {_I("Previous"),@mnu_SeaNext(),.F.,"Alt-F7"}, {_I("Replace"),@mnu_SeaAndRepl(),Nil,"Ctrl-F7"}, ;
+      {_I("Go to"),@mnu_GoTo(),Nil,"Alt-F8"}, {_I("Back"),@mnu_Back(),Nil,"Alt-B"} }
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2] )
 
@@ -3697,8 +3714,8 @@ FUNCTION mnu_Search( oEdit )
    LOCAL aGets := { {11,22,0,"",33,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {11,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_SeaHist(oEdit,aGets[1])}}, ;
       {12,23,1,.F.,1}, {12,43,1,.F.,1}, {13,23,1,.F.,1}, {13,43,1,.F.,1}, ;
-      {15,25,2,"[Search]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,40,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {15,25,2,_I("[Search]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,40,2,_I("[Cancel]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F., lWord, lRegex, cs_utf8
    LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
@@ -3709,11 +3726,11 @@ FUNCTION mnu_Search( oEdit )
    @ 14, 21 TO 14, 59
    hb_cdpSelect( oEdit:cp )
 
-   @ 10,22 SAY "Search for"
-   @ 12, 22 SAY "[ ] Case sensitive"
-   @ 12, 42 SAY "[ ] Backward"
-   @ 13, 22 SAY "[ ] Whole word"
-   @ 13, 42 SAY "[ ] Regular expr."
+   @ 10,22 SAY _I("Search for")
+   @ 12, 22 SAY "[ ] " + _I("Case sensitive")
+   @ 12, 42 SAY "[ ] " + _I("Backward")
+   @ 13, 22 SAY "[ ] " + _I("Whole word")
+   @ 13, 42 SAY "[ ] " + _I("Regular expr.")
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -3737,7 +3754,7 @@ FUNCTION mnu_Search( oEdit )
       IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord_Sea := lWord, lRegex_Sea := lRegex, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
-         edi_Alert( "String is not found:;" + cSearch )
+         edi_Alert( _I("String is not found:;") + cSearch )
          oEdit:lTextOut := .T.
       ENDIF
    ENDIF
@@ -3780,7 +3797,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
       IF oEdit:Search( cSearch, lCase_Sea, lNext, lWord_Sea, lRegex_Sea, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
-         edi_Alert( "String is not found:;" + cSearch )
+         edi_Alert( _I("String is not found:;") + cSearch )
          oEdit:lTextOut := .T.
          edi_SetPos( oEdit )
       ENDIF
@@ -3797,8 +3814,8 @@ FUNCTION mnu_SeaAndRepl( oEdit )
       {13,22,0,"",33,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_ReplHist(oEdit,aGets[3])}}, ;
       {14,23,1,.F.,1}, {14,43,1,.F.,1}, {15,23,1,.F.,1}, {15,43,1,.F.,1}, ;
-      {17,25,2,"[Replace]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {17,40,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {17,25,2,_I("[Replace]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {17,40,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, cRepl, lCase, lBack := .F., lWord, lRegex, cs_utf8, cr_utf8, nSeaLen
    LOCAL ny := oEdit:nLine, nx := oEdit:nPos
 
@@ -3809,12 +3826,12 @@ FUNCTION mnu_SeaAndRepl( oEdit )
    @ 16, 21 TO 16, 59
    hb_cdpSelect( oEdit:cp )
 
-   @ 10,22 SAY "Search for"
-   @ 12,22 SAY "Replace with"
-   @ 14, 22 SAY "[ ] Case sensitive"
-   @ 14, 42 SAY "[ ] Backward"
-   @ 15, 22 SAY "[ ] Whole word"
-   @ 15, 42 SAY "[ ] Regular expr."
+   @ 10,22 SAY _I("Search for")
+   @ 12,22 SAY _I("Replace with")
+   @ 14, 22 SAY "[ ] " + _I("Case sensitive")
+   @ 14, 42 SAY "[ ] " + _I("Backward")
+   @ 15, 22 SAY "[ ] " + _I("Whole word")
+   @ 15, 42 SAY "[ ] " + _I("Regular expr.")
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -3865,7 +3882,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
                EXIT
             ENDIF
          ELSE
-            edi_Alert( "String is not found:;" + cSearch )
+            edi_Alert( _I("String is not found:;") + cSearch )
             oEdit:lTextOut := .T.
             EXIT
          ENDIF
@@ -3903,10 +3920,10 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,,"+oEdit:cColorSel )
    LOCAL y1 := Iif( Row()>oEdit:y2-6, oEdit:y1+2, oEdit:y2-6 ), x1 := oEdit:x2-40, nRes := 0
    LOCAL aGets := { ;
-      {y1+4,x1+2,2,"[Replace]",9,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+14,2,"[All]",5,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+21,2,"[Skip]",6,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+30,2,"[Cancel]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
+      {y1+4,x1+2,2,_I("[Replace]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+14,2,_I("[All]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+21,2,_I("[Skip]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+30,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL cSearch, cRepl, ny, nx
    STATIC pKeys
 
@@ -3926,8 +3943,8 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
       nx := oEdit:nPos
       cSearch := cp_Substr( oEdit:lUtf8, oEdit:aText[ny], nx, nSeaLen )
       cRepl := hb_Translate(TEdit():aReplHis[1],"UTF8")
-      @ y1+1,x1+2 SAY 'Replace "' + cSearch + '"'
-      @ y1+2,x1+2 SAY 'With "' + cRepl + '"'
+      @ y1+1,x1+2 SAY _I('Replace') + ' "' + cSearch + '"'
+      @ y1+2,x1+2 SAY _I('With') + ' "' + cRepl + '"'
 
       nRes := edi_Read( aGets, pKeys )
       SetColor( oldc )
@@ -3940,10 +3957,10 @@ FUNCTION mnu_GoTo( oEdit )
 
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu )
    LOCAL aGets := { ;
-      {10,32,11,"Go to position"}, ;
+      {10,32,11,_I("Go to position")}, ;
       {11,27,0,"",26}, ;
-      {13,28,2,"[Ok]",4,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {13,42,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {13,28,2,_I("[Ok]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {13,42,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL arr, ny, nx, nRes
 
    hb_cdpSelect( "RU866" )
@@ -3993,15 +4010,15 @@ FUNCTION mnu_Plugins( oEdit )
 
 FUNCTION mnu_Sele( oEdit )
 
-   LOCAL aMenu := { {"UPPER CASE",@edi_ConvertCase(),.T.,"U"}, ;
-      {"lower case",@edi_ConvertCase(),.F.,"u"}, ;
-      {"Indent right",@mnu_Indent(),{.T.},"> "}, ;
-      {"Indent left",@mnu_Indent(),{.F.},"< "}, ;
-      {"Insert right",@mnu_AddToSele(),{.F.}}, {"Insert left",@mnu_AddToSele(),{.T.}} }
+   LOCAL aMenu := { {_I("UPPER CASE"),@edi_ConvertCase(),.T.,"U"}, ;
+      {_I("lower case"),@edi_ConvertCase(),.F.,"u"}, ;
+      {_I("Indent right"),@mnu_Indent(),{.T.},"> "}, ;
+      {_I("Indent left"),@mnu_Indent(),{.F.},"< "}, ;
+      {_I("Insert right"),@mnu_AddToSele(),{.F.}}, {_I("Insert left"),@mnu_AddToSele(),{.T.}} }
    LOCAL cPlugin
 
    IF oEdit:nSeleMode == 2
-      Aadd( aMenu, {"Sorting", @mnu_SortSele() } )
+      Aadd( aMenu, {_I("Sorting"), @mnu_SortSele() } )
    ENDIF
    IF !Empty( oEdit:hSelePlug )
       IF Valtype( oEdit:hSelePlug ) == "C"
@@ -4027,7 +4044,7 @@ FUNCTION mnu_Indent( oEdit, aParams )
    IF Empty( nVal )
       hb_cdpSelect( "RU866" )
       @ y1, x1, y1+2, x1+15 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ y1+1, x1+2 SAY "Columns:"
+      @ y1+1, x1+2 SAY _I("Columns") +":"
       hb_cdpSelect( oEdit:cp )
       nRes := edi_READ( aGets )
       IF ( nVal := Val( aGets[1,4] ) ) == 0
@@ -4060,7 +4077,7 @@ FUNCTION mnu_AddToSele( oEdit, aParams )
    ELSE
       hb_cdpSelect( "RU866" )
       @ y1, x1, y1+2, x1+46 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ y1+1, x1+2 SAY "Input:"
+      @ y1+1, x1+2 SAY _I("Input")+":"
       hb_cdpSelect( oEdit:cp )
       IF edi_READ( aGets ) > 0 .AND. !Empty( aGets[1,4] )
          cText := aGets[1,4]
@@ -4104,7 +4121,7 @@ FUNCTION mnu_SortSele( oEdit, nAsc )
    LOCAL nby1, nbx1, nby2, nbx2, nvx1, nvx2
 
    IF nAsc == Nil
-      nAsc := FMenu( oEdit, {"Ascending","Descending"}, y1, x1 )
+      nAsc := FMenu( oEdit, {_I("Ascending"),_I("Descending")}, y1, x1 )
    ENDIF
    IF nAsc > 0
       IF oEdit:nby1 <= oEdit:nby2
@@ -4580,18 +4597,14 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    @ 15, 21 TO 15, 71
    hb_cdpSelect( oEdit:cp )
 
-   @ 10,22 SAY "Save file as"
-   @ 12,22 SAY "in directory"
-   @ 14, 22 SAY " Eol: ( ) Do not change ( ) Dos/Windows ( ) Unix"
-   //IF oEdit:lTabs
-   //   hb_AIns( aGets, 7, {13,47,1,.F.,1}, .T. )
-   //   @ 14, 46 SAY "[ ] Tabs to spaces"
-   //ENDIF
-   Aadd( aGets, {16,25,2,"[Save]",8,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
-   Aadd( aGets, {16,58,2,"[Cancel]",10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
+   @ 10,22 SAY _I("Save file as")
+   @ 12,22 SAY _I("in directory")
+   @ 14, 22 SAY " Eol: ( ) " + _I("Do not change") + " ( ) Dos/Windows ( ) Unix"
+   Aadd( aGets, {16,25,2,_I("[Save]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
+   Aadd( aGets, {16,58,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
       hb_AIns( aGets, 7, {13,24,1,oEdit:lBom,1}, .T. )
-      @ 13, 23 SAY "[ ] Add BOM"
+      @ 13, 23 SAY "[ ] " + _I("Add BOM")
    ENDIF
    SetColor( oEdit:cColorMenu )
 
@@ -4609,9 +4622,6 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
       IF oEdit:lUtf8
          oEdit:lBom := aGets[7,4]
       ENDIF
-      //IF oEdit:lTabs
-      //   oEdit:lTabs := !Iif( oEdit:lUtf8, aGets[8,4], aGets[7,4] )
-      //ENDIF
    ENDIF
 
    SetColor( oldc )
@@ -5393,6 +5403,16 @@ FUNCTION edi_CalcWrapped( oEdit, y, x, xOf_Line, l2Screen )
    ENDIF
 
    RETURN ny
+
+FUNCTION TrnMsg( cMsg )
+
+   LOCAL cp, cpmsg
+
+   IF !Empty( cpmsg := TEdit():cLangCP ) .AND. !( cpmsg == ( cp := hb_cdpSelect() ) )
+      RETURN hb_Translate( cMsg, cpmsg, cp )
+   ENDIF
+
+   RETURN cMsg
 
 FUNCTION cp_Chr( lUtf8, n )
 

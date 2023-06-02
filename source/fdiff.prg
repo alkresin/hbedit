@@ -20,7 +20,7 @@
 #define HILIGHT_MCOMM   8
 #define HILIGHT_BLOCK   9
 
-#xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
+#xtranslate _I( <x,...> ) => TrnMsg( hb_i18n_gettext( <x> ) )
 
 STATIC cParent, nDiffs, cFileFrom
 STATIC nDiffMode                   // 1 - diff, 2 - full, 3 - prev. file version
@@ -324,11 +324,11 @@ STATIC FUNCTION _diff_About( oEdit )
 
    @ 09, x1, y2, x1+nw BOX "         "
    @ 10, x1+2 SAY _I("Differences:") + " " + Ltrim( Str( nDiffs ) )
-   @ 11, x1+4 SAY _I("N - Next")
-   @ 12, x1+4 SAY _I("B - Previous")
-   @ 13, x1+4 SAY _I("S - Switch view mode")
-   @ 14, x1+4 SAY _I("Enter - GoTo text")
-   @ 15, x1+4 SAY _I("F1 - this help screen")
+   @ 11, x1+4 SAY "N - "+_I("Next")
+   @ 12, x1+4 SAY "B - "+_I("Previous")
+   @ 13, x1+4 SAY "S - "+_I("Switch view mode")
+   @ 14, x1+4 SAY "Enter - "+_I("GoTo text")
+   @ 15, x1+4 SAY "F1 - "+_I("this help screen")
    @ y2-1, x1+2 SAY _I("Press any key...")
    Inkey( 0 )
    Restscreen( 09, x1, y2, x1+nw, cBufScr )

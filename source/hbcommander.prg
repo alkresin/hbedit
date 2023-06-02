@@ -44,6 +44,7 @@ STATIC aRemotePorts := { "2941" }
 #endif
 STATIC aCpInUse := { "RU866", "RU1251", "UTF8" }
 STATIC aUtf8Auto := { "sftp:", "ftp:" }
+STATIC cNotPerm := "Operation isn't permitted"
 
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
 
@@ -635,7 +636,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       KEYBOARD Chr(nKey)
       hbc_Console()
    ELSEIF nKey == 109    // m
-      i := hbc_Wndinit( 2, 4, 3, 30,, _I("Set Bookmark (a,s,d)") )
+      i := hbc_Wndinit( 2, 4, 3, 36,, _I("Set Bookmark") + " (a,s,d)" )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd"
@@ -643,7 +644,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:net_cPort, oPaneCurr:cCurrPath }
       ENDIF
    ELSEIF nKey == 39     // '
-      i := hbc_Wndinit( 2, 4, 3, 24,, _I("Go to Bookmark") )
+      i := hbc_Wndinit( 2, 4, 3, 30,, _I("Go to Bookmark") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
@@ -1686,7 +1687,7 @@ FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
       {y1+1,x1+2, 11, cFile + " " + _I("exists already! Overwrite it?")}, ;
       {y1+3,x1+2, 11, _I("New")+":"+PAdl(Ltrim(Str(nSouSize)),12)+" "+hb_ttoc(dSouDate)}, ;
       {y1+4,x1+2, 11, _I("Existing")+":"+PAdl(Ltrim(Str(nDestSize)),10)+" "+hb_ttoc(dDestDate)}, ;
-      {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, _I("[ ] Don's ask anymore")}, ;
+      {y1+6,x1+3, 1, .F., 1, TEdit():cColorWR,TEdit():cColorWB }, {y1+6,x1+2, 11, "[ ] "+_I("Don's ask anymore")}, ;
       {y1+8,x1+16, 2, _I("[Yes]"), 5,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {y1+8,x1+28, 2,_I("[No]"), 4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ESC))}} }
    STATIC lNoAsk := .F., lRes := .F.
@@ -1725,7 +1726,7 @@ FUNCTION FAsk_Copy( cTitle, cRes )
    LOCAL aGets := { ;
       {06,12,11,cTitle}, ;
       {07,12,0,cRes,56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,25,2,_I("[Ok]"),4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
 
    cScBuf := Savescreen( 05, 10, 10, 70 )
@@ -1779,7 +1780,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
             hb_vfClose( handle )
          ELSEIF cIOpref != "net:" .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cFileTo ) == 0
          ELSE
-            edi_Alert( "Something goes wrong..." )
+            edi_Alert( _I("Something goes wrong...") )
             RETURN 2
          ENDIF
       ENDIF
@@ -1809,7 +1810,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
       ENDIF
    ENDIF
    IF nRes == 2
-      edi_Alert( "Error copying " + aDir[1] )
+      edi_Alert( _I("Error copying") + " " + aDir[1] )
    ENDIF
 
    RETURN nRes
@@ -1842,7 +1843,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
    }
 
    IF oPaneTo:nPanelMod == 1
-      edi_Alert( "Operation isn't permitted" )
+      edi_Alert( _I(cNotPerm) )
       RETURN 2
    ENDIF
 
@@ -1862,22 +1863,15 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
       ENDIF
    ENDIF
    IF lSilent .OR. !Empty( cFileTo := FAsk_Copy( ;
-      "Copy " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " to:", cFileTo ) )
+      _I("Copy") + " " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " " + _I("to"), cFileTo ) )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
-         edi_Alert( "Operation isn't permitted" )
+         edi_Alert( _I(cNotPerm) )
          RETURN 2
       ENDIF
       IF !lSilent
          cFileTo := FTransl( cFileTo, oPaneCurr:cp, oPaneCurr:cpPane )
       ENDIF
       cFileTo := FTransl( cFileTo, oPaneCurr:cpPane, oPaneTo:cpPane )
-/*
-      IF !(oPaneCurr:cpPane == oPaneTo:cpPane)
-         cTemp := hb_fnameNameExt( cFileTo )
-         cFileTo := Left( cFileTo, Len(cFileTo)-Len(cTemp) ) + ;
-            FTransl( cTemp,oPaneCurr:cpPane,oPaneTo:cpPane )
-      ENDIF
-*/
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "COPYFROM", ;
          {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
@@ -1895,17 +1889,17 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
             cFileTo += hb_ps()
          ENDIF
          IF !hb_vfDirExists( cFileTo  + cFileName ) .AND. hb_vfDirMake( cFileTo  + cFileName ) != 0
-            edi_Alert( "Error creating " + cFileName )
+            edi_Alert( _I("Error creating")+" " + cFileName )
             RETURN 2
          ENDIF
-         aWnd := hbc_Wndinit( 05, 20, 12, 60,, "Copy" )
+         aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Copy") )
          lRes := .T.
          DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
-         hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nCopied)) + " files copied." )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nCopied)) + " "+_I("files copied.") )
          IF !lSilent
             oPaneTo:Refresh()
             oPaneCurr:Refresh()
@@ -1913,7 +1907,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          ENDIF
       ELSE
          IF !lSilent .AND. nStart == 0
-            aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, "Wait" )
+            aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, _I("Wait") )
          ENDIF
          IF ( nRes := FCopy( aDir, cFileTo, nStart ) ) < 2
             lRes := .T.
@@ -1948,13 +1942,13 @@ STATIC FUNCTION hbc_FCopySele()
    LOCAL cFileName, cDirTo, cFileTo, i, aWnd, nSch := 0, aDir, nRes
 
    IF oPaneTo:nPanelMod == 1
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
    cDirTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath
    IF !Empty( cDirTo := FAsk_Copy( ;
-      "Copy seleted files to:", cDirTo ) )
-      aWnd := hbc_Wndinit( 05, 20, 12, 60,, "Copy" )
+      _I("Copy seleted files to"), cDirTo ) )
+      aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Copy") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
@@ -1970,7 +1964,7 @@ STATIC FUNCTION hbc_FCopySele()
          ENDIF
       NEXT
 
-      hbc_Wndclose( aWnd, Iif( nRes==3, "Aborted, ","Done, " ) + Ltrim(Str(nSch)) + " files copied." )
+      hbc_Wndclose( aWnd, Iif( nRes==3, _I("Aborted")+", ",_I("Done")+", " ) + Ltrim(Str(nSch)) + " " + _I("files copied") )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneTo:Refresh()
@@ -1988,7 +1982,7 @@ STATIC FUNCTION hbc_FRename( lRename )
 
    lDir := ( 'D' $ aDir[5] )
    IF oPaneCurr:nPanelMod > 0
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
    IF oPaneTo:nPanelMod > 0
       lRename := .T.
@@ -1998,7 +1992,7 @@ STATIC FUNCTION hbc_FRename( lRename )
       oPaneTo:net_cPort + oPaneTo:cCurrPath + Iif(lDir,"",cFileName), cFileName )
 
    IF !Empty( cNewName := FAsk_Copy( ;
-      "Rename " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " to:", FTransl(cNewName) ) )
+      _I("Rename") + " " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " " + _I("to"), FTransl(cNewName) ) )
       cNewName := FTransl( cNewName, oPaneCurr:cp, oPaneCurr:cpPane )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
          lRename := .F.
@@ -2014,7 +2008,7 @@ STATIC FUNCTION hbc_FRename( lRename )
       ENDIF
       IF lRename .AND. ( ( lDir .AND. hb_vfDirExists( cNewName ) ) .OR. ;
          ( !lDir .AND. hb_vfExists( cNewName ) ) )
-         edi_Alert( "Such a file exists already!" )
+         edi_Alert( _I("Such a file exists already!") )
          RETURN Nil
       ENDIF
       IF !lCopyDel
@@ -2050,12 +2044,12 @@ STATIC FUNCTION hbc_FRenameSele()
    LOCAL cMoveTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath, cFileTo
 
    IF oPaneCurr:nPanelMod > 0
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
    IF !Empty( cMoveTo := FAsk_Copy( ;
-      "Move selected files to:", cMoveTo ) )
-      aWnd := hbc_Wndinit( 05, 20, 12, 60,, "Move" )
+      _I("Move selected files to"), cMoveTo ) )
+      aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Move") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
@@ -2074,7 +2068,8 @@ STATIC FUNCTION hbc_FRenameSele()
          ENDIF
       NEXT
 
-      hbc_Wndclose( aWnd, Iif( nRes==3, "Aborted, ","Done, " ) + Ltrim(Str(nSch)) + " files moved." )
+      hbc_Wndclose( aWnd, Iif( nRes==3, _I("Aborted")+", ",_I("Done")+", " ) + ;
+         Ltrim(Str(nSch)) + " " +_I("files moved") )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneCurr:Refresh()
@@ -2104,7 +2099,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
          hbc_Wndout( aWnd, FTransl( Substr( s,nLen ) ) )
          IF hb_vfErase( s ) != 0
             lRes := .F.
-            edi_Alert( "Error deleting " + Substr( s,nLen ) )
+            edi_Alert( _I("Error deleting") + " " + Substr( s,nLen ) )
             RETURN .F.
          ENDIF
       ENDIF
@@ -2112,7 +2107,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    }
 
    IF oPaneCurr:nPanelMod > 0
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
    IF Empty( cFileName )
@@ -2121,7 +2116,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    ENDIF
    lSilent := !Empty( lSilent )
 
-   IF lSilent .OR. edi_Alert( "Really delete " + FTransl(cFileName) + "?", "No", "Yes" ) == 2
+   IF lSilent .OR. edi_Alert( _I("Really delete")+" " + FTransl(cFileName) + "?", _I("No"), _I("Yes") ) == 2
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "DELETE", {oPaneCurr:cIOpref + ;
          oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, lDir} ) ) != Nil
@@ -2131,7 +2126,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
       IF nRes == Nil
          IF lDir
             lRes := .T.
-            aWnd := hbc_Wndinit( 05, 20, 12, 60,, "Delete" )
+            aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Delete") )
             cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName
             aDirs := { cInitDir }
             DirEval( cInitDir, "*", .T., bDel, .T. )
@@ -2139,16 +2134,15 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
             FOR i := 1 TO Len(aDirs)
                IF hb_vfDirRemove( aDirs[i] ) != 0
                   lRes := .F.
-                  edi_Alert( "Error deleting " + aDirs[i] )
+                  edi_Alert( _I("Error deleting") + " " + aDirs[i] )
                   EXIT
                ENDIF
             NEXT
             IF lSilent
                KEYBOARD Chr(K_SPACE)
             ENDIF
-            hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nStart)) + " files deleted" )
+            hbc_Wndclose( aWnd, _I("Done") + ", " + Ltrim(Str(nStart)) + " " + _I("files deleted") )
          ELSE
-            //edi_Alert( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName )
             IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
                lRes := .T.
             ENDIF
@@ -2169,7 +2163,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
             oPaneCurr:DrawHead( .T. )
          ENDIF
       ELSE
-         edi_Alert( "Error deleting " + cFileName )
+         edi_Alert( _I("Error deleting") + " " + cFileName )
       ENDIF
    ENDIF
 
@@ -2180,13 +2174,13 @@ STATIC FUNCTION hbc_FDeleteSele()
    LOCAL cFileName, i
 
    IF oPaneCurr:nPanelMod > 0
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
-   IF edi_Alert( "Really delete " + Ltrim(Str(Len(oPaneCurr:aSelected))) + " files?", "No", "Yes" ) == 2
+   IF edi_Alert( _I("Really delete") + " " + Ltrim(Str(Len(oPaneCurr:aSelected))) + ;
+      " " + _I("files")+"?", _I("No"), _I("Yes") ) == 2
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          cFileName := oPaneCurr:aDir[oPaneCurr:aSelected[i],1]
-         //IF hb_vfErase( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName ) == 0
          hbc_FDelete( .T., cFileName, .F. )
       NEXT
       oPaneCurr:aSelected := {}
@@ -2205,7 +2199,7 @@ STATIC FUNCTION hbc_FMakeDir()
    LOCAL cBuf, cNewName, nRes
 
    IF oPaneCurr:nPanelMod > 0
-      edi_Alert( "Operation isn't permitted" )
+      edi_Alert( _I(cNotPerm) )
       RETURN Nil
    ENDIF
 
@@ -2213,7 +2207,7 @@ STATIC FUNCTION hbc_FMakeDir()
 
    Set COLOR TO N/W
    @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 06, 12 SAY "Create new directory"
+   @ 06, 12 SAY _I("Create new directory")
    Set COLOR TO N/BG,B/BG
    @ 09, 24 SAY "[Enter - Ok]  [ESC - Cancel]"
    cNewName := Space( 200 )
@@ -2232,7 +2226,7 @@ STATIC FUNCTION hbc_FMakeDir()
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)
       ELSE
-         edi_Alert( "Error creaing " + cNewName )
+         edi_Alert( _I("Error creaing") + " " + cNewName )
       ENDIF
       RETURN Nil
    ENDIF
@@ -2360,11 +2354,12 @@ STATIC FUNCTION hbc_CmdHis()
 
 STATIC FUNCTION hbc_PaneOpt()
 
-   LOCAL aMenu1 := { "Mode 1 " + Iif(oPaneCurr:nDispMode==1,"x"," "), ;
-      "Mode 2 " + Iif(oPaneCurr:nDispMode==2,"x"," "), "Mode 3 " + Iif(oPaneCurr:nDispMode==3,"x"," "), ;
-      "Mode 4 " + Iif(oPaneCurr:nDispMode==4,"x"," "), ;
-      "---", "Sort by name " + Iif(oPaneCurr:nSortMode==1,"x"," "), ;
-      "Sort by date " + Iif(oPaneCurr:nSortMode==2,"x"," "), "---" }
+   LOCAL cm := _I("Mode")
+   LOCAL aMenu1 := { cm + " 1 " + Iif(oPaneCurr:nDispMode==1,"x"," "), ;
+      cm + " 2 " + Iif(oPaneCurr:nDispMode==2,"x"," "), cm + " 3 " + Iif(oPaneCurr:nDispMode==3,"x"," "), ;
+      cm + " 4 " + Iif(oPaneCurr:nDispMode==4,"x"," "), ;
+      "---", _I("Sort by name")+" " + Iif(oPaneCurr:nSortMode==1,"x"," "), ;
+      _I("Sort by date")+" " + Iif(oPaneCurr:nSortMode==2,"x"," "), "---" }
    LOCAL nChoic
 
    FOR nChoic := 1 TO Len( aCpInUse )
@@ -2468,13 +2463,13 @@ STATIC FUNCTION hbc_Search( lSele )
       {13,18,1,.F.,1}, ;
       {13,38,1,Empty(lSele),1}, ;
       {12,58,1,!Empty(lSele),1}, ;
-      {15,25,2,"[Search]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,40,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {15,40,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect
    LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath
 
    IF oPaneCurr:nPanelMod > 0
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
    cScBuf := Savescreen( 08, 15, 16, 70 )
@@ -2486,13 +2481,13 @@ STATIC FUNCTION hbc_Search( lSele )
    @ 14, 16 TO 14, 69
    hb_cdpSelect( oHbc:cp )
 
-   @ 09, 17 SAY "File mask"
-   @ 10, 17 SAY "Search for"
-   @ 12, 17 SAY "[ ] Case sensitive"
-   @ 12, 37 SAY "[ ] Regular expr."
-   @ 13, 17 SAY "[ ] Whole word"
-   @ 13, 37 SAY "[ ] Recursive"
-   @ 12, 57 SAY "[ ] Select"
+   @ 09, 17 SAY _I("File mask")
+   @ 10, 17 SAY _I("Search for")
+   @ 12, 17 SAY "[ ] " + _I("Case sensitive")
+   @ 12, 37 SAY "[ ] " + _I("Regular expr.")
+   @ 13, 17 SAY "[ ] " + _I("Whole word")
+   @ 13, 37 SAY "[ ] " + _I("Recursive")
+   @ 12, 57 SAY "[ ] " + _I("Select")
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -2519,7 +2514,7 @@ STATIC FUNCTION hbc_Search( lSele )
                {|s|Aadd( aDir,{ Substr(s,Len(oPaneCurr:cCurrPath)+1),"","","","" })} )
          ENDIF
       ELSEIF oPaneCurr:cIOpref == "net:"
-         edi_Alert( "Operation isn't permitted" )
+         edi_Alert( _I(cNotPerm) )
       ELSE
          IF lRecu
             cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
@@ -2578,7 +2573,7 @@ STATIC FUNCTION hbc_Search( lSele )
       oPaneCurr:DrawCell( ,.T. )
       oPaneCurr:DrawHead( .T. )
    ELSEIF LastKey() != K_ESC
-      edi_Alert( "Nothing found" )
+      edi_Alert( _I("Nothing found") )
    ENDIF
 
    RETURN Nil
@@ -2587,15 +2582,15 @@ STATIC FUNCTION hbc_Zip()
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    LOCAL aGets := { ;
-      {06,12,11,"Create archive"}, ;
+      {06,12,11,_I("Create archive")}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {09,25,2,_I("[Ok]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cScBuf, oldc, nRes
    LOCAL cPath, hZip, cFile, i, aDirToZip, aWnd, nSch := 0, cFileInZip, aDirs := {}, arr, j, cTemp
 
    IF oPaneCurr:nPanelMod == 2 .OR. Left( oPaneCurr:cIOpref,4 ) == "net:"
-      RETURN edi_Alert( "Operation isn't permitted" )
+      RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
    oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
@@ -2626,7 +2621,7 @@ STATIC FUNCTION hbc_Zip()
                nSch++
             ENDIF
          NEXT
-         hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files archived" )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nSch)) + " "+_I("files archived") )
          oPaneCurr:aSelected := {}
       ELSEIF 'D' $ aDir[5]
          aWnd := hbc_Wndinit( 05, 20, 16, 60,, "Zip" )
@@ -2653,7 +2648,7 @@ STATIC FUNCTION hbc_Zip()
                ENDIF
             ENDIF
          NEXT
-         hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files archived" )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nSch)) + " "+_I("files archived") )
       ELSE
          hb_zipStoreFile( hZip, aDir[1], aDir[1] )
       ENDIF
@@ -2673,10 +2668,10 @@ STATIC FUNCTION hbc_Unzip()
    LOCAL cExt := Lower( hb_fnameExt( cFileName ) )
    LOCAL nErr, hUnzip, cFile, dDate, cTime, nSize, lCrypted, dd, aWnd, nSch := 0
    LOCAL aGets := { ;
-      {06,12,11,"Extract files to"}, ;
+      {06,12,11,_I("Extract files to")}, ;
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {09,25,2,"[Ok]",4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {09,50,2,"[Cancel]",10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {09,25,2,_I("[Ok]"),4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cScBuf, oldc, nRes, cPath, nFirst := 0
 
    IF cExt == ".zip"
@@ -2724,7 +2719,7 @@ STATIC FUNCTION hbc_Unzip()
             ENDDO
          ENDIF
          hb_unzipClose( hUnzip )
-         hbc_Wndclose( aWnd, "Done, " + Ltrim(Str(nSch)) + " files unzipped" )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nSch)) + " " + _I("files unzipped") )
          IF nSch > 0
             oPaneCurr:Refresh()
             oPaneCurr:RedrawAll()
@@ -2761,7 +2756,7 @@ FUNCTION vfWrit_Net( cFileName, cText )
 
 FUNCTION vfWrit_Zip( cFileName, cText )
 
-   edi_Alert( "Operation isn't permitted" )
+   edi_Alert( _I(cNotPerm) )
 
    RETURN Nil
 
@@ -2829,7 +2824,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
 
    IF !hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
       oPaneCurr:cCurrPath + arr[1], @nAttr )
-      edi_Alert( "Can't read attributes" )
+      edi_Alert( _I("Can't read attributes") )
       RETURN Nil
    ENDIF
    nAttrNew := nAttr
@@ -2837,8 +2832,8 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
 #ifdef __PLATFORM__UNIX
    Aadd( aGets, { y1+13,x1+3, 1, .F., 1 } )
 #endif
-   Aadd( aGets, { y1+17,x1+7, 2, "[Ok]", 6, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} } )
-   Aadd( aGets, { y1+17,x1+17, 2, "[Cancel]", 10, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } )
+   Aadd( aGets, { y1+17,x1+7, 2, _I("[Ok]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} } )
+   Aadd( aGets, { y1+17,x1+17, 2, _I("[Cancel]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } )
 
    cScBuf := Savescreen( y1, x1, y1+18, x1+34 )
    oldc := SetColor( "N/W"+","+"N/W"+",,"+"N+/W"+","+"N/W" )
@@ -2850,34 +2845,34 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    @ y1+16, x1+1 TO y1+16, x1+33
    hb_cdpSelect( cp )
 
-   @ y1,x1+10 SAY " Attributes "
-   @ y1+1,x1+2 SAY PAdc( "for " + arr[1], 28 )
+   @ y1,x1+10 SAY " " + _I("Attributes") + " "
+   @ y1+1,x1+2 SAY PAdc( _I("for") + " " + arr[1], 28 )
 #ifdef __PLATFORM__UNIX
-   @ y1+2, x1+2 SAY "[ ] Set user ID on execution"
-   @ y1+3, x1+2 SAY "[ ] Set group ID on execution"
-   @ y1+4, x1+2 SAY "[ ] Sticky bit"
-   @ y1+5, x1+2 SAY "[ ] Read by owner"
-   @ y1+6, x1+2 SAY "[ ] Write by owner"
-   @ y1+7, x1+2 SAY "[ ] Execute/search by owner"
-   @ y1+8, x1+2 SAY "[ ] Read by group"
-   @ y1+9, x1+2 SAY "[ ] Write by group"
-   @ y1+10, x1+2 SAY "[ ] Execute/search by group"
-   @ y1+11, x1+2 SAY "[ ] Read by others"
-   @ y1+12, x1+2 SAY "[ ] Write by others"
-   @ y1+13, x1+2 SAY "[ ] Execute/search by others"
-   @ y1+15, x1+4 SAY "Owner: " + cedi_chown( arr[1] ) + "/" + cedi_chgrp( arr[1] )
+   @ y1+2, x1+2 SAY "[ ] " + _I("Set user ID on execution")
+   @ y1+3, x1+2 SAY "[ ] " + _I("Set group ID on execution")
+   @ y1+4, x1+2 SAY "[ ] " + _I("Sticky bit")
+   @ y1+5, x1+2 SAY "[ ] " + _I("Read by owner")
+   @ y1+6, x1+2 SAY "[ ] " + _I("Write by owner")
+   @ y1+7, x1+2 SAY "[ ] " + _I("Execute/search by owner")
+   @ y1+8, x1+2 SAY "[ ] " + _I("Read by group")
+   @ y1+9, x1+2 SAY "[ ] " + _I("Write by group")
+   @ y1+10, x1+2 SAY "[ ] " + _I("Execute/search by group")
+   @ y1+11, x1+2 SAY "[ ] " + _I("Read by others")
+   @ y1+12, x1+2 SAY "[ ] " + _I("Write by others")
+   @ y1+13, x1+2 SAY "[ ] " + _I("Execute/search by others")
+   @ y1+15, x1+4 SAY _I("Owner") + ": " + cedi_chown( arr[1] ) + "/" + cedi_chgrp( arr[1] )
 #else
-   @ y1+2, x1+2 SAY "[ ] Readonly"
-   @ y1+3, x1+2 SAY "[ ] Hidden"
-   @ y1+4, x1+2 SAY "[ ] System"
-   @ y1+5, x1+2 SAY "[ ] Archive"
-   @ y1+6, x1+2 SAY "[ ] Compressed"
-   @ y1+7, x1+2 SAY "[ ] Encrypted"
-   @ y1+8, x1+2 SAY "[ ] Not indexed"
-   @ y1+9, x1+2 SAY "[ ] Sparse"
-   @ y1+10, x1+2 SAY "[ ] Reparse (Link)"
-   @ y1+11, x1+2 SAY "[ ] Temporary"
-   @ y1+12, x1+2 SAY "[ ] Offline"
+   @ y1+2, x1+2 SAY "[ ] " + _I("Readonly")
+   @ y1+3, x1+2 SAY "[ ] " + _I("Hidden")
+   @ y1+4, x1+2 SAY "[ ] " + _I("System")
+   @ y1+5, x1+2 SAY "[ ] " + _I("Archive")
+   @ y1+6, x1+2 SAY "[ ] " + _I("Compressed")
+   @ y1+7, x1+2 SAY "[ ] " + _I("Encrypted")
+   @ y1+8, x1+2 SAY "[ ] " + _I("Not indexed")
+   @ y1+9, x1+2 SAY "[ ] " + _I("Sparse")
+   @ y1+10, x1+2 SAY "[ ] " + _I("Reparse (Link)")
+   @ y1+11, x1+2 SAY "[ ] " + _I("Temporary")
+   @ y1+12, x1+2 SAY "[ ] " + _I("Offline")
 #endif
 
    FOR i := 1 TO Len( aDefs )
@@ -2896,7 +2891,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
       edi_Alert( str( nAttr ) + " " + str( nAttrNew ) )
       IF nAttr != nAttrNew
          IF !hb_fSetAttr( arr[1], nAttrNew )
-            edi_Alert( "Can't set attributes" )
+            edi_Alert( _I("Can't set attributes") )
          ENDIF
       ENDIF
    ENDIF
@@ -2945,8 +2940,9 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
-   LOCAL aMenu := { {"Commands history",,,"Ctrl-F8"}, {"Stdout window",,,"Ctrl-Q"}, ;
-      {"Set autocompletion "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, {"Close",,,"Ctrl-O,Esc"} }
+   LOCAL aMenu := { {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-Q"}, ;
+      {_I("Set autocompletion") + " "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, ;
+      {_I("Close"),,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic
 
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
@@ -3036,8 +3032,8 @@ FUNCTION hbc_Console( xCommand )
 
    IF Empty( cOutBuff )
       CLEAR SCREEN
-      @ Int(MaxRow()/2-1), Int(MaxCol()/2-10) SAY "F1 - Help"
-      @ Int(MaxRow()/2), Int(MaxCol()/2-10) SAY "F9,Right Click - Menu"
+      @ Int(MaxRow()/2-1), Int(MaxCol()/2-10) SAY "F1 - " + _I("Help")
+      @ Int(MaxRow()/2), Int(MaxCol()/2-10) SAY "F9,Right Click - " +_I("menu")
    ELSE
       RestScreen( 0, 0, nScreenH-1, nScreenW-1, cOutBuff )
    ENDIF
@@ -3098,7 +3094,7 @@ FUNCTION hbc_Console( xCommand )
             ELSEIF s == 'o'
                s := oPaneTo:cCurrPath
             ELSEIF s == 'm'
-               s := edi_MsgGet( "Input text", oPaneCurr:y1+10, oPaneCurr:x1+6, oPaneCurr:x2-6 )
+               s := edi_MsgGet( _I("Input text"), oPaneCurr:y1+10, oPaneCurr:x1+6, oPaneCurr:x2-6 )
             ELSEIF s == '/'
                s := hb_ps()
             ELSEIF s == '%'
@@ -3123,7 +3119,7 @@ FUNCTION hbc_Console( xCommand )
          ELSEIF oPaneCurr:nPanelMod > 0
             edi_Alert( "Pane is in "+Iif(oPaneCurr:nPanelMod==1,"search","zip") + " mode" )
          ELSEIF oPaneCurr:cIOpref == "net:"
-            edi_Alert( "Can't run commands in net environment" )
+            edi_Alert( _I("Can't run commands in net environment") )
 #ifdef _USE_SSH2
          ELSEIF oPaneCurr:cIOpref == "sftp:"
             IF !Empty( oPaneCurr:pSess )
@@ -3336,7 +3332,7 @@ STATIC FUNCTION Cons_My( cCommand )
    LOCAL pApp := cedi_StartConsoleApp( cCommand ), nSecInit, hWnd
 
    IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
-      ? "Error starting app ", xRes
+      ? _I("Error starting app"), xRes
       cedi_EndConsoleApp( pApp )
       RETURN Nil
    ENDIF
@@ -3362,7 +3358,7 @@ STATIC FUNCTION Cons_My( cCommand )
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
             IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
-               IF ( i := edi_Alert( "Application has a window", "Show it", "Ignore" ) ) == 1
+               IF ( i := edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
                   cedi_ShowWindow( hWnd )
                   cedi_EndConsoleApp( pApp, .T. )
                   pApp := Nil
@@ -3391,11 +3387,11 @@ FUNCTION hbc_GetLogin( cLogin, cPass, lSave )
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets := { ;
-      {y1+1,x1+2, 11, "Login:"}, ;
+      {y1+1,x1+2, 11, _I("Login:")}, ;
       { y1+1,x1+10, 0, cLogin, x2-x1-12 }, ;
-      {y1+2,x1+2, 11, "Passw:"}, ;
+      {y1+2,x1+2, 11, _I("Passw:")}, ;
       { y1+2,x1+10, 0, cPass, x2-x1-12,,,1 }, ;
-      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] Save password"} ;
+      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " + _I("Save password")} ;
       }
 
    cBuf := Savescreen( y1, x1, y1 + 5, x2 )
