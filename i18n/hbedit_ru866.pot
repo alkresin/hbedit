@@ -60,7 +60,7 @@ msgstr "Поиск"
 #: /papps/gitapps/hbedit/source/fedit.prg:427
 #, c-format
 msgid "There are child windows.;Close anyway?"
-msgstr ""
+msgstr "Остались дочерние окна. Все равно закрыть?"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:427 /papps/gitapps/hbedit/source/fedit.prg:3244 /papps/gitapps/hbedit/source/hbcommander.prg:2119 /papps/gitapps/hbedit/source/hbcommander.prg:2181
 #, c-format
@@ -125,7 +125,7 @@ msgstr "Предыдущий"
 #: /papps/gitapps/hbedit/source/fedit.prg:4607
 #, c-format
 msgid "Add BOM"
-msgstr ""
+msgstr "Добавить BOM"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3947
 #, c-format
@@ -154,7 +154,7 @@ msgstr "Назад"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3757 /papps/gitapps/hbedit/source/fedit.prg:3800 /papps/gitapps/hbedit/source/fedit.prg:3885
 #, c-format
-msgid "String is not found:;"
+msgid "String is not found"
 msgstr "Строка не найдена"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:1793 /papps/gitapps/hbedit/source/hbcommander.prg:3036
@@ -166,11 +166,6 @@ msgstr "меню"
 #, c-format
 msgid "View"
 msgstr "Просмотр"
-
-#: /papps/gitapps/hbedit/source/fedit.prg:3590
-#, c-format
-msgid "ReadOnly"
-msgstr ""
 
 #: /papps/gitapps/hbedit/source/fedit.prg:3963
 #, c-format
@@ -185,7 +180,7 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/fedit.prg:3730 /papps/gitapps/hbedit/source/fedit.prg:3831 /papps/gitapps/hbedit/source/hbcommander.prg:2486
 #, c-format
 msgid "Case sensitive"
-msgstr ""
+msgstr "Учитывать регистр"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:2062
 #, c-format
@@ -295,7 +290,7 @@ msgstr "[Заменить]"
 #: /papps/gitapps/hbedit/source/fedit.prg:3926
 #, c-format
 msgid "[All]"
-msgstr "Все"
+msgstr "[Все]"
 
 #: /papps/gitapps/hbedit/source/fedit.prg:4017
 #, c-format
@@ -515,7 +510,7 @@ msgstr "Ошибка удаления"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2119 /papps/gitapps/hbedit/source/hbcommander.prg:2181
 #, c-format
 msgid "Really delete"
-msgstr "Действительно удалить"
+msgstr "Удалить"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1692
 #, c-format
@@ -585,12 +580,12 @@ msgstr "Консоль"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2357
 #, c-format
 msgid "Mode"
-msgstr ""
+msgstr "Режим"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3097
 #, c-format
 msgid "Input text"
-msgstr ""
+msgstr "Введите текст"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1543
 #, c-format
@@ -615,7 +610,7 @@ msgstr "Найти файл"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2181
 #, c-format
 msgid "files"
-msgstr ""
+msgstr "файлы"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:1950
 #, c-format
@@ -750,7 +745,7 @@ msgstr "Выбрать"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2894
 #, c-format
 msgid "Can't set attributes"
-msgstr "Не получилось установить аттрибуты"
+msgstr "Не удалось установить аттрибуты"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2866
 #, c-format
@@ -785,7 +780,7 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2849
 #, c-format
 msgid "for"
-msgstr ""
+msgstr "для"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2870
 #, c-format
@@ -810,7 +805,7 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2848
 #, c-format
 msgid "Attributes"
-msgstr ""
+msgstr "Атрибуты"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2576
 #, c-format
@@ -825,7 +820,7 @@ msgstr "Создать архив"
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2827
 #, c-format
 msgid "Can't read attributes"
-msgstr ""
+msgstr "Не удалось прочесть атрибуты"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2872
 #, c-format
@@ -835,39 +830,39 @@ msgstr ""
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2624 /papps/gitapps/hbedit/source/hbcommander.prg:2651
 #, c-format
 msgid "files archived"
-msgstr ""
+msgstr "файлов архивировано"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2674
 #, c-format
 msgid "Extract files to"
-msgstr ""
+msgstr "Извлечь файлы в"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2945
 #, c-format
 msgid "Set autocompletion"
-msgstr ""
+msgstr "Автодополнение"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:2722
 #, c-format
 msgid "files unzipped"
-msgstr ""
+msgstr "файлов разархивировано"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3122
 #, c-format
 msgid "Can't run commands in net environment"
-msgstr ""
+msgstr "Нельзя запускать команды в этой файловой системе"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3395
 #, c-format
 msgid "Login:"
-msgstr ""
+msgstr "Логин"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3395
 #, c-format
 msgid "Passw:"
-msgstr ""
+msgstr "Пароль"
 
 #: /papps/gitapps/hbedit/source/hbcommander.prg:3395
 #, c-format
 msgid "Save password"
-msgstr ""
+msgstr "Сохранить пароль"

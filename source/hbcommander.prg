@@ -1977,7 +1977,7 @@ STATIC FUNCTION hbc_FCopySele()
 STATIC FUNCTION hbc_FRename( lRename )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
-   LOCAL cFileName := aDir[1]
+   LOCAL cFileName := aDir[1], i
    LOCAL cNewName, lDir, lCopyDel := .F., lRes := .F.
 
    lDir := ( 'D' $ aDir[5] )
@@ -2012,6 +2012,12 @@ STATIC FUNCTION hbc_FRename( lRename )
          RETURN Nil
       ENDIF
       IF !lCopyDel
+         IF !lRename .AND. hb_vfExists( cNewName )
+            hb_vfTimeGet( cNewName, @i )
+            IF !FAsk_Overwrite( 0, FTransl(hb_fnameNameExt(cNewName)), aDir[2], aDir[3], hb_vfSize(cNewName), i )
+               RETURN Nil
+            ENDIF
+         ENDIF
          IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + cFileName, cNewName+Iif(lDir.AND.!lRename,cFileName,"") ) == 0
             lRes := .T.
@@ -2424,9 +2430,10 @@ FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
          lDo := .F.
       ENDIF
       aFiles := hb_vfDirectory( cInitDir + "*", "HSD" )
+      //edi_writelog( cInitDir + "*" + " msk:" + cMask )
       arlen := Len( aFiles )
       FOR i := 1 TO arlen
-         IF "D" $ aFiles[ i,5 ]
+         IF "D" $ aFiles[ i,5 ] .AND. !("L" $ aFiles[ i,5 ])
             IF "." != aFiles[ i,1 ] .AND. ".." != aFiles[ i,1 ] .AND. lRecur
                IF !Empty( lEvalDir )
                   nCount ++
@@ -2435,7 +2442,7 @@ FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
                      Return nCount
                   ENDIF
                ENDIF
-               nCount += DirEval( cInitDir + aFiles[i,1] + hb_OsPathSeparator(), "*", .T., bCode, lEvalDir )
+               nCount += DirEval( cInitDir + aFiles[i,1] + hb_OsPathSeparator(), cMask, .T., bCode, lEvalDir )
             ENDIF
          ELSEIF hb_FileMatch( UPPER( aFiles[ i,1 ] ), cMsk )
             nCount ++
@@ -2455,13 +2462,13 @@ STATIC FUNCTION hbc_Search( lSele )
 
    LOCAL cScBuf, oldc, nRes, i
    LOCAL aGets := { ;
-      {09,28,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {10,28,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {10,62,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
+      {09,30,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {10,30,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {10,65,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
       {12,18,1,.F.,1}, ;
-      {12,38,1,.F.,1}, ;
+      {12,40,1,.F.,1}, ;
       {13,18,1,.F.,1}, ;
-      {13,38,1,Empty(lSele),1}, ;
+      {13,40,1,Empty(lSele),1}, ;
       {12,58,1,!Empty(lSele),1}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,40,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
@@ -2484,9 +2491,9 @@ STATIC FUNCTION hbc_Search( lSele )
    @ 09, 17 SAY _I("File mask")
    @ 10, 17 SAY _I("Search for")
    @ 12, 17 SAY "[ ] " + _I("Case sensitive")
-   @ 12, 37 SAY "[ ] " + _I("Regular expr.")
+   @ 12, 39 SAY "[ ] " + _I("Regular expr.")
    @ 13, 17 SAY "[ ] " + _I("Whole word")
-   @ 13, 37 SAY "[ ] " + _I("Recursive")
+   @ 13, 39 SAY "[ ] " + _I("Recursive")
    @ 12, 57 SAY "[ ] " + _I("Select")
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )

@@ -3587,7 +3587,7 @@ FUNCTION mnu_OpenFile( oEdit, cFile )
    @ 13, 11 TO 13, 71
    hb_cdpSelect( oEdit:cp )
    @ 10, 12 SAY _I("Open file")
-   @ 12, 12 SAY "[ ] " + _I("ReadOnly")
+   @ 12, 12 SAY "[ ] " + _I("Readonly")
    @ 12, 27 SAY "[ ] " + _I("In a current window")
    IF !Empty( oEdit:cFileName )
       aGets[5,3] := 1
@@ -3713,7 +3713,7 @@ FUNCTION mnu_Search( oEdit )
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
    LOCAL aGets := { {11,22,0,"",33,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {11,55,2,"[^]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_SeaHist(oEdit,aGets[1])}}, ;
-      {12,23,1,.F.,1}, {12,43,1,.F.,1}, {13,23,1,.F.,1}, {13,43,1,.F.,1}, ;
+      {12,23,1,.F.,1}, {12,44,1,.F.,1}, {13,23,1,.F.,1}, {13,44,1,.F.,1}, ;
       {15,25,2,_I("[Search]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,40,2,_I("[Cancel]"),10,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lBack := .F., lWord, lRegex, cs_utf8
@@ -3728,9 +3728,9 @@ FUNCTION mnu_Search( oEdit )
 
    @ 10,22 SAY _I("Search for")
    @ 12, 22 SAY "[ ] " + _I("Case sensitive")
-   @ 12, 42 SAY "[ ] " + _I("Backward")
+   @ 12, 43 SAY "[ ] " + _I("Backward")
    @ 13, 22 SAY "[ ] " + _I("Whole word")
-   @ 13, 42 SAY "[ ] " + _I("Regular expr.")
+   @ 13, 43 SAY "[ ] " + _I("Regular expr.")
 
    IF !Empty( TEdit():aSeaHis )
       aGets[1,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -3754,7 +3754,7 @@ FUNCTION mnu_Search( oEdit )
       IF oEdit:Search( cSearch, lCase_Sea := lCase, !lBack, lWord_Sea := lWord, lRegex_Sea := lRegex, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
-         edi_Alert( _I("String is not found:;") + cSearch )
+         edi_Alert( _I("String is not found") + ":;" + cSearch )
          oEdit:lTextOut := .T.
       ENDIF
    ENDIF
@@ -3797,7 +3797,7 @@ FUNCTION mnu_SeaNext( oEdit, lNext )
       IF oEdit:Search( cSearch, lCase_Sea, lNext, lWord_Sea, lRegex_Sea, @ny, @nx )
          oEdit:GoTo( ny, nx, 0 )
       ELSE
-         edi_Alert( _I("String is not found:;") + cSearch )
+         edi_Alert( _I("String is not found") + ":;" + cSearch )
          oEdit:lTextOut := .T.
          edi_SetPos( oEdit )
       ENDIF
@@ -3920,10 +3920,10 @@ FUNCTION mnu_ReplNext( oEdit, nSeaLen )
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,,"+oEdit:cColorSel )
    LOCAL y1 := Iif( Row()>oEdit:y2-6, oEdit:y1+2, oEdit:y2-6 ), x1 := oEdit:x2-40, nRes := 0
    LOCAL aGets := { ;
-      {y1+4,x1+2,2,_I("[Replace]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+14,2,_I("[All]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+21,2,_I("[Skip]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {y1+4,x1+30,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
+      {y1+4,x1+1,2,_I("[Replace]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+13,2,_I("[All]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+19,2,_I("[Skip]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+4,x1+32,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL cSearch, cRepl, ny, nx
    STATIC pKeys
 
