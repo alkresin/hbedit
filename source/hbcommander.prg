@@ -3166,14 +3166,16 @@ FUNCTION hbc_Console( xCommand )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    SET CURSOR OFF
-   s := hb_ps() + Curdir() + hb_ps()
-   IF !( s == oPaneCurr:cCurrPath )
-      oPaneCurr:Setdir( s )
-   ELSE
-      oPaneCurr:Refresh()
-      IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-         oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
-         oPaneCurr:nShift := 0
+   IF Empty( oPaneCurr:cIOpref )
+      s := hb_ps() + Curdir() + hb_ps()
+      IF !( s == oPaneCurr:cCurrPath )
+         oPaneCurr:Setdir( s )
+      ELSE
+         oPaneCurr:Refresh()
+         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+            oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
+            oPaneCurr:nShift := 0
+         ENDIF
       ENDIF
    ENDIF
    FilePane():RedrawAll()
