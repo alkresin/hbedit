@@ -157,8 +157,9 @@ STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
             cTemp := hb_Translate( cTemp, aCPages[nCodePage], aCPages[1] )
          ENDIF
          @ y1 + i, x1 + 1 SAY cTemp
-         IF Len( arr[n] ) < ( x2-x1-1 )
-            @ y1 + i, x1 + 1 + Len(arr[n]) SAY Space( x2-x1-1 - Len(arr[n]) )
+         IF Len( cTemp ) < ( x2-x1-1 )
+            @ y1 + i, x1 + 1 + Len(cTemp) SAY Space( x2-x1-1 - Len(cTemp) )
+            //edi_writelog(ctemp)
          ENDIF
       ENDIF
    NEXT
@@ -174,7 +175,7 @@ STATIC FUNCTION ReadBufNext( handle, arr, nShift, nSize, nWidth, lLast )
    cBuffer := hb_vfReadLen( handle, nSize )
    nSize := Len( cBuffer )
    DO WHILE .T.
-      nLen := Min( nWidth, nSize-nPos )
+      nLen := Min( nWidth, nSize-nPos+1 )
       nPos2 := hb_At( Chr(10), cBuffer, nPos, nPos + nLen - 1 )
       IF nPos2 == 0    // CR is absent in a current line
          IF nSize-nPos < nWidth   // A last line in a buffer

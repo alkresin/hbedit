@@ -839,6 +839,35 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
 HB_FUNC( CEDI_RUNAPP )
 {
+/*
+   PROCESS_INFORMATION pi;
+   STARTUPINFO si;
+   BOOL bSuccess;
+#ifdef UNICODE
+   TCHAR wc1[256], wc2[256];
+#endif
+
+   ZeroMemory( &pi, sizeof( PROCESS_INFORMATION ) );
+   ZeroMemory( &si, sizeof( si ) );
+   si.cb = sizeof( si );
+
+#ifdef UNICODE
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
+         TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
+#else
+   bSuccess = CreateProcess( NULL, ( LPTSTR ) hb_parc( 1 ), NULL, NULL,
+         FALSE, 0, NULL, NULL, &si, &pi );
+#endif
+   if( !bSuccess )
+   {
+      hb_retni( 3 );
+      return;
+   }
+   CloseHandle( pi.hProcess );
+   CloseHandle( pi.hThread );
+   hb_retni( 0 );
+*/
    hb_retni( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) );
 }
 
@@ -1090,10 +1119,25 @@ HB_FUNC( CEDI_SHOWWINDOW )
 
 HB_FUNC( CEDI_SHELLEXECUTE )
 {
-#ifndef GTHWG
-   hb_retnl( ( LONG ) ShellExecute( GetActiveWindow(),
-      NULL, hb_parc( 1 ), NULL, TEXT( "C:\\" ), SW_SHOWNORMAL ) );
+//#ifndef GTHWG
+   int iParams = 0;
+#ifdef UNICODE
+   TCHAR wc1[256], wc2[256];
 #endif
+
+   if( hb_pcount() > 1 && HB_ISCHAR(2) )
+      iParams = 1;
+#ifdef UNICODE
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   if( iParams )
+      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, 256 );
+   hb_retnl( ( LONG ) ShellExecute( GetActiveWindow(),
+      NULL, wc1, (iParams)? wc2:NULL, NULL, SW_SHOWNORMAL ) );
+#else
+   hb_retnl( ( LONG ) ShellExecute( GetActiveWindow(),
+      NULL, hb_parc( 1 ), (iParams)? hb_parc(2):NULL, NULL, SW_SHOWNORMAL ) );
+#endif
+//#endif
 }
 
 HB_FUNC( CEDI_GETDRIVES )

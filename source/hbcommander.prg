@@ -415,7 +415,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ELSEIF cExt == ".bat"
                hbc_Console( cTemp )
             ELSEIF cExt == ".exe"
-              cedi_RunApp( cTemp )
+              cedi_ShellExecute( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
             ELSEIF cExt == ".sh"
@@ -429,11 +429,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                hwg_shellExecute( "file://" + cTemp )
 #endif
 #else
-#ifdef GTHWG
-               hwg_shellExecute( cTemp )
-#else
+//#ifdef GTHWG
+//               hwg_shellExecute( cTemp )
+//#else
                cedi_shellExecute( cTemp )
-#endif
+//#endif
 #endif
             ENDIF
          ENDIF
@@ -2794,7 +2794,11 @@ STATIC FUNCTION AppList( oPane )
    NEXT
    IF !Empty( aMenu )
       IF ( i := FMenu( oHbc, aMenu, oPane:y1+1, oPane:x1+1,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] ) ) > 0
+#ifdef __PLATFORM__UNIX
          cedi_RunApp( FilePane():aAppList[i,1] )
+#else
+         cedi_shellExecute( FilePane():aAppList[i,1] )
+#endif
       ENDIF
    ENDIF
 
