@@ -135,7 +135,7 @@ void hb_ssh2_Close( HB_SSH2_SESSION * pSess )
 {
 
    hb_ssh2_SftpShutDown( pSess );
-   hb_ssh2_CloseChannel( pSess );
+   hb_ssh2_ChannelClose( pSess );
 
    if( pSess->session )
    {
@@ -180,7 +180,7 @@ int hb_ssh2_LoginPass( HB_SSH2_SESSION * pSess, const char *pLogin, const char *
    return 0;
 }
 
-int hb_ssh2_OpenChannel( HB_SSH2_SESSION * pSess )
+int hb_ssh2_ChannelOpen( HB_SSH2_SESSION * pSess )
 {
    /* Exec non-blocking on the remove host */
    while( ( pSess->channel =
@@ -195,7 +195,7 @@ int hb_ssh2_OpenChannel( HB_SSH2_SESSION * pSess )
    return pSess->iRes;
 }
 
-void hb_ssh2_CloseChannel( HB_SSH2_SESSION * pSess )
+void hb_ssh2_ChannelClose( HB_SSH2_SESSION * pSess )
 {
 
    if( !pSess->channel )
@@ -474,12 +474,12 @@ HB_FUNC( SSH2_LOGIN )
 
 HB_FUNC( SSH2_CHANNEL_OPEN )
 {
-   hb_retni( hb_ssh2_OpenChannel( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) ) );
+   hb_retni( hb_ssh2_ChannelOpen( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) ) );
 }
 
 HB_FUNC( SSH2_CHANNEL_CLOSE )
 {
-   hb_ssh2_CloseChannel( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) );
+   hb_ssh2_ChannelClose( ( HB_SSH2_SESSION * ) hb_parptr( 1 ) );
 }
 
 HB_FUNC( SSH2_EXEC )
