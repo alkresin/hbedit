@@ -3048,8 +3048,8 @@ FUNCTION edi_ReadIni( xIni )
    TEdit():options["edithismax"] := nedithis
    TEdit():options["autoindent"] := lAutoIndent
    TEdit():options["autocomplete"] := lAutoComplete
-   IF nAutoDelay > 0
-      TEdit():options["autodelay"] := nAutoDelay
+   TEdit():options["autodelay"] := nAutoDelay
+   IF lAutoComplete .AND. nAutoDelay > 0
       hIdle := hb_IdleAdd( {|| _FIdle() } )
    ENDIF
    TEdit():options["autovertical"] := lAutoVert
