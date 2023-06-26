@@ -673,6 +673,7 @@ STATIC FUNCTION ReadIni( cIniName )
    LOCAL hIni := edi_iniRead( cIniName ), aSect, arr, i, cTmp, s, nPos, n
    LOCAL aPanes := { Nil, Nil }, cp, lPalette := .F.
 
+   FilePane():hMisc := hb_Hash()
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
       IF hb_hHaskey( hIni, cTmp := "OPTIONS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -840,7 +841,6 @@ STATIC FUNCTION ReadIni( cIniName )
       IF hb_hHaskey( hIni, cTmp := "MISC" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
          arr := hb_hKeys( aSect )
-         FilePane():hMisc := hb_Hash()
          FOR i := 1 TO Len( arr )
             FilePane():hMisc[Lower(arr[i])] := aSect[ arr[i] ]
          NEXT
