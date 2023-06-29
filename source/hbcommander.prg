@@ -131,12 +131,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    aDir := Iif( Empty(oPaneCurr:aDir).OR.oPaneCurr:nCurrent==0, {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
    IF nKey == K_F9
      IF !oPaneCurr:PaneMenu()
-        CmdHisSave()
         mnu_Exit( oEdit_Hbc )
      ENDIF
 
    ELSEIF nKey == K_F10
-      CmdHisSave()
       mnu_Exit( oEdit_Hbc )
 
    ELSEIF nKey == K_F5
@@ -399,8 +397,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          IF Empty( oPaneCurr:cIOpref )
             cExt := Lower( hb_fnameExt( aDir[1] ) )
             cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
+            cTemp := Substr( cExt,2 )
+            IF ','+cTemp+',' $ oPaneCurr:cDocHis
+               AddDocHis( oPaneCurr:cCurrPath + aDir[1] )
+            ENDIF
             IF ( nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) == 0
-               cTemp := Substr( cExt,2 )
                nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
             ENDIF
             cTemp := oPaneCurr:cCurrPath + aDir[1]
@@ -531,7 +532,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                RETURN -1
             ELSE
                IF !o:PaneMenu()
-                  CmdHisSave()
                   mnu_Exit( oEdit_Hbc )
                ENDIF
             ENDIF
@@ -709,6 +709,12 @@ STATIC FUNCTION ReadIni( cIniName )
                ENDIF
             NEXT
          ENDIF
+         IF hb_hHaskey( aSect, cTmp := "dochis" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():cDocHis := cTmp
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "docmax" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():nDocMax := Val( cTmp )
+         ENDIF
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
@@ -804,7 +810,14 @@ STATIC FUNCTION ReadIni( cIniName )
             FilePane():aExtEnter[i] := { Lower( arr[i] ), aSect[ arr[i] ] }
          NEXT
       ENDIF
-
+      IF hb_hHaskey( hIni, cTmp := "QUICKVIEW" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         arr := hb_hKeys( aSect )
+         FilePane():aQView := Array( Len( arr ) )
+         FOR i := 1 TO Len( arr )
+            FilePane():aQView[i] := { Lower( arr[i] ), aSect[ arr[i] ] }
+         NEXT
+      ENDIF
       IF hb_hHaskey( hIni, cTmp := "PLUGINS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
          arr := hb_hKeys( aSect )
@@ -844,6 +857,39 @@ STATIC FUNCTION ReadIni( cIniName )
          FOR i := 1 TO Len( arr )
             FilePane():hMisc[Lower(arr[i])] := aSect[ arr[i] ]
          NEXT
+      ENDIF
+   ENDIF
+
+   cTmp := hb_DirBase()
+#ifdef __PLATFORM__UNIX
+   IF hb_dirExists( s := ( hb_getenv( "HOME" ) + "/hbedit" ) )
+      cTmp := s + "/"
+   ENDIF
+#endif
+   FilePane():aCmdHis := {}
+   FilePane():aDocHis := {}
+   IF FilePane():hCmdTrie == Nil
+      FilePane():hCmdTrie := trie_Create( .F. )
+   ENDIF
+   hIni := edi_iniRead( cTmp + "hbc.his" )
+   IF !Empty( hIni )
+      hb_hCaseMatch( hIni, .F. )
+      IF hb_hHaskey( hIni, cTmp := "COMMANDS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         arr := ASort( hb_hKeys( aSect ) )
+         FOR i := 1 TO Len(arr)
+            arr[i] := aSect[ arr[i] ]
+         NEXT
+         FilePane():aCmdHis := arr
+         FOR i := 1 TO Len( arr )
+            trie_Add( FilePane():hCmdTrie, arr[i] )
+         NEXT
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "DOCUMENTS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         arr := ASort( hb_hKeys( aSect ) )
+         FOR i := 1 TO Len(arr)
+            arr[i] := aSect[ arr[i] ]
+         NEXT
+         FilePane():aDocHis := arr
       ENDIF
    ENDIF
 
@@ -902,10 +948,14 @@ CLASS FilePane
 
    CLASS VAR aPanes SHARED INIT {}
    CLASS VAR aDefPaths SHARED
-   CLASS VAR aExtView, aExtEdit, aExtEnter SHARED
+   CLASS VAR aExtView, aExtEdit, aExtEnter, aQView SHARED
    CLASS VAR aCmdHis   SHARED
    CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR hCmdTrie  SHARED INIT Nil
+   CLASS VAR aDocHis   SHARED
+   CLASS VAR lDocHis   SHARED INIT .F.
+   CLASS VAR cDocHis   SHARED INIT ",odt,doc,docx,pdf,djvu,"
+   CLASS VAR nDocMax   SHARED INIT 50
    CLASS VAR aNetInfo  SHARED
    CLASS VAR vx1 SHARED  INIT 0
    CLASS VAR vy1 SHARED  INIT 0
@@ -977,6 +1027,7 @@ CLASS FilePane
    METHOD PaneMenu()
    METHOD ContextMenu()
    METHOD RedrawAll()
+   METHOD onExit()
 
 ENDCLASS
 
@@ -1538,9 +1589,10 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"Alt-D"}, ;
-      {_I("File edit history"),,}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Find file"),,,"Ctrl-F7"}, ;
+      {_I("History"),,}, {_I("Find file"),,,"Ctrl-F7"}, ;
       {_I("Plugins"),,,"F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
       {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
+   LOCAL aMenu3 := { {_I("Editing"),,}, {_I("Documents"),,}, {_I("Commands"),,,"Ctrl-F8"} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-Q"}, .T. )
@@ -1551,25 +1603,30 @@ METHOD PaneMenu() CLASS FilePane
    ELSEIF nChoic == 2
       ::ChangeDir()
    ELSEIF nChoic == 3
-      hbc_Dirlist()
+      nChoic := FMenu( oHbc, aMenu3, ::y1+2, ::x1+14, ::y1+Len(aMenu3)+3,, ::aClrMenu[1], ::aClrMenu[2] )
+      IF nChoic == 1
+         hbc_Dirlist()
+      ELSEIF nChoic == 2
+         hbc_Doclist()
+      ELSEIF nChoic == 3
+         hbc_CmdHis()
+      ENDIF
    ELSEIF nChoic == 4
-      hbc_CmdHis()
-   ELSEIF nChoic == 5
       hbc_Search()
-   ELSEIF nChoic == 6
+   ELSEIF nChoic == 5
       Plugins( Self )
-   ELSEIF nChoic == 7
+   ELSEIF nChoic == 6
       AppList( Self )
-   ELSEIF nChoic == 8
+   ELSEIF nChoic == 7
       mnu_Buffers( oHbc, {::y1+1,::x1+1} )
-   ELSEIF nChoic == 9
+   ELSEIF nChoic == 8
       ::Refresh()
       IF ::nCurrent + ::nShift > Len( ::aDir )
          ::nShift := Max( 0, Len( ::aDir ) ) - ::nCells
          ::nCurrent := Len( ::aDir ) - ::nShift
       ENDIF
       ::RedrawAll()
-   ELSEIF nChoic == 10
+   ELSEIF nChoic == 9
       hbc_Console()
    ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
       ShowStdout()
@@ -1652,6 +1709,42 @@ METHOD RedrawAll() CLASS FilePane
    oPaneCurr:DrawCell( ,.T. )
    ::aPanes[1]:DrawHead( ::aPanes[1] == oPaneCurr )
    ::aPanes[2]:DrawHead( ::aPanes[2] == oPaneCurr )
+
+   RETURN Nil
+
+METHOD onExit() CLASS FilePane
+
+
+   LOCAL cHisDir := hb_DirBase(), s := "", i, nLen
+
+   IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
+      s += "[COMMANDS]" + Chr(13) + Chr(10)
+      nLen := Len(FilePane():aCmdHis)
+      FOR i := Max( 1,nLen-200 ) TO nLen
+         s += "c" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aCmdHis[i] + Chr(13) + Chr(10)
+      NEXT
+   ENDIF
+   IF !Empty( FilePane():aDocHis ) .AND. FilePane():lDocHis
+      s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Chr(13) + Chr(10)
+      nLen := Len(FilePane():aDocHis)
+      FOR i := 1 TO Min( nLen,FilePane():nDocMax )
+         s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i] + Chr(13) + Chr(10)
+      NEXT
+   ENDIF
+
+   IF !Empty( s )
+#ifdef __PLATFORM__UNIX
+      IF hb_dirExists( sLine := ( hb_getenv( "HOME" ) + "/hbedit" ) )
+         cHisDir := sLine + "/"
+      ENDIF
+#endif
+      hb_MemoWrit( cHisDir + "hbc.his", s )
+
+      FilePane():lCmdHis := FilePane():lDocHis := .F.
+      IF !( FilePane():hCmdTrie == Nil )
+         trie_Close( FilePane():hCmdTrie )
+      ENDIF
+   ENDIF
 
    RETURN Nil
 
@@ -2341,13 +2434,46 @@ STATIC FUNCTION hbc_Dirlist()
 
    RETURN Nil
 
+STATIC FUNCTION hbc_Doclist()
+
+   LOCAL i, aMenu, cDir
+   STATIC lChecked := .F.
+
+   IF !lChecked
+      FOR i := 1 TO Len( Filepane():aDocHis )
+         IF !File( Filepane():aDocHis[i] )
+            hb_ADel( Filepane():aDocHis, i, .T. )
+            i --
+         ENDIF
+      NEXT
+      lChecked := .T.
+   ENDIF
+
+   aMenu := Array( Len(Filepane():aDocHis) )
+   FOR i := 1 TO Len( Filepane():aDocHis )
+      aMenu[i] := NameShortcut( hb_fnameNameExt(Filepane():aDocHis[i]), 48,'~',oHbc:lUtf8 )
+   NEXT
+
+   IF !Empty( aMenu )
+      i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
+      IF i > 0
+#ifdef __PLATFORM__UNIX
+#ifdef GTHWG
+         hwg_shellExecute( "file://" + Filepane():aDocHis[i] )
+#endif
+#else
+         cedi_shellExecute( Filepane():aDocHis[i] )
+#endif
+
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
 STATIC FUNCTION hbc_CmdHis()
 
    LOCAL i
 
-   IF Valtype( FilePane():aCmdHis ) != "A"
-      CmdHisLoad()
-   ENDIF
    IF !Empty( FilePane():aCmdHis )
       KEYBOARD Chr(K_END)
       i := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
@@ -2959,11 +3085,13 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
       oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
-      KEYBOARD Chr(K_END)
-      n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
-         oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
-      IF n > 0
-         RETURN FilePane():aCmdHis[n]
+      IF !Empty( FilePane():aCmdHis )
+         KEYBOARD Chr(K_END)
+         n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
+            oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+         IF n > 0
+            RETURN FilePane():aCmdHis[n]
+         ENDIF
       ENDIF
    ELSEIF nChoic == 2
       KEYBOARD Chr(K_CTRL_Q)
@@ -3017,11 +3145,13 @@ FUNCTION hbc_Console( xCommand )
       ELSEIF nKey == K_TAB
          RETURN hbc_Cons_Auto( cmd )
       ELSEIF nKey == K_CTRL_F8
-         KEYBOARD Chr(K_END)
-         n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
-            oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
-         IF n > 0
-            RETURN FilePane():aCmdHis[n]
+         IF !Empty( FilePane():aCmdHis )
+            KEYBOARD Chr(K_END)
+            n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
+               oPaneCurr:vy2-2, oPaneCurr:vx2-10, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+            IF n > 0
+               RETURN FilePane():aCmdHis[n]
+            ENDIF
          ENDIF
       ELSEIF nKey == K_F9 .OR. nKey == K_RBUTTONDOWN
          RETURN hbc_Cons_Menu( cmd )
@@ -3047,10 +3177,6 @@ FUNCTION hbc_Console( xCommand )
       @ Int(MaxRow()/2), Int(MaxCol()/2-10) SAY "F9,Right Click - " +_I("menu")
    ELSE
       RestScreen( 0, 0, nScreenH-1, nScreenW-1, cOutBuff )
-   ENDIF
-
-   IF Valtype( FilePane():aCmdHis ) != "A"
-      CmdHisLoad()
    ENDIF
 
    DO WHILE .T.
@@ -3425,46 +3551,6 @@ FUNCTION hbc_GetLogin( cLogin, cPass, lSave )
 
    RETURN .T.
 
-STATIC FUNCTION CmdHisLoad()
-
-   LOCAL arr := hb_ATokens( Memoread( hb_DirBase() + "hbc.his" ), Chr(10) ), i
-
-   FOR i := Len(arr) TO 1 STEP -1
-      IF Empty( arr[i] )
-         hb_ADel( arr, i, .T. )
-      ELSEIF Right( arr[i],1 ) == Chr(13)
-         arr[i] := hb_strShrink( arr[i], 1 )
-      ENDIF
-   NEXT
-
-   FilePane():aCmdHis := arr
-   FilePane():hCmdTrie := trie_Create( .F. )
-   FOR i := 1 TO Len( arr )
-      trie_Add( FilePane():hCmdTrie, arr[i] )
-   NEXT
-
-   RETURN Nil
-
-STATIC FUNCTION CmdHisSave()
-
-   LOCAL i, s := "", nLen
-
-   IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
-      nLen := Len(FilePane():aCmdHis)
-      FOR i := Max( 1,nLen-200 ) TO nLen
-         IF Len( FilePane():aCmdHis[i] ) > 2
-            s += FilePane():aCmdHis[i] + Chr(10)
-         ENDIF
-      NEXT
-      hb_MemoWrit( hb_DirBase() + "hbc.his", s )
-      FilePane():lCmdHis := .F.
-   ENDIF
-   IF !Empty( FilePane():hCmdTrie )
-      trie_Close( FilePane():hCmdTrie )
-   ENDIF
-
-   RETURN Nil
-
 FUNCTION NetInfoLoad()
 
    LOCAL arr := hb_ATokens( Memoread( hb_DirBase() + "hbc.net" ), Chr(10) ), i
@@ -3500,6 +3586,20 @@ STATIC FUNCTION NetInfoSave()
       NEXT
       hb_MemoWrit( hb_DirBase() + "hbc.net", s )
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION AddDocHis( cDocName )
+
+   LOCAL i
+
+   IF ( i := Ascan( Filepane():aDocHis, {|cs|cs==cDocName} ) ) > 0
+      ADel( Filepane():aDocHis, i )
+      hb_AIns( Filepane():aDocHis, 1, cDocName, .F. )
+   ELSE
+      hb_AIns( Filepane():aDocHis, 1, cDocName, Len(Filepane():aDocHis)<Filepane():nDocMax )
+   ENDIF
+   FilePane():lDocHis := .T.
 
    RETURN Nil
 

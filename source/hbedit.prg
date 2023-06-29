@@ -168,11 +168,15 @@ FUNCTION Main( ... )
    TEdit():nCurr := 1
 
    IF Empty( TEdit():aWindows )
+#ifndef _NO_HBC
       IF lHbc //.AND. Len( TEdit():aWindows ) == 1
          Hbc()
       ELSE
         TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
       ENDIF
+#else
+      TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
+#endif
    ENDIF
    IF nStartLine != Nil
      IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
@@ -188,6 +192,9 @@ FUNCTION Main( ... )
       TEdit():aWindows[TEdit():nCurr]:Edit()
    ENDDO
    TEdit():onExit()
+#ifndef _NO_HBC
+   FilePane():onExit()
+#endif
 
 #ifdef GTHWG
    gthwg_CloseWindow()

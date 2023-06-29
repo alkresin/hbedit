@@ -148,7 +148,7 @@ FUNCTION edi_IniRead( cFileName )
 
       IF Left( s,1 ) == '[' .AND. Right( s,1 ) == ']'
          hSect := hIni[Substr( s,2,Len(s)-2 )] := hb_Hash()
-      ELSE
+      ELSEIF !( hSect == Nil )
          IF ( nPos := At( '=', s ) ) > 0
             hSect[Trim(Left(s,nPos-1))] := Ltrim( Substr( s,nPos+1 ) )
          ENDIF
