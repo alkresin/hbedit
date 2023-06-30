@@ -58,6 +58,9 @@ FUNCTION plug_hbc_latin( oPane )
             IF ' ' $ cOut
                cOut := StrTran( cOut, ' ', '_' )
             ENDIF
+            IF '-' $ cOut
+               cOut := StrTran( cOut, '-', '_' )
+            ENDIF
          ELSEIF aGets[5,4]
             cOut := Lower( cIn )
          ELSE

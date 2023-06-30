@@ -456,17 +456,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       oPaneTo:nPanelMod := 3
       oPaneTo:cQVpref := ""
 
-      cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
-      IF ( nPos := Ascan( oPaneCurr:aQView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
-         edi_RunPlugin( oPaneCurr, FilePane():aPlugins, oPaneCurr:aQView[nPos,2] )
-      ELSE
-      /*
-         QFileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1], ;
-            oPaneTo:x1, oPaneTo:y1, oPaneTo:x2, oPaneTo:y2 )
-      */
-      ENDIF
-
    ELSEIF nKey == K_F3 .OR. nKey == K_CTRL_F3
       IF 'D' $ aDir[5]
          hbc_FCalcSize()
@@ -689,12 +678,18 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ENDIF
 
    IF oPaneTo:nPanelMod == 3
+      oPaneTo:cQVpref := ""
+      aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
+      cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
+      IF ( nPos := Ascan( oPaneCurr:aQView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
+         edi_RunPlugin( oPaneCurr, FilePane():aPlugins, oPaneCurr:aQView[nPos,2] )
+      ENDIF
       IF Empty( oPaneTo:cQVpref )
          QFileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift][1], ;
-            oPaneTo:x1, oPaneTo:y1, oPaneTo:x2, oPaneTo:y2 )
+            oPaneCurr:cCurrPath + aDir[1], ;
+            , oPaneTo:x1, oPaneTo:y1, oPaneTo:x2, oPaneTo:y2 )
       ELSE
-         PlugFunc( oPaneCurr, oPaneTo:cQVpref, "QVIEW", {} )
+         PlugFunc( oPaneCurr, oPaneTo:cQVpref, "QVIEW", { oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift][1] } )
       ENDIF
    ENDIF
 
@@ -1773,24 +1768,24 @@ METHOD RedrawAll() CLASS FilePane
 
 METHOD onExit() CLASS FilePane
 
-
    LOCAL cHisDir := hb_DirBase(), s := "", i, nLen
 
-   IF !Empty( FilePane():aCmdHis ) .AND. FilePane():lCmdHis
-      s += "[COMMANDS]" + Chr(13) + Chr(10)
-      nLen := Len(FilePane():aCmdHis)
-      FOR i := Max( 1,nLen-200 ) TO nLen
-         s += "c" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aCmdHis[i] + Chr(13) + Chr(10)
-      NEXT
+   IF FilePane():lCmdHis .OR. FilePane():lDocHis
+      IF !Empty( FilePane():aCmdHis )
+         s += "[COMMANDS]" + Chr(13) + Chr(10)
+         nLen := Len(FilePane():aCmdHis)
+         FOR i := Max( 1,nLen-200 ) TO nLen
+            s += "c" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aCmdHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
+      IF !Empty( FilePane():aDocHis )
+         s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Chr(13) + Chr(10)
+         nLen := Len(FilePane():aDocHis)
+         FOR i := 1 TO Min( nLen,FilePane():nDocMax )
+            s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i] + Chr(13) + Chr(10)
+         NEXT
+      ENDIF
    ENDIF
-   IF !Empty( FilePane():aDocHis ) .AND. FilePane():lDocHis
-      s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Chr(13) + Chr(10)
-      nLen := Len(FilePane():aDocHis)
-      FOR i := 1 TO Min( nLen,FilePane():nDocMax )
-         s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i] + Chr(13) + Chr(10)
-      NEXT
-   ENDIF
-
    IF !Empty( s )
 #ifdef __PLATFORM__UNIX
       IF hb_dirExists( sLine := ( hb_getenv( "HOME" ) + "/hbedit" ) )

@@ -139,33 +139,71 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
    hb_vfClose( handle )
    RETURN .T.
 
-FUNCTION QFileView( cFileName, x1, y1, x2, y2, cColor )
+FUNCTION QFileView( cFileName, cBuff, x1, y1, x2, y2, cColor, cPage, lWords )
 
-   LOCAL handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
-   LOCAL nFileLen, nSize
-   LOCAL arr := {}, cp
-   PRIVATE lShowCR := .F., nCodePage := 1
+   LOCAL handle, nSize := (x2-x1-1) * (y2-y1-1) * 2, s
+   LOCAL nRow := y1+1, nCol := x1+1, nPos := 1, c, nPos1, c0 := Chr(0), c10 := Chr(10)
+   LOCAL cSeps := " .,;!?-"
 
-   IF Empty( handle )
-      edi_Alert( _I("Can't open") + " " + cFileName )
-      RETURN .F.
+   lWords := !Empty( lWords )
+   IF cBuff == Nil
+      handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
+      IF Empty( handle )
+         edi_Alert( _I("Can't open") + " " + cFileName )
+         RETURN .F.
+      ENDIF
+      cBuff := hb_vfReadLen( handle, nSize )
+      hb_vfClose( handle )
    ENDIF
 
-   nFileLen := hb_vfSize( cFileName )
-   nSize := Iif( nFileLen > MAXLEN, RDBUFFERSIZE, nFileLen )
-   nSize := ReadBufNext( handle, arr, 0, nSize, x2-x1-1, (nSize>=nFileLen) )
-
    IF cColor == Nil; cColor := "W/B"; ENDIF
-
    SetColor( cColor )
    cp := hb_cdpSelect( "RU866" )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
    hb_cdpSelect( cp )
-   @ y1, x1 + 2 SAY NameShortcut( cFileName, x2-x1-3-FILEINFO_LEN )
-   @ y1, x2 - 8 SAY aCPages[nCodePage]
+   @ y1, x1 + 2 SAY NameShortcut( hb_fnameNameExt(cFileName), x2-x1-3-FILEINFO_LEN )
 
-   Draw( arr, 1, x1, y1, x2, y2 )
-   hb_vfClose( handle )
+   IF !Empty( cPage ) .AND. !( cPage == cp )
+      hb_cdpSelect( cPage )
+   ENDIF
+
+   DispBegin()
+   s := ""
+   DO WHILE nRow < y2
+      c := Substr( cBuff, nPos, 1 )
+      nPos ++
+      nCol ++
+      IF c == c0
+         c := ' '
+      ELSEIF c == c10
+         c := ""
+         nCol := x2
+      ENDIF
+
+      s += c
+      IF nCol == x2
+         IF lWords .AND. !(c == '') .AND. !(c $ cSeps) .AND. !(Substr(cBuff,nPos,1) == ' ')
+            nPos1 := Len( s )
+            DO WHILE nPos1 > 0
+               IF Substr(s,nPos1,1) $ cSeps
+                  EXIT
+               ENDIF
+               nPos1 --
+            ENDDO
+            IF nPos1 > 1
+               nPos -= ( Len(s)-nPos1 )
+               s := Left( s, nPos1 )
+            ENDIF
+         ENDIF
+         @ nRow, x1 + 1 SAY s
+         s := ""
+         nRow ++
+         nCol := x1 + 1
+      ENDIF
+   ENDDO
+   DispEnd()
+
+   hb_cdpSelect( cp )
 
    RETURN Nil
 
