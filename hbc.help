@@ -39,7 +39,8 @@ HbCommander - built-in file manager
                   =1024*16+25, or =date() )
    Ctrl-Enter - Open Console and add a current file to a command line
    Ctrl-Ins   - Put current file name to a clipboard
-   Ctrl-Q     - View stdout window
+   Ctrl-W     - View stdout window
+   Ctrl-Q     - Quick View
    Ctrl-Tab   - Switch between buffers
 
    m          - Set bookmark on current directory, then press a,s,d

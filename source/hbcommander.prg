@@ -127,6 +127,14 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       nKey == K_F1 .OR. nKey == K_F9 .OR. nKey == K_TAB .OR. nKey == K_CTRL_PGUP .OR. nKey == K_F10 )
       RETURN -1
    ENDIF
+   IF oPaneTo:nPanelMod == 3 .AND. !( nKey == K_LEFT .OR. nKey == K_RIGHT .OR. nKey == K_UP ;
+      .OR. nKey == K_DOWN .OR. nKey == K_HOME .OR. nKey == K_END .OR. nKey == K_UP .OR. nKey == K_PGDN )
+      oPaneTo:nPanelMod := oPaneTo:nPanelMod_bak
+      oPaneTo:RedrawAll()
+      IF nKey == K_CTRL_Q
+         RETURN -1
+      ENDIF
+   ENDIF
 
    aDir := Iif( Empty(oPaneCurr:aDir).OR.oPaneCurr:nCurrent==0, {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
    IF nKey == K_F9
@@ -440,6 +448,25 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          ENDIF
       ENDIF
 
+   ELSEIF nKey == K_CTRL_Q
+      IF oPaneCurr:nPanelMod == 2
+         RETURN -1
+      ENDIF
+      oPaneTo:nPanelMod_bak := oPaneTo:nPanelMod
+      oPaneTo:nPanelMod := 3
+      oPaneTo:cQVpref := ""
+
+      cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
+      IF ( nPos := Ascan( oPaneCurr:aQView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
+         edi_RunPlugin( oPaneCurr, FilePane():aPlugins, oPaneCurr:aQView[nPos,2] )
+      ELSE
+      /*
+         QFileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1], ;
+            oPaneTo:x1, oPaneTo:y1, oPaneTo:x2, oPaneTo:y2 )
+      */
+      ENDIF
+
    ELSEIF nKey == K_F3 .OR. nKey == K_CTRL_F3
       IF 'D' $ aDir[5]
          hbc_FCalcSize()
@@ -596,7 +623,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       hbc_Console()
    ELSEIF nKey == K_CTRL_O
       hbc_Console()
-   ELSEIF nKey == K_CTRL_Q
+   ELSEIF nKey == K_CTRL_W
       ShowStdout()
    ELSEIF nKey == K_CTRL_P
       hbc_PaneOpt()
@@ -658,6 +685,16 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                oPaneCurr:ChangeDir( FilePane():aDefPaths[i,1] )
             ENDIF
          NEXT
+      ENDIF
+   ENDIF
+
+   IF oPaneTo:nPanelMod == 3
+      IF Empty( oPaneTo:cQVpref )
+         QFileView( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift][1], ;
+            oPaneTo:x1, oPaneTo:y1, oPaneTo:x2, oPaneTo:y2 )
+      ELSE
+         PlugFunc( oPaneCurr, oPaneTo:cQVpref, "QVIEW", {} )
       ENDIF
    ENDIF
 
@@ -815,7 +852,11 @@ STATIC FUNCTION ReadIni( cIniName )
          arr := hb_hKeys( aSect )
          FilePane():aQView := Array( Len( arr ) )
          FOR i := 1 TO Len( arr )
-            FilePane():aQView[i] := { Lower( arr[i] ), aSect[ arr[i] ] }
+            cTmp := aSect[ arr[i] ]
+            IF !Empty( edi_FindPath( "plugins" + hb_ps() + cTmp ) )
+               Aadd( FilePane():aPlugins, { cTmp, "", "qv", Nil, Nil } )
+               FilePane():aQView[i] := { Lower( arr[i] ), Len( FilePane():aPlugins ) }
+            ENDIF
          NEXT
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "PLUGINS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
@@ -1001,7 +1042,8 @@ CLASS FilePane
    DATA nShift        INIT 0
    DATA nCells
    DATA nRows, nWidth
-   DATA nPanelMod     INIT 0
+   DATA nPanelMod     INIT 0      // 0 - default, 1 - Search, 2 - Zip, 3 - QView
+   DATA nPanelMod_bak
    DATA hUnzip
    DATA pSess
    DATA cCurrPath
@@ -1012,6 +1054,8 @@ CLASS FilePane
    DATA aDir
    DATA aZipFull
    DATA aSelected     INIT {}
+
+   DATA cQVpref
 
    DATA bOnKey, bDraw, bDrawCell, bDrawHead, bRefresh
 
@@ -1343,6 +1387,10 @@ METHOD Refresh( lResort ) CLASS FilePane
    LOCAL aDirTmp, i, l1 := .F., l2 := .F., nPos
    LOCAL cPath := ::cCurrPath
 
+   IF ::nPanelMod == 3
+      RETURN .T.
+   ENDIF
+
    IF !Empty( ::bRefresh )
       IF Eval( ::bRefresh, Self ) == -1
          RETURN .F.
@@ -1423,6 +1471,10 @@ METHOD Draw() CLASS FilePane
 
    LOCAL i, cTemp
 
+   IF ::nPanelMod == 3
+      RETURN Nil
+   ENDIF
+
    IF !Empty( ::bDraw )
       RETURN Eval( ::bDraw, Self )
    ENDIF
@@ -1461,6 +1513,9 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen
    LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt, lUtf8
 
+   IF ::nPanelMod == 3
+      RETURN Nil
+   ENDIF
    IF !Empty( ::bDrawCell )
       RETURN Eval( ::bDrawCell, Self, nCell, lCurr )
    ENDIF
@@ -1560,6 +1615,10 @@ METHOD DrawHead( lCurr ) CLASS FilePane
 
    LOCAL cPath
 
+   IF ::nPanelMod == 3
+      RETURN Nil
+   ENDIF
+
    IF !Empty( ::bDrawHead )
       RETURN Eval( ::bDrawHead, Self )
    ENDIF
@@ -1595,7 +1654,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu3 := { {_I("Editing"),,}, {_I("Documents"),,}, {_I("Commands"),,,"Ctrl-F8"} }
 
    IF !Empty( FilePane():cConsOut )
-      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-Q"}, .T. )
+      aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-W"}, .T. )
    ENDIF
    nChoic := FMenu( oHbc, aMenu, ::y1+1, ::x1+1, ::y1+Len(aMenu)+2,, ::aClrMenu[1], ::aClrMenu[2] )
    IF nChoic == 1
@@ -3077,7 +3136,7 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
-   LOCAL aMenu := { {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-Q"}, ;
+   LOCAL aMenu := { {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
       {_I("Set autocompletion") + " "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, ;
       {_I("Close"),,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic
@@ -3094,7 +3153,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
          ENDIF
       ENDIF
    ELSEIF nChoic == 2
-      KEYBOARD Chr(K_CTRL_Q)
+      KEYBOARD Chr(K_CTRL_W)
    ELSEIF nChoic == 3
       FilePane():lConsAuto := !FilePane():lConsAuto
    ELSEIF nChoic == Len( aMenu )
@@ -3132,8 +3191,8 @@ FUNCTION hbc_Console( xCommand )
          FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
-      ELSEIF nKey == K_CTRL_Q
-         FilePane():nLastKey := K_CTRL_Q
+      ELSEIF nKey == K_CTRL_W
+         FilePane():nLastKey := K_CTRL_W
          FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
@@ -3605,7 +3664,8 @@ STATIC FUNCTION AddDocHis( cDocName )
 
 STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
 
-   LOCAL cFunc := "PLUG_HBC_" + hb_strShrink(cIOpref,1) + "_" + cName
+   LOCAL cFunc := "PLUG_HBC_" + ;
+      Iif( Right(cIOpref,1)==':',hb_strShrink(cIOpref,1),cIOpref ) + "_" + cName
 
    //edi_Alert( cFunc )
    IF hb_isFunction( cFunc )

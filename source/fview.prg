@@ -139,6 +139,36 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
    hb_vfClose( handle )
    RETURN .T.
 
+FUNCTION QFileView( cFileName, x1, y1, x2, y2, cColor )
+
+   LOCAL handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
+   LOCAL nFileLen, nSize
+   LOCAL arr := {}, cp
+   PRIVATE lShowCR := .F., nCodePage := 1
+
+   IF Empty( handle )
+      edi_Alert( _I("Can't open") + " " + cFileName )
+      RETURN .F.
+   ENDIF
+
+   nFileLen := hb_vfSize( cFileName )
+   nSize := Iif( nFileLen > MAXLEN, RDBUFFERSIZE, nFileLen )
+   nSize := ReadBufNext( handle, arr, 0, nSize, x2-x1-1, (nSize>=nFileLen) )
+
+   IF cColor == Nil; cColor := "W/B"; ENDIF
+
+   SetColor( cColor )
+   cp := hb_cdpSelect( "RU866" )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   hb_cdpSelect( cp )
+   @ y1, x1 + 2 SAY NameShortcut( cFileName, x2-x1-3-FILEINFO_LEN )
+   @ y1, x2 - 8 SAY aCPages[nCodePage]
+
+   Draw( arr, 1, x1, y1, x2, y2 )
+   hb_vfClose( handle )
+
+   RETURN Nil
+
 STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
 
    LOCAL i, nHeight := y2 - y1 - 1, n, cTemp
@@ -159,7 +189,6 @@ STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
          @ y1 + i, x1 + 1 SAY cTemp
          IF Len( cTemp ) < ( x2-x1-1 )
             @ y1 + i, x1 + 1 + Len(cTemp) SAY Space( x2-x1-1 - Len(cTemp) )
-            //edi_writelog(ctemp)
          ENDIF
       ENDIF
    NEXT
