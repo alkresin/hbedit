@@ -95,23 +95,31 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
 STATIC FUNCTION fb2_gettitle()
 
-   LOCAL cTemp, nPos, c10 := Chr(10)
+   LOCAL cTemp, nPos
 
    nPosStart := hb_At( "<", cUnzBuff, nPosStart, nPosEnd )
-   nPosStart ++
-   IF Substr( cUnzBuff, nPosStart, 5 ) == "title"
+   IF Substr( cUnzBuff, nPosStart+1, 5 ) == "title"
+      nPosStart ++
       fb2_add( Replicate( '-', nLevel*2 ) )
       nPos := hb_At( "</title", cUnzBuff, nPosStart, nPosEnd )
       cTemp := fb2_strip( Substr( cUnzBuff, nPosStart+6, nPos-nPosStart-6 ) )
       nPosStart := nPos + 1
-      DO WHILE ( nPos := At( c10, cTemp ) ) > 0
-         fb2_add( Left( cTemp, nPos-1 ) )
-         cTemp := Substr( cTemp, nPos + 1 )
-      ENDDO
-      fb2_add( cTemp )
+      fb2_add_stripped( cTemp )
    ENDIF
 
    Return Nil
+
+STATIC FUNCTION fb2_add_stripped( sBuff, sLeft )
+
+   LOCAL nPos, c10 := Chr(10)
+
+   DO WHILE ( nPos := At( c10, sBuff ) ) > 0
+      fb2_add( Left( sBuff, nPos-1 ), sLeft )
+      sBuff := Substr( sBuff, nPos + 1 )
+   ENDDO
+   fb2_add( sBuff, sLeft )
+
+   RETURN Nil
 
 STATIC FUNCTION fb2_getp()
 
@@ -141,7 +149,7 @@ STATIC FUNCTION fb2_getp()
          RETURN .F.
       ENDIF
       fb2_add( "" )
-      fb2_add( fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
+      fb2_add_stripped( fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
    ENDIF
 
    Return .T.
@@ -159,7 +167,8 @@ STATIC FUNCTION fb2_getepi( cEnd )
       RETURN .F.
    ENDIF
 
-   fb2_add( fb2_strip( Substr( cUnzBuff, nPosStart, nPos-nPosStart ) ) )
+   fb2_add_stripped( fb2_strip( Substr( cUnzBuff, nPosStart, nPos-nPosStart ) ), ;
+      Iif( cEnd == "</epigraph>", "~   ","= " ) )
    nPosStart := nPos + 4
 
    Return .T.
@@ -181,9 +190,11 @@ STATIC FUNCTION fb2_strip( cBuff )
    IF Chr(10) $ cBuff .OR. Chr(13) $ cBuff
       cBuff := hb_strReplace( cBuff, {Chr(10),Chr(13)} )
    ENDIF
+   edi_writelog( "st-1>" + cBuff )
    IF "</p>" $ cBuff .OR. "</v>" $ cBuff
       cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<v>"}, {Chr(10),Chr(10),Chr(10),"    "} )
    ENDIF
+   edi_writelog( "st-2>" + cBuff )
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0
          cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
@@ -191,13 +202,17 @@ STATIC FUNCTION fb2_strip( cBuff )
          EXIT
       ENDIF
    ENDDO
+   edi_writelog( "st-3>" + cBuff )
 
    RETURN cBuff
 
-STATIC FUNCTION fb2_add( sBuff )
+STATIC FUNCTION fb2_add( sBuff, sLeft )
 
    LOCAL i
 
+   IF !Empty( sLeft )
+      sBuff := sLeft + sBuff
+   ENDIF
    arr[++nRealLen] := sBuff
    IF nRealLen == nArrLen
       nArrLen += 100
@@ -207,6 +222,9 @@ STATIC FUNCTION fb2_add( sBuff )
    DO WHILE cp_Len( lUtf8, arr[nRealLen] ) > nWidth
       IF cp_Substr( lUtf8, arr[nRealLen], nWidth+1, 1 ) == ' '
          arr[nRealLen+1] := cp_Substr( lUtf8, arr[nRealLen], nWidth+1 )
+         IF !Empty( sLeft )
+            arr[nRealLen+1] := sLeft + arr[nRealLen+1]
+         ENDIF
          arr[nRealLen] := cp_Left( lUtf8, arr[nRealLen], nWidth )
          nRealLen ++
       ELSE
@@ -216,6 +234,9 @@ STATIC FUNCTION fb2_add( sBuff )
             i := nWidth
          ENDIF
          arr[nRealLen+1] := cp_Substr( lUtf8, arr[nRealLen], i+1 )
+         IF !Empty( sLeft )
+            arr[nRealLen+1] := sLeft + arr[nRealLen+1]
+         ENDIF
          arr[nRealLen] := cp_Left( lUtf8, arr[nRealLen], i )
          nRealLen ++
       ENDIF
