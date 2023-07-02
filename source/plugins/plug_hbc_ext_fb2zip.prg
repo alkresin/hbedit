@@ -74,29 +74,6 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
       END
 
    ENDDO
-   /*
-   DO WHILE ( nPosStart := hb_At( "section", cUnzBuff, nPosStart, nPosEnd ) ) > 0
-      IF ( n := hb_bpeek( cUnzBuff, nPosStart-1 ) ) == 60  // <
-         IF ++nLevel > Len( aLevels ) .OR. ;
-            ( nPosStart := hb_At( ">", cUnzBuff, nPosStart, nPosEnd ) ) == 0
-            lErr := .T.
-            EXIT
-         ENDIF
-         //nPosStart ++
-         aLevels[nLevel] := nPosStart
-      ELSEIF n == 47 .AND. hb_bpeek( cUnzBuff, nPosStart-2 ) == 60   // </
-         nStartBak := nPosStart; nEndBak := nPosEnd
-         nPosEnd := nPosStart-3; nPosStart := aLevels[nLevel]
-         lRes := fb2_getsection()
-         nPosStart := nStartBak + 7; nPosEnd := nEndBak
-         IF --nLevel < 0 .OR. !lRes
-            lErr := .T.
-            EXIT
-         ENDIF
-         //nPosStart ++
-      ENDIF
-   ENDDO
-   */
 
    IF lErr .OR. nRealLen == 0
       edi_Alert( _I("Something goes wrong...") )
@@ -150,11 +127,21 @@ STATIC FUNCTION fb2_getp()
          nPosStart := nBak
          RETURN .F.
       ENDIF
-      fb2_add( fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
+      fb2_add( "" )
+      fb2_add( "  " + fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
       nPosStart := n + 4
 
    ELSEIF n == 111 .AND. hb_bpeek( cUnzBuff, ++nPosStart ) == 101
-      //fb2_getpoem()
+      IF ( nPosStart := hb_At( ">", cUnzBuff, nPosStart, nPosEnd ) ) == 0
+         nPosStart := nBak
+         RETURN .F.
+      ENDIF
+      nPosStart ++
+      IF ( n := hb_At( "</poem", cUnzBuff, nPosStart, nPosEnd ) ) == 0
+         RETURN .F.
+      ENDIF
+      fb2_add( "" )
+      fb2_add( fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
    ENDIF
 
    Return .T.
@@ -194,10 +181,9 @@ STATIC FUNCTION fb2_strip( cBuff )
    IF Chr(10) $ cBuff .OR. Chr(13) $ cBuff
       cBuff := hb_strReplace( cBuff, {Chr(10),Chr(13)} )
    ENDIF
-   IF "</p>" $ cBuff
-      cBuff := hb_strReplace( cBuff, {"</p>","</text-author>"}, Chr(10) )
+   IF "</p>" $ cBuff .OR. "</v>" $ cBuff
+      cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<v>"}, {Chr(10),Chr(10),Chr(10),"    "} )
    ENDIF
-   //cBuff := StrTran( cBuff, "</p>", Chr(10) )
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0
          cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
