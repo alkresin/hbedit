@@ -147,13 +147,17 @@ FUNCTION QFileView( cFileName, cBuff, x1, y1, x2, y2, cColor, cPage, lWords )
 
    lWords := !Empty( lWords )
    IF cBuff == Nil
-      handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
-      IF Empty( handle )
-         edi_Alert( _I("Can't open") + " " + cFileName )
-         RETURN .F.
+      IF hb_vfExists( cFileName )
+         handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
+         IF Empty( handle )
+            edi_Alert( _I("Can't open") + " " + cFileName )
+            RETURN .F.
+         ENDIF
+         cBuff := hb_vfReadLen( handle, nSize )
+         hb_vfClose( handle )
+      ELSEIF hb_vfDirexists( cFileName )
+         cBuff := "<Directory>"
       ENDIF
-      cBuff := hb_vfReadLen( handle, nSize )
-      hb_vfClose( handle )
    ENDIF
 
    IF cColor == Nil; cColor := "W/B"; ENDIF

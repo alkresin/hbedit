@@ -90,14 +90,14 @@ FUNCTION PLUG_HBC_FB2_QVIEW( oPane, aParams )
                   EXIT
                ENDIF
             ENDDO
-            IF cEnc == "utf-8"
-               cBuff := StrTran( cBuff, '«', '"' )
-               cBuff := StrTran( cBuff, '»', '"' )
-               cBuff := StrTran( cBuff, '—', '-' )
-               cBuff := hb_utf8ToStr( cBuff, "RU866" )
-            ELSEIF cEnc == "windows-1251"
-               cBuff := hb_Translate( cBuff, "RU1251", "RU866" )
-            ENDIF
+         ENDIF
+         IF cEnc == "utf-8"
+            cBuff := StrTran( cBuff, '«', '"' )
+            cBuff := StrTran( cBuff, '»', '"' )
+            cBuff := StrTran( cBuff, '—', '-' )
+            cBuff := hb_utf8ToStr( cBuff, "RU866" )
+         ELSEIF cEnc == "windows-1251"
+            cBuff := hb_Translate( cBuff, "RU1251", "RU866" )
          ENDIF
       ENDIF
    ENDIF

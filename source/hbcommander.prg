@@ -119,7 +119,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    nKey := hb_keyStd( nKeyExt )
 
-   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE .OR. nKey == K_LBUTTONUP
       RETURN -1
    ENDIF
 
@@ -129,10 +129,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ENDIF
    IF oPaneTo:nPanelMod == 3 .AND. !( nKey == K_LEFT .OR. nKey == K_RIGHT .OR. nKey == K_UP ;
       .OR. nKey == K_DOWN .OR. nKey == K_HOME .OR. nKey == K_END .OR. nKey == K_UP .OR. nKey == K_PGDN )
-      oPaneTo:nPanelMod := oPaneTo:nPanelMod_bak
-      oPaneTo:RedrawAll()
-      IF nKey == K_CTRL_Q
-         RETURN -1
+      IF !( nKey == K_LBUTTONDOWN .AND. (nRow := MRow()) > 0 .AND. (nCol := MCol()) < oPaneCurr:x2 ;
+         .AND. nCol > oPaneCurr:x1 )
+         oPaneTo:nPanelMod := oPaneTo:nPanelMod_bak
+         oPaneTo:RedrawAll()
+         IF nKey == K_CTRL_Q
+            RETURN -1
+         ENDIF
       ENDIF
    ENDIF
 
@@ -418,8 +421,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
             IF nPos > 0
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
-            ELSEIF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_"+cExtFull+".hrb" ) ) > 0
-               edi_RunPlugin( oPaneCurr, FilePane():aPlugins, i, {cTemp} )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
                hbc_Console( cTemp )
@@ -446,6 +447,14 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 #endif
             ENDIF
          ENDIF
+      ENDIF
+
+   ELSEIF nKey == K_SPACE
+      cExtFull := Lower( Strtran( GetFullExt( aDir[1] ), '.', '' ) )
+      IF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_"+cExtFull+".hrb" ) ) > 0
+         edi_RunPlugin( oPaneCurr, FilePane():aPlugins, i, {oPaneCurr,oPaneCurr:cCurrPath+aDir[1]} )
+      ELSEIF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_all.hrb" ) ) > 0
+         edi_RunPlugin( oPaneCurr, FilePane():aPlugins, i, {oPaneCurr,oPaneCurr:cCurrPath+aDir[1]} )
       ENDIF
 
    ELSEIF nKey == K_CTRL_Q

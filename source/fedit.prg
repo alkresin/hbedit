@@ -223,9 +223,6 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
 
    ::hBookMarks := hb_Hash()
 
-   /* IF ::aWindows == Nil
-      ::aWindows := {}
-   ENDIF */
    Aadd( ::aWindows, Self )
 
    IF !Empty( ::bNew )
