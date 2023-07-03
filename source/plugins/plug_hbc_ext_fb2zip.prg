@@ -60,14 +60,19 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
       ENDIF
       aMenu := Array( Len( aRecent ) )
       FOR n := 1 TO Len( aMenu )
-         aMenu[n] := hb_fnameNameExt( aRecent[n,1] )
+         IF File( aRecent[n,1] )
+            aMenu[n] := hb_fnameNameExt( aRecent[n,1] )
+         ELSE
+            hb_ADel( aRecent, n, .T. )
+            hb_ADel( aMenu, n, .T. )
+         ENDIF
       NEXT
-      n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
-         FilePane():vy1+3, FilePane():vx1+20,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
-      IF n == 0
-         RETURN Nil
-      ELSE
+      IF Len( aMenu ) > 0 .AND. ( n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
+         FilePane():vy1+3, FilePane():vx1+20,,, ;
+         FilePane():aClrMenu[1], FilePane():aClrMenu[2] ) ) > 0
          cFile := aRecent[n,1]
+      ELSE
+         RETURN Nil
       ENDIF
    ELSE
       cFile := aParams[2]
@@ -465,7 +470,7 @@ STATIC FUNCTION SaveRecent( o )
    IF ( i := Ascan( aRecent, {|a|a[1]==cFileName} ) ) > 0
       aRecent[i,2] := Ltrim(Str(o:nLine))
    ENDIF
-   FOR i := 1 TO Len( aRecent )
+   FOR i := 1 TO Min( 50, Len( aRecent ) )
       s += aRecent[i,1] + ',' + aRecent[i,2] + hb_eol()
    NEXT
    hb_MemoWrit( cIniPath + "fb2zip.his", s )
