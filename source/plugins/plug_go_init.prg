@@ -17,7 +17,10 @@ FUNCTION Plug_go_Init( oEdit, cPath )
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Go plugin hotkeys:" + Chr(10) + ;
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Go plugin hotkeys:" + Chr(10) + ;
             "  Alt-I - Get info about a function or package under cursor" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF

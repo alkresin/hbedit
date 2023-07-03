@@ -26,7 +26,10 @@ FUNCTION Plug_php_Init( oEdit, cPath )
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Php plugin hotkeys:" + Chr(10) + ;
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Php plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF

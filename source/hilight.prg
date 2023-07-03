@@ -26,7 +26,9 @@ CLASS HiliBase
 
    DATA   oEdit
    DATA   lCase      INIT .F.      // A flag - are the keywords case sensitive
-   DATA   aLineStru, nItems, nLine
+   DATA   aLineStru
+   DATA   nItems     INIT 0
+   DATA   nLine
 
    METHOD New()   INLINE  Self
    METHOD End()

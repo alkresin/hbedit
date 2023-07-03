@@ -15,7 +15,10 @@ FUNCTION Plug_sh_Init( oEdit, cPath )
          DevOut( "Bash plugin:  Alt-R Run" )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Alt-R  launches the bash file"
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Alt-R  launches the bash file"
       ENDIF
       o:bStartEdit := Nil
 

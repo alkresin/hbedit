@@ -15,7 +15,10 @@ FUNCTION Plug_bat_Init( oEdit, cPath )
          DevOut( "Bat plugin:  Alt-R Run" )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Alt-R  launches the bat file"
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Alt-R  launches the bat file"
       ENDIF
       o:bStartEdit := Nil
 

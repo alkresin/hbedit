@@ -26,7 +26,10 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Harbour plugin hotkeys:" + Chr(10) + ;
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Harbour plugin hotkeys:" + Chr(10) + ;
             "  Alt-D  - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
             "  Alt-I  - Get info about a function under cursor" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
@@ -88,16 +91,12 @@ STATIC FUNCTION _prg_Spis( oEdit )
 
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
    LOCAL oHili := oEdit:oHili
-   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
-   //IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
-   //   oEdit:oHili:Do( Len( oEdit:aText ) )
-   //ENDIF
    oHili:CheckComm()
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1 //.AND. !Empty( aDop )
-         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
+      IF i > 1
+         IF oHili:IsComm( i-1 ) == 1
             IF ( n := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,n+2 ) )
             ELSE

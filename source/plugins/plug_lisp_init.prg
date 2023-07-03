@@ -20,7 +20,10 @@ FUNCTION Plug_lisp_Init( oEdit, cPath )
          DevOut( "Lisp plugin:  Alt-R Run" )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Alt-R  launches the interpreter, based on Lisp 1.5." + Chr(10) + ;
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Alt-R  launches the interpreter, based on Lisp 1.5." + Chr(10) + ;
             "Following functions are implemented:" + Chr(10) + ;
             "Basic: quote atom eq car cdr (and all cxyr like) cons cond lambda label defun." + Chr(10) + ;
             "Additional: if null and not or append list pair length load numberp set setq" + Chr(10) + ;

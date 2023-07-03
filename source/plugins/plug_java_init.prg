@@ -20,7 +20,10 @@ FUNCTION Plug_java_Init( oEdit, cPath )
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
-         oEdit:oHili:hHili["help"] := "Java plugin hotkeys:" + Chr(10) + ;
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Java plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
             "  Alt-C  - Compile" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;

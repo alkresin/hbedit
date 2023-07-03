@@ -94,6 +94,7 @@ CLASS TEdit
    CLASS VAR hMacros    SHARED
    CLASS VAR hSelePlug  SHARED
    CLASS VAR cLangCP    SHARED
+   CLASS VAR hMisc      SHARED
 #ifdef __PLATFORM__UNIX
 #ifndef GTHWG
    CLASS VAR cClipCmd   SHARED
@@ -152,7 +153,7 @@ CLASS TEdit
    DATA   oHili
    DATA   hBookMarks
    DATA   npy1, npx1, npy2, npx2
-   DATA   cargo
+   DATA   cargo, hCargo
 
    METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane )
    METHOD SetText( cText, cFileName )
@@ -3209,7 +3210,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
    ENDIF
    IF !Empty( cFullPath )
       cHelp := MemoRead( cFullPath )
-      IF !Empty( oEdit:oHili ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:oHili:hHili, "help", Nil ) )
+      IF !Empty( oEdit:hCargo ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:hCargo, "help", Nil ) )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
@@ -3296,6 +3297,9 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
    oEdit:Highlighter( Iif( Empty(cLang), Nil, Hili():New( aLangs[cLang] ) ) )
    oEdit:cSyntaxType := cLang
 
+   IF Empty( cLang )
+      RETURN Nil
+   ENDIF
    IF !Empty( cPal := hb_hGetDef( oEdit:oHili:hHili, "palette", Nil ) ) .AND. ;
       hb_hHaskey( hPalettes, cPal )
       oEdit:cPalette := cPal
@@ -5423,6 +5427,9 @@ FUNCTION cp_Substr( lUtf8, cString, nPos, nLen )
    RETURN Iif( lUtf8, ;
       Iif( nLen==Nil, hb_utf8Substr( cString, nPos ), hb_utf8Substr( cString, nPos, nLen ) ), ;
       Iif( nLen==Nil, Substr( cString, nPos ), Substr( cString, nPos, nLen ) ) )
+
+FUNCTION cp_Peek( lUtf8, cString, nPos )
+   RETURN Iif( lUtf8, hb_utf8Peek( cString, nPos ), hb_bPeek( cString, nPos ) )
 
 FUNCTION cp_Left( lUtf8, cString, nLen )
 
