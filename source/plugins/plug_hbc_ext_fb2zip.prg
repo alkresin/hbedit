@@ -11,14 +11,16 @@
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
 
 STATIC cUnzBuff, nPosStart, nPosEnd, nArrLen, nRealLen, arr, lUtf8, nWidth
-STATIC nLevel
+STATIC nLevel, i
 STATIC aContent
+STATIC cIniPath
+STATIC aRecent := Nil
 
 FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
-   LOCAL oPane := aParams[1], cFile := aParams[2], hUnzip, nSize, nPos, nPos1
+   LOCAL cFile, hUnzip, nSize, nPos, nPos1
    LOCAL n, aLevels := Array( 5 ), nStartBak, nEndBak
-   LOCAL oNew, lErr, lRes, nSec
+   LOCAL oNew, lErr, lRes, nSec, aMenu
    LOCAL bStartEdit := {|o|
       LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), h
       IF o:lTopPane
@@ -38,20 +40,53 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
       RETURN Nil
    }
+   LOCAL bEndEdit := {|o|
+      IF o:lClose
+         SaveRecent( o )
+      ENDIF
+      RETURN Nil
+   }
    LOCAL bOnKey := {|o,n|
       LOCAL nRes := _fb2zip_OnKey(o,n)
       RETURN nRes
    }
 
-   IF !Empty( hUnzip := hb_unzipOpen( cFile ) )
-      hb_unzipFileFirst( hUnzip )
-      hb_unzipFileInfo( hUnzip,,,,,,, @nSize, )
-      IF hb_unzipFileOpen( hUnzip, Nil ) == 0
-         cUnzBuff := Space( nSize )
-         nSize := hb_unzipFileRead( hUnzip, @cUnzBuff )
-         hb_unzipFileClose( hUnzip )
+   cIniPath := cPath
+   IF Empty( aParams )
+      LoadRecent()
+      IF Empty( aRecent )
+         edi_Alert( "No recent files" )
+         RETURN Nil
       ENDIF
-      hb_unzipClose( hUnzip )
+      aMenu := Array( Len( aRecent ) )
+      FOR n := 1 TO Len( aMenu )
+         aMenu[n] := hb_fnameNameExt( aRecent[n,1] )
+      NEXT
+      n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
+         FilePane():vy1+3, FilePane():vx1+20,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
+      IF n == 0
+         RETURN Nil
+      ELSE
+         cFile := aRecent[n,1]
+      ENDIF
+   ELSE
+      cFile := aParams[2]
+   ENDIF
+
+   IF hb_fnameExt( cFile ) == ".zip"
+      IF !Empty( hUnzip := hb_unzipOpen( cFile ) )
+         hb_unzipFileFirst( hUnzip )
+         hb_unzipFileInfo( hUnzip,,,,,,, @nSize, )
+         IF hb_unzipFileOpen( hUnzip, Nil ) == 0
+            cUnzBuff := Space( nSize )
+            nSize := hb_unzipFileRead( hUnzip, @cUnzBuff )
+            hb_unzipFileClose( hUnzip )
+         ENDIF
+         hb_unzipClose( hUnzip )
+      ENDIF
+   ELSE
+      cUnzBuff := Memoread( cFile )
+      nSize := Len( cUnzBuff )
    ENDIF
 
    IF Empty( nSize )
@@ -67,7 +102,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    ENDIF
 
    nLevel := 0
-   nWidth := oPane:vx2 - oPane:vx1 - 1
+   nWidth := FilePane():vx2 - FilePane():vx1 - 1
    lUtf8 := ( fb2_enc( cUnzBuff ) == "utf-8" )
    nArrLen := Int( (nPosEnd-nPosStart) / nWidth ) * Iif( lUtf8, 3, 2 )
    arr := Array( nArrLen )
@@ -114,6 +149,9 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
          RETURN Nil
       ENDIF
    ENDIF
+
+   LoadRecent()
+
    arr := ASize( arr, nRealLen )
    oNew := mnu_NewBuf( TEdit():aWindows[TEdit():nCurr] )
    oNew:cFileName := hb_fnameName( hb_fnameName( cFile ) )
@@ -125,8 +163,13 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    ENDIF
    hb_cdpSelect( oNew:cp )
    oNew:bStartEdit := bStartEdit
+   oNew:bEndEdit := bEndEdit
    oNew:bOnKey := bOnKey
-   oNew:cargo := { aContent }
+   oNew:cargo := { aContent, cFile }
+   IF ( i := Ascan( aRecent, {|a|a[1]==cFile} ) ) > 0
+      oNew:nLine := Val(aRecent[i,2])
+   ENDIF
+   AddRecent( cFile )
 
    RETURN Nil
 
@@ -376,3 +419,55 @@ STATIC FUNCTION _fb2zip_OnKey( oEdit, nKeyExt )
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION LoadRecent()
+
+   LOCAL cFile := cIniPath + "fb2zip.his", i
+
+   IF aRecent != Nil
+      RETURN Nil
+   ENDIF
+
+   IF File( cFile )
+      aRecent := hb_aTokens( Memoread( cFile ), hb_eol() )
+      FOR i := Len(aRecent) TO 1 STEP -1
+         IF Empty( aRecent[i] )
+            hb_ADel( aRecent, i, .T. )
+            LOOP
+         ENDIF
+         aRecent[i] := hb_ATokens( aRecent[i], ',' )
+      NEXT
+   ELSE
+      aRecent := {}
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION AddRecent( cFileName )
+
+   LOCAL i, arr
+
+   IF ( i := Ascan( aRecent, {|a|a[1]==cFileName} ) ) == 0
+      hb_AIns( aRecent, 1, {cFileName,"1"}, .T. )
+   ELSE
+      arr := aRecent[i]
+      ADel( aRecent, i )
+      AIns( aRecent, 1 )
+      aRecent[1] := arr
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION SaveRecent( o )
+
+   LOCAL i, s := "", cFileName := o:cargo[2]
+
+   IF ( i := Ascan( aRecent, {|a|a[1]==cFileName} ) ) > 0
+      aRecent[i,2] := Ltrim(Str(o:nLine))
+   ENDIF
+   FOR i := 1 TO Len( aRecent )
+      s += aRecent[i,1] + ',' + aRecent[i,2] + hb_eol()
+   NEXT
+   hb_MemoWrit( cIniPath + "fb2zip.his", s )
+
+   RETURN Nil
