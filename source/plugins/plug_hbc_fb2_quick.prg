@@ -2,7 +2,7 @@
 #define  K_ENTER   13
 #define  K_ESC     27
 
-FUNCTION plug_hbc_fb2( oPane )
+FUNCTION plug_hbc_fb2_quick( oPane )
 
    LOCAL oPaneTo
 
@@ -95,6 +95,7 @@ FUNCTION PLUG_HBC_FB2_QVIEW( oPane, aParams )
             cBuff := StrTran( cBuff, '«', '"' )
             cBuff := StrTran( cBuff, '»', '"' )
             cBuff := StrTran( cBuff, '—', '-' )
+            //hb_strReplace( cBuff, {'�','�','—'}, {'"','"','-'} )
             cBuff := hb_utf8ToStr( cBuff, "RU866" )
          ELSEIF cEnc == "windows-1251"
             cBuff := hb_Translate( cBuff, "RU1251", "RU866" )

@@ -10,7 +10,7 @@
 
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
 
-STATIC cUnzBuff, nPosStart, nPosEnd, nArrLen, nRealLen, arr, lUtf8, nWidth
+STATIC cUnzBuff, nPosStart, nPosEnd, nArrLen, nRealLen, arr, cEnc, lUtf8, nWidth
 STATIC nLevel, i
 STATIC aContent
 STATIC cIniPath
@@ -34,7 +34,8 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
             o:hCargo := hb_hash()
          ENDIF
          o:hCargo["help"] := "Fb2 plugin hotkeys:" + Chr(10) + ;
-            "  Alt-L  - Functions list" + Chr(10)
+            "  Alt-L  - Table of contents" + Chr(10) + ;
+            "  Alt-I  - Book info" + Chr(10)
       ENDIF
       o:bStartEdit := Nil
 
@@ -108,7 +109,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
    nLevel := 0
    nWidth := FilePane():vx2 - FilePane():vx1 - 1
-   lUtf8 := ( fb2_enc( cUnzBuff ) == "utf-8" )
+   lUtf8 := ( (cEnc := fb2_enc( cUnzBuff )) == "utf-8" )
    nArrLen := Int( (nPosEnd-nPosStart) / nWidth ) * Iif( lUtf8, 3, 2 )
    arr := Array( nArrLen )
    nRealLen := 0
@@ -170,7 +171,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    oNew:bStartEdit := bStartEdit
    oNew:bEndEdit := bEndEdit
    oNew:bOnKey := bOnKey
-   oNew:cargo := { aContent, cFile }
+   oNew:cargo := { aContent, cFile, fb2_info() }
    IF ( i := Ascan( aRecent, {|a|a[1]==cFile} ) ) > 0
       oNew:nLine := Val(aRecent[i,2])
    ENDIF
@@ -401,9 +402,68 @@ STATIC FUNCTION fb2_enc( sBuff )
 
    RETURN ""
 
+STATIC FUNCTION fb2_info()
+
+   LOCAL nPos, nPos1, nPos2, cTemp, cBuff := ""
+
+   IF ( nPos1 := At( "<title-info", cUnzBuff ) ) != 0
+      IF ( nPos2 := hb_At( "</title-info", cUnzBuff, nPos1 ) ) != 0
+         cUnzBuff := SubStr( cUnzBuff, nPos1, nPos2 - nPos1 )
+
+         // Author
+         cTemp := ""
+         nPos := 1
+         DO WHILE ( nPos1 := hb_At( "<author", cUnzBuff, nPos ) ) != 0 .AND. ( nPos2 := hb_At( "</author", cUnzBuff, nPos1 ) ) != 0
+            IF !Empty( cTemp )
+               cTemp += ", "
+            ENDIF
+            cBuff := AllTrim( SubStr( cUnzBuff, nPos1 + 8, nPos2 - nPos1 - 8 ) )
+            nPos := nPos2 + 8
+            IF ( nPos1 := At( "<first-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</first-name", cBuff, nPos1 ) ) != 0
+               cTemp += AllTrim( SubStr( cBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) ) + " "
+            ENDIF
+            IF ( nPos1 := At( "<middle-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</middle-name", cBuff, nPos1 ) ) != 0
+               cTemp += AllTrim( SubStr( cBuff, nPos1 + 13, nPos2 - nPos1 - 13 ) ) + " "
+            ENDIF
+            IF ( nPos1 := At( "<last-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</last-name", cBuff, nPos1 ) ) != 0
+               cTemp += AllTrim( SubStr( cBuff, nPos1 + 11, nPos2 - nPos1 - 11 ) ) + " "
+            ENDIF
+            cTemp := Trim( cTemp )
+         ENDDO
+         IF Empty( cTemp )
+            cBuff := ""
+         ELSE
+            cBuff := Trim( cTemp ) + Chr(10)
+         ENDIF
+
+         // Book title
+         IF ( nPos1 := At( "<book-title", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</book-title", cUnzBuff, nPos1 ) ) != 0
+            cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
+            cBuff += Trim( cTemp ) + Chr(10)
+         ENDIF
+
+         // Annotation
+         IF ( nPos1 := At( "<annotation", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</annotation", cUnzBuff, nPos1 ) ) != 0
+            cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
+            cBuff += Chr(10) + fb2_strip( Trim( cTemp ) )
+         ENDIF
+         IF lUtf8
+            cBuff := StrTran( cBuff, '«', '"' )
+            cBuff := StrTran( cBuff, '»', '"' )
+            cBuff := StrTran( cBuff, '—', '-' )
+            //cBuff := hb_strReplace( cBuff, {'�','�','—'}, {'"','"','-'} )
+            cBuff := hb_utf8ToStr( cBuff, "RU866" )
+         ELSEIF cEnc == "windows-1251"
+            cBuff := hb_Translate( cBuff, "RU1251", "RU866" )
+         ENDIF
+      ENDIF
+   ENDIF
+
+   RETURN cBuff
+
 STATIC FUNCTION _fb2zip_OnKey( oEdit, nKeyExt )
 
-   LOCAL nKey := hb_keyStd(nKeyExt), n, i, arr
+   LOCAL nKey := hb_keyStd(nKeyExt), n, i, arr, cBuff
 
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_L
@@ -419,6 +479,13 @@ STATIC FUNCTION _fb2zip_OnKey( oEdit, nKeyExt )
          IF ( i := FMenu( oEdit, arr, 2, 6,,,,, n, (Len(arr)>3) ) ) > 0
             oEdit:Goto( arr[i,3] )
          ENDIF
+         RETURN -1
+      ELSEIF nKey == K_ALT_I
+         cBuff := SaveScreen( oEdit:y1+2, oEdit:x1+8, oEdit:y2-2, oEdit:x2-8 )
+
+         QFileView( "Info", oEdit:cargo[3], oEdit:x1+8, oEdit:y1+2, oEdit:x2-8, oEdit:y2-2,, "RU866", .T. )
+         Inkey( 0 )
+         RestScreen( oEdit:y1 + 2, oEdit:x1+8, oEdit:y2-2, oEdit:x2-8, cBuff )
          RETURN -1
       ENDIF
    ENDIF

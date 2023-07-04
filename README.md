@@ -20,7 +20,7 @@ A fullscreen console multiplatform text editor with built-in file manager
   + hbedit_en.help      - Hbedit help file (English).
   + hbc.ini             - HbCommander (built-in file manager) ini file.
   + hbedit.ini          - Hbedit ini file.
-  
+
 
   + source/
     + hbfuncsfull.ch    - header file.
@@ -41,7 +41,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + hbcommander.prg
     + hbcvf.prg
     + fview.prg         - built-in file manager source files
-    
+
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
   + source/trie/*       - a subsystem, implementing prefix tree subsystem
@@ -66,6 +66,13 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_go_init.prg      - a start plugin for .go files
     + plug_go_run.prg       - Golang run code
     + plug_go_spis.prg      - Golang functions list
+    + plug_hbc_ext_fb2.prg    - file commander plugin, simple fb2 reader (.fb2)
+    + plug_hbc_ext_fb2zip.prg - file commander plugin, simple fb2 reader (.fb2.zip)
+    + plug_hbc_fb2_quick.prg  - file commander plugin, fb2 quick view
+    + plug_hbc_files_compare.prg   - file commander plugin, compares files
+    + plug_hbc_folders_compare.prg - file commander plugin, compares folders
+    + plug_hbc_ftp.prg      - file commander plugin for ftp access
+    + plug_hbc_latin.prg    - file commander plugin, converts file names
     + plug_hbc_menu.prg     - a plugin, which complements file commander context menu
     + plug_hbp_init.prg     - a start plugin for .hbp files
     + plug_java_init.prg    - a start plugin for .java files
@@ -96,7 +103,7 @@ A fullscreen console multiplatform text editor with built-in file manager
   Also, compiled and linked with hbedit.prg, it is a standalone editor.
 
 ### Hbedit command line parameters
-  
+
   hbedit [-f iniFileName] [-gN] [-xy=xPos,yPos] [-size=nCols,nRows] [-ro] [files...]
 
   - -f iniFileName      - a name of ini file to use instead of hbedit.ini
