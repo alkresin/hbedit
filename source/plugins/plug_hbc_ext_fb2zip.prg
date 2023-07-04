@@ -66,7 +66,11 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
          ELSE
             hb_ADel( aRecent, n, .T. )
             hb_ADel( aMenu, n, .T. )
+            n --
          ENDIF
+      NEXT
+      FOR n := 1 TO Len( aMenu )
+         edi_writelog( valtype( amenu[n] ) )
       NEXT
       IF Len( aMenu ) > 0 .AND. ( n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
          FilePane():vy1+3, FilePane():vx1+20,,, ;

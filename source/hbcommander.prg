@@ -2932,13 +2932,17 @@ STATIC FUNCTION hbc_Unzip()
 
 STATIC FUNCTION GetFullExt( cName )
 
-   LOCAL cExt := "", cTemp
+   LOCAL cExt, cTemp
 
+   cExt := hb_fnameExt( cName )
+   cName := hb_fnameName( cName )
+   cExt := hb_fnameExt( cName ) + cExt
+/*
    DO WHILE !Empty( cTemp := hb_fnameExt( cName ) )
       cExt := cTemp + cExt
       cName := hb_fnameName( cName )
    ENDDO
-
+*/
    RETURN cExt
 
 FUNCTION vfWrit_Net( cFileName, cText )
