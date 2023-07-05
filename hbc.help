@@ -42,6 +42,7 @@ HbCommander - built-in file manager
    Ctrl-W     - View stdout window
    Ctrl-Q     - Quick View
    Ctrl-Tab   - Switch between buffers
+   Space      - Run plugin for a current file, if defined
 
    m          - Set bookmark on current directory, then press a,s,d
                 to select a bookmark
