@@ -132,6 +132,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF !( nKey == K_LBUTTONDOWN .AND. (nRow := MRow()) > 0 .AND. (nCol := MCol()) < oPaneCurr:x2 ;
          .AND. nCol > oPaneCurr:x1 )
          oPaneTo:nPanelMod := oPaneTo:nPanelMod_bak
+         IF !Empty( oPaneTo:cQVpref )
+            PlugFunc( oPaneCurr, oPaneTo:cQVpref, "QEND" )
+            oPaneTo:cQVpref := ""
+         ENDIF
          oPaneTo:RedrawAll()
          IF nKey == K_CTRL_Q
             RETURN -1
@@ -1060,6 +1064,7 @@ CLASS FilePane
    DATA aSelected     INIT {}
 
    DATA cQVpref
+   DATA bPaint
 
    DATA bOnKey, bDraw, bDrawCell, bDrawHead, bRefresh
 
@@ -2660,7 +2665,7 @@ STATIC FUNCTION hbc_Search( lSele )
       {13,40,1,Empty(lSele),1}, ;
       {12,58,1,!Empty(lSele),1}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
-      {15,40,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
+      {15,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect
    LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath
 
@@ -3722,6 +3727,19 @@ FUNCTION hbc_Wndclose( arr, cText )
 
 FUNCTION Ascan2( arr, xItem )
    RETURN Ascan( arr, {|a|a[1]==xItem} )
+
+#ifdef GTHWG
+FUNCTION gthwg_PaintCB( hDC )
+
+   IF FilePane():aPanes[1]:bPane != Nil
+      Eval( FilePane():aPanes[1]:bPane, FilePane():aPanes[1], hDC )
+   ENDIF
+   IF FilePane():aPanes[2]:bPane != Nil
+      Eval( FilePane():aPanes[2]:bPane, FilePane():aPanes[2], hDC )
+   ENDIF
+
+   RETURN Nil
+#endif
 
 /*
 #define BUFFER_SIZE  1024

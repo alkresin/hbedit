@@ -810,7 +810,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
          if( !bSuccess )
             break;
       }
-      else if( iOutExist == 2 )
+      else if( iOutExist == 2 && dwRead > 0 )
       {
          read_all += (int) dwRead;
          if( iOutFirst )
@@ -830,7 +830,10 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    if( iOutExist == 1 )
       CloseHandle( hOut );
    else if( iOutExist == 2 )
-      hb_storclen_buffer( pOut, read_all, 3 );
+      if( read_all > 0 )
+         hb_storclen_buffer( pOut, read_all, 3 );
+      else
+         hb_storc( "", 3 );
 
    CloseHandle( g_hChildStd_OUT_Rd );
 

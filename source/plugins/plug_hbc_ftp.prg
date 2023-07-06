@@ -45,6 +45,8 @@ FUNCTION plug_hbc_ftp( oPane, cPlugPath, aParams )
       ELSE
          RETURN oPane:ChangeDir( "ftp:" + aMenu[i] )
       ENDIF
+   ELSEIF Empty( aParams[1] )
+      RETURN .F.
    ENDIF
 
    cAddr := aParams[1]

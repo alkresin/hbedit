@@ -106,9 +106,9 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    IF ( nPosStart := hb_At( "<body", cUnzBuff, 1, nSize ) ) == 0
       RETURN Nil
    ENDIF
-   nPosStart += 6
-   IF ( nPosEnd := hb_At( "</body", cUnzBuff, nPosStart, nSize ) ) == 0
-      RETURN Nil
+   //nPosStart += 6
+   IF ( nPosEnd := hb_At( "<binary", cUnzBuff, nPosStart, nSize ) ) == 0
+      nPosEnd := nSize
    ENDIF
 
    nLevel := 0
@@ -120,11 +120,14 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    aContent := {}
 
    nSec := Seconds()
-   fb2_gettitle()
+   //fb2_gettitle()
    lErr := .F.
    DO WHILE ( nPosStart := hb_At( "<", cUnzBuff, nPosStart, nPosEnd ) ) > 0
       n := hb_bpeek( cUnzBuff, ++nPosStart )
       SWITCH n
+      CASE 112     // p
+         fb2_getp()
+         EXIT
       CASE 115     // s
          IF Substr( cUnzBuff, nPosStart, 7 ) == "section"
             fb2_getsection()
@@ -136,17 +139,23 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
          ENDIF
          EXIT
       CASE 99      // c
-         IF Substr( cUnzBuff, nPosStart, 8 ) == "cite"
+         IF Substr( cUnzBuff, nPosStart, 4 ) == "cite"
             fb2_getepi( "</cite>" )
          ENDIF
-         EXIT
-      CASE 112     // p
-         fb2_getp()
          EXIT
       CASE 47      // /
          IF hb_bpeek( cUnzBuff, ++nPosStart ) == 115 .AND. ;
             Substr( cUnzBuff, nPosStart, 7 ) == "section"
             nLevel --
+         ENDIF
+         EXIT
+      CASE 98      // b
+         IF Substr( cUnzBuff, nPosStart, 4 ) == "body"
+            nLevel := 0
+            IF nRealLen > 0
+               fb2_add( "" )
+            ENDIF
+            fb2_gettitle()
          ENDIF
       END
 
@@ -183,7 +192,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
    RETURN Nil
 
-STATIC FUNCTION fb2_gettitle()
+STATIC FUNCTION fb2_gettitle( cId )
 
    LOCAL cTemp, nPos, nLine
 
@@ -194,9 +203,15 @@ STATIC FUNCTION fb2_gettitle()
       nPos := hb_At( "</title", cUnzBuff, nPosStart, nPosEnd )
       cTemp := fb2_strip( Substr( cUnzBuff, nPosStart+6, nPos-nPosStart-6 ) )
       nPosStart := nPos + 1
-      fb2_add_stripped( cTemp )
-      Aadd( aContent, { Space(nLevel*2)+(arr[nLine] :=LTrim(arr[nLine])), Nil, nLine } )
-      arr[nLine] := Replicate( ':', nLevel*2 ) + " " + arr[nLine]
+      IF Empty( cId )
+         fb2_add_stripped( cTemp )
+         Aadd( aContent, { Space(nLevel*2)+(arr[nLine] :=LTrim(arr[nLine])), Nil, nLine } )
+         cId := Replicate( ':', nLevel*2 )
+      ELSE
+         fb2_add_stripped( StrTran( cTemp, Chr(10), "" ) )
+         cId := "{" + cId + "}"
+      ENDIF
+      arr[nLine] := cId + " " + arr[nLine]
    ENDIF
 
    Return Nil
@@ -273,17 +288,18 @@ STATIC FUNCTION fb2_getepi( cEnd )
 
 STATIC FUNCTION fb2_getsection()
 
-   LOCAL n, nPos
+   LOCAL n, nPos, nPos1, nPos2, cId
 
    fb2_add( "" )
    nLevel ++
-   fb2_gettitle()
+   cId := fb2_getAttr( cUnzBuff, nPosStart, "id" )
+   fb2_gettitle( cId )
 
    Return .T.
 
 STATIC FUNCTION fb2_strip( cBuff )
 
-   LOCAL nPos1, nPos2
+   LOCAL nPos1, nPos2, n, cId
 
    IF Chr(10) $ cBuff .OR. Chr(13) $ cBuff
       cBuff := hb_strReplace( cBuff, {Chr(10),Chr(13)} )
@@ -296,55 +312,56 @@ STATIC FUNCTION fb2_strip( cBuff )
    ENDIF
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0
-         cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
+         IF hb_bPeek( cBuff, nPos1+1 ) == 97 .AND. hb_bPeek( cBuff, nPos1+2 ) == 32   // a
+            IF !Empty( cId := fb2_getAttr( cBuff, nPos1, "href" ) )
+               IF ( n := hb_At( "</a>",cBuff, nPos1 ) ) > 0
+                  nPos2 := n + 3
+               ENDIF
+               cBuff := Left( cBuff, nPos1-1 ) + "[" + cId + "]" + Substr( cBuff, nPos2+1 )
+            ELSE
+               cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
+            ENDIF
+         ELSE
+            cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
+         ENDIF
       ELSE
          EXIT
       ENDIF
    ENDDO
 
    RETURN cBuff
-/*
-STATIC FUNCTION fb2_add( sBuff, sLeft )
 
-   LOCAL i, nLen := cp_Len( lUtf8, sBuff ), nCurrPos := 0
+STATIC FUNCTION fb2_getAttr( cBuff, nPosS, cName )
 
-   DO WHILE nLen - nCurrPos > nWidth
-      IF ++nRealLen == nArrLen
-         nArrLen += 100
-         arr := ASize( arr, nArrLen )
-      ENDIF
-      IF cp_Peek( lUtf8, sBuff, nCurrPos+nWidth+1 ) == 32
-         arr[nRealLen] := cp_Substr( lUtf8, sBuff, nCurrPos+1, nWidth )
-         IF !Empty( sLeft )
-            arr[nRealLen] := sLeft + arr[nRealLen]
+   LOCAL n, nPos, nPos1, nPos2, cAttr
+
+   nPos := hb_At( ">", cBuff, nPosS )
+   IF ( nPos1 := hb_At( cName, cBuff, nPosS, nPos ) ) > 0
+      //edi_Writelog( Substr( cBuff,nPos1,nPos-nPos1 ) )
+      nPos1 += Len( cName )
+      DO WHILE nPos1 < nPos .AND. ( ( n := hb_bPeek( cBuff, nPos1 ) ) == 32 .OR. n == 10 .OR. n == 13 )
+         nPos1 ++
+      ENDDO
+      IF n == 61  // =
+         nPos1 ++
+         DO WHILE nPos1 < nPos .AND. ( ( n := hb_bPeek( cBuff, nPos1 ) ) == 32 .OR. n == 10 .OR. n == 13 )
+            nPos1 ++
+         ENDDO
+         IF n == 34  // "
+            nPos1 ++
+            nPos2 := nPos1
+            //edi_Writelog( Substr( cBuff,nPos2,nPos-nPos2 ) )
+            DO WHILE nPos2 < nPos .AND. !( ( n := hb_bPeek( cBuff, nPos2 ) ) == 34 )
+               nPos2 ++
+            ENDDO
+            IF n == 34
+               cAttr := Substr( cBuff, nPos1, nPos2-nPos1 )
+            ENDIF
          ENDIF
-         nCurrPos += nWidth
-      ELSE
-         i := nCurrPos + nWidth + 1
-         DO WHILE --i > nCurrPos+1 .AND. !( cp_Substr( lUtf8, sBuff,i,1 ) ) $ " .,!?-"; ENDDO
-         IF i == nCurrPos+1
-            i := nCurrPos+nWidth
-         ENDIF
-         arr[nRealLen] := cp_Substr( lUtf8, sBuff, nCurrPos+1, i-nCurrPos )
-         nCurrPos := i
-         IF !Empty( sLeft )
-            arr[nRealLen] := sLeft + arr[nRealLen]
-         ENDIF
-      ENDIF
-   ENDDO
-   IF nCurrPos < nLen .OR. nCurrPos == 0
-      IF ++nRealLen == nArrLen
-         nArrLen += 100
-         arr := ASize( arr, nArrLen )
-      ENDIF
-      arr[nRealLen] := cp_Substr( lUtf8, sBuff, nCurrPos+1 )
-      IF !Empty( sLeft )
-         arr[nRealLen] := sLeft + arr[nRealLen]
       ENDIF
    ENDIF
 
-   RETURN Nil
-*/
+   RETURN cAttr
 
 STATIC FUNCTION fb2_add( sBuff, sLeft )
 

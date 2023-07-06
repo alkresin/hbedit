@@ -110,6 +110,12 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
          oPane2 := Iif( Filepane():aPanes[1] == oPane, Filepane():aPanes[2], Filepane():aPanes[1] )
          IF oPane2:nPanelMod == 1 .AND. ( n := Ascan2( oPane2:aDir, aDir[1] ) ) > 0
             oPane2:nCurrent := n
+            oPane2:nShift := 0
+            IF n > oPane2:nCells
+               oPane2:nCurrent -= (n - oPane2:nCells)
+               oPane2:nShift += (n - oPane2:nCells)
+            ENDIF
+            /*
             IF n > oPane2:nShift + oPane2:nCells
                oPane2:nShift := n - 1
                oPane2:nCurrent := 1
@@ -123,7 +129,10 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
                ENDIF
             ELSE
                oPane2:nCurrent := n
+               oPane2:nShift := 0
             ENDIF
+            */
+            oPane2:Draw()
          ENDIF
       ENDIF
       RETURN 0

@@ -26,7 +26,10 @@ FUNCTION PLUG_HBC_FB2_QVIEW( oPane, aParams )
    hb_cdpSelect( cp )
 
 
-   IF !Empty( hUnzip := hb_unzipOpen( cFileName ) )
+   IF hb_fnameExt( cFileName ) == ".fb2"
+      cUnzBuff := Memoread( cFileName )
+      nLen := Len( cUnzBuff )
+   ELSEIF !Empty( hUnzip := hb_unzipOpen( cFileName ) )
       hb_unzipFileFirst( hUnzip )
       //hb_unzipFileInfo( hUnzip,,,,,,, @nSize, )
       IF hb_unzipFileOpen( hUnzip, Nil ) == 0

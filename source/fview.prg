@@ -141,7 +141,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
 
 FUNCTION QFileView( cFileName, cBuff, x1, y1, x2, y2, cColor, cPage, lWords )
 
-   LOCAL handle, nSize := (x2-x1-1) * (y2-y1-1) * 2, s
+   LOCAL handle, nSize := (x2-x1-1) * (y2-y1-1) * 2, s, cp
    LOCAL nRow := y1+1, nCol := x1+1, nPos := 1, c, nPos1, c0 := Chr(0), c10 := Chr(10)
    LOCAL cSeps := " .,;!?-"
 
