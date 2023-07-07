@@ -3205,6 +3205,9 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
    cDop += _I(" without HbCommander")
   #endif
 #endif
+#ifdef GTHWG
+   cDop += " (gthwgui)"
+#endif
    IF Empty( cFullPath )
       cFullPath := edi_FindPath( "hbedit.help" )
    ENDIF

@@ -691,7 +691,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ENDIF
 
    IF oPaneTo:nPanelMod == 3
+      cTemp := oPaneTo:cQVpref
       oPaneTo:cQVpref := ""
+      PlugFunc( oPaneCurr, cTemp, "QEND" )
       aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
       cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
       IF ( nPos := Ascan( oPaneCurr:aQView, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) > 0
@@ -3731,11 +3733,11 @@ FUNCTION Ascan2( arr, xItem )
 #ifdef GTHWG
 FUNCTION gthwg_PaintCB( hDC )
 
-   IF FilePane():aPanes[1]:bPane != Nil
-      Eval( FilePane():aPanes[1]:bPane, FilePane():aPanes[1], hDC )
+   IF FilePane():aPanes[1]:bPaint != Nil
+      Eval( FilePane():aPanes[1]:bPaint, FilePane():aPanes[1], hDC )
    ENDIF
-   IF FilePane():aPanes[2]:bPane != Nil
-      Eval( FilePane():aPanes[2]:bPane, FilePane():aPanes[2], hDC )
+   IF FilePane():aPanes[2]:bPaint != Nil
+      Eval( FilePane():aPanes[2]:bPaint, FilePane():aPanes[2], hDC )
    ENDIF
 
    RETURN Nil
