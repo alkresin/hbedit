@@ -3733,13 +3733,14 @@ FUNCTION Ascan2( arr, xItem )
 #ifdef GTHWG
 FUNCTION gthwg_PaintCB( hDC )
 
-   IF FilePane():aPanes[1]:bPaint != Nil
-      Eval( FilePane():aPanes[1]:bPaint, FilePane():aPanes[1], hDC )
+   IF !Empty( FilePane():aPanes )
+      IF FilePane():aPanes[1]:bPaint != Nil
+         Eval( FilePane():aPanes[1]:bPaint, FilePane():aPanes[1], hDC )
+      ENDIF
+      IF FilePane():aPanes[2]:bPaint != Nil
+         Eval( FilePane():aPanes[2]:bPaint, FilePane():aPanes[2], hDC )
+      ENDIF
    ENDIF
-   IF FilePane():aPanes[2]:bPaint != Nil
-      Eval( FilePane():aPanes[2]:bPaint, FilePane():aPanes[2], hDC )
-   ENDIF
-
    RETURN Nil
 #endif
 
