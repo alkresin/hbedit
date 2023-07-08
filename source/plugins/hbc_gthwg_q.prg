@@ -18,6 +18,7 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
          hwg_Deleteobject( hImage )
          hImage := Nil
       ENDIF
+      gthwg_paint_SetCallback()
       oPaneTo:bPaint := Nil
       RETURN Nil
    ENDIF
@@ -42,6 +43,7 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
    hb_cdpSelect( cp )
 
    oPaneTo:bPaint := {|o,h|gthwg_qView(o,h)}
+   gthwg_paint_SetCallback( "GTHWG_PAINTCB" )
    hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
 
    RETURN Nil

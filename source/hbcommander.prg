@@ -22,6 +22,9 @@ REQUEST HB_CODEPAGE_FRISO
 REQUEST HB_CODEPAGE_UTF8
 
 REQUEST NETIO_PROCEXISTS, NETIO_PROCEXEC, NETIO_FUNCEXEC
+#ifdef GTHWG
+REQUEST GTHWG_PAINT_SETCALLBACK
+#endif
 
 STATIC oHbc
 STATIC lGuiVer := .F.
@@ -3741,7 +3744,7 @@ FUNCTION gthwg_PaintCB( hDC )
          Eval( FilePane():aPanes[2]:bPaint, FilePane():aPanes[2], hDC )
       ENDIF
    ENDIF
-   RETURN Nil
+   RETURN 1
 #endif
 
 /*
