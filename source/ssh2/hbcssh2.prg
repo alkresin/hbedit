@@ -21,7 +21,7 @@ FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass, lSave )
       ENDIF
    ENDIF
 
-   pSess := ssh2_Connect( cAddr, nPort )
+   pSess := ssh2_Connect( cAddr, nPort, .T. )
    IF ssh2_LastRes( pSess ) != 0
       _Writelog( "1: " + cAddr + " " + Str(nPort) + " / " + Str(ssh2_LastRes(pSess)) )
       ssh2_Close( pSess )

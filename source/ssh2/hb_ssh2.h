@@ -54,10 +54,13 @@
 typedef struct {
 
    int sock;
+   struct timeval timeout;
    LIBSSH2_SESSION *session;
    LIBSSH2_CHANNEL *channel;
    LIBSSH2_SFTP *sftp_session;
    int iNonBlocking;
+   int iInfo;
+   long int lInfo;
    int iRes, iErr;
 
 } HB_SSH2_SESSION;
@@ -67,7 +70,7 @@ typedef struct {
    LIBSSH2_SFTP_HANDLE *sftp_handle;
 } HB_SSH2_SFTP_HANDLE;
 
-int hb_ssh2_WaitSocket( int, LIBSSH2_SESSION * );
+int hb_ssh2_WaitSocket( HB_SSH2_SESSION * );
 HB_SSH2_SESSION * hb_ssh2_Connect( const char *, int, int );
 void hb_ssh2_Close( HB_SSH2_SESSION * );
 void hb_ssh2_Exit( void );
@@ -76,6 +79,9 @@ int hb_ssh2_ChannelOpen( HB_SSH2_SESSION * );
 void hb_ssh2_ChannelClose( HB_SSH2_SESSION * );
 int hb_ssh2_Exec( HB_SSH2_SESSION *, const char * );
 char * hb_ssh2_ChannelRead( HB_SSH2_SESSION * );
+int hb_ssh2_ChannelWrite( HB_SSH2_SESSION *, char *, int );
+int hb_ssh2_ChannelPty( HB_SSH2_SESSION *, const char * );
+int hb_ssh2_ChannelShell( HB_SSH2_SESSION * );
 int hb_ssh2_SftpInit( HB_SSH2_SESSION * );
 void hb_ssh2_SftpShutDown( HB_SSH2_SESSION * );
 HB_SSH2_SFTP_HANDLE * hb_ssh2_SftpOpenDir( HB_SSH2_SESSION *, const char * );

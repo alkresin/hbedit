@@ -1033,7 +1033,6 @@ CLASS FilePane
    CLASS VAR cConsOut SHARED   INIT ""
    CLASS VAR nConsMax SHARED   INIT 40000
    CLASS VAR xContextMenu SHARED
-   //CLASS VAR nConsVar SHARED INIT 1
    CLASS VAR lConsMode SHARED INIT .F.
    CLASS VAR nLastKey SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
@@ -3138,7 +3137,7 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 
    IF Left( cmd,2 ) == "./" .AND. !( ' ' $ cmd ) .AND. ;
       !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir, aExtExe )) == cmd
-      RETURN cTmp
+      RETURN "./" + cTmp
    ELSE
       IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
          IF ' ' $ cmd .AND. !(Right(cmd,1)==' ') .AND. !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir )) == cmd
@@ -3339,16 +3338,7 @@ FUNCTION hbc_Console( xCommand )
             IF !Empty( oPaneCurr:pSess )
                ssh2_Channel_Open( oPaneCurr:pSess )
                IF ssh2_LastRes( oPaneCurr:pSess ) == 0
-                  ? "> " + cCommand
-                  ssh2_Exec( oPaneCurr:pSess, cCommand )
-                  IF ssh2_LastRes( oPaneCurr:pSess ) == 0
-                     IF !Empty( xRes := ssh2_Channel_Read( oPaneCurr:pSess ) )
-                        ? xRes
-                        Add2Consout( xRes )
-                     ENDIF
-                  ELSE
-                     ? "Exec failed"
-                  ENDIF
+                  Cons_ssh2_My( oPaneCurr:pSess, cCommand )
                ELSE
                   ? "OpenChannel failed"
                ENDIF
@@ -3356,11 +3346,7 @@ FUNCTION hbc_Console( xCommand )
             ENDIF
 #endif
          ELSE
-            //IF FilePane():nConsVar == 1
-               Cons_My( cCommand )
-            //ELSE
-            //   Cons_Hrb( cCommand )
-            //ENDIF
+            Cons_My( cCommand )
          ENDIF
          cCommand := ""
       ELSEIF Lastkey() == K_ESC
@@ -3552,7 +3538,7 @@ STATIC FUNCTION Cons_My( cCommand )
       cedi_EndConsoleApp( pApp )
       RETURN Nil
    ENDIF
-   FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
+   Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
    DevPos( Maxrow(), nColInit := 0 )
    ?
    nSecInit := Seconds()
@@ -3589,13 +3575,98 @@ STATIC FUNCTION Cons_My( cCommand )
          EXIT
       ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
          IF !cedi_WriteToConsoleApp( pApp, cmd+hb_eol() )
+         //IF !cedi_WriteToConsoleApp( pApp, hb_eol() )
             ? "Pipe write error"
          ENDIF
       ELSE
          cmd := ProcessKey( nColInit, cmd, nKeyExt )
+         //cedi_WriteToConsoleApp( pApp, Chr(nKey) )
       ENDIF
    ENDDO
    cedi_EndConsoleApp( pApp )
+
+   RETURN Nil
+
+#ifdef _USE_SSH2
+STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
+
+   LOCAL xRes, nKeyExt, nKey
+
+   ssh2_Channel_Pty( pSess, "xterm" )
+   IF cCommand == "shell"
+      ssh2_Channel_Shell( pSess )
+   ELSE
+      ssh2_Exec( pSess, cCommand )
+   ENDIF
+   IF ssh2_LastRes( pSess ) != 0
+      ? "Exec failed"
+      RETURN Nil
+   ENDIF
+
+   ? "> " + cCommand
+   ?
+   Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
+   DO WHILE ( xRes := ssh2_Channel_ReadRaw( pSess ) ) != Nil
+      IF !Empty( xRes )
+         IF !Empty( xRes := removeEscapeCodes( xRes ) )
+            ?? xRes
+            Add2Consout( xRes )
+         ENDIF
+      ENDIF
+      nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+      nKey := hb_keyStd( nKeyExt )
+      IF nKeyExt == 0
+         LOOP
+      ELSEIF nKey == K_ESC
+         EXIT
+      ELSEIF nKey == K_ENTER
+         ssh2_Channel_Write( pSess, Chr(10) )
+      ELSEIF nKey >= 32 .AND. nKey <= 250
+         ssh2_Channel_Write( pSess, Chr(nKey) )
+      ENDIF
+   ENDDO
+   /*
+   IF !Empty( xRes := ssh2_Channel_Read( pSess ) )
+      ? xRes
+      Add2Consout( xRes )
+   ENDIF
+   */
+
+   RETURN Nil
+#endif
+
+STATIC FUNCTION removeEscapeCodes( cText, lProcess )
+
+   LOCAL nPos, nPos2 := 1, n, nLen
+   STATIC cEsc := e"\x1b"
+
+   IF !( cEsc $ cText )
+      RETURN cText
+   ENDIF
+   IF lProcess == Nil; lProcess := .F.; ENDIF
+
+   //edi_Writelog( cText )
+   DO WHILE ( nPos := hb_At( cEsc, cText, nPos2 ) ) > 0
+      nLen := Len( cText )
+      nPos2 := nPos
+      DO WHILE .T.
+         DO WHILE ++nPos2 <= nLen .AND. ;
+            ( n := hb_bPeek( cText, nPos2 ) ) < 65 .OR. ( n > 90 .AND. n < 97 ) .OR. n > 122; ENDDO
+         IF lProcess
+            processEscapeCode( Substr( cText, nPos+1, nPos2-nPos-1 ) )
+         ENDIF
+         IF ++nPos2 <= nLen .OR. hb_bPeek( cText, nPos2 ) != 27
+            EXIT
+         ENDIF
+      ENDDO
+      cText := Left( cText, nPos - 1 ) + Substr( cText, nPos2 )
+      nPos2 := nPos
+   ENDDO
+
+   //edi_Writelog( cText )
+   RETURN cText
+
+STATIC FUNCTION processEscapeCode( cCode )
 
    RETURN Nil
 
