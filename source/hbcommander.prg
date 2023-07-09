@@ -3543,7 +3543,8 @@ STATIC FUNCTION Cons_My( cCommand )
    ?
    nSecInit := Seconds()
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
-      IF !Empty( xRes )
+      //IF !Empty( xRes )
+      IF !Empty( xRes := removeEscapeCodes( xRes ) )
          IF Chr(9) $ xRes
             xRes := StrTran( xRes, Chr(9), Space(8) )
          ENDIF
