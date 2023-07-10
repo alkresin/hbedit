@@ -3156,8 +3156,14 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
    LOCAL aMenu := { {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
       {_I("Set autocompletion") + " "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, ;
       {_I("Close"),,,"Ctrl-O,Esc"} }
-   LOCAL n, nChoic
+   LOCAL n, nChoic, lShell := .F.
 
+#ifdef _USE_SSH2
+   IF oPaneCurr:cIOpref == "sftp:"
+      aMenu := hb_AIns( aMenu, Len(aMenu)-1, {_I("Shell"),,}, .T. )
+      lShell := .T.
+   ENDIF
+#endif
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
       oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
@@ -3173,6 +3179,11 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
       KEYBOARD Chr(K_CTRL_W)
    ELSEIF nChoic == 3
       FilePane():lConsAuto := !FilePane():lConsAuto
+#ifdef _USE_SSH2
+   ELSEIF lShell .AND. nChoic == 4
+      KEYBOARD Chr(K_ENTER)
+      RETURN "shell"
+#endif
    ELSEIF nChoic == Len( aMenu )
       FilePane():nLastKey := 0
       FilePane():cConsCmd := cmd
@@ -3610,6 +3621,7 @@ STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
    DO WHILE ( xRes := ssh2_Channel_ReadRaw( pSess ) ) != Nil
       IF !Empty( xRes )
          IF !Empty( xRes := removeEscapeCodes( xRes ) )
+            SetColor( "W/N" )
             ?? xRes
             Add2Consout( xRes )
          ENDIF
