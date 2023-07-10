@@ -3602,7 +3602,7 @@ STATIC FUNCTION Cons_My( cCommand )
 #ifdef _USE_SSH2
 STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
 
-   LOCAL xRes, nKeyExt, nKey
+   LOCAL xRes, nKeyExt, nKey, l10 := .F.
 
    ssh2_Channel_Pty( pSess, "xterm" )
    IF cCommand == "shell"
@@ -3622,6 +3622,12 @@ STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
       IF !Empty( xRes )
          IF !Empty( xRes := removeEscapeCodes( xRes ) )
             SetColor( "W/N" )
+            IF l10
+               IF Asc( xRes ) == 10
+                  xRes := Substr( xRes, 2 )
+               ENDIF
+               l10 := .F.
+            ENDIF
             ?? xRes
             Add2Consout( xRes )
          ENDIF
@@ -3634,7 +3640,9 @@ STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
          EXIT
       ELSEIF nKey == K_ENTER
          ssh2_Channel_Write( pSess, Chr(10) )
-      ELSEIF nKey >= 32 .AND. nKey <= 250
+         l10 := .T.
+         ?
+      ELSEIF ( nKey >= 32 .AND. nKey <= 250 ) .OR. nKey == K_BS
          ssh2_Channel_Write( pSess, Chr(nKey) )
       ENDIF
    ENDDO
