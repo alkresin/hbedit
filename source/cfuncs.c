@@ -890,6 +890,9 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
 {
    STARTUPINFO siStartInfo;
    BOOL bSuccess;
+#ifdef UNICODE
+   TCHAR wc1[256];
+#endif
 
    ZeroMemory( &(pHandles->piProcInfo), sizeof( PROCESS_INFORMATION ) );
 
@@ -901,6 +904,15 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    //siStartInfo.wShowWindow = SW_HIDE;
    siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 
+#ifdef UNICODE
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
+         TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartInfo, &(pHandles->piProcInfo) );
+#else
+   bSuccess = CreateProcess( NULL, ( LPTSTR ) hb_parc( 1 ), NULL, NULL,
+         TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartInfo, &(pHandles->piProcInfo) );
+#endif
+/*
    bSuccess = CreateProcess( NULL,
          ( LPTSTR ) pName,      // command line
          NULL,                  // process security attributes
@@ -911,7 +923,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
          NULL,                  // use parent's current directory
          &siStartInfo,          // STARTUPINFO pointer
          &(pHandles->piProcInfo) );         // receives PROCESS_INFORMATION
-
+*/
    if( !bSuccess )
    {
       return 0;

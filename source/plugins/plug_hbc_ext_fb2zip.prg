@@ -260,7 +260,9 @@ STATIC FUNCTION fb2_getp()
       IF ( n := hb_At( "</poem", cUnzBuff, nPosStart, nPosEnd ) ) == 0
          RETURN .F.
       ENDIF
-      fb2_add( "" )
+      IF hb_At( "<stan", cUnzBuff, nPosStart, n ) == 0
+         fb2_add( "" )
+      ENDIF
       fb2_add_stripped( fb2_strip( Substr( cUnzBuff, nPosStart, n-nPosStart ) ) )
       lPoem := .T.
    ENDIF
@@ -308,7 +310,7 @@ STATIC FUNCTION fb2_strip( cBuff )
       cBuff := strTran( cBuff, "&#160;", Chr(160) )
    ENDIF
    IF "</p>" $ cBuff .OR. "</v>" $ cBuff
-      cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<v>"}, {Chr(10),Chr(10),Chr(10),"    "} )
+      cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<stanza>","<v>"}, {Chr(10),Chr(10),Chr(10),Chr(10),"    "} )
    ENDIF
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0

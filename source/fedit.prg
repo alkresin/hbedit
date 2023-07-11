@@ -3190,8 +3190,11 @@ STATIC FUNCTION mnu_Main( o )
 FUNCTION mnu_Help( oEdit, cFullPath, cMet )
 
    LOCAL oHelp, nCurr := TEdit():nCurr, i
-   LOCAL cDop := "", cHelp, cPlugHelp
+   LOCAL cDop := "", cHelp, cPlugHelp, cName := "$Help"
 
+   IF Ascan( TEdit():aWindows, {|o|o:cFileName == cName} ) > 0
+      RETURN Nil
+   ENDIF
 #ifdef _USE_SSH2
    cDop += _I(" (with libssh2 support)")
 #endif
@@ -3218,7 +3221,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
          "Copyright (C) 2019-2023  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
-      oHelp := TEdit():New( cHelp, "$Help", ;
+      oHelp := TEdit():New( cHelp, cName, ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
       oHelp:lReadOnly := .T.
