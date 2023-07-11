@@ -3671,8 +3671,20 @@ STATIC FUNCTION removeEscapeCodes( cText, lProcess )
       nLen := Len( cText )
       nPos2 := nPos
       DO WHILE .T.
-         DO WHILE ++nPos2 <= nLen .AND. ;
-            ( n := hb_bPeek( cText, nPos2 ) ) < 65 .OR. ( n > 90 .AND. n < 97 ) .OR. n > 122; ENDDO
+         IF hb_bPeek( cText, nPos2+1 ) == 93  // ]
+            DO WHILE ++nPos2 <= nLen .AND. ( n := hb_bPeek( cText, nPos2 ) ) != 7 .AND. ;
+               !(n == 83.AND.hb_bPeek(cText,nPos2+1) == 84); ENDDO
+            IF nPos2 <= nLen
+               //edi_Writelog( Substr( cText, nPos2 ) )
+               IF n == 83
+                  nPos2 ++
+               ENDIF
+            ENDIF
+            //edi_Writelog( Substr( cText, nPos2 ) )
+         ELSE
+            DO WHILE ++nPos2 <= nLen .AND. ;
+               ( n := hb_bPeek( cText, nPos2 ) ) < 65 .OR. ( n > 90 .AND. n < 97 ) .OR. n > 122; ENDDO
+         ENDIF
          IF lProcess
             processEscapeCode( Substr( cText, nPos+1, nPos2-nPos-1 ) )
          ENDIF

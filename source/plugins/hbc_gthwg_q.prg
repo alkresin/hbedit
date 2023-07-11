@@ -3,9 +3,14 @@
 
 #define HB_GTI_SCREENWIDTH      1
 #define HB_GTI_SCREENHEIGHT     2
-#define HB_GTI_WINHANDLE        69
+#define HB_GTI_WINHANDLE       69
 
-STATIC cImgFile, hImage, aImgSize
+#define IMAGE_ICON              1
+#define LR_LOADFROMFILE        16
+#define LR_DEFAULTSIZE         64
+#define LR_SHARED           32768
+
+STATIC cImgFile, nImgType, hImage, aImgSize
 
 FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
 
@@ -34,8 +39,15 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
 
    IF Empty( cImgFile )
       cImgFile := cFileName
-      hImage := hwg_OpenImage( cImgFile )
-      aImgSize := hwg_Getbitmapsize( hImage )
+      IF Lower( hb_fnameExt( cFileName ) ) == ".ico"
+         hImage := hwg_Loadimage( 0, cFileName, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE + LR_LOADFROMFILE + LR_SHARED )
+         aImgSize := { 128, 128 }
+         nImgType := 2
+      ELSE
+         hImage := hwg_OpenImage( cImgFile )
+         aImgSize := hwg_Getbitmapsize( hImage )
+         nImgType := 1
+      ENDIF
    ENDIF
 
    cp := hb_cdpSelect( "RU866" )
@@ -58,7 +70,11 @@ STATIC FUNCTION gthwg_qView( oPane, hDC )
       nWidthMax := Int( ( oPane:x2 - oPane:x1 - 4 ) * xKoef )
       nHeightMax := Int( ( oPane:y2 - oPane:y1 - 3 ) * yKoef )
       IF aImgSize[1] <= nWidthMax .AND. aImgSize[2] <= nHeightMax
-         hwg_Drawbitmap( hDC, hImage,, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
+         IF nImgType == 1
+            hwg_Drawbitmap( hDC, hImage,, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
+         ELSEIF nImgType == 2
+            hwg_Drawicon( hDC, hImage, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
+         ENDIF
       ELSE
          //edi_Writelog( " : " + ltrim(str(nWidthMax)) + "/" + ltrim(str(nHeightMax)) )
          IF aImgSize[1] > nWidthMax
