@@ -4590,7 +4590,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    LOCAL aGets := { {11,22,0,hb_fnameNameExt(oEdit:cFileName),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,22,0,cDir,46,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,69,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[2],.T.)}}, ;
-      {14,29,3,.T.,1}, {14,47,3,.F.,1}, {14,63,3,.F.,1} }
+      {15,29,3,.T.,1}, {15,47,3,.F.,1}, {15,63,3,.F.,1} }
    STATIC pKeys
 
    IF Empty( pKeys )
@@ -4598,20 +4598,20 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
       pKeys := hb_Hash( 0x41020044, Chr(K_CTRL_HOME)+Chr(K_DOWN)+Chr(K_DOWN)+Chr(K_SPACE) )
    ENDIF
    hb_cdpSelect( "RU866" )
-   @ 09, 20, 17, 72 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ 15, 20 SAY "Ã"
-   @ 15, 72 SAY "´"
-   @ 15, 21 TO 15, 71
+   @ 09, 20, 19, 72 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 17, 20 SAY "Ã"
+   @ 17, 72 SAY "´"
+   @ 17, 21 TO 17, 71
    hb_cdpSelect( oEdit:cp )
 
    @ 10,22 SAY _I("Save file as")
    @ 12,22 SAY _I("in directory")
-   @ 14, 22 SAY " Eol: ( ) " + _I("Do not change") + " ( ) Dos/Windows ( ) Unix"
-   Aadd( aGets, {16,25,2,_I("[Save]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
-   Aadd( aGets, {16,58,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
+   @ 15, 22 SAY " Eol: ( ) " + _I("Do not change") + " ( ) Dos/Windows ( ) Unix"
+   Aadd( aGets, {18,25,2,_I("[Save]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
+   Aadd( aGets, {18,58,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
-      hb_AIns( aGets, 7, {13,24,1,oEdit:lBom,1}, .T. )
-      @ 13, 23 SAY "[ ] " + _I("Add BOM")
+      hb_AIns( aGets, 7, {16,24,1,oEdit:lBom,1}, .T. )
+      @ 16, 23 SAY "[ ] " + _I("Add BOM")
    ENDIF
    SetColor( oEdit:cColorMenu )
 
