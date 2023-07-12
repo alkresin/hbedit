@@ -20,7 +20,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
    LOCAL cFile, hUnzip, nSize, nPos, nPos1
    LOCAL n, aLevels := Array( 5 ), nStartBak, nEndBak
-   LOCAL oNew, lErr, lRes, nSec, aMenu
+   LOCAL oNew, lErr, lRes, nSec, aMenu, cTemp
    LOCAL bStartEdit := {|o|
       LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), h
       IF o:lTopPane
@@ -153,6 +153,13 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
                fb2_add( "" )
             ENDIF
             fb2_gettitle()
+         ENDIF
+         EXIT
+      CASE 105     // i
+         IF Substr( cUnzBuff, nPosStart+1, 4 ) == "mage"
+            IF !Empty( cTemp := fb2_getAttr( cUnzBuff, nPosStart, "href" ) )
+               fb2_add( "  {" + cTemp + "}" )
+            ENDIF
          ENDIF
       END
 
@@ -298,7 +305,7 @@ STATIC FUNCTION fb2_getsection()
 
 STATIC FUNCTION fb2_strip( cBuff )
 
-   LOCAL nPos1, nPos2, n, cId
+   LOCAL nPos1, nPos2, n, cId, l
 
    IF Chr(10) $ cBuff .OR. Chr(13) $ cBuff
       cBuff := hb_strReplace( cBuff, {Chr(10),Chr(13)} )
@@ -311,16 +318,24 @@ STATIC FUNCTION fb2_strip( cBuff )
    ENDIF
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0
-         IF hb_bPeek( cBuff, nPos1+1 ) == 97 .AND. hb_bPeek( cBuff, nPos1+2 ) == 32   // a
+         l := .F.
+         IF ( n := hb_bPeek( cBuff, nPos1+1 ) ) == 97 .AND. hb_bPeek( cBuff, nPos1+2 ) == 32   // a
             IF !Empty( cId := fb2_getAttr( cBuff, nPos1, "href" ) )
                IF ( n := hb_At( "</a>",cBuff, nPos1 ) ) > 0
                   nPos2 := n + 3
                ENDIF
                cBuff := Left( cBuff, nPos1-1 ) + "[" + cId + "]" + Substr( cBuff, nPos2+1 )
-            ELSE
-               cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
+               l := .T.
             ENDIF
-         ELSE
+         /*
+         ELSEIF n == 105 .AND. Substr( cBuff, nPos1+2, 4 ) == "mage"
+            IF !Empty( cId := fb2_getAttr( cBuff, nPos1, "href" ) )
+               cBuff := Left( cBuff, nPos1-1 ) + "{" + cId + "}" + Substr( cBuff, nPos2+1 )
+               l := .T.
+            ENDIF
+         */
+         ENDIF
+         IF !l
             cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
          ENDIF
       ELSE

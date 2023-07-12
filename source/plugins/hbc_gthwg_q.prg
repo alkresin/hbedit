@@ -10,13 +10,14 @@
 #define LR_DEFAULTSIZE         64
 #define LR_SHARED           32768
 
-STATIC cImgFile, nImgType, hImage, aImgSize
+STATIC cImgFile, nImgType, hImage, aImgSize, oPane
 
-FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
+FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo )
 
    LOCAL cp
 
-   IF !lDo
+   oPane := oPaneTo
+   IF cDo == "qend"
       //edi_Writelog( "qend " + Iif( oPaneTo == FilePane():aPanes[1], "1", "2" ) )
       cImgFile := Nil
       IF !Empty( hImage )
@@ -24,43 +25,47 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, lDo )
          hImage := Nil
       ENDIF
       gthwg_paint_SetCallback()
-      oPaneTo:bPaint := Nil
+      //oPaneTo:bPaint := Nil
       RETURN Nil
-   ENDIF
-
-   //edi_Writelog( "qstart " + Iif( oPaneTo == FilePane():aPanes[1], "1", "2" ) )
-   IF !Empty( cImgFile ) .AND. !( cImgFile == cFileName )
-      cImgFile := Nil
-      IF !Empty( hImage )
-         hwg_Deleteobject( hImage )
-         hImage := Nil
+   ELSEIF cDo == "qstart"
+      //edi_Writelog( "qstart " + Iif( oPaneTo == FilePane():aPanes[1], "1", "2" ) )
+      IF !Empty( cImgFile ) .AND. !( cImgFile == cFileName )
+         cImgFile := Nil
+         IF !Empty( hImage )
+            hwg_Deleteobject( hImage )
+            hImage := Nil
+         ENDIF
       ENDIF
-   ENDIF
 
-   IF Empty( cImgFile )
-      cImgFile := cFileName
-      IF Lower( hb_fnameExt( cFileName ) ) == ".ico"
-         hImage := hwg_Loadimage( 0, cFileName, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE + LR_LOADFROMFILE + LR_SHARED )
-         aImgSize := { 128, 128 }
-         nImgType := 2
-      ELSE
-         hImage := hwg_OpenImage( cImgFile )
-         aImgSize := hwg_Getbitmapsize( hImage )
-         nImgType := 1
+      IF Empty( cImgFile )
+         cImgFile := cFileName
+         IF Lower( hb_fnameExt( cFileName ) ) == ".ico"
+#ifdef __PLATFORM__WINDOWS
+            hImage := hwg_Loadimage( 0, cFileName, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE + LR_LOADFROMFILE + LR_SHARED )
+#endif
+            aImgSize := { 128, 128 }
+            nImgType := 2
+         ELSE
+            hImage := hwg_OpenImage( cImgFile )
+            aImgSize := hwg_Getbitmapsize( hImage )
+            nImgType := 1
+         ENDIF
       ENDIF
+
+      cp := hb_cdpSelect( "RU866" )
+      @ oPaneTo:y1, oPaneTo:x1, oPaneTo:y2, oPaneTo:x2 BOX "ÚÄ¿³ÙÄÀ³ "
+      hb_cdpSelect( cp )
+
+      //oPaneTo:bPaint := {|o,h|gthwg_qView(o,h)}
+      //gthwg_paint_SetCallback( "GTHWG_PAINTCB" )
+      gthwg_paint_SetCallback( "GTHWG_QVIEW" )
+      hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
+
    ENDIF
-
-   cp := hb_cdpSelect( "RU866" )
-   @ oPaneTo:y1, oPaneTo:x1, oPaneTo:y2, oPaneTo:x2 BOX "ÚÄ¿³ÙÄÀ³ "
-   hb_cdpSelect( cp )
-
-   oPaneTo:bPaint := {|o,h|gthwg_qView(o,h)}
-   gthwg_paint_SetCallback( "GTHWG_PAINTCB" )
-   hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
 
    RETURN Nil
 
-STATIC FUNCTION gthwg_qView( oPane, hDC )
+FUNCTION gthwg_qView( hDC )
 
    LOCAL xKoef, yKoef, nWidthMax, nHeightMax, nWidth, nHeight
 
@@ -73,7 +78,9 @@ STATIC FUNCTION gthwg_qView( oPane, hDC )
          IF nImgType == 1
             hwg_Drawbitmap( hDC, hImage,, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
          ELSEIF nImgType == 2
+#ifdef __PLATFORM__WINDOWS
             hwg_Drawicon( hDC, hImage, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
+#endif
          ENDIF
       ELSE
          //edi_Writelog( " : " + ltrim(str(nWidthMax)) + "/" + ltrim(str(nHeightMax)) )

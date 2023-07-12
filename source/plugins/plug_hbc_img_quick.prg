@@ -11,7 +11,7 @@ FUNCTION plug_hbc_img_quick( oPane, cPath )
    LOCAL cHrb := "hbc_gthwg_q.hrb"
 
    IF lGthwg == Nil
-      lGthwg := hb_isFunction( "GTHWG_PAINTCB" ) .AND. File( cPath + cHrb )
+      lGthwg := hb_isFunction( "GTHWG_PAINT_SETCALLBACK" ) .AND. File( cPath + cHrb )
       IF lGthwg
          hrbHandle := hb_hrbLoad( cPath + cHrb )
       ENDIF
@@ -32,7 +32,7 @@ FUNCTION PLUG_HBC_IMG_QVIEW( oPane, aParams )
       hb_cdpSelect( cp )
       @ oPaneTo:y2-3, oPaneTo:x1+8 SAY "GTHWG is needed!"
    ELSE
-      hb_hrbDo( hrbHandle, oPaneTo, cFileName, .T. )
+      hb_hrbDo( hrbHandle, oPaneTo, cFileName, "qstart" )
    ENDIF
 
    RETURN Nil
@@ -42,7 +42,7 @@ FUNCTION PLUG_HBC_IMG_QEND( oPane )
    LOCAL oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
 
    IF lGthwg
-      hb_hrbDo( hrbHandle, oPaneTo, "", .F. )
+      hb_hrbDo( hrbHandle, oPaneTo, "", "qend" )
    ENDIF
 
    RETURN Nil

@@ -1068,7 +1068,6 @@ CLASS FilePane
    DATA aSelected     INIT {}
 
    DATA cQVpref
-   DATA bPaint
 
    DATA bOnKey, bDraw, bDrawCell, bDrawHead, bRefresh
 
@@ -3836,20 +3835,6 @@ FUNCTION hbc_Wndclose( arr, cText )
 
 FUNCTION Ascan2( arr, xItem )
    RETURN Ascan( arr, {|a|a[1]==xItem} )
-
-#ifdef GTHWG
-FUNCTION gthwg_PaintCB( hDC )
-
-   IF !Empty( FilePane():aPanes )
-      IF FilePane():aPanes[1]:bPaint != Nil
-         Eval( FilePane():aPanes[1]:bPaint, FilePane():aPanes[1], hDC )
-      ENDIF
-      IF FilePane():aPanes[2]:bPaint != Nil
-         Eval( FilePane():aPanes[2]:bPaint, FilePane():aPanes[2], hDC )
-      ENDIF
-   ENDIF
-   RETURN 1
-#endif
 
 /*
 #define BUFFER_SIZE  1024
