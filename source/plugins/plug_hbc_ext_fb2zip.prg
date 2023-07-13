@@ -4,9 +4,11 @@
 #define K_ALT_D    288
 #define K_ALT_I    279
 #define K_ALT_L    294
+#define K_ALT_Q    272
 
 #define  K_ENTER   13
 #define  K_ESC     27
+#define K_LDBLCLK 1006
 
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
 
@@ -15,19 +17,24 @@ STATIC nLevel, i
 STATIC aContent
 STATIC cIniPath
 STATIC aRecent := Nil
+STATIC cGthwgHrb := "hbc_gthwg_q.hrb"
 
 FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
    LOCAL cFile, hUnzip, nSize, nPos, nPos1
    LOCAL n, aLevels := Array( 5 ), nStartBak, nEndBak
-   LOCAL oNew, lErr, lRes, nSec, aMenu, cTemp
+   LOCAL oNew, lErr, lRes, nSec, aMenu, cTemp, aImages
    LOCAL bStartEdit := {|o|
-      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), h
+      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), h, l
       IF o:lTopPane
+         l := hb_isFunction( "GTHWG_PAINT_SETCALLBACK" )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Fb2 plugin:  Alt-L Table of contents  Alt-I Info" )
+         DevOut( "Fb2 plugin:  Alt-L Table of contents  Alt-Q Info" )
+         IF l
+            DevOut( "  Alt-I Cover" )
+         ENDIF
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          IF o:hCargo == Nil
@@ -35,7 +42,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
          ENDIF
          o:hCargo["help"] := "Fb2 plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Table of contents" + Chr(10) + ;
-            "  Alt-I  - Book info" + Chr(10)
+            "  Alt-Q  - Book info" + Chr(10) + Iif( l, "  Alt-I   - Cover" + Chr(10), "" )
       ENDIF
       o:bStartEdit := Nil
 
@@ -106,6 +113,8 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    //nPosStart += 6
    IF ( nPosEnd := hb_At( "<binary", cUnzBuff, nPosStart, nSize ) ) == 0
       nPosEnd := nSize
+   ELSEIF hb_isFunction( "GTHWG_PAINT_SETCALLBACK" )
+      aImages := fb2_GetImages()
    ENDIF
 
    nLevel := 0
@@ -188,7 +197,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
    oNew:bStartEdit := bStartEdit
    oNew:bEndEdit := bEndEdit
    oNew:bOnKey := bOnKey
-   oNew:cargo := { aContent, cFile, fb2_info() }
+   oNew:cargo := { aContent, cFile, fb2_info(), aImages, fb2_cover() }
    IF ( i := Ascan( aRecent, {|a|a[1]==cFile} ) ) > 0
       oNew:nLine := Val(aRecent[i,2])
    ENDIF
@@ -327,13 +336,11 @@ STATIC FUNCTION fb2_strip( cBuff )
                cBuff := Left( cBuff, nPos1-1 ) + "[" + cId + "]" + Substr( cBuff, nPos2+1 )
                l := .T.
             ENDIF
-         /*
          ELSEIF n == 105 .AND. Substr( cBuff, nPos1+2, 4 ) == "mage"
             IF !Empty( cId := fb2_getAttr( cBuff, nPos1, "href" ) )
                cBuff := Left( cBuff, nPos1-1 ) + "{" + cId + "}" + Substr( cBuff, nPos2+1 )
                l := .T.
             ENDIF
-         */
          ENDIF
          IF !l
             cBuff := Left( cBuff, nPos1-1 ) + Substr( cBuff, nPos2+1 )
@@ -437,68 +444,103 @@ STATIC FUNCTION fb2_enc( sBuff )
 
    RETURN ""
 
+STATIC FUNCTION fb2_cover()
+
+   LOCAL cCover, nPos1, nPos2
+
+   IF !hb_isFunction( "GTHWG_PAINT_SETCALLBACK" )
+      RETURN Nil
+   ENDIF
+
+   IF ( nPos1 := At( "<coverpage", cUnzBuff ) ) != 0 .AND. ;
+      ( nPos2 := hb_At( "</coverpage", cUnzBuff, nPos1 ) ) != 0 .AND. ;
+      ( nPos1 := hb_At( "<image", cUnzBuff, nPos1 ) ) != 0 .AND. ;
+      !Empty( cCover := fb2_getAttr( cUnzBuff, nPos1, "href" ) )
+      cCover := Substr( cCover,2 )
+   ENDIF
+
+   RETURN cCover
+
 STATIC FUNCTION fb2_info()
 
    LOCAL nPos, nPos1, nPos2, cTemp, cBuff := ""
 
-   IF ( nPos1 := At( "<title-info", cUnzBuff ) ) != 0
-      IF ( nPos2 := hb_At( "</title-info", cUnzBuff, nPos1 ) ) != 0
-         cUnzBuff := SubStr( cUnzBuff, nPos1, nPos2 - nPos1 )
+   IF ( nPos1 := At( "<title-info", cUnzBuff ) ) != 0 .AND. ;
+      ( nPos2 := hb_At( "</title-info", cUnzBuff, nPos1 ) ) != 0
+      cUnzBuff := SubStr( cUnzBuff, nPos1, nPos2 - nPos1 )
 
-         // Author
-         cTemp := ""
-         nPos := 1
-         DO WHILE ( nPos1 := hb_At( "<author", cUnzBuff, nPos ) ) != 0 .AND. ( nPos2 := hb_At( "</author", cUnzBuff, nPos1 ) ) != 0
-            IF !Empty( cTemp )
-               cTemp += ", "
-            ENDIF
-            cBuff := AllTrim( SubStr( cUnzBuff, nPos1 + 8, nPos2 - nPos1 - 8 ) )
-            nPos := nPos2 + 8
-            IF ( nPos1 := At( "<first-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</first-name", cBuff, nPos1 ) ) != 0
-               cTemp += AllTrim( SubStr( cBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) ) + " "
-            ENDIF
-            IF ( nPos1 := At( "<middle-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</middle-name", cBuff, nPos1 ) ) != 0
-               cTemp += AllTrim( SubStr( cBuff, nPos1 + 13, nPos2 - nPos1 - 13 ) ) + " "
-            ENDIF
-            IF ( nPos1 := At( "<last-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</last-name", cBuff, nPos1 ) ) != 0
-               cTemp += AllTrim( SubStr( cBuff, nPos1 + 11, nPos2 - nPos1 - 11 ) ) + " "
-            ENDIF
-            cTemp := Trim( cTemp )
-         ENDDO
-         IF Empty( cTemp )
-            cBuff := ""
-         ELSE
-            cBuff := Trim( cTemp ) + Chr(10)
+      // Author
+      cTemp := ""
+      nPos := 1
+      DO WHILE ( nPos1 := hb_At( "<author", cUnzBuff, nPos ) ) != 0 .AND. ( nPos2 := hb_At( "</author", cUnzBuff, nPos1 ) ) != 0
+         IF !Empty( cTemp )
+            cTemp += ", "
          ENDIF
+         cBuff := AllTrim( SubStr( cUnzBuff, nPos1 + 8, nPos2 - nPos1 - 8 ) )
+         nPos := nPos2 + 8
+         IF ( nPos1 := At( "<first-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</first-name", cBuff, nPos1 ) ) != 0
+            cTemp += AllTrim( SubStr( cBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) ) + " "
+         ENDIF
+         IF ( nPos1 := At( "<middle-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</middle-name", cBuff, nPos1 ) ) != 0
+            cTemp += AllTrim( SubStr( cBuff, nPos1 + 13, nPos2 - nPos1 - 13 ) ) + " "
+         ENDIF
+         IF ( nPos1 := At( "<last-name", cBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</last-name", cBuff, nPos1 ) ) != 0
+            cTemp += AllTrim( SubStr( cBuff, nPos1 + 11, nPos2 - nPos1 - 11 ) ) + " "
+         ENDIF
+         cTemp := Trim( cTemp )
+      ENDDO
+      IF Empty( cTemp )
+         cBuff := ""
+      ELSE
+         cBuff := Trim( cTemp ) + Chr(10)
+      ENDIF
 
-         // Book title
-         IF ( nPos1 := At( "<book-title", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</book-title", cUnzBuff, nPos1 ) ) != 0
-            cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
-            cBuff += Trim( cTemp ) + Chr(10)
-         ENDIF
+      // Book title
+      IF ( nPos1 := At( "<book-title", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</book-title", cUnzBuff, nPos1 ) ) != 0
+         cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
+         cBuff += Trim( cTemp ) + Chr(10)
+      ENDIF
 
-         // Annotation
-         IF ( nPos1 := At( "<annotation", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</annotation", cUnzBuff, nPos1 ) ) != 0
-            cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
-            cBuff += Chr(10) + fb2_strip( Trim( cTemp ) )
-         ENDIF
-         IF lUtf8
-            cBuff := StrTran( cBuff, '«', '"' )
-            cBuff := StrTran( cBuff, '»', '"' )
-            cBuff := StrTran( cBuff, '—', '-' )
-            //cBuff := hb_strReplace( cBuff, {'�','�','—'}, {'"','"','-'} )
-            cBuff := hb_utf8ToStr( cBuff, "RU866" )
-         ELSEIF cEnc == "windows-1251"
-            cBuff := hb_Translate( cBuff, "RU1251", "RU866" )
-         ENDIF
+      // Annotation
+      IF ( nPos1 := At( "<annotation", cUnzBuff ) ) != 0 .AND. ( nPos2 := hb_At( "</annotation", cUnzBuff, nPos1 ) ) != 0
+         cTemp := AllTrim( SubStr( cUnzBuff, nPos1 + 12, nPos2 - nPos1 - 12 ) )
+         cBuff += Chr(10) + fb2_strip( Trim( cTemp ) )
+      ENDIF
+      IF lUtf8
+         cBuff := StrTran( cBuff, '«', '"' )
+         cBuff := StrTran( cBuff, '»', '"' )
+         cBuff := StrTran( cBuff, '—', '-' )
+         //cBuff := hb_strReplace( cBuff, {'�','�','—'}, {'"','"','-'} )
+         cBuff := hb_utf8ToStr( cBuff, "RU866" )
+      ELSEIF cEnc == "windows-1251"
+         cBuff := hb_Translate( cBuff, "RU1251", "RU866" )
       ENDIF
    ENDIF
 
    RETURN cBuff
 
+STATIC FUNCTION fb2_GetImages()
+
+   LOCAL arr := {}, nPos1 := nPosEnd, nPos2, cName
+
+   DO WHILE .T.
+      nPos1 += 7
+      IF Empty( cName := fb2_getAttr( cUnzBuff, nPos1, "id" ) ) .OR. ;
+         ( nPos1 := hb_At( ">", cUnzBuff, nPos1 ) ) == 0 .OR. ;
+         ( nPos2 := hb_At( "</binary>", cUnzBuff, nPos1 ) ) == 0
+         EXIT
+      ENDIF
+      nPos1 ++
+      Aadd( arr, { cName, Substr( cUnzBuff, nPos1, nPos2-nPos1 ), 0 } )
+      IF ( nPos1 := hb_At( "<binary", cUnzBuff, nPos2 ) ) == 0
+         EXIT
+      ENDIF
+   ENDDO
+   RETURN Iif( Empty(arr), Nil, arr )
+
 STATIC FUNCTION _fb2zip_OnKey( oEdit, nKeyExt )
 
-   LOCAL nKey := hb_keyStd(nKeyExt), n, i, arr, cBuff
+   LOCAL nKey := hb_keyStd(nKeyExt), n, i, arr, cBuff, nPos1, nPos2, nPos
 
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_L
@@ -515,17 +557,56 @@ STATIC FUNCTION _fb2zip_OnKey( oEdit, nKeyExt )
             oEdit:Goto( arr[i,3] )
          ENDIF
          RETURN -1
-      ELSEIF nKey == K_ALT_I
+      ELSEIF nKey == K_ALT_Q
          cBuff := SaveScreen( oEdit:y1+2, oEdit:x1+8, oEdit:y2-2, oEdit:x2-8 )
 
          QFileView( "Info", oEdit:cargo[3], oEdit:x1+8, oEdit:y1+2, oEdit:x2-8, oEdit:y2-2,, "RU866", .T. )
          Inkey( 0 )
          RestScreen( oEdit:y1 + 2, oEdit:x1+8, oEdit:y2-2, oEdit:x2-8, cBuff )
          RETURN -1
+      ELSEIF nKey == K_ALT_I
+         IF Empty( oEdit:cargo[5] )
+            edi_Alert( "No cover for this book" )
+         ELSE
+            ShowImage( oEdit, oEdit:cargo[5] )
+         ENDIF
+         RETURN -1
+      ENDIF
+   ELSEIF nKey == K_ENTER .OR. nKey == K_LDBLCLK
+      n := oEdit:nLine
+      i := oEdit:nPos
+      nPos := Len( cp_Left( oEdit:lUtf8,oEdit:aText[n],oEdit:nPos ) )
+      IF ( nPos1 := At( "[", oEdit:aText[n] ) ) > 0 .AND. ;
+         ( nPos2 := hb_At( "]", oEdit:aText[n], nPos1 ) ) > 0 .AND. nPos > nPos1 .AND. nPos < nPos2
+         IF oEdit:Search( Substr( oEdit:aText[n], nPos1+2, nPos2-nPos1-2 ), .T., .T., .T., .F., @n, @i )
+            oEdit:GoTo( n, i, 0 )
+         ENDIF
+      ELSEIF !Empty( oEdit:cargo[4] ) .AND. ( nPos1 := At( "{", oEdit:aText[n] ) ) > 0 .AND. ;
+         ( nPos2 := hb_At( "}", oEdit:aText[n], nPos1 ) ) > 0 .AND. oEdit:nPos > nPos1 .AND. oEdit:nPos < nPos2
+         ShowImage( oEdit, Substr( oEdit:aText[n], nPos1+2, nPos2-nPos1-2 ) )
       ENDIF
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION ShowImage( oEdit, cId )
+
+   LOCAL n
+   IF ( n := Ascan2( oEdit:cargo[4], cId ) ) > 0
+      IF oEdit:cargo[4,n,3] == 0
+         oEdit:cargo[4,n,2] := hb_base64Decode( oEdit:cargo[4,n,2] )
+         oEdit:cargo[4,n,3] := 1
+      ENDIF
+      IF !hb_hHaskey( FilePane():hMisc,"gthwg_plug" )
+         FilePane():hMisc["gthwg_plug"] := Iif( File( cIniPath + cGthwgHrb ), ;
+            hb_hrbLoad( cIniPath + cGthwgHrb ), Nil )
+      ENDIF
+      IF !Empty( FilePane():hMisc["gthwg_plug"] )
+         hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cId, "dlg", oEdit:cargo[4,n,2] )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
 
 STATIC FUNCTION LoadRecent()
 

@@ -10,9 +10,9 @@
 #define LR_DEFAULTSIZE         64
 #define LR_SHARED           32768
 
-STATIC cImgFile, nImgType, hImage, aImgSize, oPane
+STATIC cImgFile, nImgType, hImage, aImgSize, oPane, handle
 
-FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo )
+FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
 
    LOCAL cp
 
@@ -61,9 +61,75 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo )
       gthwg_paint_SetCallback( "GTHWG_QVIEW" )
       hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
 
+   ELSEIF cDo == "dlg"
+      ImgViewDlg( cFileName, xDopInfo )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
+
+   LOCAL oDlg, oPanel, nWidth, nHeight, aBmpSize, nWidthMax, nHeightMax
+
+   IF !Empty( cImageBuff )
+      handle := hwg_Openimage( cImageBuff, .T. )
+      IF Empty( handle )
+      ENDIF
+   ELSE
+   ENDIF
+   IF Empty( handle )
+      edi_Alert( "Can't display image" )
+      RETURN Nil
+   ENDIF
+
+   aBmpSize  := hwg_Getbitmapsize( handle )
+   nWidthMax := hwg_GetDesktopWidth() - 50
+   nHeightMax := hwg_GetDesktopHeight() - 50
+   IF aBmpSize[1] <= nWidthMax .AND. aBmpSize[2] <= nHeightMax
+      nWidth := aBmpSize[1]
+      nHeight := aBmpSize[2]
+   ELSE
+      IF aBmpSize[1] > nWidthMax
+         nWidth := nWidthMax
+         nHeight := Int( aBmpSize[2] * (nWidthMax/aBmpSize[1]) )
+         IF nHeight > nHeightMax
+            nWidth := Int( nWidth * ( nHeightMax/nHeight ) )
+            nHeight := nHeightMax
+         ENDIF
+      ELSE
+         nHeight := nHeightMax
+         nWidth := Int( aBmpSize[1] * (nHeightMax/aBmpSize[2]) )
+         IF nWidth > nWidthMax
+            nHeight := Int( nHeight * ( nWidthMax/nWidth) )
+            nWidth := nWidthMax
+         ENDIF
+      ENDIF
+   ENDIF
+   /*
+   INIT DIALOG oDlg TITLE hb_fnameName( cFileName ) AT 0, 0 SIZE nWidth, nHeight ;
+      ON EXIT {||hwg_Deleteobject(handle),.T.}
+   @ 0,0 PANEL oPanel SIZE nWidth, nHeight STYLE SS_OWNERDRAW ON PAINT {||PPanel(oPanel)}
+   ACTIVATE DIALOG oDlg NOMODAL
+   */
+   oDlg := HDialog():New( 11,,0,0,nWidth,nHeight,hb_fnameName( cFileName ),,,{||hwg_Deleteobject(handle),.T.},,,,,,.F.,,,.F.,,,.F.,,.F. )
+   oPanel := HPanel():New(,,13,0,0,nWidth,nHeight,,,{||PPanel(oPanel)},, )
+   oPanel:Anchor := 1 + 2 + 8 + 4
+   oDlg:Activate( .T., .F., .F., .F., )
+
+
+   RETURN Nil
+
+STATIC FUNCTION PPanel( oPanel )
+   LOCAL pps, hDC
+
+   pps := hwg_Definepaintstru()
+   hDC := hwg_Beginpaint( oPanel:handle, pps )
+
+   hwg_Drawbitmap( hDC, handle,, 0, 0, oPanel:nWidth, oPanel:nHeight )
+
+   hwg_Endpaint( oPanel:handle, pps )
+
+RETURN Nil
 
 FUNCTION gthwg_qView( hDC )
 
