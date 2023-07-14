@@ -325,6 +325,9 @@ STATIC FUNCTION fb2_strip( cBuff )
    IF "</p>" $ cBuff .OR. "</v>" $ cBuff
       cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<stanza>","<v>"}, {Chr(10),Chr(10),Chr(10),Chr(10),"    "} )
    ENDIF
+   IF "<sup>" $ cBuff
+      cBuff := strTran( cBuff, "<sup>", "~" )
+   ENDIF
    DO WHILE ( nPos1 := At( "<", cBuff ) ) > 0
       IF ( nPos2 := hb_At( ">",cBuff, nPos1 ) ) > 0
          l := .F.
