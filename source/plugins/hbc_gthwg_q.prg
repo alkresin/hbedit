@@ -120,12 +120,13 @@ STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
    RETURN Nil
 
 STATIC FUNCTION PPanel( oPanel )
-   LOCAL pps, hDC
+   LOCAL pps, hDC, aCoors
 
    pps := hwg_Definepaintstru()
    hDC := hwg_Beginpaint( oPanel:handle, pps )
+   aCoors := hwg_Getclientrect( oPanel:handle )
 
-   hwg_Drawbitmap( hDC, handle,, 0, 0, oPanel:nWidth, oPanel:nHeight )
+   hwg_Drawbitmap( hDC, handle,, 0, 0, aCoors[3]-4, aCoors[4]-4 )
 
    hwg_Endpaint( oPanel:handle, pps )
 
