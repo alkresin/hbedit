@@ -435,7 +435,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
               cedi_ShellExecute( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
-            ELSEIF cExt == ".sh"
+            ELSEIF cExt == ".sh" .OR. 'X' $ aDir[5]
                hbc_Console( cTemp )
 #endif
 
@@ -1523,7 +1523,7 @@ METHOD Draw() CLASS FilePane
 METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
    LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen
-   LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt, lUtf8
+   LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt, lUtf8, nAttr := 0
 
    IF ::nPanelMod == 3
       RETURN Nil
@@ -1563,10 +1563,26 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    ELSEIF 'D' $ arr[5]
       cClrFil := ::cClrDir
    ELSE
-      IF Ascan( aExtExe, {|s| s==cExt} ) > 0
-         cClrFil := ::cClrExe
-      ELSEIF Ascan( aExtZip, {|s| s==cExt} ) > 0
+      IF Ascan( aExtZip, {|s| s==cExt} ) > 0
          cClrFil := ::cClrZip
+      ELSE
+#ifdef __PLATFORM__UNIX
+         IF !( 'R' $ arr[5] )
+            hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+               oPaneCurr:cCurrPath + arr[1], @nAttr )
+            arr[5] += "R"
+            IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
+               arr[5] += "X"
+            ENDIF
+         ENDIF
+         IF 'X' $ arr[5]
+            cClrFil := ::cClrExe
+         ENDIF
+#else
+         IF Ascan( aExtExe, {|s| s==cExt} ) > 0
+            cClrFil := ::cClrExe
+         ENDIF
+#endif
       ENDIF
    ENDIF
    SetColor( Iif( lCurr, Iif( lSel, ::cClrSelCurr, ::cClrCurr ), ;
