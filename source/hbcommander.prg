@@ -33,6 +33,7 @@ STATIC cOutBuff
 STATIC oPaneCurr, oPaneTo
 STATIC lCase_Sea := .F., lRegex_Sea := .F.
 #ifdef __PLATFORM__UNIX
+STATIC cTermApp := "gnome-terminal -x"
 STATIC aExtExe := { ".sh" }
 #else
 STATIC aExtExe := { ".exe", ".com", ".bat" }
@@ -430,13 +431,21 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
-               hbc_Console( cTemp )
+               IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+                  cedi_ShellExecute( cTemp )
+               ELSE
+                  hbc_Console( cTemp )
+               ENDIF
             ELSEIF cExt == ".exe"
-              cedi_ShellExecute( cTemp )
+               cedi_ShellExecute( cTemp )
 #endif
 #ifdef __PLATFORM__UNIX
             ELSEIF cExt == ".sh" .OR. 'X' $ aDir[5]
-               hbc_Console( cTemp )
+               IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+                  cedi_RunApp( cTermApp + " " + cTemp )
+               ELSE
+                  hbc_Console( cTemp )
+               ENDIF
 #endif
 
             ELSEIF Ascan( aExtZip, {|s| s==cExt} ) > 0 .AND. hbc_FReadArh()
@@ -765,6 +774,11 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "docmax" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():nDocMax := Val( cTmp )
          ENDIF
+#ifdef __PLATFORM__UNIX
+         IF hb_hHaskey( aSect, cTmp := "termapp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            cTermApp :=  := cTmp
+         ENDIF
+#endif
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "COLORS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
