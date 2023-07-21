@@ -776,7 +776,7 @@ STATIC FUNCTION ReadIni( cIniName )
          ENDIF
 #ifdef __PLATFORM__UNIX
          IF hb_hHaskey( aSect, cTmp := "termapp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            cTermApp :=  := cTmp
+            cTermApp := cTmp
          ENDIF
 #endif
       ENDIF
