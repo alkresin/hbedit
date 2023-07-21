@@ -252,7 +252,13 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          ENDIF
          ::cFileName := cFileName
          cFile_utf8 := hb_Translate( cFileName,, "UTF8" )
-         IF ( i := Ascan( TEdit():aEditHis, {|a|a[1]==cFile_utf8} ) ) > 0
+#ifdef __PLATFORM__UNIX
+         i := Ascan( TEdit():aEditHis, {|a|a[1]==cFile_utf8} )
+#else
+         cExt := cp_Lower( .T., cFile_utf8 )
+         i := Ascan( TEdit():aEditHis, {|a|cp_Lower(.T.,a[1])==cFile_utf8} )
+#endif
+         IF i > 0
             arr := TEdit():aEditHis[i]
             ADel( TEdit():aEditHis, i )
             hb_AIns( TEdit():aEditHis, 1, arr, .F. )

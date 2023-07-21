@@ -158,7 +158,7 @@ FUNCTION edi_DoAuC( oEdit, lAuto )
 
    RETURN .T.
 
-FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
+FUNCTION hbc_DoAuC( oHbc, cmd, aDir, b )
 
    LOCAL oy, ox
    LOCAL cRes := ""
@@ -177,14 +177,12 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
    DO WHILE .T.
 
       IF lRecalc
-         //oy := Row()
          ox := Col()
          IF Empty(aDir)
             arr := MakeArr( hTrie,, cmd )
          ELSE
             arr := MakeArr( aDir,, Iif( (nPos := Rat(' ',cmd)) > 0, Substr( cmd,nPos+1 ), cmd ), ;
-               Iif( nPos > 0, Left( cmd,nPos ), "" ), aExe )
-            //edi_Alert( str(Len(arr))+" " + str(nPos) + " " + Substr( cmd,nPos+1 ) )
+               Iif( nPos > 0, Left( cmd,nPos ), "" ), b )
          ENDIF
 
          bufc := Nil
@@ -196,10 +194,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
          h := Min( Len( arr ),12 ) + 2
          w := 0
          AEval( arr, {|s|w := Max( w, Len(s) )} )
-         //y1 := Iif( oy < oHbc:y1+h, oy, oy-h+1 )
          y1 := Iif( oy < oHbc:y1+h, oy-1, oy-h )
-         //x1 := ox
-         //y2 := y1 + h - 1
          x2 := x1 + w + 2
          nSel := 1
          nFirst := 1
@@ -226,8 +221,6 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
          lRecalc := .T.
 
       ELSEIF nKey == K_ESC
-         //cRes := ""
-         //DevPos( oy, ox )
          cRes := cmd
          EXIT
 
@@ -288,19 +281,19 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir, aExe )
 
    RETURN cRes
 
-STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix, cAdd, aExe )
+STATIC FUNCTION MakeArr( hTrieLang, hTrie, cPrefix, cAdd, b )
 
    LOCAL arr, cList, arr1, i
 
    IF Valtype( hTrieLang ) == "A"
-      IF !Empty(aExe)
+      IF !Empty(b)
          cPrefix := Substr( cPrefix,3 )
       ENDIF
       arr := {}
       FOR i := 1 TO Len( hTrieLang )
-         IF ( Empty(aExe) .AND. hTrieLang[i,1] = cPrefix ) .OR. ;
-            ( !Empty(aExe) .AND. hTrieLang[i,1] = cPrefix .AND. ;
-            Ascan( aExe,{|s|s==hb_fnameExt(hTrieLang[i,1])} ) > 0 )
+         IF ( Empty(b) .AND. hTrieLang[i,1] = cPrefix ) .OR. ;
+            ( !Empty(b) .AND. hTrieLang[i,1] = cPrefix .AND. ;
+            Eval( b, hTrieLang[i] ) )
             Aadd( arr, cAdd + hTrieLang[i,1] )
          ENDIF
       NEXT

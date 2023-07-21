@@ -1567,15 +1567,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
          cClrFil := ::cClrZip
       ELSE
 #ifdef __PLATFORM__UNIX
-         IF !( 'R' $ arr[5] )
-            hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-               oPaneCurr:cCurrPath + arr[1], @nAttr )
-            arr[5] += "R"
-            IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
-               arr[5] += "X"
-            ENDIF
-         ENDIF
-         IF 'X' $ arr[5]
+         IF IsFileExec( arr )
             cClrFil := ::cClrExe
          ENDIF
 #else
@@ -3149,9 +3141,17 @@ STATIC FUNCTION ShowStdout()
 STATIC FUNCTION hbc_Cons_Auto( cmd )
 
    LOCAL cTmp
-
+#ifdef __PLATFORM__UNIX
+   LOCAL b := {|a|
+      RETURN IsFileExec( a )
+   }
+#else
+   LOCAL b := {|a|
+      RETURN ( hb_Ascan( aExtExe,hb_fnameExt(a[1]),,,.T. ) > 0 )
+   }
+#endif
    IF Left( cmd,2 ) == "./" .AND. !( ' ' $ cmd ) .AND. ;
-      !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir, aExtExe )) == cmd
+      !( cTmp := hbc_DoAuC( oHbc, cmd, oPaneCurr:aDir, b )) == cmd
       RETURN "./" + cTmp
    ELSE
       IF ( cTmp := hbc_DoAuC( oHbc, cmd ) ) == cmd
@@ -3809,6 +3809,23 @@ STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
       RETURN Eval( &( "{|o,a|" + cFunc + "(o,a)}" ), oPane, aParams )
    ENDIF
    RETURN Nil
+
+#ifdef __PLATFORM__UNIX
+STATIC FUNCTION IsFileExec( arr )
+
+   LOCAL nAttr
+
+   IF !( 'R' $ arr[5] )
+      hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+         oPaneCurr:cCurrPath + arr[1], @nAttr )
+      arr[5] += "R"
+      IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
+         arr[5] += "X"
+      ENDIF
+   ENDIF
+
+   RETURN ( 'X' $ arr[5] )
+#endif
 
 FUNCTION hbc_Wndinit( y1, x1, y2, x2, clr, cTitle )
 
