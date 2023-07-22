@@ -3829,6 +3829,9 @@ STATIC FUNCTION IsFileExec( arr )
 
    LOCAL nAttr
 
+   IF 'D' $ arr[5]
+      RETURN .F.
+   ENDIF
    IF !( 'R' $ arr[5] )
       hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
          oPaneCurr:cCurrPath + arr[1], @nAttr )
