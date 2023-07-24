@@ -74,8 +74,14 @@ STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
    IF !Empty( cImageBuff )
       handle := hwg_Openimage( cImageBuff, .T. )
       IF Empty( handle )
+         cFileName := hb_DirTemp() + hb_fnameNameExt( cFileName )
+         hb_Memowrit( cFileName, cImageBuff )
+         handle := hwg_Openimage( cImageBuff )
+         FErase( cFileName )
       ENDIF
    ELSE
+      edi_Alert( "Image absent" )
+      RETURN Nil
    ENDIF
    IF Empty( handle )
       edi_Alert( "Can't display image" )
