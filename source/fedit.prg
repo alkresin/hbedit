@@ -256,7 +256,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          i := Ascan( TEdit():aEditHis, {|a|a[1]==cFile_utf8} )
 #else
          cExt := cp_Lower( .T., cFile_utf8 )
-         i := Ascan( TEdit():aEditHis, {|a|cp_Lower(.T.,a[1])==cFile_utf8} )
+         i := Ascan( TEdit():aEditHis, {|a|cp_Lower(.T.,a[1])==cExt} )
 #endif
          IF i > 0
             arr := TEdit():aEditHis[i]
