@@ -34,7 +34,7 @@ $HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_webservices.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour lisp_run.prg -n -gh
-$HB_INS/bin/linux/gcc/harbour plug_hbc_ext_fb2.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_hbc_ext_all.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_ext_fb2zip.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_fb2_quick.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_files_compare.prg -n -gh

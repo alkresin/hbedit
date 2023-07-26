@@ -34,7 +34,7 @@ harbour plug_gm_ugolki.prg -n -gh -q
 harbour plug_webservices.prg -n -gh -q
 harbour plug_vcs.prg -n -gh -q
 harbour lisp_run.prg -n -gh -q
-harbour plug_hbc_ext_fb2.prg -n -gh -q
+harbour plug_hbc_ext_all.prg -n -gh -q
 harbour plug_hbc_ext_fb2zip.prg -n -gh -q
 harbour plug_hbc_fb2_quick.prg -n -gh -q
 harbour plug_hbc_files_compare.prg -n -gh -q
