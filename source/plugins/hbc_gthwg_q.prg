@@ -15,6 +15,7 @@ STATIC cImgFile, nImgType, hImage, aImgSize, oPane, handle
 FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
 
    LOCAL cp
+   LOCAL cFunc := "HWG_GDIPLUSOPENIMAGE"
 
    oPane := oPaneTo
    IF cDo == "qend"
@@ -48,7 +49,9 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
          ELSE
             hImage := hwg_OpenImage( cImgFile )
             IF Empty( hImage )
-               hImage := hwg_GdiplusOpenimage( cFileName )
+               IF hb_isFunction( cFunc )
+                  hImage := Eval( &( "{|s|" + cFunc + "(s)}" ), cFileName )
+               ENDIF
             ENDIF
             aImgSize := hwg_Getbitmapsize( hImage )
             nImgType := 1
@@ -73,19 +76,23 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
 STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
 
    LOCAL oDlg, oPanel, nWidth, nHeight, aBmpSize, nWidthMax, nHeightMax
+   LOCAL cFunc := "HWG_GDIPLUSOPENIMAGE"
 
    IF !Empty( cImageBuff )
       handle := hwg_Openimage( cImageBuff, .T. )
       IF Empty( handle )
-         cFileName := hb_DirTemp() + hb_fnameNameExt( cFileName )
-         hb_Memowrit( cFileName, cImageBuff )
-         handle := hwg_GdiplusOpenimage( cFileName )
-         //edi_alert( cFileName + ": " + Iif( empty(handle),"F","T" ) )
-         FErase( cFileName )
+         IF hb_isFunction( cFunc )
+            cFileName := hb_DirTemp() + hb_fnameNameExt( cFileName )
+            hb_Memowrit( cFileName, cImageBuff )
+            handle := Eval( &( "{|s|" + cFunc + "(s)}" ), cFileName )
+            FErase( cFileName )
+         ENDIF
       ENDIF
    ELSE
       IF Empty( handle := hwg_Openimage( cFileName ) )
-         handle := hwg_GdiplusOpenimage( cFileName )
+         IF hb_isFunction( cFunc )
+            handle := Eval( &( "{|s|" + cFunc + "(s)}" ), cFileName )
+         ENDIF
       ENDIF
       //edi_Alert( "Image absent" )
       //RETURN Nil
@@ -122,8 +129,8 @@ STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
    oDlg := HDialog():New( 11,,0,0,nWidth,nHeight,hb_fnameName( cFileName ),,,{||hwg_Deleteobject(handle),.T.},,,,,,.F.,,,.F.,,,.F.,,.F. )
    oPanel := HPanel():New(,,13,0,0,nWidth,nHeight,,,{||PPanel(oPanel)},, )
    oPanel:Anchor := 1 + 2 + 8 + 4
+   hwg_SetDlgKey( oDlg, 0, Iif( hb_Version(20), 0xFF1B, 27 ), {||oDlg:Close()} )
    oDlg:Activate( .T., .F., .F., .F., )
-
 
    RETURN Nil
 
