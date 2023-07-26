@@ -6,11 +6,10 @@ A fullscreen console multiplatform text editor with built-in file manager
   + bld_edit.bat        - command file to build Hbedit for Windows (Borland C compiler).
   + bld_edit.sh         - shell script to build Hbedit for Linux.
   + bld_edit_hwg.sh     - shell script to build Hbedit for Linux with GTHWG driver
-  + bld_edit_full.bat   - command file to build full Hbedit for Windows (Borland C compiler),
-                        its only difference is that the full version requests most of Harbour
-                        functions to provide a possibility to use them in plugins.
   + bld_edit_hwg_ssh.sh - shell script to build Hbedit for Linux with GTHWG driver and ssh2 support
   + bld_gcc_ssh.bat     - command file to build full Hbedit for Windows (Mingw C compiler) with ssh2 support
+  + bld_gcc_hwg_ssh.bat - command file to build full Hbedit for Windows (Mingw C compiler) with ssh2 support
+                          and GTHWG driver (HwGUI support)
   + bld_plugins.bat     - command file to build plugins.
   + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.

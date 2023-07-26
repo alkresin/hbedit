@@ -218,7 +218,7 @@ STATIC FUNCTION fb2_gettitle( cId )
       nPosStart := nPos + 1
       IF Empty( cId )
          fb2_add_stripped( cTemp )
-         Aadd( aContent, { Space(nLevel*2)+(arr[nLine] :=LTrim(arr[nLine])), Nil, nLine, Ltrim(Str(nLine)) } )
+         Aadd( aContent, { Space(nLevel*2)+(arr[nLine]:=LTrim(arr[nLine])), Nil, nLine, PAdl(Ltrim(Str(nLine)),8) } )
          cId := Replicate( ':', nLevel*2 )
       ELSE
          fb2_add_stripped( StrTran( cTemp, Chr(10), "" ) )

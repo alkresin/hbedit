@@ -47,6 +47,9 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
             nImgType := 2
          ELSE
             hImage := hwg_OpenImage( cImgFile )
+            IF Empty( hImage )
+               hImage := hwg_GdiplusOpenimage( cFileName )
+            ENDIF
             aImgSize := hwg_Getbitmapsize( hImage )
             nImgType := 1
          ENDIF
@@ -76,12 +79,16 @@ STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
       IF Empty( handle )
          cFileName := hb_DirTemp() + hb_fnameNameExt( cFileName )
          hb_Memowrit( cFileName, cImageBuff )
-         handle := hwg_Openimage( cImageBuff )
+         handle := hwg_GdiplusOpenimage( cFileName )
+         //edi_alert( cFileName + ": " + Iif( empty(handle),"F","T" ) )
          FErase( cFileName )
       ENDIF
    ELSE
-      edi_Alert( "Image absent" )
-      RETURN Nil
+      IF Empty( handle := hwg_Openimage( cFileName ) )
+         handle := hwg_GdiplusOpenimage( cFileName )
+      ENDIF
+      //edi_Alert( "Image absent" )
+      //RETURN Nil
    ENDIF
    IF Empty( handle )
       edi_Alert( "Can't display image" )
@@ -111,12 +118,7 @@ STATIC FUNCTION ImgViewDlg( cFileName, cImageBuff )
          ENDIF
       ENDIF
    ENDIF
-   /*
-   INIT DIALOG oDlg TITLE hb_fnameName( cFileName ) AT 0, 0 SIZE nWidth, nHeight ;
-      ON EXIT {||hwg_Deleteobject(handle),.T.}
-   @ 0,0 PANEL oPanel SIZE nWidth, nHeight STYLE SS_OWNERDRAW ON PAINT {||PPanel(oPanel)}
-   ACTIVATE DIALOG oDlg NOMODAL
-   */
+
    oDlg := HDialog():New( 11,,0,0,nWidth,nHeight,hb_fnameName( cFileName ),,,{||hwg_Deleteobject(handle),.T.},,,,,,.F.,,,.F.,,,.F.,,.F. )
    oPanel := HPanel():New(,,13,0,0,nWidth,nHeight,,,{||PPanel(oPanel)},, )
    oPanel:Anchor := 1 + 2 + 8 + 4

@@ -4,7 +4,7 @@ set SRC_PATH=source
 set HB_LIBS=hbdebug.lib hbrtl.lib gtwvt.lib gtgui.lib hbvm.lib hbpp.lib hbcommon.lib hbmacro.lib rddleto.lib hbrdd.lib rddntx.lib rddcdx.lib rddfpt.lib hbsix.lib hbct.lib hbcpage.lib hbpcre.lib hbcplr.lib hbzlib.lib hbmzip.lib minizip.lib hbwin.lib hbnetio.lib
 
 %HB_INSTALL%\bin\harbour %SRC_PATH%\hbedit.prg /n /q /dGTWVT -I%HB_INSTALL%\include %1 2>harbour.out
-%HB_INSTALL%\bin\harbour %SRC_PATH%\fedit.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
+%HB_INSTALL%\bin\harbour %SRC_PATH%\fedit.prg /n /q /d_FULL -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fmenu.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fcmd.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fgetsys.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
