@@ -14,7 +14,7 @@ FUNCTION plug_hbc_ext_all( oEdit, cPath, aParams )
                hb_hrbLoad( cPath + cGthwgHrb ), Nil )
          ENDIF
          IF !Empty( FilePane():hMisc["gthwg_plug"] )
-            hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cFile, "dlg" )
+            hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cFile, "dlg", .T. )
          ENDIF
       ELSEIF cExt == ".fb2"
          IF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_fb2zip.hrb" ) ) > 0
