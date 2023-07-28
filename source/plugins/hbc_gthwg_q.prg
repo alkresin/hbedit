@@ -226,7 +226,7 @@ STATIC FUNCTION FDlgInit( oDlg, cFileName, handle, nKoef )
    oDlg:cargo["height"] := aBmpSize[2]
    oDlg:cargo["koef"] := nKoef
 
-   oDlg:SetTitle( oDlg:cargo["imgname"] + "  (" + Str(oDlg:cargo["koef"]*100,3,0) + "%)" )
+   oDlg:SetTitle( oDlg:cargo["imgname"] + "  (" + Str(nKoef*100,3,0) + "%)" )
 
    RETURN .T.
 

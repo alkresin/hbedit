@@ -3221,7 +3221,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
   #endif
 #endif
 #ifdef GTHWG
-   cDop += " (gthwgui)"
+   cDop += " (gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2))) + ")"
 #endif
    IF Empty( cFullPath )
       cFullPath := edi_FindPath( "hbedit.help" )
