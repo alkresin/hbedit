@@ -80,8 +80,6 @@ FUNCTION hbc_gthwg_q( oPaneTo, cFileName, cDo, xDopInfo )
       @ oPaneTo:y1, oPaneTo:x1, oPaneTo:y2, oPaneTo:x2 BOX "ÚÄ¿³ÙÄÀ³ "
       hb_cdpSelect( cp )
 
-      //oPaneTo:bPaint := {|o,h|gthwg_qView(o,h)}
-      //gthwg_paint_SetCallback( "GTHWG_PAINTCB" )
       gthwg_paint_SetCallback( "GTHWG_QVIEW" )
       hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
 

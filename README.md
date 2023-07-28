@@ -20,7 +20,6 @@ A fullscreen console multiplatform text editor with built-in file manager
   + hbc.ini             - HbCommander (built-in file manager) ini file.
   + hbedit.ini          - Hbedit ini file.
 
-
   + source/
     + hbfuncsfull.ch    - header file.
 
@@ -91,8 +90,8 @@ A fullscreen console multiplatform text editor with built-in file manager
 ### Usage
 
   The Hbedit may be used as a class, as a library to incorporate it to your application.
-  You just need to compile and link the Tedit source files ( cfuncs.c, fcmd.prg, fedit.prg,
-  ffiles.prg, fmenu.prg, hilight.prg ) and put following lines:
+  You just need to compile with -d__BUILT_IN and link the Tedit source files,
+  except hbedit.prg, hbcommander.prg, fview.prg, and put following lines:
 
       oEdit := TEdit():New( Memoread("my.txt"), "my.txt" )
       oEdit:Edit()

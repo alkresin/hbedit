@@ -378,7 +378,7 @@ METHOD Edit( lShowOnly ) CLASS TEdit
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns==Nil, SC_NONE, Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) ) )
       IF nAutoDelay > 0
-         DO WHILE ( nKeyExt := Inkey( 0.015, HB_INKEY_ALL + HB_INKEY_EXT ) ) == 0
+         DO WHILE ( nKeyExt := Inkey( 0.5, HB_INKEY_ALL + HB_INKEY_EXT ) ) == 0
             FCheckAutoc()
          ENDDO
       ELSE
