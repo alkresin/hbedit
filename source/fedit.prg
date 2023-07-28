@@ -378,7 +378,7 @@ METHOD Edit( lShowOnly ) CLASS TEdit
    DO WHILE ::lShow
       SetCursor( Iif( ::lIns==Nil, SC_NONE, Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) ) )
       IF nAutoDelay > 0
-         DO WHILE ( nKeyExt := Inkey( 0.01, HB_INKEY_ALL + HB_INKEY_EXT ) ) == 0
+         DO WHILE ( nKeyExt := Inkey( 0.015, HB_INKEY_ALL + HB_INKEY_EXT ) ) == 0
             FCheckAutoc()
          ENDDO
       ELSE
@@ -3438,20 +3438,18 @@ FUNCTION mnu_View( oEdit )
       oEdit:lWrap := !oEdit:lWrap
       oEdit:lTextOut := .T.
    ELSEIF i == 2
-      TEdit():options["autocomplete"] := !lAutoC
+      TEdit():options["autocomplete"] := lAutoC := !lAutoC
+      nAutoDelay := Iif( lAutoC, hb_hGetDef( TEdit():options,"autodelay", 0 ), 0 )
+      /*
       IF lAutoC
-         nAutoDelay := hb_hGetDef( TEdit():options,"autodelay", 0 )
-         /*
          IF hb_hGetDef( TEdit():options,"autodelay", 0 ) > 0
             hIdle := hb_IdleAdd( {|| _FIdle() } )
          ENDIF
-         */
-      /*
       ELSEIF !Empty( hIdle )
          hb_IdleDel( hIdle )
          hIdle := Nil
-      */
       ENDIF
+      */
    ELSEIF i == 3
       TEdit():options["autovertical"] := !lAutoVert
    ELSEIF i == 4
