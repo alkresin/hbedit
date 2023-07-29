@@ -3833,11 +3833,12 @@ STATIC FUNCTION IsFileExec( arr )
       RETURN .F.
    ENDIF
    IF !( 'R' $ arr[5] )
-      hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + arr[1], @nAttr )
       arr[5] += "R"
-      IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
-         arr[5] += "X"
+      IF hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+         oPaneCurr:cCurrPath + arr[1], @nAttr )
+         IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
+            arr[5] += "X"
+         ENDIF
       ENDIF
    ENDIF
 
