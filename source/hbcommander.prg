@@ -127,7 +127,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       RETURN -1
    ENDIF
 
-   IF oPaneCurr:nCurrent == 0 .AND. !( nKey == K_ALT_D .OR. nKey == K_CTRL_TAB .OR. nKey == K_ALT_TAB .OR. ;
+   IF oPaneCurr:nCurrent == 0 .AND. !( (nKey >= 65 .AND. nKey <= 122) .OR. nKey == K_CTRL_TAB .OR. nKey == K_ALT_TAB .OR. ;
       nKey == K_F1 .OR. nKey == K_F9 .OR. nKey == K_TAB .OR. nKey == K_CTRL_PGUP .OR. nKey == K_F10 )
       RETURN -1
    ENDIF
@@ -641,8 +641,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ShowStdout()
    ELSEIF nKey == K_CTRL_P
       hbc_PaneOpt()
-   ELSEIF nKey == K_ALT_D
-      oPaneCurr:ChangeDir()
+   //ELSEIF nKey == K_ALT_D
+   //   oPaneCurr:ChangeDir()
    ELSEIF nKey == K_CTRL_F1
       IF !Empty( cTemp := hbc_SelePath( FilePane():vy1-1, FilePane():aPanes[1]:x1-1 ) )
          FilePane():aPanes[1]:ChangeDir( cTemp )
@@ -693,12 +693,19 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:ChangeDir( aDir[1]+aDir[2]+aDir[3]+aDir[4] )
       ENDIF
    ELSE
-      IF !Empty( FilePane():aDefPaths )
-         FOR i := 1 TO Len( FilePane():aDefPaths )
-            IF FilePane():aDefPaths[i,3] == nKeyExt
-               oPaneCurr:ChangeDir( FilePane():aDefPaths[i,1] )
-            ENDIF
-         NEXT
+      nKey := edi_MapKey( oHbc, nKey )
+      IF nKey == 68 .OR. nKey == 100  // D d
+         oPaneCurr:ChangeDir()
+      ELSEIF nKey == 72 .OR. nKey == 104  // H h
+         hbc_HistMnu()
+      ELSE
+         IF !Empty( FilePane():aDefPaths )
+            FOR i := 1 TO Len( FilePane():aDefPaths )
+               IF FilePane():aDefPaths[i,3] == nKeyExt
+                  oPaneCurr:ChangeDir( FilePane():aDefPaths[i,1] )
+               ENDIF
+            NEXT
+         ENDIF
       ENDIF
    ENDIF
 
@@ -1681,11 +1688,10 @@ METHOD PaneMenu() CLASS FilePane
 
    LOCAL cBuf, nChoic := 1, cTemp, bufsc, o
    LOCAL cSep := "---"
-   LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"Alt-D"}, ;
-      {_I("History"),,}, {_I("Find file"),,,"Ctrl-F7"}, ;
+   LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
+      {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
       {_I("Plugins"),,,"F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
       {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
-   LOCAL aMenu3 := { {_I("Editing"),,}, {_I("Documents"),,}, {_I("Commands"),,,"Ctrl-F8"} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-W"}, .T. )
@@ -1696,14 +1702,7 @@ METHOD PaneMenu() CLASS FilePane
    ELSEIF nChoic == 2
       ::ChangeDir()
    ELSEIF nChoic == 3
-      nChoic := FMenu( oHbc, aMenu3, ::y1+2, ::x1+14, ::y1+Len(aMenu3)+3,, ::aClrMenu[1], ::aClrMenu[2] )
-      IF nChoic == 1
-         hbc_Dirlist()
-      ELSEIF nChoic == 2
-         hbc_Doclist()
-      ELSEIF nChoic == 3
-         hbc_CmdHis()
-      ENDIF
+      hbc_HistMnu()
    ELSEIF nChoic == 4
       hbc_Search()
    ELSEIF nChoic == 5
@@ -2599,6 +2598,22 @@ STATIC FUNCTION hbc_PaneOpt()
 
    RETURN .T.
 
+STATIC FUNCTION hbc_HistMnu()
+
+   LOCAL aMenu := { {_I("Editing"),,}, {_I("Documents"),,}, {_I("Commands"),,,"Ctrl-F8"} }, nChoic
+
+   nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
+      oPaneCurr:y1+Len(aMenu)+3,, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+   IF nChoic == 1
+      hbc_Dirlist()
+   ELSEIF nChoic == 2
+      hbc_Doclist()
+   ELSEIF nChoic == 3
+      hbc_CmdHis()
+   ENDIF
+
+   RETURN .T.
+
 STATIC FUNCTION zipRead( hUnzip )
 
    LOCAL nErr, aDir, cFile, nSize, dDate, cTime, lCrypted
@@ -2681,39 +2696,56 @@ STATIC FUNCTION hbc_Search( lSele )
 
    LOCAL cScBuf, oldc, nRes, i
    LOCAL aGets := { ;
-      {09,30,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {10,30,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {10,65,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
+      {08,30,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {09,30,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {09,65,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
+      {11,18,1,.F.,1}, ;
+      {11,40,1,.F.,1}, ;
       {12,18,1,.F.,1}, ;
-      {12,40,1,.F.,1}, ;
+      {12,40,1,Empty(lSele),1}, ;
+      {11,58,1,!Empty(lSele),1}, ;
       {13,18,1,.F.,1}, ;
-      {13,40,1,Empty(lSele),1}, ;
-      {12,58,1,!Empty(lSele),1}, ;
+      {13,30,0,Dtos(Date()),8,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, dDateS, d
    LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath
+   LOCAL b1 := {|s|
+      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. hb_ttod(d) >= dDateS )
+         Aadd( aDir, Ascan2( oPaneCurr:aDir,hb_fnameNameExt(s) ) )
+      ENDIF
+      RETURN .T.
+   }
+   LOCAL b2 := {|s|
+      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. hb_ttod(d) >= dDateS )
+         Aadd( aDir,{ Substr( s,Len(oPaneCurr:cCurrPath)+1 ),"","","","" } )
+      ENDIF
+      //edi_Writelog( s + " " + Dtos(hb_ttod(d)), Dtos(dDateS) )
+      RETURN .T.
+   }
 
    IF oPaneCurr:nPanelMod > 0
       RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
 
-   cScBuf := Savescreen( 08, 15, 16, 70 )
+   cScBuf := Savescreen( 07, 15, 16, 70 )
    oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
    hb_cdpSelect( "RU866" )
-   @ 08, 15, 16, 70 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 07, 15, 16, 70 BOX "ÚÄ¿³ÙÄÀ³ "
    @ 14, 15 SAY "Ã"
    @ 14, 70 SAY "´"
    @ 14, 16 TO 14, 69
    hb_cdpSelect( oHbc:cp )
 
-   @ 09, 17 SAY _I("File mask")
-   @ 10, 17 SAY _I("Search for")
-   @ 12, 17 SAY "[ ] " + _I("Case sensitive")
-   @ 12, 39 SAY "[ ] " + _I("Regular expr.")
-   @ 13, 17 SAY "[ ] " + _I("Whole word")
-   @ 13, 39 SAY "[ ] " + _I("Recursive")
-   @ 12, 57 SAY "[ ] " + _I("Select")
+   @ 08, 17 SAY _I("File mask")
+   @ 09, 17 SAY _I("Search for")
+   @ 11, 17 SAY "[ ] " + _I("Case sensitive")
+   @ 11, 39 SAY "[ ] " + _I("Regular expr.")
+   @ 12, 17 SAY "[ ] " + _I("Whole word")
+   @ 12, 39 SAY "[ ] " + _I("Recursive")
+   @ 11, 57 SAY "[ ] " + _I("Select")
+   @ 13, 17 SAY "[ ] " + _I("Date") + " >="
+   @ 13, 40 SAY "(yyyymmdd)"
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -2728,16 +2760,16 @@ STATIC FUNCTION hbc_Search( lSele )
       lWord := aGets[6,4]
       lRecu := aGets[7,4]
       lSelect := Iif( lRecu, .F., aGets[8,4] )
-
+      IF aGets[9,4]
+         dDateS := Stod( aGets[10,4] )
+      ENDIF
       aDir := Iif( lSelect, {}, { { "..","","","","D" } } )
       IF Empty( cSearch )
          cPath := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath
          IF lSelect
-            DirEval( cPath, aGets[1,4], lRecu, ;
-               {|s|Aadd( aDir, Ascan2(oPaneCurr:aDir,hb_fnameNameExt(s)) )} )
+            DirEval( cPath, aGets[1,4], lRecu, b1 )
          ELSE
-            DirEval( cPath, aGets[1,4], lRecu, ;
-               {|s|Aadd( aDir,{ Substr(s,Len(oPaneCurr:cCurrPath)+1),"","","","" })} )
+            DirEval( cPath, aGets[1,4], lRecu, b2 )
          ENDIF
       ELSEIF oPaneCurr:cIOpref == "net:"
          edi_Alert( _I(cNotPerm) )
@@ -2754,6 +2786,9 @@ STATIC FUNCTION hbc_Search( lSele )
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
                IF !Empty( aRes[i] )
+                  IF aGets[9,4] .AND. hb_vfTimeGet( aRes[i], @d ) .AND. hb_ttod(d) < dDateS
+                     LOOP
+                  ENDIF
                   IF lSelect
                      IF ( n := Ascan2( oPaneCurr:aDir,aRes[i] ) ) > 0
                         Aadd( aDir, n )
@@ -2787,7 +2822,7 @@ STATIC FUNCTION hbc_Search( lSele )
       oPaneCurr:nCurrent := 1
    ENDIF
 
-   Restscreen( 08, 15, 16, 70, cScBuf )
+   Restscreen( 07, 15, 16, 70, cScBuf )
    SetColor( oldc )
    IF lFound
       IF !lSelect
