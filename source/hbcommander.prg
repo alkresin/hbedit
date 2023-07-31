@@ -2706,18 +2706,21 @@ STATIC FUNCTION hbc_Search( lSele )
       {11,58,1,!Empty(lSele),1}, ;
       {13,18,1,.F.,1}, ;
       {13,30,0,Dtos(Date()),8,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {13,50,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, dDateS, d
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, dDateS, d, d1, cTimeS
    LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath
    LOCAL b1 := {|s|
-      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. hb_ttod(d) >= dDateS )
+      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) ) )
          Aadd( aDir, Ascan2( oPaneCurr:aDir,hb_fnameNameExt(s) ) )
       ENDIF
       RETURN .T.
    }
    LOCAL b2 := {|s|
-      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. hb_ttod(d) >= dDateS )
+      IF !aGets[9,4] .OR. ( hb_vfTimeGet( s, @d ) .AND. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) ) )
          Aadd( aDir,{ Substr( s,Len(oPaneCurr:cCurrPath)+1 ),"","","","" } )
       ENDIF
       //edi_Writelog( s + " " + Dtos(hb_ttod(d)), Dtos(dDateS) )
@@ -2745,7 +2748,8 @@ STATIC FUNCTION hbc_Search( lSele )
    @ 12, 39 SAY "[ ] " + _I("Recursive")
    @ 11, 57 SAY "[ ] " + _I("Select")
    @ 13, 17 SAY "[ ] " + _I("Date") + " >="
-   @ 13, 40 SAY "(yyyymmdd)"
+   @ 13, 39 SAY "(yyyymmdd)"
+   @ 13, 56 SAY "(hh:mm)"
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -2762,6 +2766,7 @@ STATIC FUNCTION hbc_Search( lSele )
       lSelect := Iif( lRecu, .F., aGets[8,4] )
       IF aGets[9,4]
          dDateS := Stod( aGets[10,4] )
+         cTimeS := Left( aGets[11,4],2 ) + Substr( aGets[11,4],4,2 )
       ENDIF
       aDir := Iif( lSelect, {}, { { "..","","","","D" } } )
       IF Empty( cSearch )
@@ -2786,7 +2791,8 @@ STATIC FUNCTION hbc_Search( lSele )
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
                IF !Empty( aRes[i] )
-                  IF aGets[9,4] .AND. hb_vfTimeGet( aRes[i], @d ) .AND. hb_ttod(d) < dDateS
+                  IF !( !aGets[9,4] .OR. ( hb_vfTimeGet( aRes[i], @d ) .AND. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+                     ( d1 == dDateS .AND. Substr( hb_ttos(d), 9,4 ) >= cTimeS ) ) ) )
                      LOOP
                   ENDIF
                   IF lSelect
@@ -3089,29 +3095,33 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    HB_FA_ENCRYPTED, HB_FA_NOTINDEXED, HB_FA_SPARSE, HB_FA_REPARSE, HB_FA_TEMPORARY, HB_FA_OFFLINE }
 #endif
    LOCAL arr := oPane:aDir[oPane:nCurrent + oPane:nShift], arrD[Len(aDefs)], i
-   LOCAL nAttr, nAttrNew
+   LOCAL nAttr, nAttrNew, t
 
-   IF !hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+   IF !hb_vfAttrGet( Iif( oPaneCurr:cIOpref == "sea:", "", ;
+      oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort ) + ;
       oPaneCurr:cCurrPath + arr[1], @nAttr )
       edi_Alert( _I("Can't read attributes") )
       RETURN Nil
    ENDIF
    nAttrNew := nAttr
+   hb_vfTimeGet( Iif( oPaneCurr:cIOpref == "sea:", "", ;
+      oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort ) + ;
+      oPaneCurr:cCurrPath + arr[1], @t )
 
 #ifdef __PLATFORM__UNIX
    Aadd( aGets, { y1+13,x1+3, 1, .F., 1 } )
 #endif
-   Aadd( aGets, { y1+17,x1+7, 2, _I("[Ok]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} } )
-   Aadd( aGets, { y1+17,x1+17, 2, _I("[Cancel]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } )
+   Aadd( aGets, { y1+18,x1+7, 2, _I("[Ok]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} } )
+   Aadd( aGets, { y1+18,x1+17, 2, _I("[Cancel]"),, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } )
 
-   cScBuf := Savescreen( y1, x1, y1+18, x1+34 )
+   cScBuf := Savescreen( y1, x1, y1+19, x1+34 )
    oldc := SetColor( "N/W"+","+"N/W"+",,"+"N+/W"+","+"N/W" )
 
    cp := hb_cdpSelect( "RU866" )
-   @ y1, x1, y1+18, x1+34 BOX "ÚÄ¿³ÙÄÀ³ "
-   @ y1+16, x1 SAY "Ã"
-   @ y1+16, x1+34 SAY "´"
-   @ y1+16, x1+1 TO y1+16, x1+33
+   @ y1,x1, y1+19, x1+34 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+17, x1 SAY "Ã"
+   @ y1+17, x1+34 SAY "´"
+   @ y1+17, x1+1 TO y1+17, x1+33
    hb_cdpSelect( cp )
 
    @ y1,x1+10 SAY " " + _I("Attributes") + " "
@@ -3147,6 +3157,9 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    FOR i := 1 TO Len( aDefs )
       arrD[i] := aGets[i,4] := ( hb_bitAnd(nAttr,aDefs[i]) > 0 )
    NEXT
+   IF !Empty( t )
+      @ y1+16, x1+2 SAY hb_ttoc( t )
+   ENDIF
    IF edi_READ( aGets ) > 0
       FOR i := 1 TO Len( aDefs )
          IF arrD[i] != aGets[i,4]
@@ -3166,7 +3179,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    ENDIF
 
    SetColor( oldc )
-   Restscreen( y1, x1, y1+18, x1+34, cScBuf )
+   Restscreen( y1, x1, y1+19, x1+34, cScBuf )
 
    RETURN Nil
 

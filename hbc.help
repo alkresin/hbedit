@@ -22,7 +22,8 @@ HbCommander - built-in file manager
    Ctrl-A     - View/Set file attributes
    Ctrl-P     - Pane display mode menu
 
-   Alt-D      - Change directory
+   D|d        - Change directory
+   H|h        - History menu
    Ctrl-F1    - Change directory for a left pane
    Ctrl-F2    - Change directory for a right pane
    Ctrl-R     - Refresh panel

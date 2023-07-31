@@ -38,7 +38,7 @@ STATIC iChoic
 FUNCTION edi_READ( aGets, pKeys )
 
    LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s, nLen, xr
-   LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" )
+   LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" ), lInsMode := .T.
    LOCAL aOpt := Array( Len( aGets ), 2 )
    LOCAL nCursOld := SetCursor()
 
@@ -83,7 +83,7 @@ FUNCTION edi_READ( aGets, pKeys )
                aOpt[nCurr,G2_OPT] := .F.
             ENDIF
             aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],xr-1 ) + ;
-                  cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],xr )
+                  cp_Chr( lUtf8,nKey ) + cp_Substr( lUtf8,aGets[nCurr,G_VALUE], Iif(lInsMode, xr, xr+1) )
             Scroll( y, aGets[nCurr,G_X], y, aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1 )
             DevPos( y, aGets[nCurr,G_X] )
             nLen := cp_Len( lUtf8,aGets[nCurr,G_VALUE] )
@@ -262,6 +262,9 @@ FUNCTION edi_READ( aGets, pKeys )
                aGets[nCurr,G_VALUE] ) - aOpt[nCurr,G2_FIRST] + 1 ) )
             aOpt[nCurr,G2_OPT] := .F.
          ENDIF
+
+      ELSEIF nKey == K_INS .AND. hb_BitAnd( nKeyExt, SHIFT_PRESSED+CTRL_PRESSED ) == 0
+         lInsMode := !lInsMode
 
       ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
          ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
