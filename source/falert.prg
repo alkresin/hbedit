@@ -69,7 +69,7 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass )
    x1 := Iif( x1 == Nil, Int( MaxCol()/2 ) - 15, x1 )
    x2 := Iif( x2 == Nil, x1 + 30, x2 )
 
-   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, "", x2-x1-4,,,Iif(Empty(lPass),Nil,1) } }
+   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, "", x2-x1-4,,,Iif(Empty(lPass),Nil,"@P") } }
 
    cBuf := Savescreen( y1, x1, y1 + 2, x2 )
    @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "

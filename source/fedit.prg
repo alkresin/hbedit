@@ -3681,7 +3681,7 @@ FUNCTION mnu_FileList( oEdit, aGet )
 
       cLastDir := hb_fnameDir( xFileName )
       aGet[4] := xFileName
-      ShowGetItem( aGet, .F., oEdit:lUtf8 )
+      ShowGetItem( aGet, .F., oEdit:lUtf8,, {.F.,1,"",.F.,.F.} )
    ENDIF
 
    RETURN Nil
@@ -3708,7 +3708,7 @@ STATIC FUNCTION mnu_DirList( oEdit, aGet, lDirOnly )
       cLastDir := hb_fnameDir( oEdit:aEditHis[aMenu[i,3],1] )
       IF lDirOnly
          aGet[4] := cLastDir
-         ShowGetItem( aGet, .F., oEdit:lUtf8 )
+         ShowGetItem( aGet, .F., oEdit:lUtf8,, {.F.,1,"",.F.,.F.} )
       ELSE
          mnu_FileList( oEdit, aGet )
       ENDIF
@@ -3801,7 +3801,7 @@ FUNCTION mnu_SeaHist( oEdit, aGet )
       bufc := SaveScreen( y1, x1, y2, x2 )
       IF !Empty( i := FMenu( oEdit, aMenu, y1, x1, y2, x2 ) )
          aGet[4] := aMenu[i,1]
-         ShowGetItem( aGet, .F., oEdit:lUtf8 )
+         ShowGetItem( aGet, .F., oEdit:lUtf8,, {.F.,1,"",.F.,.F.} )
       ENDIF
       RestScreen( y1, x1, y2, x2, bufc )
       __KeyBoard(Chr(K_UP))
@@ -3929,7 +3929,7 @@ FUNCTION mnu_ReplHist( oEdit, aGet )
       bufc := SaveScreen( 14, 22, 14 + Min(6,Len(aMenu)+1), 55 )
       IF !Empty( i := FMenu( oEdit, aMenu, 14, 22, 14 + Min(6,Len(aMenu)+1), 55 ) )
          aGet[4] := aMenu[i,1]
-         ShowGetItem( aGet, .F., oEdit:lUtf8 )
+         ShowGetItem( aGet, .F., oEdit:lUtf8,, {.F.,1,"",.F.,.F.} )
       ENDIF
       RestScreen( 14, 22, 14 + Min(6,Len(aMenu)+1), 55, bufc )
       __KeyBoard(Chr(K_UP))

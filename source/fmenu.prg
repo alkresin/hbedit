@@ -364,29 +364,6 @@ STATIC FUNCTION MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
 
    RETURN Nil
 
-FUNCTION edi_GetString( oEdit, cTitle )
-
-   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu )
-   LOCAL aGets := { {11,27,0,"",26} }
-   LOCAL nRes, cRes := ""
-   LOCAL bufsc := Savescreen( 09, 25, 12, 55 )
-
-   hb_cdpSelect( "RU866" )
-   @ 09, 25, 12, 55 BOX "ÚÄ¿³ÙÄÀ³ "
-   hb_cdpSelect( oEdit:cp )
-
-   @ 10,32 SAY cTitle
-   SetColor( oEdit:cColorMenu )
-
-   IF ( nRes := edi_READ( aGets ) ) > 0
-       cRes := AllTrim( aGets[1,4] )
-   ENDIF
-
-   SetColor( oldc )
-   Restscreen( 09, 25, 12, 55, bufsc )
-
-   RETURN cRes
-
 FUNCTION cp_Padr( lUtf8, s, n )
 
    LOCAL nLen

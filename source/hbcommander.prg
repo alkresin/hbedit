@@ -2705,8 +2705,8 @@ STATIC FUNCTION hbc_Search( lSele )
       {12,40,1,Empty(lSele),1}, ;
       {11,58,1,!Empty(lSele),1}, ;
       {13,18,1,.F.,1}, ;
-      {13,30,0,Dtos(Date()),8,oHbc:cColorMenu,oHbc:cColorMenu}, ;
-      {13,50,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu}, ;
+      {13,30,0,hb_dtoc(Date(),"dd.mm.yyyy"),10,oHbc:cColorMenu,oHbc:cColorMenu,"99.99.9999"}, ;
+      {13,42,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu,"99:99"}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, dDateS, d, d1, cTimeS
@@ -2748,8 +2748,8 @@ STATIC FUNCTION hbc_Search( lSele )
    @ 12, 39 SAY "[ ] " + _I("Recursive")
    @ 11, 57 SAY "[ ] " + _I("Select")
    @ 13, 17 SAY "[ ] " + _I("Date") + " >="
-   @ 13, 39 SAY "(yyyymmdd)"
-   @ 13, 56 SAY "(hh:mm)"
+   //@ 13, 39 SAY "(yyyymmdd)"
+   //@ 13, 56 SAY "(hh:mm)"
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
@@ -2757,7 +2757,7 @@ STATIC FUNCTION hbc_Search( lSele )
       aGets[5,4] := lRegex_Sea
    ENDIF
 
-   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+   DO WHILE ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
       cSearch := aGets[2,4]
       lCase := aGets[4,4]
       lRegex := aGets[5,4]
@@ -2765,7 +2765,11 @@ STATIC FUNCTION hbc_Search( lSele )
       lRecu := aGets[7,4]
       lSelect := Iif( lRecu, .F., aGets[8,4] )
       IF aGets[9,4]
-         dDateS := Stod( aGets[10,4] )
+         dDateS := Stod( Substr(aGets[10,4],7,4) + Substr(aGets[10,4],4,2) + Left(aGets[10,4],2) )
+         IF Empty( dDateS )
+            edi_Alert( _I("Wrong date") )
+            LOOP
+         ENDIF
          cTimeS := Left( aGets[11,4],2 ) + Substr( aGets[11,4],4,2 )
       ENDIF
       aDir := Iif( lSelect, {}, { { "..","","","","D" } } )
@@ -2826,7 +2830,8 @@ STATIC FUNCTION hbc_Search( lSele )
          lFound := .T.
       ENDIF
       oPaneCurr:nCurrent := 1
-   ENDIF
+      EXIT
+   ENDDO
 
    Restscreen( 07, 15, 16, 70, cScBuf )
    SetColor( oldc )
@@ -3787,7 +3792,7 @@ FUNCTION hbc_GetLogin( cLogin, cPass, lSave )
       {y1+1,x1+2, 11, _I("Login:")}, ;
       { y1+1,x1+10, 0, cLogin, x2-x1-12 }, ;
       {y1+2,x1+2, 11, _I("Passw:")}, ;
-      { y1+2,x1+10, 0, cPass, x2-x1-12,,,1 }, ;
+      { y1+2,x1+10, 0, cPass, x2-x1-12,,,"@P" }, ;
       {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " + _I("Save password")} ;
       }
 
