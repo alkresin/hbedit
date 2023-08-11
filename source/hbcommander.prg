@@ -2511,10 +2511,20 @@ STATIC FUNCTION hbc_Dirlist()
    LOCAL i, aMenu := {}, cDir
 
    FOR i := 1 TO Len( TEdit():aEditHis )
+#ifdef __PLATFORM__UNIX
       cDir := NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~',oHbc:lUtf8 )
       IF Ascan( aMenu, {|a|a[1]==cDir} ) == 0
          AAdd( aMenu, { cDir,Nil,i} )
       ENDIF
+#else
+      cDir := Lower( NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~',oHbc:lUtf8 ) )
+      IF '/' $ cDir
+         cDir := StrTran( cDir, '/', '\' )
+      ENDIF
+      IF Ascan( aMenu, {|a|Lower(a[1])==cDir} ) == 0
+         AAdd( aMenu, { cDir,Nil,i} )
+      ENDIF
+#endif
    NEXT
 
    IF !Empty( aMenu )
@@ -2532,6 +2542,7 @@ STATIC FUNCTION hbc_Doclist()
    STATIC lChecked := .F.
 
    IF !lChecked
+
       FOR i := 1 TO Len( Filepane():aDocHis )
          IF !File( Filepane():aDocHis[i] )
             hb_ADel( Filepane():aDocHis, i, .T. )
