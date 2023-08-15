@@ -3690,11 +3690,21 @@ STATIC FUNCTION mnu_DirList( oEdit, aGet, lDirOnly )
 
    LOCAL i, cDir, ny2 := oEdit:aRectFull[3]-2, cScBuf, aMenu := {}
 
-   FOR i := 1 TO Len( oEdit:aEditHis )
-      cDir := NameShortcut(hb_Translate(hb_fnameDir(oEdit:aEditHis[i,1]),"UTF8"), 48,'~' )
+   FOR i := 1 TO Len( TEdit():aEditHis )
+#ifdef __PLATFORM__UNIX
+      cDir := NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~' )
       IF Ascan( aMenu, {|a|a[1]==cDir} ) == 0
          AAdd( aMenu, { cDir,Nil,i} )
       ENDIF
+#else
+      cDir := Lower( NameShortcut(hb_Translate(hb_fnameDir(TEdit():aEditHis[i,1]),"UTF8"), 48,'~' ) )
+      IF '/' $ cDir
+         cDir := StrTran( cDir, '/', '\' )
+      ENDIF
+      IF Ascan( aMenu, {|a|Lower(a[1])==cDir} ) == 0
+         AAdd( aMenu, { cDir,Nil,i} )
+      ENDIF
+#endif
    NEXT
 
    IF Empty( aMenu )
