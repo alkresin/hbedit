@@ -428,6 +428,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                cTemp := '"' + cTemp + '"'
             ENDIF
             IF nPos > 0
+               //edi_Writelog( cTemp )
+               //cTemp := Iif( oPaneCurr:cp == oPaneCurr:cpPane, cTemp, hb_Translate( cTemp, oPaneCurr:cpPane, oPaneCurr:cp ) )
+               //edi_Writelog( cTemp )
                cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
@@ -677,7 +680,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       KEYBOARD Chr(nKey)
       hbc_Console()
    ELSEIF nKey == 109    // m
-      i := hbc_Wndinit( 2, 4, 3, 36,, _I("Set Bookmark") + " (a,s,d)" )
+      i := hbc_Wndinit( 2, 4, 6, 40,, _I("Set Bookmark") )
+      hbc_Wndout( i, "a" + Iif( hb_hHaskey(oHbc:hBookMarks,97), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[97])[1]+aDir[4],35,'~' ), "") )
+      hbc_Wndout( i, "s" + Iif( hb_hHaskey(oHbc:hBookMarks,115), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[115])[1]+aDir[4],35,'~' ), "") )
+      hbc_Wndout( i, "d" + Iif( hb_hHaskey(oHbc:hBookMarks,100), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[100])[1]+aDir[4],35,'~' ), "") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd"
@@ -685,7 +694,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:net_cPort, oPaneCurr:cCurrPath }
       ENDIF
    ELSEIF nKey == 39     // '
-      i := hbc_Wndinit( 2, 4, 3, 30,, _I("Go to Bookmark") )
+      i := hbc_Wndinit( 2, 4, 6, 40,, _I("Go to Bookmark") )
+      hbc_Wndout( i, "a" + Iif( hb_hHaskey(oHbc:hBookMarks,97), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[97])[1]+aDir[4],35,'~' ), "") )
+      hbc_Wndout( i, "s" + Iif( hb_hHaskey(oHbc:hBookMarks,115), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[115])[1]+aDir[4],35,'~' ), "") )
+      hbc_Wndout( i, "d" + Iif( hb_hHaskey(oHbc:hBookMarks,100), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[100])[1]+aDir[4],35,'~' ), "") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
       IF Chr( nKey ) $ "asd" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
