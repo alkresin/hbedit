@@ -3716,7 +3716,7 @@ STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
    IF cCommand == "shell"
       ssh2_Channel_Shell( pSess )
    ELSE
-      ssh2_Exec( pSess, cCommand )
+      ssh2_Exec( pSess, "cd " + oPaneCurr:cCurrPath + "; " + cCommand )
    ENDIF
    IF ssh2_LastRes( pSess ) != 0
       ? "Exec failed"
