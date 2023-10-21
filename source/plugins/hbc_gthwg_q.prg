@@ -193,8 +193,8 @@ STATIC FUNCTION ImgViewDlg( cFileName, xDopInfo )
           '<=',,, {|| FNext( oDlg,.F. ) }, )
       HDrawn():New( oPaneDrawn, 56, 92, 30, 30, CLR_WHITE, CLR_DGRAY1, aStyles, ;
           '=>',,, {|| FNext(oDlg,.T.) }, )
-      hwg_SetDlgKey( oDlg, 0, K_PGDN, {||FNext(oDlg,.T.)} )
-      hwg_SetDlgKey( oDlg, 0, K_PGUP, {||FNext(oDlg,.F.)} )
+      hwg_SetDlgKey( oDlg, 0, Iif( lUnix, 0xFF56, 0x22 ), {||FNext(oDlg,.T.)} )
+      hwg_SetDlgKey( oDlg, 0, Iif( lUnix, 0xFF55, 0x21 ), {||FNext(oDlg,.F.)} )
    ENDIF
 
    hwg_SetDlgKey( oDlg, 0, Iif( lUnix, 0xFF1B, 27 ), {||oDlg:Close()} )

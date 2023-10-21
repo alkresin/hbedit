@@ -909,11 +909,19 @@ HB_FUNC( SSH2_SFTP_FSTAT )
    hb_retni( rc );
 }
 
+//extern void hwg_writelog( const char * sFile, const char * sTraceMsg, ... );
 HB_FUNC( SSH2_SFTP_FILEDELETE )
 {
+   HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int rc;
 
-   rc =  libssh2_sftp_unlink( ((HB_SSH2_SESSION *) hb_parptr(1))->sftp_session, hb_parc(2) );
+   while( ( rc = libssh2_sftp_unlink( pSess->sftp_session, hb_parc(2) ) ) == LIBSSH2_ERROR_EAGAIN )
+   {
+      if( pCallback && !pCallback( pSess ) )
+         break;
+      hb_ssh2_WaitSocket( pSess );
+   }
+   //hwg_writelog( "/mnt/diskd/tmp/_ac.log", "delete: %d\r\n", rc );
    hb_retni( rc );
 }
 
@@ -922,7 +930,12 @@ HB_FUNC( SSH2_SFTP_DIRDELETE )
    HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int rc;
 
-   rc =  libssh2_sftp_rmdir( pSess->sftp_session, hb_parc(2) );
+   while( ( rc = libssh2_sftp_rmdir( pSess->sftp_session, hb_parc(2) ) ) == LIBSSH2_ERROR_EAGAIN )
+   {
+      if( pCallback && !pCallback( pSess ) )
+         break;
+      hb_ssh2_WaitSocket( pSess );
+   }
    hb_retni( rc );
 }
 
@@ -931,7 +944,12 @@ HB_FUNC( SSH2_SFTP_RENAME )
    HB_SSH2_SESSION *pSess = ( HB_SSH2_SESSION * ) hb_parptr( 1 );
    int rc;
 
-   rc =  libssh2_sftp_rename( pSess->sftp_session, hb_parc(2), hb_parc(3) );
+   while( ( rc = libssh2_sftp_rename( pSess->sftp_session, hb_parc(2), hb_parc(3) ) ) == LIBSSH2_ERROR_EAGAIN )
+   {
+      if( pCallback && !pCallback( pSess ) )
+         break;
+      hb_ssh2_WaitSocket( pSess );
+   }
    hb_retni( rc );
 }
 
