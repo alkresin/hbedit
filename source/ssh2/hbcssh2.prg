@@ -114,7 +114,7 @@ FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
-   IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName, FO_WRITE + FO_CREAT, ;
+   IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName, FO_WRITE + FO_CREAT + FO_TRUNC, ;
       HB_FA_RUSR + HB_FA_WUSR + HB_FA_RGRP + HB_FA_ROTH ) )
       handle := hb_vfOpen( cFileLocal )
       nSize := hb_vfSize( handle )
