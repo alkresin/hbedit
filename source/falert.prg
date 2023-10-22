@@ -12,12 +12,18 @@
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    LOCAL oy := Row(), ox := Col()
-   LOCAL aText := hb_aTokens( cText, ";" ), i
+   LOCAL aText := hb_aTokens( cText, ";" ), i, n, nPos
    LOCAL aGets := { {,,2," Ok ",4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc, bufsc
 
    FOR i := 1 TO Len( aText )
-      nLen := Max( nLen, Len( aText[i] ) )
+      n := cp_Len( .T., aText[i] )
+      IF n > Maxcol() - 8
+         n := Maxcol() - 8
+         hb_AIns( aText, i+1, cp_Substr(.T.,aText[i],n+1), .T. )
+         aText[i] := cp_Left( .T.,aText[i],n )
+      ENDIF
+      nLen := Max( nLen, n )
    NEXT
    nLen += 4
    IF cAns1 != Nil
