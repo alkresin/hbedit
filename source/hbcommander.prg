@@ -186,6 +186,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_F11
       Plugins( oPaneCurr )
 
+   ELSEIF nKey == K_SH_F11
+      mnu_Plugins( oHbc )
+
    ELSEIF nKey == K_F12
       mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
 
