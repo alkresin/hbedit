@@ -271,10 +271,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ELSEIF oPaneCurr:nDispMode == 2
          oPaneCurr:DrawCell( ,.F. )
          IF oPaneCurr:nCurrent + oPaneCurr:nRows <= oPaneCurr:nCells .AND. ;
-            oPaneCurr:nCurrent + oPaneCurr:nRows <= Len( oPaneCurr:aDir )
+            oPaneCurr:nShift + oPaneCurr:nCurrent + oPaneCurr:nRows <= Len( oPaneCurr:aDir )
             oPaneCurr:nCurrent += oPaneCurr:nRows
          ELSE
-            oPaneCurr:nCurrent := Len( oPaneCurr:aDir )
+            oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
          ENDIF
          oPaneCurr:DrawCell( ,.T. )
       ENDIF
