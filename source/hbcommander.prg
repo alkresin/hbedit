@@ -2546,7 +2546,8 @@ STATIC FUNCTION hbc_Dirlist()
    NEXT
 
    IF !Empty( aMenu )
-      i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
+      i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, ;
+         FilePane():aClrMenu[1], FilePane():aClrMenu[2],, .T. )
       IF i > 0
          oPaneCurr:ChangeDir( hb_fnameDir( TEdit():aEditHis[aMenu[i,3],1] ) )
       ENDIF
@@ -2576,7 +2577,8 @@ STATIC FUNCTION hbc_Doclist()
    NEXT
 
    IF !Empty( aMenu )
-      i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, FilePane():aClrMenu[1], FilePane():aClrMenu[2] )
+      i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, ;
+         FilePane():aClrMenu[1], FilePane():aClrMenu[2],, .T. )
       IF i > 0
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
