@@ -2587,7 +2587,7 @@ STATIC FUNCTION hbc_Doclist()
 #else
          cedi_shellExecute( Filepane():aDocHis[i] )
 #endif
-
+         AddDocHis( Filepane():aDocHis[i] )
       ENDIF
    ENDIF
 
