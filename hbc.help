@@ -18,6 +18,7 @@ HbCommander - built-in file manager
    F9         - Menu
    F10        - Exit
    F11        - Plugins, declared in hbc.ini in [PLUGINS] section
+   Shift-F11  - HbEdit plugins
    F12        - Editor buffers
    Ctrl-A     - View/Set file attributes
    Ctrl-P     - Pane display mode menu
