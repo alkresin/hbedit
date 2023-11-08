@@ -1161,7 +1161,8 @@ FUNCTION __PaintBoa( hDC, nOp )
       oBrushRow := HBrush():Add( guiClrRow )
       oPen := HPen():Add( , 1, guiClrSep )
       oPen2 := HPen():Add( , 3, guiClrSep2 )
-      oFont := HFont():Add( guiFontName, 0, nw-(guiBoaSize+2)*2 )
+      //oFont := HFont():Add( guiFontName, 0, nw-(guiBoaSize+2)*2-10 ) //Iif(hb_Version(20),2,0) )
+      oFont := HFont():Add( guiFontName, 0, Int( nw*0.67 ) )
    ENDIF
 
    x1 := Int( x2t * xKoef )
