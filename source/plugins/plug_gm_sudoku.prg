@@ -18,9 +18,16 @@
 #define K_F10        -9
 #define K_LBUTTONDOWN 1002
 
+#define OP_SET                  1
+#define OP_UNSET                2
+#define OP_INVALIDATE           3
+#define OP_MDOWN                4
+
+#define HB_GTI_FONTNAME         24
+
 STATIC cIniPath
-STATIC oGame, lRu := .T.
-STATIC x1t, y1t, x2t, nyPos, nxPos, lPaneOn := .F.
+STATIC oGame, lRu := .T., lGUI
+STATIC x1t, y1t, x2t, nyPos := 1, nxPos := 1, lPaneOn := .F.
 STATIC nLevel, nGameState
 STATIC cScreenBuff
 STATIC aBoardEasyTempl := { "164893725729156834835247196243718659917465382658932417391624578576389241482571963", ;
@@ -37,6 +44,10 @@ STATIC aBoardHardTempl := { "xxxxx1xx39xxxxx46xx46x5xxxxx6x3xxx5x8xx1xx2x7x9x2xx
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
+
+STATIC guiBoaSize := 3, guiClrBoard := 0xffffff, guiClrRow := 0xcccccc, guiClrSel := 0xaaaaaa
+STATIC guiClrText := 0xff0000, guiClrFix := 0, guiClrSep := 0xff0000, guiClrSep2 := 0x222222
+STATIC guiFontName
 
 FUNCTION plug_gm_Sudoku( oEdit, cPath )
 
@@ -55,6 +66,7 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
    IF Empty( cIniPath )
       cIniPath := cPath
    ENDIF
+   lGUI := ( hb_gtVersion() == "HWGUI" )
 
    IF ( i := Ascan( oEdit:aWindows, {|o|o:cFileName==cName} ) ) > 0
       mnu_ToBuf( oEdit, i )
@@ -62,7 +74,7 @@ FUNCTION plug_gm_Sudoku( oEdit, cPath )
    ENDIF
 
    oGame := mnu_NewBuf( oEdit )
-   IF !hb_Version(20) .OR. hb_gtVersion() == "HWGUI" // 20 - HB_VERSION_UNIX_COMPAT
+   IF !hb_Version(20) .OR. lGUI // 20 - HB_VERSION_UNIX_COMPAT
       edi_SetPalette( oGame, "solarized dark" )
    ELSEIF hb_Version(20)
       edi_SetPalette( oGame, "default" )
@@ -93,6 +105,9 @@ STATIC FUNCTION _gm_Sudoku_Start()
       x1t := oGame:x1 + 2
       x2t := x1t + 30
 
+      __PaintBoa( , OP_SET )
+
+      DispBegin()
       SetColor( clrText )
       Scroll( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
 
@@ -112,11 +127,13 @@ STATIC FUNCTION _gm_Sudoku_Start()
 
       SetColor( clrBorder )
       @ y1t, x1t+26 TO y1t+11, x1t+26
-
-      @ y1t+3, x2t TO y1t+3, x2t+18
-      @ y1t+7, x2t TO y1t+7, x2t+18
-      @ y1t, x2t+6 TO y1t+10, x2t+6
-      @ y1t, x2t+13 TO y1t+10, x2t+13
+      IF lGUI
+         @ y1t+3, x2t TO y1t+3, x2t+18
+         @ y1t+7, x2t TO y1t+7, x2t+18
+         @ y1t, x2t+6 TO y1t+10, x2t+6
+         @ y1t, x2t+13 TO y1t+10, x2t+13
+      ENDIF
+      DispEnd()
 
       IF !Empty( cSaved ) .AND. text2Boa( cSaved )
          nGameState := 1
@@ -132,6 +149,7 @@ STATIC FUNCTION _gm_Sudoku_Start()
          ENDDO
       ENDIF
    ELSE
+      __PaintBoa( , OP_SET )
       RestScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2, cScreenBuff )
    ENDIF
 
@@ -181,11 +199,11 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
          RETURN -1
       ELSEIF nKey == 115 .OR. nKey == 83  // s,S
          IF ( i := Solver( aBoard, nKey == 83 ) ) == 1
-            edi_Alert( "Solved" )
+            _Alert( "Solved" )
          ELSEIF i > 1
-            edi_Alert( "Too many solutions" )
+            _Alert( "Too many solutions" )
          ELSE
-            edi_Alert( "Error" )
+            _Alert( "Error" )
          ENDIF
       ENDIF
    ENDIF
@@ -197,7 +215,9 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
          _Game_Menu( oEdit )
       ELSE
          IF nGameState == 1 .OR. nGameState == 2
-            IF i >= y1t .AND. i <= y1t + 10 .AND. j >= x2t .AND. j <= x2t + 20
+            IF lGUI
+               __PaintBoa( , OP_MDOWN )
+            ELSEIF i >= y1t .AND. i <= y1t + 10 .AND. j >= x2t .AND. j <= x2t + 20
                coors2Index( i, j, @i, @j )
                IF i > 0 .AND. i < 10 .AND. j > 0 .AND. j < 10
                   SetCurrentPos( .F. )
@@ -205,8 +225,8 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
                   nxPos := j
                   SetCurrentPos( .T. )
                ENDIF
-               // edi_Alert( str(i)+" "+str(j) )
-            ELSEIF lPaneOn .AND. ( i >= y1t+9 .AND. i <= y1t + 11 .AND. j >= x1t+16 .AND. j <= x1t + 21 )
+            ENDIF
+            IF lPaneOn .AND. ( i >= y1t+9 .AND. i <= y1t + 11 .AND. j >= x1t+16 .AND. j <= x1t + 21 )
                j := Int( (j-x1t-16)/2 )
                j += Iif( i==y1t+10, 3, Iif(i==y1t+11, 6, 0 ) )
                SetCellValue( j+49 )
@@ -226,10 +246,13 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
 
    ELSEIF nKey == K_F9
 
-      _Game_Menu()
+      _Game_Menu( oEdit )
 
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
+      IF lGUI
+         __PaintBoa( , OP_UNSET )
+      ENDIF
       IF Len( oEdit:aWindows ) == 1
          RETURN 0x41010004   // Shift-F4
       ELSE
@@ -239,6 +262,9 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
       cScreenBuff := Nil
       Write_Game_Ini()
+      IF lGUI
+         __PaintBoa( , OP_UNSET )
+      ENDIF
       mnu_Exit( oEdit )
 
    ENDIF
@@ -260,10 +286,10 @@ STATIC FUNCTION _Game_Menu( oEdit )
    Aadd( aMenu, Iif( lRu, "English", "Русский" ) )
    Aadd( aMenu, Iif( lRu, "Выход", "Exit" ) )
 
-   iChoic := FMenu( oGame, aMenu, y1t+2, x2t, y1t+10, x2t+24 )
+   iChoic := FMenu( oGame, aMenu, y1t+2, 2, y1t+10, 26 )
 
    IF iChoic == 1
-      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, x2t+2, y1t+6, x2t+18 ) ) > 0
+      IF ( iChoic := FMenu( oGame, aMenu2, y1t+2, 4, y1t+6, 20 ) ) > 0
          nLevel := iChoic
          nGameState := 1
          nHis := 0
@@ -281,6 +307,9 @@ STATIC FUNCTION _Game_Menu( oEdit )
    ELSEIF iChoic == Len( aMenu )
       cScreenBuff := Nil
       Write_Game_Ini()
+      IF lGUI
+         __PaintBoa( , OP_UNSET )
+      ENDIF
       mnu_Exit( oEdit )
 
    ELSEIF iChoic == Len( aMenu ) - 1
@@ -506,17 +535,21 @@ STATIC FUNCTION DrawBoard()
 
    LOCAL i, j, x1, y1
 
-   DispBegin()
-   SetColor( clrBoard )
-   FOR i := 1 TO 9
-      FOR j := 1 TO 9
-         index2Coors( i, j, @y1, @x1 )
-         SetColor( Iif( Empty(aBoardInit[i,j]), clrBoard, clrFix ) )
-         @ y1, x1 SAY Iif( Empty( aBoard[i,j] ), '.', aBoard[ i,j ] ) + ' '
+   IF lGUI
+      SetCurrentPos( .T. )
+   ELSE
+      DispBegin()
+      SetColor( clrBoard )
+      FOR i := 1 TO 9
+         FOR j := 1 TO 9
+            index2Coors( i, j, @y1, @x1 )
+            SetColor( Iif( Empty(aBoardInit[i,j]), clrBoard, clrFix ) )
+            @ y1, x1 SAY Iif( Empty( aBoard[i,j] ), '.', aBoard[ i,j ] ) + ' '
+         NEXT
       NEXT
-   NEXT
-   SetCurrentPos( .T. )
-   DispEnd()
+      SetCurrentPos( .T. )
+      DispEnd()
+   ENDIF
 
    RETURN Nil
 
@@ -524,8 +557,14 @@ STATIC FUNCTION SetCurrentPos( lSet )
 
    LOCAL clr := SetColor( Iif( lSet, clrCur,Iif( Empty(aBoardInit[nyPos,nxPos]), clrBoard, clrFix ) ) ), y1, x1
 
-   index2Coors( nyPos, nxPos, @y1, @x1 )
-   @ y1, x1 SAY Iif( Empty( aBoard[nyPos,nxPos] ), '.', aBoard[nyPos,nxPos] ) + ' '
+   IF lGUI
+      IF lSet
+         __PaintBoa( , OP_INVALIDATE )
+      ENDIF
+   ELSE
+      index2Coors( nyPos, nxPos, @y1, @x1 )
+      @ y1, x1 SAY Iif( Empty( aBoard[nyPos,nxPos] ), '.', aBoard[nyPos,nxPos] ) + ' '
+   ENDIF
    IF lSet
       DrawPane( Empty( aBoardInit[nyPos,nxPos] ) )
    ENDIF
@@ -538,7 +577,7 @@ STATIC FUNCTION SetCellValue( nKey )
    LOCAL c := aBoard[nyPos,nxPos], aErr
 
    IF !Empty( aBoardInit[nyPos,nxPos] )
-      edi_Alert( Iif( lRu, "Нельзя менять начальные значения!", "Can't change initial value!" ) )
+      _Alert( Iif( lRu, "Нельзя менять начальные значения!", "Can't change initial value!" ) )
       RETURN .F.
    ENDIF
    IF nKey == 32
@@ -549,12 +588,12 @@ STATIC FUNCTION SetCellValue( nKey )
       SetCurrentPos( .T. )
       Look4Empty( .T. )
    ELSE
-      edi_Alert( Iif( lRu, "Ошибка!", "Illegal value!" ) )
+      _Alert( Iif( lRu, "Ошибка!", "Illegal value!" ) )
       RETURN .F.
    ENDIF
    AddHis( c, aBoard[nyPos,nxPos] )
    IF nKey != 32 .AND. !Empty( aErr := Check2( nyPos,nxPos ) )
-      edi_Alert( Iif( lRu, "Проблема в ", "Problem at " ) + Ltrim(Str(aErr[1])) + "/" + Ltrim(Str(aErr[2])) )
+      _Alert( Iif( lRu, "Проблема в ", "Problem at " ) + Ltrim(Str(aErr[1])) + "/" + Ltrim(Str(aErr[2])) )
    ENDIF
 
    RETURN .T.
@@ -814,7 +853,7 @@ STATIC FUNCTION Look4Empty( l4End, i, j )
       NEXT
    NEXT
    IF l4End
-      edi_Alert( Iif( lRu, "Задача решена!", "The task solved!" ) )
+      _Alert( Iif( lRu, "Задача решена!", "The task solved!" ) )
       nGameState := 0
    ENDIF
 
@@ -914,7 +953,7 @@ STATIC FUNCTION SaveGame()
    cName := __GetString( oGame, Iif( lRu,"Имя задачи","Name of the task" ) )
    IF ( nLen := Len( cName ) ) > 0
       IF ( n := Ascan( arr, {|s|Left(s,nLen)==cName} ) ) > 0
-         IF edi_Alert( Iif( lRu,"Такое имя существует. Перезаписать?","This name exists already. Overwrite?" ), Iif( lRu,"Да","Yes" ), Iif( lRu,"Нет","No" ) ) != 1
+         IF _Alert( Iif( lRu,"Такое имя существует. Перезаписать?","This name exists already. Overwrite?" ), Iif( lRu,"Да","Yes" ), Iif( lRu,"Нет","No" ) ) != 1
             RETURN Nil
          ENDIF
       ENDIF
@@ -934,7 +973,7 @@ STATIC FUNCTION LoadGame()
    LOCAL arr, aMenu, i, j, nPos, cSaved
 
    IF Empty( arr := Iif( File( cIniPath + cFileSave ), hb_aTokens( MemoRead( cIniPath + cFileSave ), Chr(10) ), {} ) )
-      edi_Alert( Iif( lRu, "Нет сохраненных задач", "No saved tasks" ) )
+      _Alert( Iif( lRu, "Нет сохраненных задач", "No saved tasks" ) )
       RETURN Nil
    ENDIF
 
@@ -1020,24 +1059,194 @@ STATIC FUNCTION Read_Game_Ini( cIni )
                ENDIF
             ENDIF
          ENDIF
+         IF Upper(aIni[nSect]) == "GUI"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTemp := "size" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  guiBoaSize := Val( cTemp )
+                  IF guiBoaSize < 2 .OR. guiBoaSize > 5
+                     guiBoaSize := 3
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrboard" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrBoard := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrtext" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrText := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrfix" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrFix := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrrow" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrRow := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrsel" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrSel := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrsep" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrSep := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "clrsep2" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiClrSep2 := Val( cTemp )
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "fontname" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiFontName := cTemp
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDIF
       NEXT
+   ENDIF
+   IF Empty( guiFontName )
+      guiFontName := hb_gtinfo( HB_GTI_FONTNAME )
    ENDIF
    RETURN cSaved
 
 STATIC FUNCTION Write_Game_Ini()
 
-   LOCAL s := "[GAME]" + Chr(13)+Chr(10)
+   LOCAL cr := Chr(13)+Chr(10)
+   LOCAL s := "[GAME]" + cr
 
-   s += "russian=" + Iif( lRu, "on","off" ) + Chr(13)+Chr(10)
-   s += "clrtext=" + clrText + Chr(13)+Chr(10)
-   s += "clrboard=" + clrBoard + Chr(13)+Chr(10)
-   s += "clrfix=" + clrFix + Chr(13)+Chr(10)
-   s += "clrborder=" + clrBorder + Chr(13)+Chr(10)
-   s += "clrcur=" + clrCur + Chr(13)+Chr(10)
+   s += "russian=" + Iif( lRu, "on","off" ) + cr
+   s += "clrtext=" + clrText + cr
+   s += "clrboard=" + clrBoard + cr
+   s += "clrfix=" + clrFix + cr
+   s += "clrborder=" + clrBorder + cr
+   s += "clrcur=" + clrCur + cr
    IF nGameState == 1
-      s += "saved=" + boa2Text() + Chr(13)+Chr(10)
+      s += "saved=" + boa2Text() + cr
    ENDIF
 
+   s += cr + "[GUI]" + cr
+   s += "size=" + Ltrim(Str(guiBoaSize)) + cr
+   s += "clrboard=" + Ltrim(Str(guiClrBoard)) + cr
+   s += "clrtext=" + Ltrim(Str(guiClrText)) + cr
+   s += "clrfix=" + Ltrim(Str(guiClrFix)) + cr
+   s += "clrrow=" + Ltrim(Str(guiClrRow)) + cr
+   s += "clrsel=" + Ltrim(Str(guiClrSel)) + cr
+   s += "clrsep=" + Ltrim(Str(guiClrSep)) + cr
+   s += "clrsep2=" + Ltrim(Str(guiClrSep2)) + cr
+   s += "fontname=" + guiFontName + cr
+
    hb_MemoWrit( cIniPath + "sudoku.ini", s )
+
+   RETURN Nil
+
+#define HB_GTI_SCREENWIDTH      1
+#define HB_GTI_SCREENHEIGHT     2
+#define HB_GTI_WINHANDLE        69
+#define HB_GTI_MOUSEPOS_XY      70
+
+#define DT_CENTER               1
+
+DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
+DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
+DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
+
+FUNCTION __PaintBoa( hDC, nOp )
+
+   LOCAL x1, y1, x2, y2, nw
+   LOCAL i, j, arrm
+   STATIC xKoef, yKoef
+   STATIC oBrush, oBrushSel, oBrushRow, oPen, oPen2, oFont
+
+   IF Empty( xKoef )
+      xKoef := hb_gtinfo( HB_GTI_SCREENWIDTH ) / MaxCol()
+   ENDIF
+   nw := Int( guiBoaSize * xKoef )
+
+   IF Empty( yKoef )
+      yKoef := hb_gtinfo( HB_GTI_SCREENHEIGHT ) / MaxRow()
+      oBrush := HBrush():Add( guiClrBoard )
+      oBrushSel := HBrush():Add( guiClrSel )
+      oBrushRow := HBrush():Add( guiClrRow )
+      oPen := HPen():Add( , 1, guiClrSep )
+      oPen2 := HPen():Add( , 3, guiClrSep2 )
+      oFont := HFont():Add( guiFontName, 0, nw-(guiBoaSize+2)*2 )
+   ENDIF
+
+   x1 := Int( x2t * xKoef )
+   y1 := Int( y1t * yKoef )
+   x2 := x1 + nw * 9
+   y2 := y1 + nw * 9
+
+   IF Empty( hDC )
+      IF nOp == OP_SET
+         gthwg_paint_SetCallback( "__PAINTBOA" )
+      ELSEIF nOp == OP_UNSET
+         gthwg_paint_SetCallback()
+      ELSEIF nOp == OP_INVALIDATE
+         hwg_Invalidaterect( hb_gtinfo(HB_GTI_WINHANDLE), 0 )
+      ELSEIF nOp == OP_MDOWN
+         arrm := hb_gtinfo( HB_GTI_MOUSEPOS_XY )
+         IF arrm[1] > x1 .AND. arrm[1] < x2 .AND. arrm[2] > y1 .AND. arrm[2] < y2
+            arrm[1] := Int( (arrm[1] - x1) / nw ) + 1
+            arrm[2] := Int( (arrm[2] - y1) / nw ) + 1
+            IF nyPos != arrm[2] .OR. nxPos != arrm[1]
+               SetCurrentPos( .F. )
+               nyPos := arrm[2]
+               nxPos := arrm[1]
+               SetCurrentPos( .T. )
+            ENDIF
+         ENDIF
+      ENDIF
+      RETURN Nil
+   ENDIF
+
+   hwg_SelectObject( hDC, oBrush:handle )
+   hwg_Rectangle_Filled( hDC, x1, y1, x2, y2, .F. )
+   hwg_Rectangle_Filled( hDC, x1+(nxPos-1)*nw, y1+(nyPos-1)*nw, x1+nxPos*nw, y1+nyPos*nw, .F., oBrushSel:handle )
+   FOR i := 1 TO 9
+      IF i != nyPos
+         hwg_Rectangle_Filled( hDC, x1+(nxPos-1)*nw, y1+(i-1)*nw, x1+nxPos*nw, y1+i*nw, .F., oBrushRow:handle )
+      ENDIF
+      IF i != nxPos
+         hwg_Rectangle_Filled( hDC, x1+(i-1)*nw, y1+(nyPos-1)*nw, x1+i*nw, y1+nyPos*nw, .F., oBrushRow:handle )
+      ENDIF
+   NEXT
+   IF !Empty( aBoard[nyPos,nxPos] )
+      FOR i := 1 TO 9
+         FOR j := 1 TO 9
+            IF aBoard[i,j] == aBoard[nyPos,nxPos] .AND. !( i == nyPos .AND. j == nxPos )
+               hwg_Rectangle_Filled( hDC, x1+(j-1)*nw, y1+(i-1)*nw, x1+j*nw, y1+i*nw, .F., oBrushSel:handle )
+            ENDIF
+         NEXT
+      NEXT
+   ENDIF
+   FOR i := 1 TO 8
+      hwg_SelectObject( hDC, Iif( i%3==0, oPen2:handle, oPen:handle ) )
+      hwg_DrawLine( hDC, x1, y1+(i*nw), x2, y1+(i*nw), .T. )
+      hwg_DrawLine( hDC, x1+(i*nw), y1, x1+(i*nw), y2, .T. )
+   NEXT
+   hwg_SelectObject( hDC, oFont:handle )
+   hwg_Settransparentmode( hDC, .T. )
+   hwg_Settextcolor( hDC, guiClrText )
+   FOR i := 1 TO 9
+      FOR j := 1 TO 9
+         IF !Empty( aBoard[i,j] )
+            hwg_Settextcolor( hDC, Iif( Empty(aBoardInit[i,j]), guiClrText, guiClrFix ) )
+            hwg_Drawtext( hDC, aBoard[i,j], x1+(j-1)*nw+2, y1+(i-1)*nw+4, ;
+               x1+j*nw-2, y1+i*nw-4, DT_CENTER )
+         ENDIF
+      NEXT
+   NEXT
+   hwg_Settransparentmode( hDC, .F. )
+
+   RETURN Nil
+
+STATIC FUNCTION _Alert( cText, s1, s2 )
+
+   IF lGUI
+      IF s1 != Nil
+         IF hwg_MsgYesNo( cText )
+            RETURN 1
+         ELSE
+            RETURN 2
+         ENDIF
+      ELSE
+         hwg_MsgInfo( cText )
+      ENDIF
+   ELSE
+      RETURN edi_Alert( cText, s1, s2 )
+   ENDIF
 
    RETURN Nil
