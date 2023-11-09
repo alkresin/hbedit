@@ -45,9 +45,12 @@ STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
 
-STATIC guiBoaSize := 3, guiClrBoard := 0xffffff, guiClrRow := 0xcccccc, guiClrSel := 0xaaaaaa
-STATIC guiClrText := 0xff0000, guiClrFix := 0, guiClrSep := 0xff0000, guiClrSep2 := 0x222222
-STATIC guiFontName
+STATIC guiBoaSize := 3, guiFontName
+STATIC guiClrBoard := 0xffffff, guiClrRow := 0xe2e2e2, guiClrSel := 0xcccccc
+STATIC guiClrText := 0x960000, guiClrFix := 0, guiClrSep := 0x222222
+//STATIC guiClrBoard := 0xc0f0c0, guiClrRow := 0x99dd99, guiClrSel := 0x80c080
+//STATIC guiClrBoard := 0xc8f8c8, guiClrRow := 0xaaeeaa, guiClrSel := 0x98d898
+//STATIC guiClrText := 0x960000, guiClrFix := 0, guiClrSep := 0x222222
 
 FUNCTION plug_gm_Sudoku( oEdit, cPath )
 
@@ -669,6 +672,10 @@ STATIC FUNCTION CheckValue( aBoa, y, x, c )
 
    RETURN lRes
 
+STATIC FUNCTION Check4Simple()
+
+   RETURN .F.
+
 STATIC FUNCTION Check2( y, x )
 
    LOCAL i, j, k, y1, y2, x1, x2, lRes
@@ -787,8 +794,6 @@ STATIC FUNCTION Solver( aBoa, lOut, lCompare )
             aSolver[++nSolver] := { aCoor[1], aCoor[2], sMin }
          ENDIF
       ENDDO
-      //edi_writelog( "2)", "_solver.log" )
-      //boa2File( aBoa, "_solver.log" )
 
       IF lOut
          boa2File( aBoa, "solver.log" )
@@ -1068,25 +1073,22 @@ STATIC FUNCTION Read_Game_Ini( cIni )
                      guiBoaSize := 3
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrboard" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrBoard := Val( cTemp )
+                     guiClrBoard := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrtext" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrText := Val( cTemp )
+                     guiClrText := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrfix" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrFix := Val( cTemp )
+                     guiClrFix := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrrow" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrRow := Val( cTemp )
+                     guiClrRow := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrsel" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrSel := Val( cTemp )
+                     guiClrSel := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "clrsep" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrSep := Val( cTemp )
-                  ENDIF
-                  IF hb_hHaskey( aSect, cTemp := "clrsep2" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                     guiClrSep2 := Val( cTemp )
+                     guiClrSep := Iif( Left( cTemp,2 ) == "0x", hb_hexToNum(Substr(cTemp,3)), Val( cTemp ) )
                   ENDIF
                   IF hb_hHaskey( aSect, cTemp := "fontname" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                      guiFontName := cTemp
@@ -1118,13 +1120,12 @@ STATIC FUNCTION Write_Game_Ini()
 
    s += cr + "[GUI]" + cr
    s += "size=" + Ltrim(Str(guiBoaSize)) + cr
-   s += "clrboard=" + Ltrim(Str(guiClrBoard)) + cr
-   s += "clrtext=" + Ltrim(Str(guiClrText)) + cr
-   s += "clrfix=" + Ltrim(Str(guiClrFix)) + cr
-   s += "clrrow=" + Ltrim(Str(guiClrRow)) + cr
-   s += "clrsel=" + Ltrim(Str(guiClrSel)) + cr
-   s += "clrsep=" + Ltrim(Str(guiClrSep)) + cr
-   s += "clrsep2=" + Ltrim(Str(guiClrSep2)) + cr
+   s += "clrboard=0x" + Lower(hb_numToHex(guiClrBoard)) + cr
+   s += "clrtext=0x" + Lower(hb_numToHex(guiClrText)) + cr
+   s += "clrfix=0x" + Lower(hb_numToHex(guiClrFix)) + cr
+   s += "clrrow=0x" + Lower(hb_numToHex(guiClrRow)) + cr
+   s += "clrsel=0x" + Lower(hb_numToHex(guiClrSel)) + cr
+   s += "clrsep=0x" + Lower(hb_numToHex(guiClrSep)) + cr
    s += "fontname=" + guiFontName + cr
 
    hb_MemoWrit( cIniPath + "sudoku.ini", s )
@@ -1144,7 +1145,7 @@ DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
 
 FUNCTION __PaintBoa( hDC, nOp )
 
-   LOCAL x1, y1, x2, y2, nw
+   LOCAL x1, y1, x2, y2, nw, nTopMargin
    LOCAL i, j, arrm
    STATIC xKoef, yKoef
    STATIC oBrush, oBrushSel, oBrushRow, oPen, oPen2, oFont
@@ -1159,10 +1160,10 @@ FUNCTION __PaintBoa( hDC, nOp )
       oBrush := HBrush():Add( guiClrBoard )
       oBrushSel := HBrush():Add( guiClrSel )
       oBrushRow := HBrush():Add( guiClrRow )
-      oPen := HPen():Add( , 1, guiClrSep )
-      oPen2 := HPen():Add( , 3, guiClrSep2 )
+      oPen := HPen():Add( , 1, guiClrRow )
+      oPen2 := HPen():Add( , 3, guiClrSep )
       //oFont := HFont():Add( guiFontName, 0, nw-(guiBoaSize+2)*2-10 ) //Iif(hb_Version(20),2,0) )
-      oFont := HFont():Add( guiFontName, 0, Int( nw*0.67 ) )
+      oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
    ENDIF
 
    x1 := Int( x2t * xKoef )
@@ -1218,6 +1219,7 @@ FUNCTION __PaintBoa( hDC, nOp )
       hwg_DrawLine( hDC, x1, y1+(i*nw), x2, y1+(i*nw), .T. )
       hwg_DrawLine( hDC, x1+(i*nw), y1, x1+(i*nw), y2, .T. )
    NEXT
+   nTopMargin := Int( ( nw - oFont:height ) / 2 )
    hwg_SelectObject( hDC, oFont:handle )
    hwg_Settransparentmode( hDC, .T. )
    hwg_Settextcolor( hDC, guiClrText )
@@ -1225,8 +1227,8 @@ FUNCTION __PaintBoa( hDC, nOp )
       FOR j := 1 TO 9
          IF !Empty( aBoard[i,j] )
             hwg_Settextcolor( hDC, Iif( Empty(aBoardInit[i,j]), guiClrText, guiClrFix ) )
-            hwg_Drawtext( hDC, aBoard[i,j], x1+(j-1)*nw+2, y1+(i-1)*nw+4, ;
-               x1+j*nw-2, y1+i*nw-4, DT_CENTER )
+            hwg_Drawtext( hDC, aBoard[i,j], x1+(j-1)*nw+2, y1+(i-1)*nw+nTopMargin, ;
+               x1+j*nw-2, y1+i*nw-2, DT_CENTER )
          ENDIF
       NEXT
    NEXT
