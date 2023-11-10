@@ -23,6 +23,7 @@
 #define OP_INVALIDATE           3
 #define OP_MDOWN                4
 #define OP_COLORS               5
+#define OP_SIZE                 6
 
 #define HB_GTI_FONTNAME         24
 
@@ -43,7 +44,8 @@ STATIC aBoardHardTempl := { "xxxxx1xx39xxxxx46xx46x5xxxxx6x3xxx5x8xx1xx2x7x9x2xx
    "8xxxx2xxx7x2xx35xxxxxx5x2x8x7x4xxxx6xxxxx83xxx9x6xxxx2xxxx1x7x46x7xx41xx3xxxx6xxx", ;
    "xxxCxxxExBxADGECIxxxxxxFxxDxxCHIxxxxFIxxxxxxxxxxxFxxDIxExxDxxFxxBxxxxxxECxGxxxIxH", ;
    "x857xxxxxxx2xx5xx4xxxxx8xxxxxxxxx582xxxx794xxxxxx6x7xx4xxxxxx2xx7xxxxxx19xx13xxxx", ;
-   "xxx4xxxxx561xxxx73xx9xxxxx183xxxx6x4x4xx9x8xxx9x2xxxxxxxx6xxx35xxx5xxxxxxxxx3x9xx" }
+   "xxx4xxxxx561xxxx73xx9xxxxx183xxxx6x4x4xx9x8xxx9x2xxxxxxxx6xxx35xxx5xxxxxxxxx3x9xx", ;
+   "xx9x1x74x2xxxxxxxxxxxxx4x3xxx7xxx9xx8x3xx6xxxxx4x2xx1xxx6xx14x94xxxxx3x8xxxx7xxxx" }
 STATIC aBoardInit, aBoard, aHis, nHis
 STATIC clrText := "+GR/N", clrBoard := "GR+/N", clrFix := "W/N", clrBorder := "GR+/B", clrCur := "N/RB"
 STATIC cFileSave := "sudoku.saved"
@@ -997,20 +999,23 @@ STATIC FUNCTION boa2File( aBoa, cFile )
 
 STATIC FUNCTION Settings()
 
-   LOCAL i, aMenu := {}
+   LOCAL i, aMenu, aMenu2 := { "Small", "Medium", "Big" }
 
    IF !lGUI
       RETURN Nil
    ENDIF
 
-   Aadd( aMenu, "Theme: Gray" )
-   Aadd( aMenu, "Theme: Green" )
-   Aadd( aMenu, "Theme: Blue" )
-   Aadd( aMenu, "Theme: User" )
+   aMenu := { "Theme: Gray", "Theme: Green", "Theme: Blue", "Theme: User", "Size: " + aMenu2[guiBoaSize-2] }
 
    i := FMenu( oGame, aMenu, y1t+2, 2, y1t+8, 26 )
 
-   IF i > 0
+   IF i == 5
+      IF ( i := FMenu( oGame, aMenu2, y1t+2, 4, y1t+6, 20 ) ) > 0 .AND. i+2 != guiBoaSize
+         guiBoaSize := i + 2
+         __PaintBoa( , OP_SIZE )
+         __PaintBoa( , OP_INVALIDATE )
+      ENDIF
+   ELSEIF i > 0
       guiClrBoard := aThemes[i,1]; guiClrRow := aThemes[i,2]; guiClrSel := aThemes[i,3]
       guiClrText := aThemes[i,4]; guiClrFix := aThemes[i,5]; guiClrSep := aThemes[i,6]
       nTheme := i
@@ -1248,6 +1253,9 @@ FUNCTION __PaintBoa( hDC, nOp )
       oBrushRow := HBrush():Add( guiClrRow )
       oPen := HPen():Add( , 1, guiClrRow )
       oPen2 := HPen():Add( , 3, guiClrSep )
+      oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
+   ELSEIF Empty( hDC ) .AND. nOp == OP_SIZE
+      oFont:Release()
       oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
    ENDIF
 
