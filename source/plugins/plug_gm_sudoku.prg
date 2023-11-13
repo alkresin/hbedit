@@ -597,7 +597,7 @@ STATIC FUNCTION SetCurrentPos( lSet )
 
 STATIC FUNCTION SetCellValue( nKey )
 
-   LOCAL c := aBoard[nyPos,nxPos], aErr, i
+   LOCAL c := aBoard[nyPos,nxPos], aErr
 
    IF !Empty( aBoardInit[nyPos,nxPos] )
       _Alert( Iif( lRu, "Нельзя менять начальные значения!", "Can't change initial value!" ) )
@@ -609,13 +609,7 @@ STATIC FUNCTION SetCellValue( nKey )
       SetCurrentPos( .T. )
    */
    IF CheckValue( aBoard, nyPos, nxPos, Chr(nKey) )
-      nLastScore := 3
-      FOR i := 49 TO 57
-         IF i != nKey .AND. !CheckValue( aBoard, nyPos, nxPos, Chr(i) )
-            nLastScore := 1
-            EXIT
-         ENDIF
-      NEXT
+      nLastScore := CalcScore( nKey )
       aBoard[nyPos,nxPos] := Chr(nKey)
       nScores += nLastScore
       SetCurrentPos( .T. )
@@ -623,6 +617,7 @@ STATIC FUNCTION SetCellValue( nKey )
    ELSE
       _Alert( Iif( lRu, "Ошибка!", "Illegal value!" ) )
       nScores --
+      ShowScores()
       RETURN .F.
    ENDIF
    AddHis( c, aBoard[nyPos,nxPos] )
@@ -709,9 +704,49 @@ STATIC FUNCTION CheckValue( aBoa, y, x, c )
 
    RETURN lRes
 
-STATIC FUNCTION Check4Simple()
+STATIC FUNCTION CalcScore( nKey )
 
-   RETURN .F.
+   LOCAL i, j, x1, y1, x2, y2, aErr, nScore, cKey := Chr( nKey )
+
+   nScore := 1
+   FOR i := 49 TO 57
+      //hwg_writelog( chr(nKey)+" "+chr(i)+" "+hb_valtoexp(CheckValue( aBoard, nyPos, nxPos, Chr(i) )) )
+      IF i != nKey .AND. CheckValue( aBoard, nyPos, nxPos, Chr(i) )
+         nScore := 3
+         EXIT
+      ENDIF
+   NEXT
+   IF nScore == 3
+      aErr := Array(3); AFill( aErr, .F. )
+      FOR i := 1 TO 9
+         IF !aErr[1] .AND. i != nyPos .AND. Empty( aBoard[i,nxPos] ) .AND. CheckValue( aBoard, i, nxPos, cKey )
+            aErr[1] := .T.
+         ENDIF
+         IF !aErr[2] .AND. i != nxPos .AND. Empty( aBoard[nyPos,i] ) .AND. CheckValue( aBoard, nyPos, i, cKey )
+            aErr[2] := .T.
+         ENDIF
+      NEXT
+      y1 := Int( (nyPos-1)/3 ) * 3 + 1
+      y2 := y1 + 2
+      x1 := Int( (nxPos-1)/3 ) * 3 + 1
+      x2 := x1 + 2
+      FOR i := y1 TO y2
+         FOR j := x1 TO x2
+            IF nyPos != i .AND. nxPos != j .AND. Empty( aBoard[i,j] ) .AND. CheckValue( aBoard, i, j, cKey )
+               aErr[3] := .T.
+               EXIT
+            ENDIF
+         NEXT
+         IF aErr[3]
+            EXIT
+         ENDIF
+      NEXT
+      IF !aErr[1] .OR. !aErr[2] .OR. !aErr[3]
+         nScore := 2
+      ENDIF
+   ENDIF
+
+   RETURN nScore
 
 STATIC FUNCTION Check2( y, x )
 
