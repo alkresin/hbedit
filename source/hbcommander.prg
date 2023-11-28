@@ -2325,7 +2325,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    ENDIF
    lSilent := !Empty( lSilent )
 
-   IF lSilent .OR. edi_Alert( _I("Really delete")+" " + FTransl(cFileName) + "?", _I("No"), _I("Yes") ) == 2
+   IF lSilent .OR. edi_Alert( _I("Really delete")+" " + FTransl(cFileName) + "?", _I("Yes"), _I("No") ) == 1
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "DELETE", {oPaneCurr:cIOpref + ;
          oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName, lDir} ) ) != Nil
@@ -2387,7 +2387,7 @@ STATIC FUNCTION hbc_FDeleteSele()
    ENDIF
 
    IF edi_Alert( _I("Really delete") + " " + Ltrim(Str(Len(oPaneCurr:aSelected))) + ;
-      " " + _I("files")+"?", _I("No"), _I("Yes") ) == 2
+      " " + _I("files")+"?", _I("Yes"), _I("No") ) == 1
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          cFileName := oPaneCurr:aDir[oPaneCurr:aSelected[i],1]
          hbc_FDelete( .T., cFileName, .F. )
