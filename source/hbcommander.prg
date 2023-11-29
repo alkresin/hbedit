@@ -431,10 +431,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                cTemp := '"' + cTemp + '"'
             ENDIF
             IF nPos > 0
-               //edi_Writelog( cTemp )
-               //cTemp := Iif( oPaneCurr:cp == oPaneCurr:cpPane, cTemp, hb_Translate( cTemp, oPaneCurr:cpPane, oPaneCurr:cp ) )
-               //edi_Writelog( cTemp )
-               cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+               IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
+                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp )
+               ELSE
+                  cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+               ENDIF
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
