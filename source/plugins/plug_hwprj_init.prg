@@ -1,10 +1,13 @@
 #define CTRL_PRESSED  0x020000
+#define ALT_PRESSED   0x040000
 #define K_LBUTTONDOWN 1002
 #define K_LDBLCLK     1006
 #define K_CTRL_R      18
 #define K_CTRL_L      12
 #define K_CTRL_F      6
 #define K_ENTER       13
+#define K_ALT_F      289
+#define K_ALT_R      275
 
 #ifdef __PLATFORM__UNIX
 STATIC lUnix := .T.
@@ -20,15 +23,15 @@ FUNCTION Plug_hwprj_Init( oEdit )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "HwBuilder plugin:  Ctrl-F Files Ctrl-R Build" )
+         DevOut( "HwBuilder plugin:  Alt-F Files Alt-R Build" )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          IF oEdit:hCargo == Nil
             oEdit:hCargo := hb_hash()
          ENDIF
          oEdit:hCargo["help"] := "HwBuilder plugin hotkeys:" + Chr(10) + ;
-            "  Ctrl-F  - Files list" + Chr(10) + ;
-            "  Ctrl-R  - Build project" + Chr(10)
+            "  Alt-F  - Files list" + Chr(10) + ;
+            "  Alt-R  - Build project" + Chr(10)
       ENDIF
       o:bStartEdit := Nil
       RETURN Nil
@@ -57,12 +60,12 @@ FUNCTION _hwprj_Init_OnKey( oEdit, nKeyExt )
    IF oEdit:lUpdated .AND. oEdit:cargo != Nil
       oEdit:cargo := Nil
    ENDIF
-   IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
-      IF nKey == K_CTRL_F
+   IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+      IF nKey == K_ALT_F
          _hwprj_Init_Files( oEdit )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
-      ELSEIF nKey == K_CTRL_R
+      ELSEIF nKey == K_ALT_R
          _hwprj_Init_Build( oEdit )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
@@ -215,15 +218,18 @@ STATIC FUNCTION _DropSlash( cLine )
 
 STATIC FUNCTION _hwprj_Init_Build( oEdit )
 
-   LOCAL cBuff, oNew, i, cAddW := "$hb_compile_err"
+   LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err"
    LOCAL cPathBase := hb_fnameDir( oEdit:cFileName ), cCurrDir := Curdir()
 
    edi_CloseWindow( "$"+cAddW )
 
+   oEdit:Save()
+   cDop := AllTrim( edi_MsgGet( "Parameters" ) )
+
    SetColor( oEdit:cColorSel )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    DirChange( cPathBase )
-   cedi_RunConsoleApp( "hwbc -q " + oEdit:cFileName,, @cBuff )
+   cedi_RunConsoleApp( "hwbc -q " + cDop + " " + oEdit:cFileName,, @cBuff )
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
 
@@ -250,18 +256,9 @@ FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
       ENDIF
       sOrig := oEdit:aText[ oEdit:RowToLine( nRow ) ]
       s := Lower( sOrig )
-      /*
-      IF ( nPos := At( " error ", s ) ) > 0 .OR. ( nPos := At( " warning ", s ) ) > 0
-         s := AllTrim( Left( s, nPos ) )
-         IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
-            nLine := Val( Substr( s,nPos+1 ) )
-            cFileName := hb_fnameNameExt( Trim( Left( s, nPos-1 ) ) )
-         ENDIF
-      ENDIF
-      */
-      IF " error " $ s .OR. " warning " $ s
+      IF "error" $ s .OR. "warning" $ s
          nPos2 := Iif( ( nPos := At( ".prg", s ) ) > 0, nPos + 4, ;
-            Iif( ( nPos := At( ".prg", s ) ) > 0, nPos + 2, 0 ) )
+            Iif( ( nPos := At( ".c", s ) ) > 0, nPos + 2, 0 ) )
          IF nPos2 > 0
             DO WHILE --nPos > 0 .AND. ( ( (c := Substr( s,nPos,1 )) >= 'a' ) .OR. c $ "0123456789_" )
             ENDDO
@@ -271,7 +268,7 @@ FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
       ENDIF
       IF !Empty( cFileName )
          aFiles := _hwprj_Get_Files( oEdit:oParent )
-         IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==s} ) ) > 0
+         IF ( nPos := Ascan( aFiles, {|cFile|Lower(hb_fnameNameExt(cFile))==cFileName} ) ) > 0
             oNew := mnu_NewBuf( oEdit, hb_fnameDir( oEdit:oParent:cFileName ) + aFiles[nPos] )
             IF oNew != Nil
                oNew:GoTo( nLine, 1,, .T. )
