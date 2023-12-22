@@ -9,23 +9,22 @@
 FUNCTION Plug_hbp_Init( oEdit )
 
    LOCAL bEdit := {|o|
-      LOCAL y1 := o:aRect[1]
-      SetColor( oEdit:cColorSel )
-      Scroll( y1, o:x1, y1, o:x2 )
-      SetColor( o:cColorPane )
-      DevPos( y1, o:x1 )
-      DevOut( PAdr( hb_fnameName( o:cFileName ), 19 ) )
-      DevPos( y1, o:x1 + 20 )
-      DevOut( "Ctrl-F Files" )
-      DevPos( y1, o:x1 + 34 )
-      DevOut( "Ctrl-L Build" )
-      SetColor( o:cColor )
-      RETURN Nil
-   }
-   LOCAL bEndEdit := {|o|
-      LOCAL y1 := o:aRect[1]
-      SetColor( o:cColorPane )
-      Scroll( y1, o:x1, y1, o:x2 )
+      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col()
+      IF o:lTopPane
+         SetColor( o:cColorPane )
+         Scroll( y, o:x1 + 8, y, o:x2 )
+         DevPos( y, o:x1 + 8 )
+         DevOut( "Hbmk plugin:  Ctrl-F Files Ctrl-L Build" )
+         SetColor( o:cColor )
+         DevPos( nRow, nCol )
+         IF oEdit:hCargo == Nil
+            oEdit:hCargo := hb_hash()
+         ENDIF
+         oEdit:hCargo["help"] := "Hbmk plugin hotkeys:" + Chr(10) + ;
+            "  Ctrl-F  - Files list" + Chr(10) + ;
+            "  Ctrl-L  - Build project" + Chr(10)
+      ENDIF
+      o:bStartEdit := Nil
       RETURN Nil
    }
    LOCAL bOnKeyOrig
@@ -37,15 +36,12 @@ FUNCTION Plug_hbp_Init( oEdit )
       RETURN nRes
    }
 
-   oEdit:lTopPane := .F.
-   oEdit:y1 := oEdit:aRect[1] + 1
    oEdit:bStartEdit := bEdit
-   oEdit:bEndEdit := bEndEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
-   oEdit:bNew := {|o|o:y1:= 0,o:y2 := MaxRow()}
+   //oEdit:bNew := {|o|o:y1:= 0,o:y2 := MaxRow()}
 
    RETURN Nil
 
@@ -62,18 +58,6 @@ FUNCTION _hbp_Init_OnKey( oEdit, nKeyExt )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
       ELSEIF nKey == K_CTRL_L
-         _hbp_Init_Build( oEdit )
-         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
-         RETURN -1
-      ENDIF
-   ELSEIF nKey == K_LBUTTONDOWN
-      nCol := MCol()
-      nRow := MRow()
-      IF nRow == oEdit:y1-1 .AND. nCol >= 20 .AND. nCol <= 31
-         _hbp_Init_Files( oEdit )
-         edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
-         RETURN -1
-      ELSEIF nRow == oEdit:y1-1 .AND. nCol >= 34 .AND. nCol <= 45
          _hbp_Init_Build( oEdit )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
