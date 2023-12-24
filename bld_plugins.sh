@@ -17,6 +17,7 @@ $HB_INS/bin/linux/gcc/harbour plug_prg_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_prg_run.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_py_spis.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbp_init.prg -n -gh
+$HB_INS/bin/linux/gcc/harbour plug_hwprj_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_java_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_lisp_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_sh_init.prg -n -gh

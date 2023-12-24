@@ -2,6 +2,7 @@
 #define ALT_PRESSED   0x040000
 #define K_LBUTTONDOWN 1002
 #define K_LDBLCLK     1006
+#define K_DOWN        24
 #define K_CTRL_R      18
 #define K_CTRL_L      12
 #define K_CTRL_F      6
@@ -224,22 +225,56 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    edi_CloseWindow( "$"+cAddW )
 
    oEdit:Save()
-   cDop := AllTrim( edi_MsgGet( "Parameters" ) )
+   IF ( cDop := _GetParams() ) == Nil
+      RETURN Nil
+   ENDIF
 
    SetColor( oEdit:cColorSel )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    DirChange( cPathBase )
-   cedi_RunConsoleApp( "hwbc -q " + cDop + " " + oEdit:cFileName,, @cBuff )
+   cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
 
-   oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, 12 )
+   oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)*3/4 ) )
    oNew:lReadOnly := .T.
    oNew:bOnKey := {|o,n| _hwprj_ErrWin_OnKey(o,n) }
 
    oEdit:TextOut()
 
    RETURN Nil
+
+STATIC FUNCTION _GetParams()
+
+   LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets, y1, x1, x2
+
+   y1 := Int( MaxRow()/2 ) - 1
+   x1 := Int( MaxCol()/2 ) - 20
+   x2 := x1 + 40
+
+   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+      { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
+      { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;
+      { y1+3,x1+2, 0, "", x2-x1-4 } }
+
+   cBuf := Savescreen( y1, x1, y1 + 4, x2 )
+   @ y1, x1, y1 + 4, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+
+   KEYBOARD Chr( K_DOWN )
+   edi_READ( aGets )
+   IF LastKey() == 13
+      xRes := AllTrim( aGets[5,4] )
+      IF aGets[3,4]
+         xRes := Iif( Empty(xRes), "-q", xRes + " -q" )
+      ENDIF
+   ELSE
+      xRes := Nil
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y1 + 4, x2, cBuf )
+
+   RETURN xRes
 
 FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
 
@@ -264,6 +299,9 @@ FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
             ENDDO
             nPos ++
             cFileName := Substr( sOrig, nPos, nPos2 - nPos )
+            DO WHILE ++nPos2 < Len(s) .AND. !IsDigit( Substr( s,nPos2,1 ) )
+            ENDDO
+            nLine := Val( Substr( s, nPos2 ) )
          ENDIF
       ENDIF
       IF !Empty( cFileName )

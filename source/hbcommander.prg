@@ -432,7 +432,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
             IF nPos > 0
                IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
-                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp )
+                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T. )
                ELSE
                   cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
                ENDIF
@@ -3307,7 +3307,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    RETURN Nil
 
-FUNCTION hbc_Console( xCommand )
+FUNCTION hbc_Console( xCommand, lSetOnly )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
@@ -3393,7 +3393,9 @@ FUNCTION hbc_Console( xCommand )
          cCommand := Iif( nCommand < Len( xCommand ), xCommand[++nCommand], "" )
       ENDIF
       IF !Empty( cCommand )
-         KEYBOARD Chr( K_ENTER )
+         IF !Empty( lSetOnly )
+            KEYBOARD Chr( K_ENTER )
+         ENDIF
       ELSEIF !Empty( FilePane():cConsCmd )
          cCommand := FilePane():cConsCmd
       ENDIF
