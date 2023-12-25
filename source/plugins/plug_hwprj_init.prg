@@ -1,20 +1,12 @@
-#define CTRL_PRESSED  0x020000
 #define ALT_PRESSED   0x040000
 #define K_LBUTTONDOWN 1002
 #define K_LDBLCLK     1006
 #define K_DOWN        24
-#define K_CTRL_R      18
-#define K_CTRL_L      12
-#define K_CTRL_F      6
 #define K_ENTER       13
 #define K_ALT_F      289
-#define K_ALT_R      275
+#define K_ALT_H      291
 
-#ifdef __PLATFORM__UNIX
-STATIC lUnix := .T.
-#else
-STATIC lUnix := .F.
-#endif
+STATIC lUnix
 
 FUNCTION Plug_hwprj_Init( oEdit )
 
@@ -24,7 +16,7 @@ FUNCTION Plug_hwprj_Init( oEdit )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "HwBuilder plugin:  Alt-F Files Alt-R Build" )
+         DevOut( "HwBuilder plugin:  Alt-F Files Alt-H Build" )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          IF oEdit:hCargo == Nil
@@ -32,7 +24,7 @@ FUNCTION Plug_hwprj_Init( oEdit )
          ENDIF
          oEdit:hCargo["help"] := "HwBuilder plugin hotkeys:" + Chr(10) + ;
             "  Alt-F  - Files list" + Chr(10) + ;
-            "  Alt-R  - Build project" + Chr(10)
+            "  Alt-H  - Build project" + Chr(10)
       ENDIF
       o:bStartEdit := Nil
       RETURN Nil
@@ -51,6 +43,7 @@ FUNCTION Plug_hwprj_Init( oEdit )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
+   lUnix := hb_Version( 20 )
 
    RETURN Nil
 
@@ -66,7 +59,7 @@ FUNCTION _hwprj_Init_OnKey( oEdit, nKeyExt )
          _hwprj_Init_Files( oEdit )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
-      ELSEIF nKey == K_ALT_R
+      ELSEIF nKey == K_ALT_H
          _hwprj_Init_Build( oEdit )
          edi_SetPos( oEdit, oEdit:nLine, oEdit:nPos )
          RETURN -1
@@ -222,7 +215,7 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err"
    LOCAL cPathBase := hb_fnameDir( oEdit:cFileName ), cCurrDir := Curdir()
 
-   edi_CloseWindow( "$"+cAddW )
+   edi_CloseWindow( cAddW )
 
    oEdit:Save()
    IF ( cDop := _GetParams() ) == Nil
@@ -236,9 +229,13 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
 
-   oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)*3/4 ) )
-   oNew:lReadOnly := .T.
-   oNew:bOnKey := {|o,n| _hwprj_ErrWin_OnKey(o,n) }
+   IF Empty( cBuff )
+      edi_Alert( "hwbc" + Iif( lUnix, "", ".exe" ) + " isn't found" )
+   ELSE
+      oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)*3/4 ) )
+      oNew:lReadOnly := .T.
+      oNew:bOnKey := {|o,n| _hwprj_ErrWin_OnKey(o,n) }
+   ENDIF
 
    oEdit:TextOut()
 
@@ -255,18 +252,22 @@ STATIC FUNCTION _GetParams()
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
+      { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, 1, .F., 2 }, ;
       { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;
       { y1+3,x1+2, 0, "", x2-x1-4 } }
 
    cBuf := Savescreen( y1, x1, y1 + 4, x2 )
    @ y1, x1, y1 + 4, x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
-   KEYBOARD Chr( K_DOWN )
+   KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN )
    edi_READ( aGets )
    IF LastKey() == 13
-      xRes := AllTrim( aGets[5,4] )
+      xRes := AllTrim( aGets[7,4] )
       IF aGets[3,4]
          xRes := Iif( Empty(xRes), "-q", xRes + " -q" )
+      ENDIF
+      IF aGets[5,4]
+         xRes := Iif( Empty(xRes), "-clean", xRes + " -clean" )
       ENDIF
    ELSE
       xRes := Nil
@@ -276,7 +277,7 @@ STATIC FUNCTION _GetParams()
 
    RETURN xRes
 
-FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _hwprj_ErrWin_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nRow, sOrig, s, nPos, nPos2, c, nLine, aFiles, oNew, cFileName
 

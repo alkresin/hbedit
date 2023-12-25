@@ -3393,7 +3393,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly )
          cCommand := Iif( nCommand < Len( xCommand ), xCommand[++nCommand], "" )
       ENDIF
       IF !Empty( cCommand )
-         IF !Empty( lSetOnly )
+         IF Empty( lSetOnly )
             KEYBOARD Chr( K_ENTER )
          ENDIF
       ELSEIF !Empty( FilePane():cConsCmd )

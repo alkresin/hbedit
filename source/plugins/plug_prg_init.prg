@@ -1,10 +1,13 @@
 #define ALT_PRESSED   0x040000
 #define CTRL_PRESSED  0x020000
+#define K_LDBLCLK 1006
 #define K_ALT_D    288
 #define K_ALT_I    279
 #define K_ALT_L    294
+#define K_ALT_H    291
 #define K_ENTER     13
 #define K_ESC       27
+#define K_DOWN      24
 #define K_CTRL_RIGHT 2
 
 STATIC cIniPath
@@ -33,6 +36,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
             "  Alt-D  - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
             "  Alt-I  - Get info about a function under cursor" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-H  - Build with hwbc" + Chr(10) + ;
             "  Ctrl-B - Go to a matched keyword (IF...ENDIF, etc.)" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
@@ -77,6 +81,9 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
          RETURN -1
       ELSEIF nKey == K_ALT_L
          _prg_Spis( oEdit )
+         RETURN -1
+      ELSEIF nKey == K_ALT_H
+         _prg_Init_Build( oEdit )
          RETURN -1
       ENDIF
    ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
@@ -139,6 +146,96 @@ STATIC FUNCTION _prg_Spis( oEdit )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION _prg_Init_Build( oEdit )
+
+   LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err"
+   LOCAL cPathBase := hb_fnameDir( oEdit:cFileName ), cCurrDir := Curdir()
+
+   edi_CloseWindow( cAddW )
+
+   oEdit:Save()
+   IF ( cDop := _GetParams() ) == Nil
+      RETURN Nil
+   ENDIF
+
+   SetColor( oEdit:cColorSel )
+   @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
+   DirChange( cPathBase )
+   cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+   DirChange( cCurrDir )
+   SetColor( oEdit:cColor )
+
+   IF Empty( cBuff )
+      edi_Alert( "hwbc" + Iif( hb_version(20), "", ".exe" ) + " isn't found" )
+   ELSE
+      oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)/3 ) )
+      oNew:lReadOnly := .T.
+      oNew:bOnKey := {|o,n| _prg_ErrWin_OnKey(o,n) }
+   ENDIF
+
+   oEdit:TextOut()
+
+   RETURN Nil
+
+STATIC FUNCTION _GetParams()
+
+   LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets, y1, x1, x2
+
+   y1 := Int( MaxRow()/2 ) - 1
+   x1 := Int( MaxCol()/2 ) - 20
+   x2 := x1 + 40
+
+   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+      { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
+      { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;
+      { y1+3,x1+2, 0, "", x2-x1-4 } }
+
+   cBuf := Savescreen( y1, x1, y1 + 4, x2 )
+   @ y1, x1, y1 + 4, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+
+   KEYBOARD Chr( K_DOWN )
+   edi_READ( aGets )
+   IF LastKey() == 13
+      xRes := AllTrim( aGets[5,4] )
+      IF aGets[3,4]
+         xRes := Iif( Empty(xRes), "-q", xRes + " -q" )
+      ENDIF
+   ELSE
+      xRes := Nil
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y1 + 4, x2, cBuf )
+
+   RETURN xRes
+
+STATIC FUNCTION _prg_ErrWin_OnKey( oEdit, nKeyExt )
+
+   LOCAL nKey := hb_keyStd(nKeyExt), nRow, s, nPos, nLine
+
+   IF nKey == K_ENTER .OR. nKey == K_LDBLCLK
+      IF nKey == K_LDBLCLK
+         nRow := MRow()
+         IF nRow < oEdit:y1 .OR. nRow > oEdit:y2
+            RETURN 0
+         ENDIF
+      ELSE
+         nRow := Row()
+      ENDIF
+      s := Lower( oEdit:aText[ oEdit:RowToLine( nRow ) ] )
+      IF ( nPos := At( " error ", s ) ) > 0 .OR. ( nPos := At( " warning ", s ) ) > 0
+         s := AllTrim( Left( s, nPos ) )
+         IF Right( s, 1 ) == ")" .AND. ( nPos := Rat( "(",s ) ) > 0
+            nLine := Val( Substr( s,nPos+1 ) )
+            oEdit:oParent:GoTo( nLine, 1,, .T. )
+            oEdit:lShow := .F.
+            oEdit:nCurr := Ascan( oEdit:aWindows, {|o|o==oEdit:oParent} )
+         ENDIF
+      ENDIF
+   ENDIF
+
+   RETURN 0
 
 STATIC FUNCTION _prg_GoMatched( oEdit )
 
