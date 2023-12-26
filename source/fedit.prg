@@ -4181,7 +4181,7 @@ FUNCTION mnu_SortSele( oEdit, nAsc )
       oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_START )
       FOR i := nby1 TO nby2
          oEdit:DelText( i, 1, i, cp_Len( oEdit:lUtf8, oEdit:aText[i] ) )
-         oEdit:InsText( i, 1, arr[i,2], .F. )
+         oEdit:InsText( i, 1, arr[i-nby1+1,2], .F. )
       NEXT
       oEdit:Undo( nby1, nbx1, nby2, nbx2, UNDO_OP_END )
       edi_SetLastSeleOper( {@mnu_SortSele(),nAsc} )
