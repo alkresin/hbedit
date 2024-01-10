@@ -34,11 +34,11 @@ STATIC FUNCTION _mpv_ytdlp_GetAddr()
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-30, x2 := x1+60
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets := { ;
-      {y1+1,x1+2, 11, _I("Title:")}, ;
+      {y1+1,x1+2, 11, "Title:"}, ;
       { y1+1,x1+10, 0, "", x2-x1-12 }, ;
-      {y1+2,x1+2, 11, _I("Url:")}, ;
+      {y1+2,x1+2, 11, "Url:"}, ;
       { y1+2,x1+10, 0, "", x2-x1-12 }, ;
-      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " + _I("Save")} ;
+      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " + "Save"} ;
       }
 
    cBuf := Savescreen( y1, x1, y1 + 5, x2 )
@@ -92,7 +92,7 @@ STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
    LOCAL i
 
    FOR i := 1 TO Len( aHis )
-      s += ""
+      s += aHis[i,1] + "," + aHis[i,2] + Chr(10)
    NEXT
 
    hb_MemoWrit( cIni, s )
