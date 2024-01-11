@@ -514,6 +514,8 @@ HB_FUNC( CEDI_RUNAPP )
 {
 #ifdef GTHWG
    hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
+#else
+   hb_retl( 0 );
 #endif
 }
 
@@ -871,7 +873,7 @@ HB_FUNC( CEDI_RUNAPP )
    CloseHandle( pi.hThread );
    hb_retni( 0 );
 */
-   hb_retni( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) );
+   hb_retl( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) > 31 );
 }
 
 typedef struct {

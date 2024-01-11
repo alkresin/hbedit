@@ -1,26 +1,39 @@
 
 #define K_ESC    27
 
-STATIC cPath_mpv, aHis := {}, lHisUpd := .F.
+STATIC cPath_mpv := "", aHis := {}, lHisUpd := .F.
 
 FUNCTION plug_mpv_ytdlp( oEdit, cPath )
 
-   LOCAL cIniName := "mpv_ytdlp.ini", aMenu := { "New address" }, i, cUrl
+   LOCAL cIniName := "mpv_ytdlp.ini", aMenu := { "New address" }, i, cUrl, lRes
 
    IF Empty( cPath_mpv )
       _mpv_ytdlp_rdini( cPath + cIniName )
+   ENDIF
+
+   IF Empty( cPath_mpv )
+      cPath_mpv := Iif( hb_Version( 20 ), "/usr/bin/mpv", "mpv" )
+      edi_Alert( "Mpv path isn't set,;will use default value." )
    ENDIF
 
    FOR i := 1 TO Len( aHis )
       Aadd( aMenu, aHis[i,1] )
    NEXT
 
-   IF ( i := FMenu( oEdit, aMenu ) ) == 1
+   IF ( i := FMenu( oEdit, aMenu,,,,,,,, .T. ) ) == 1
       IF !Empty( cUrl := _mpv_ytdlp_GetAddr() )
-         cedi_RunApp( cPath_mpv + " " + cUrl )
+         IF !( lRes := cedi_RunApp( cPath_mpv + " " + cUrl ) )
+            lHisUpd := .F.
+         ENDIF
       ENDIF
-   ELSEIF i > 1
-      cedi_RunApp( cPath_mpv + " " + aHis[i-1,2] )
+   ELSEIF i == 0
+      RETURN Nil
+   ELSE
+      lRes := cedi_RunApp( cPath_mpv + " " + aHis[i-1,2] )
+   ENDIF
+
+   IF !lRes
+      edi_Alert( "Can't execute mpv" )
    ENDIF
 
    IF lHisUpd
@@ -77,7 +90,7 @@ STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
                hb_hCaseMatch( aSect, .F. )
                arr := ASort( hb_hKeys( aSect ) )
                FOR i := 1 TO Len( arr )
-                  Aadd( aHis,  hb_ATokens( aSect[ arr[i] ], "," ) )
+                  Aadd( aHis,  hb_ATokens( aSect[ arr[i] ], ";" ) )
                NEXT
             ENDIF
          ENDIF
@@ -92,7 +105,7 @@ STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
    LOCAL i
 
    FOR i := 1 TO Len( aHis )
-      s += aHis[i,1] + "," + aHis[i,2] + Chr(10)
+      s += aHis[i,1] + ";" + aHis[i,2] + Chr(10)
    NEXT
 
    hb_MemoWrit( cIni, s )
