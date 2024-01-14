@@ -74,6 +74,7 @@ STATIC FUNCTION _mpv_ytdlp_GetAddr()
 STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
 
    LOCAL hIni, aIni, nSect, cTemp, aSect, arr, i
+   LOCAL cdpCurr := hb_CdpSelect()
 
    IF !Empty( cIni ) .AND. !Empty( hIni := edi_iniRead( cIni ) )
       aIni := hb_hKeys( hIni )
@@ -91,6 +92,9 @@ STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
                arr := ASort( hb_hKeys( aSect ) )
                FOR i := 1 TO Len( arr )
                   Aadd( aHis,  hb_ATokens( aSect[ arr[i] ], ";" ) )
+                  IF ! (cdpCurr == "UTF8" )
+                     aHis[i,1] := hb_Utf8ToStr( aHis[i,1], cdpCurr )
+                  ENDIF
                NEXT
             ENDIF
          ENDIF
@@ -102,10 +106,12 @@ STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
 STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
 
    LOCAL s := "[MAIN]" + Chr(10) + "path=" + cPath_mpv + Chr(10) + Chr(10) + "[HIS]" + Chr(10)
-   LOCAL i
+   LOCAL i, cdpCurr := hb_CdpSelect()
 
    FOR i := 1 TO Len( aHis )
-      s += PAdl( Ltrim(Str(i,4)), 4, '0' ) + "=" + aHis[i,1] + ";" + aHis[i,2] + Chr(10)
+      s += PAdl( Ltrim(Str(i,4)), 4, '0' ) + "=" + ;
+         Iif( cdpCurr == "UTF8", aHis[i,1], hb_strToUtf8( aHis[i,1], cdpCurr ) ) + ;
+         ";" + aHis[i,2] + Chr(10)
    NEXT
 
    hb_MemoWrit( cIni, s )
