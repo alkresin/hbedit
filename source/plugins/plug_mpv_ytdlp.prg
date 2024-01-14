@@ -5,7 +5,7 @@ STATIC cPath_mpv := "", aHis := {}, lHisUpd := .F.
 
 FUNCTION plug_mpv_ytdlp( oEdit, cPath )
 
-   LOCAL cIniName := "mpv_ytdlp.ini", aMenu := { "New address" }, i, cUrl, lRes
+   LOCAL cIniName := "mpv_ytdlp.ini", aMenu := { "New address" }, i, cUrl, lRes := .T.
 
    IF Empty( cPath_mpv )
       _mpv_ytdlp_rdini( cPath + cIniName )
@@ -105,7 +105,7 @@ STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
    LOCAL i
 
    FOR i := 1 TO Len( aHis )
-      s += aHis[i,1] + ";" + aHis[i,2] + Chr(10)
+      s += PAdl( Ltrim(Str(i,4)), 4, '0' ) + "=" + aHis[i,1] + ";" + aHis[i,2] + Chr(10)
    NEXT
 
    hb_MemoWrit( cIni, s )
