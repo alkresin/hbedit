@@ -866,12 +866,12 @@ HB_FUNC( CEDI_RUNAPP )
 #endif
    if( !bSuccess )
    {
-      hb_retni( 3 );
+      hb_retl( 0 );
       return;
    }
    CloseHandle( pi.hProcess );
    CloseHandle( pi.hThread );
-   hb_retni( 0 );
+   hb_retl( 1 );
 */
    hb_retl( WinExec( hb_parc( 1 ), (HB_ISNIL(2))? SW_SHOW : ( UINT ) hb_parni( 2 ) ) > 31 );
 }

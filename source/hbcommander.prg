@@ -434,7 +434,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
                   hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T. )
                ELSE
+                  IF !Empty( Filepane():cpansi )
+                     cTemp := hb_Translate( cTemp, Filepane():cp, Filepane():cpansi )
+                  ENDIF
+                  //cTemp := hb_oemToansi( cTemp )
                   cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+                  //edi_writelog( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
                ENDIF
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
@@ -462,11 +467,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                hwg_shellExecute( "file://" + cTemp )
 #endif
 #else
-//#ifdef GTHWG
-//               hwg_shellExecute( cTemp )
-//#else
-               cedi_shellExecute( cTemp )
-//#endif
+               cedi_shellExecute( Iif( !Empty( Filepane():cpansi ), ;
+                  hb_Translate( cTemp,Filepane():cp,Filepane():cpansi ), cTemp ) )
+               //cedi_shellExecute( cTemp )
 #endif
             ENDIF
          ENDIF
@@ -765,6 +768,9 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := Upper( cTmp )
          ENDIF
+         IF hb_hHaskey( aSect, cTmp := "cpansi" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():cpansi := Upper( cTmp )
+         ENDIF
          IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             edi_SetPalette( oHbc, cTmp )
             lPalette := .T.
@@ -987,10 +993,13 @@ STATIC FUNCTION ReadIni( cIniName )
       ENDIF
    ENDIF
 
-   IF Empty(cp) //.OR. Ascan( TEdit():aCpages, cp ) == 0
+   IF Empty( cp )
       cp := "RU866"
    ENDIF
    hb_cdpSelect( FilePane():cp := cp )
+   IF Empty( FilePane():cpansi ) .AND. cp == "RU866"
+      FilePane():cpansi := "RU1251"
+   ENDIF
    IF Lower( cp ) == "utf8"
       FilePane():lUtf8 := .T.
    ENDIF
@@ -1067,6 +1076,7 @@ CLASS FilePane
    CLASS VAR cClrHid  SHARED   INIT "W/B"
    CLASS VAR lUtf8    SHARED   INIT .F.
    CLASS VAR cp       SHARED
+   CLASS VAR cpansi   SHARED
    CLASS VAR aPlugins SHARED   INIT {}
    CLASS VAR aAppList SHARED   INIT {}
    CLASS VAR lConsAuto SHARED   INIT .F.
@@ -2586,7 +2596,8 @@ STATIC FUNCTION hbc_Doclist()
          hwg_shellExecute( "file://" + Filepane():aDocHis[i] )
 #endif
 #else
-         cedi_shellExecute( Filepane():aDocHis[i] )
+         cedi_shellExecute( Iif( !Empty( Filepane():cpansi ), ;
+            hb_Translate( Filepane():aDocHis[i],Filepane():cp,Filepane():cpansi ), Filepane():aDocHis[i] ) )
 #endif
          AddDocHis( Filepane():aDocHis[i] )
       ENDIF
