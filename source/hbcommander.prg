@@ -421,7 +421,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             cTemp := Substr( cExt,2 )
             IF ','+cTemp+',' $ oPaneCurr:cDocHis
-               AddDocHis( oPaneCurr:cCurrPath + aDir[1] )
+               AddDocHis( oPaneCurr:cCurrPath + aDir[1], oPaneCurr:cpPane, .F. )
             ENDIF
             IF ( nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) == 0
                nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
@@ -434,12 +434,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
                   hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T. )
                ELSE
-                  IF !Empty( Filepane():cpansi )
-                     cTemp := hb_Translate( cTemp, Filepane():cp, Filepane():cpansi )
+#ifdef __PLATFORM__WINDOWS
+                  IF !( oPaneCurr:cpPane == "UTF8" )
+                     cTemp := hb_strToUtf8( cTemp, oPaneCurr:cpPane )
                   ENDIF
-                  //cTemp := hb_oemToansi( cTemp )
-                  cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
-                  //edi_writelog( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp )
+#endif
+                  cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp, .T. )
                ENDIF
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
@@ -467,9 +467,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                hwg_shellExecute( "file://" + cTemp )
 #endif
 #else
-               cedi_shellExecute( Iif( !Empty( Filepane():cpansi ), ;
-                  hb_Translate( cTemp,Filepane():cp,Filepane():cpansi ), cTemp ) )
-               //cedi_shellExecute( cTemp )
+#ifdef __PLATFORM__WINDOWS
+               IF !( oPaneCurr:cpPane == "UTF8" )
+                  cTemp := hb_strToUtf8( cTemp, oPaneCurr:cpPane )
+               ENDIF
+#endif
+               cedi_shellExecute( cTemp, .T. )
 #endif
             ENDIF
          ENDIF
@@ -768,9 +771,6 @@ STATIC FUNCTION ReadIni( cIniName )
          IF hb_hHaskey( aSect, cTmp := "cp" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             cp := Upper( cTmp )
          ENDIF
-         IF hb_hHaskey( aSect, cTmp := "cpansi" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            FilePane():cpansi := Upper( cTmp )
-         ENDIF
          IF hb_hHaskey( aSect, cTmp := "palette" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             edi_SetPalette( oHbc, cTmp )
             lPalette := .T.
@@ -801,6 +801,9 @@ STATIC FUNCTION ReadIni( cIniName )
             NEXT
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "dochis" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            IF Right( cTmp, 1 ) != ","
+               cTmp += ","
+            ENDIF
             FilePane():cDocHis := cTmp
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "docmax" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
@@ -987,7 +990,7 @@ STATIC FUNCTION ReadIni( cIniName )
       IF hb_hHaskey( hIni, cTmp := "DOCUMENTS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          arr := ASort( hb_hKeys( aSect ) )
          FOR i := 1 TO Len(arr)
-            arr[i] := aSect[ arr[i] ]
+            arr[i] := hb_ATokens( aSect[ arr[i] ], ';' )
          NEXT
          FilePane():aDocHis := arr
       ENDIF
@@ -997,9 +1000,6 @@ STATIC FUNCTION ReadIni( cIniName )
       cp := "RU866"
    ENDIF
    hb_cdpSelect( FilePane():cp := cp )
-   IF Empty( FilePane():cpansi ) .AND. cp == "RU866"
-      FilePane():cpansi := "RU1251"
-   ENDIF
    IF Lower( cp ) == "utf8"
       FilePane():lUtf8 := .T.
    ENDIF
@@ -1076,7 +1076,6 @@ CLASS FilePane
    CLASS VAR cClrHid  SHARED   INIT "W/B"
    CLASS VAR lUtf8    SHARED   INIT .F.
    CLASS VAR cp       SHARED
-   CLASS VAR cpansi   SHARED
    CLASS VAR aPlugins SHARED   INIT {}
    CLASS VAR aAppList SHARED   INIT {}
    CLASS VAR lConsAuto SHARED   INIT .F.
@@ -1849,7 +1848,8 @@ METHOD onExit() CLASS FilePane
          s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Chr(13) + Chr(10)
          nLen := Len(FilePane():aDocHis)
          FOR i := 1 TO Min( nLen,FilePane():nDocMax )
-            s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i] + Chr(13) + Chr(10)
+            s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i,1] + ";" + ;
+               FilePane():aDocHis[i,2] + Chr(13) + Chr(10)
          NEXT
       ENDIF
    ENDIF
@@ -2568,38 +2568,42 @@ STATIC FUNCTION hbc_Dirlist()
 
 STATIC FUNCTION hbc_Doclist()
 
-   LOCAL i, aMenu, cDir
+   LOCAL i, aMenu, cDir, cpOld, cFile
    STATIC lChecked := .F.
 
    IF !lChecked
-
       FOR i := 1 TO Len( Filepane():aDocHis )
-         IF !File( Filepane():aDocHis[i] )
+         cFile := Iif( Filepane():aDocHis[i,1] == "UTF8", Filepane():aDocHis[i,2], ;
+            hb_Utf8ToStr( Filepane():aDocHis[i,2], Filepane():aDocHis[i,1] ) )
+         cpOld := hb_cdpSelect( Filepane():aDocHis[i,1] )
+         IF !File( cFile )
             hb_ADel( Filepane():aDocHis, i, .T. )
             i --
          ENDIF
+         hb_cdpSelect( cpOld )
       NEXT
       lChecked := .T.
    ENDIF
 
    aMenu := Array( Len(Filepane():aDocHis) )
    FOR i := 1 TO Len( Filepane():aDocHis )
-      aMenu[i] := NameShortcut( hb_fnameNameExt(Filepane():aDocHis[i]), 48,'~',oHbc:lUtf8 )
+      aMenu[i] := NameShortcut( hb_fnameNameExt(Filepane():aDocHis[i,2]), 48,'~', .T. )
    NEXT
 
    IF !Empty( aMenu )
+      cpOld := hb_cdpSelect( "UTF8" )
       i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, ;
          FilePane():aClrMenu[1], FilePane():aClrMenu[2],, .T. )
+      hb_cdpSelect( cpOld )
       IF i > 0
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
-         hwg_shellExecute( "file://" + Filepane():aDocHis[i] )
+         hwg_shellExecute( "file://" + Filepane():aDocHis[i,2] )
 #endif
 #else
-         cedi_shellExecute( Iif( !Empty( Filepane():cpansi ), ;
-            hb_Translate( Filepane():aDocHis[i],Filepane():cp,Filepane():cpansi ), Filepane():aDocHis[i] ) )
+         cedi_shellExecute( Filepane():aDocHis[i,2], .T. )
 #endif
-         AddDocHis( Filepane():aDocHis[i] )
+         AddDocHis( Filepane():aDocHis[i,2], Filepane():aDocHis[i,1], .T. )
       ENDIF
    ENDIF
 
@@ -3897,15 +3901,20 @@ STATIC FUNCTION NetInfoSave()
 
    RETURN Nil
 
-STATIC FUNCTION AddDocHis( cDocName )
+STATIC FUNCTION AddDocHis( cDocName, cp, lNoTrans )
 
    LOCAL i
 
-   IF ( i := Ascan( Filepane():aDocHis, {|cs|cs==cDocName} ) ) > 0
-      ADel( Filepane():aDocHis, i )
-      hb_AIns( Filepane():aDocHis, 1, cDocName, .F. )
+   IF !lNoTrans .AND. !( cp == "UTF8" )
+      cDocName := hb_strToUtf8( cDocName, cp )
+   ENDIF
+   IF ( i := Ascan2( Filepane():aDocHis, cDocName, 2 ) ) > 0
+      IF i > 1
+         ADel( Filepane():aDocHis, i )
+         hb_AIns( Filepane():aDocHis, 1, { cp, cDocName }, .F. )
+      ENDIF
    ELSE
-      hb_AIns( Filepane():aDocHis, 1, cDocName, Len(Filepane():aDocHis)<Filepane():nDocMax )
+      hb_AIns( Filepane():aDocHis, 1, { cp, cDocName }, Len(Filepane():aDocHis)<Filepane():nDocMax )
    ENDIF
    FilePane():lDocHis := .T.
 
@@ -3982,8 +3991,11 @@ FUNCTION hbc_Wndclose( arr, cText )
 
    RETURN Nil
 
-FUNCTION Ascan2( arr, xItem )
-   RETURN Ascan( arr, {|a|a[1]==xItem} )
+FUNCTION Ascan2( arr, xItem, n )
+   IF Empty( n )
+      n := 1
+   ENDIF
+   RETURN Ascan( arr, {|a|a[n]==xItem} )
 
 /*
 #define BUFFER_SIZE  1024
