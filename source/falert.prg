@@ -11,12 +11,12 @@
 
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
-   LOCAL oy := Row(), ox := Col()
+   LOCAL oy := Row(), ox := Col(), lUtf8
    LOCAL aText := hb_aTokens( cText, ";" ), i, n, nPos
    LOCAL aGets := { {,,2," Ok ",4,TEdit():cColorWR,TEdit():cColorWB,{||__KeyBoard(Chr(K_ENTER))}} }
    LOCAL nLen := 0, nBtnsLen := 6, cp, x1, y1 := 10, oldc, bufsc
 
-   lUtf8 := ( hb_cdpSelect() == "UTF8" )
+   lUtf8 := hb_cdpisutf8()
    FOR i := 1 TO Len( aText )
       n := cp_Len( lUtf8, aText[i] )
       IF n > Maxcol() - 8

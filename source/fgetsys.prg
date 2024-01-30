@@ -42,7 +42,7 @@ STATIC cPictDelim := ",.:-/"
 FUNCTION edi_READ( aGets, pKeys )
 
    LOCAL nCurr := 1, i, j, nKeyExt, nKey, nRes := 0, nCol, nRow, nx, x, y, s, nLen, xr, cPict
-   LOCAL clrdef := SetColor(), lUtf8 := ( Lower(hb_cdpSelect()) == "utf8" ), lInsMode := .T.
+   LOCAL clrdef := SetColor(), lUtf8 := hb_cdpisutf8(), lInsMode := .T.
    LOCAL aOpt := Array( Len( aGets ), 5 ), lIns
    LOCAL nCursOld := SetCursor()
 

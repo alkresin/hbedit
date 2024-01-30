@@ -18,7 +18,7 @@ STATIC lDown := .T.
 FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
 
    LOCAL cScBuf, nCursOld
-   LOCAL lUtf8, nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
+   LOCAL lUtf8 := hb_cdpisutf8(), nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
    LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
    LOCAL nLen, arr, tmparr
    LOCAL nFirst := 1, nHeight
@@ -33,12 +33,6 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    IF clrMenuSel == Nil; clrMenuSel := TEdit():cColorMenuSel; ENDIF
    oldc := SetColor( clrMenu )
    nCursOld := SetCursor( SC_NONE )
-
-   IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LUTF8" )
-      lUtf8 := obj:lUtf8
-   ELSE
-      lUtf8 := .F.
-   ENDIF
 
    nLen := Len( aMenu )
 
@@ -107,7 +101,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
       @ y1 + i, x1 + 2 SAY arr[i+nFirst-1]
       IF ( lSea .AND. ( ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( lUtf8 .AND. nKey > 3000 ) ) );
             .OR. ( !lSea .AND. ( (nKey >= 48 .AND. nKey <= 57) ;
-            .OR. ( (nKeyMapped := edi_MapKey(obj,nKey))>= 97 .AND. nKeyMapped <= 122) ) ) ;
+            .OR. ( !Empty(obj) .AND. (nKeyMapped := edi_MapKey(obj,nKey))>= 97 .AND. nKeyMapped <= 122) ) ) ;
             .OR. nKey == K_LBUTTONDOWN .OR. nKey == K_ENTER .OR. ( lMulti .AND. nKey == K_SPACE )
 
          IF nKey == K_LBUTTONDOWN
@@ -183,7 +177,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                ENDIF
                IF lSingle .OR. Empty(aMenu[i,2])
                   xRes := i + nFirst - 1
-               ELSE
+               ELSEIF !Empty( obj )
                   DevPos( y1 + i, x2 )
                   xRes := aMenu[i+nFirst-1,2]:exec( obj, Iif( Len(aMenu[i+nFirst-1])>2,aMenu[i+nFirst-1,3],Nil ) )
                ENDIF
@@ -271,13 +265,6 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cScBuf )
-   /*
-   IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LINS" )
-      SetCursor( Iif( obj:lIns==Nil.OR.obj:lIns, SC_NORMAL, SC_SPECIAL1 ) )
-   ELSE
-      SetCursor( SC_NORMAL )
-   ENDIF
-   */
    SetCursor( nCursOld )
    DevPos( nRow, nCol )
    aSea := Nil

@@ -2765,8 +2765,10 @@ FUNCTION edi_ReadIni( xIni )
    hPalettes := hb_Hash()
    hPalettes["default"] := hb_Hash()
    hPalettes["default"]["colors"] := hb_gtinfo( HB_GTI_PALETTE )
-   hPalettes["default"]["colors"][2] := 0x800000
-   hPalettes["default"]["colors"][4] := 0x808000
+   IF !Empty( hPalettes["default"]["colors"] )
+      hPalettes["default"]["colors"][2] := 0x800000
+      hPalettes["default"]["colors"][4] := 0x808000
+   ENDIF
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )

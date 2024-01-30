@@ -167,7 +167,7 @@ FUNCTION hbc_DoAuC( oHbc, cmd, aDir, b )
    LOCAL bufc, cColor, cColorSel
    LOCAL nKeyExt, nKey, lRedraw, lRecalc := .T.
 
-#ifndef _NO_HBC
+#if .not. defined( _NO_HBC ) .and. .not. defined( __BUILT_IN )
    hTrie := FilePane():hCmdTrie
 #endif
    IF Empty( hTrie ) .AND. Empty( aDir )
