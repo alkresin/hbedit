@@ -7,6 +7,9 @@
 
 #include "inkey.ch"
 #include "hbclass.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #define ALT_PRESSED   0x040000
 

@@ -6,6 +6,9 @@
  */
 
 #include "inkey.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 FUNCTION edi_DoAuC( oEdit, lAuto )
 

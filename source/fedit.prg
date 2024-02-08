@@ -11,6 +11,9 @@
 #include "hbgtinfo.ch"
 
 #include "fedit.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #define SHIFT_PRESSED 0x010000
 #define CTRL_PRESSED  0x020000
@@ -77,7 +80,7 @@ CLASS TEdit
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
-   CLASS VAR cDefPal    SHARED
+   CLASS VAR cDefPal    SHARED  INIT "default"
    CLASS VAR cCurrPal   SHARED
    CLASS VAR cColor     SHARED  INIT "BG+/B"
    CLASS VAR cColorSel  SHARED  INIT "N/W"
@@ -383,6 +386,9 @@ METHOD Edit( lShowOnly ) CLASS TEdit
          ENDDO
       ELSE
          nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
+      ENDIF
+      IF nKeyExt == Nil
+         RETURN Nil
       ENDIF
       IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
          IF Valtype( i ) == "N"
@@ -2763,12 +2769,22 @@ FUNCTION edi_ReadIni( xIni )
    hb_gtInfo( HB_GTI_COMPATBUFFER, .F. )
    aLangs := hb_Hash()
    hPalettes := hb_Hash()
-   hPalettes["default"] := hb_Hash()
-   hPalettes["default"]["colors"] := hb_gtinfo( HB_GTI_PALETTE )
-   IF !Empty( hPalettes["default"]["colors"] )
-      hPalettes["default"]["colors"][2] := 0x800000
-      hPalettes["default"]["colors"][4] := 0x808000
+   hHili := hPalettes["default"] := hb_Hash()
+   hHili["colors"] := hb_gtinfo( HB_GTI_PALETTE )
+   IF !Empty( hHili["colors"] )
+      hHili["colors"][2] := 0x800000
+      hHili["colors"][4] := 0x808000
    ENDIF
+   hHili["attrs"] := TEdit():aHiliAttrs
+   hHili["colormain"] := TEdit():cColor
+   hHili["colorsel"] := TEdit():cColorSel
+   hHili["colorpane"] := TEdit():cColorPane
+   hHili["colorbra"] := TEdit():cColorBra
+   hHili["colormenu"] := TEdit():cColorMenu
+   hHili["colormenusel"] := TEdit():cColorMenuSel
+   hHili["colorwb"] := TEdit():cColorWB
+   hHili["colorwr"] := TEdit():cColorWR
+   hHili["colorget"] := TEdit():cColorGet
 
    IF !Empty( hIni )
       aIni := hb_hKeys( hIni )
@@ -2950,17 +2966,6 @@ FUNCTION edi_ReadIni( xIni )
       IF Empty( TEdit():cDefPal )
          TEdit():cDefPal := "default"
       ENDIF
-      hHili := hPalettes["default"]
-      hHili["attrs"] := TEdit():aHiliAttrs
-      hHili["colormain"] := TEdit():cColor
-      hHili["colorsel"] := TEdit():cColorSel
-      hHili["colorpane"] := TEdit():cColorPane
-      hHili["colorbra"] := TEdit():cColorBra
-      hHili["colormenu"] := TEdit():cColorMenu
-      hHili["colormenusel"] := TEdit():cColorMenuSel
-      hHili["colorwb"] := TEdit():cColorWB
-      hHili["colorwr"] := TEdit():cColorWR
-      hHili["colorget"] := TEdit():cColorGet
 
 #if defined ( __PLATFORM__WINDOWS ) || defined ( GTHWG )
       FOR nSect := 1 TO Len( aIni )

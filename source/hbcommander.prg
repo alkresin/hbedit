@@ -12,6 +12,9 @@
 #include "hbgtinfo.ch"
 
 #include "hbc.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 REQUEST HB_CODEPAGE_RU866
 REQUEST HB_CODEPAGE_RU1251
@@ -73,6 +76,8 @@ FUNCTION Hbc( oEdit )
 #endif
 
       oHbc := mnu_NewBuf( oEdit )
+      FilePane():vy1 := TEdit():aRectFull[1]
+      FilePane():vx1 := TEdit():aRectFull[2]
       FilePane():vy2 := TEdit():aRectFull[3]
       FilePane():vx2 := TEdit():aRectFull[4]
       nScreenH := FilePane():vy2 + 1
@@ -1040,8 +1045,8 @@ STATIC FUNCTION SetPanes( aPanes, cDir1, cDir2 )
       ENDIF
    ENDIF
 
-   FilePane():New( 0, 0, Int(nScreenW/2)-1, nScreenH-1, nMode1, cDir1 )
-   FilePane():New( Int(nScreenW/2), 0, nScreenW-1, nScreenH-1, nMode2, cDir2 )
+   FilePane():New( Filepane():vx1, Filepane():vy1, Int(nScreenW/2)-1, nScreenH-1, nMode1, cDir1 )
+   FilePane():New( Int(nScreenW/2), Filepane():vy1, nScreenW-1, nScreenH-1, nMode2, cDir2 )
    oPaneCurr := FilePane():aPanes[1]
    oPaneTo   := FilePane():aPanes[2]
 

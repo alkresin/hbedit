@@ -8,6 +8,9 @@
 #include "inkey.ch"
 #include "setcurs.ch"
 #include "hbgtinfo.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #define G_Y      1
 #define G_X      2

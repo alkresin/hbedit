@@ -8,6 +8,9 @@
  */
 
 #include "inkey.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 

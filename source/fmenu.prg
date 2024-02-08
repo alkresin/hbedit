@@ -7,6 +7,9 @@
 
 #include "inkey.ch"
 #include "setcurs.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #define CTRL_PRESSED  0x020000
 

@@ -8,6 +8,9 @@
 #include "inkey.ch"
 #include "fileio.ch"
 #include "hbc.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #define RDBUFFERSIZE  16384
 #define MAXLEN       100000

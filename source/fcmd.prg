@@ -7,6 +7,9 @@
 
 #include "inkey.ch"
 #include "setcurs.ch"
+#ifdef __PSEUDOGT
+   #include "hwpgt.ch"
+#endif
 
 #ifndef __PLATFORM__UNIX
 STATIC aCmds := { "call", "cd", "copy", "del", "dir", "echo", "find", "md", "move", "ver" }
