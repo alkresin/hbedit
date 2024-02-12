@@ -1840,6 +1840,9 @@ METHOD RedrawAll() CLASS FilePane
 METHOD onExit() CLASS FilePane
 
    LOCAL cHisDir := hb_DirBase(), s := "", i, nLen
+#ifdef __PLATFORM__UNIX
+   LOCAL sLine
+#endif
 
    IF FilePane():lCmdHis .OR. FilePane():lDocHis
       IF !Empty( FilePane():aCmdHis )
