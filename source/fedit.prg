@@ -388,7 +388,9 @@ METHOD Edit( lShowOnly ) CLASS TEdit
          nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
       ENDIF
       IF nKeyExt == Nil
-         RETURN Nil
+         ::lShow := .F.
+         ::lClose := .T.
+         EXIT
       ENDIF
       IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
          IF Valtype( i ) == "N"

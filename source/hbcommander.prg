@@ -3535,6 +3535,9 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
    ENDIF
    DO WHILE .T.
       nKeyExt := Inkey( 0, HB_INKEY_ALL + HB_INKEY_EXT )
+      IF nKeyExt == Nil
+         RETURN Nil
+      ENDIF
       IF ((nKey := hb_keyStd( nKeyExt )) >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
          LOOP
       ENDIF
@@ -3703,6 +3706,9 @@ STATIC FUNCTION Cons_My( cCommand )
          nSecInit := 0
       ENDIF
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+      IF nKeyExt == Nil
+         RETURN Nil
+      ENDIF
       IF nKeyExt == 0
 #ifndef __PLATFORM__UNIX
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
