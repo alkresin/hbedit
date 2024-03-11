@@ -78,11 +78,8 @@ FUNCTION hwbc_Run( cFile, cDop )
    LOCAL x, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j
    LOCAL lAddW := .F., cAddW := "$hb_compile_err", oOld, oldc
 
-   //edi_Alert( cFile )
    sResult := ""
-   IF Empty( cIniPath )
-      ReadIni( "hwbuild.ini" )
-   ENDIF
+   ReadIni( "hwbuild.ini" )
    lQ := .F.
    IF cDop == Nil
       cDop := _GetParams()

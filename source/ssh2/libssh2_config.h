@@ -111,7 +111,7 @@
 
   #define HAVE_FIONBIO
 
-  #include <stropts.h>
+  //#include <stropts.h>
 
   /* In VMS TCP/IP Services and some BSD variants SO_STATE retrieves
    * a bitmask revealing amongst others the blocking state of the
