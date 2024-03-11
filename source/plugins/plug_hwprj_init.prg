@@ -7,6 +7,7 @@
 #define K_ALT_H      291
 
 STATIC lUnix
+STATIC hPlugHwbc
 
 FUNCTION Plug_hwprj_Init( oEdit )
 
@@ -212,10 +213,21 @@ STATIC FUNCTION _DropSlash( cLine )
 
 STATIC FUNCTION _hwprj_Init_Build( oEdit )
 
-   LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err"
+   LOCAL cBuff, oNew, x, lPlug, cDop, cAddW := "$hb_compile_err"
    LOCAL cPathBase := hb_fnameDir( oEdit:cFileName ), cCurrDir := Curdir()
+   LOCAL cPathPlug := edi_FindPath( "plugins" + hb_ps() + "hwbuilder.hrb" )
 
    edi_CloseWindow( cAddW )
+
+   IF !hb_isFunction( "HWBUILDER" ) .AND. File( cPathPlug )
+      x := hb_hrbLoad( cPathPlug )
+      IF hb_isFunction( "FILEPANE" )
+         FilePane():hMisc["hwbc_plug"] := x
+      ELSE
+         hPlugHwbc := x
+      ENDIF
+   ENDIF
+   lPlug := hb_isFunction( "HWBUILDER" )
 
    oEdit:Save()
    IF ( cDop := _GetParams() ) == Nil
@@ -225,12 +237,19 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    SetColor( oEdit:cColorSel )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    DirChange( cPathBase )
-   cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+   IF lPlug
+      cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '","+' + cDop + '")}' ) )
+   ELSE
+      cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+   ENDIF
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
 
    IF Empty( cBuff )
-      edi_Alert( "hwbc" + Iif( lUnix, "", ".exe" ) + " isn't found" )
+      IF lPlug
+      ELSE
+         edi_Alert( "hwbc" + Iif( lUnix, "", ".exe" ) + " isn't found" )
+      ENDIF
    ELSE
       oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)*3/4 ) )
       oNew:lReadOnly := .T.

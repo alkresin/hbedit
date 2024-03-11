@@ -716,6 +716,7 @@ HB_FUNC( CEDI_WAITPID )
 
 #include <windows.h>
 #include <tchar.h>
+#define CMDLENGTH  4096
 
 HB_FUNC( CEDI_RUNCONSOLEAPP )
 {
@@ -731,7 +732,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
    HANDLE hOut = NULL;
 #ifdef UNICODE
-   TCHAR wc1[256], wc2[256];
+   TCHAR wc1[CMDLENGTH], wc2[CMDLENGTH];
 #endif
 
    sa.nLength = sizeof( SECURITY_ATTRIBUTES );
@@ -765,7 +766,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    si.hStdError = g_hChildStd_OUT_Wr;
 
 #ifdef UNICODE
-   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, CMDLENGTH );
    bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
          TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
 #else
@@ -787,7 +788,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    if( !HB_ISNIL( 2 ) )
    {
 #ifdef UNICODE
-      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, 256 );
+      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, CMDLENGTH );
       hOut = CreateFile( wc2, GENERIC_WRITE, 0, 0,
             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
 #else
@@ -849,7 +850,7 @@ HB_FUNC( CEDI_RUNAPP )
    STARTUPINFO si;
    BOOL bSuccess;
 #ifdef UNICODE
-   TCHAR wc1[256], wc2[256];
+   TCHAR wc1[CMDLENGTH];
 #endif
 
    ZeroMemory( &pi, sizeof( PROCESS_INFORMATION ) );
@@ -857,7 +858,7 @@ HB_FUNC( CEDI_RUNAPP )
    si.cb = sizeof( si );
 
 #ifdef UNICODE
-   MultiByteToWideChar( ( (HB_ISLOG(2) && hb_parl(2))? CP_UTF8 : GetACP() ), 0, hb_parc(1), -1, wc1, 256 );
+   MultiByteToWideChar( ( (HB_ISLOG(2) && hb_parl(2))? CP_UTF8 : GetACP() ), 0, hb_parc(1), -1, wc1, CMDLENGTH );
    bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
          TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
 #else
@@ -893,7 +894,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    STARTUPINFO siStartInfo;
    BOOL bSuccess;
 #ifdef UNICODE
-   TCHAR wc1[256];
+   TCHAR wc1[CMDLENGTH];
 #endif
 
    ZeroMemory( &(pHandles->piProcInfo), sizeof( PROCESS_INFORMATION ) );
@@ -907,7 +908,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 
 #ifdef UNICODE
-   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, 256 );
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, CMDLENGTH );
    bSuccess = CreateProcess( NULL, wc1, NULL, NULL,
          TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartInfo, &(pHandles->piProcInfo) );
 #else
@@ -1138,15 +1139,15 @@ HB_FUNC( CEDI_SHELLEXECUTE )
 {
    int iParams = 0;
 #ifdef UNICODE
-   TCHAR wc1[256], wc2[256];
+   TCHAR wc1[CMDLENGTH], wc2[CMDLENGTH];
 #endif
 
    if( hb_pcount() > 1 && HB_ISCHAR(2) )
       iParams = 1;
 #ifdef UNICODE
-   MultiByteToWideChar( ( (HB_ISLOG(2) && hb_parl(2))? CP_UTF8 : GetACP() ), 0, hb_parc(1), -1, wc1, 256 );
+   MultiByteToWideChar( ( (HB_ISLOG(2) && hb_parl(2))? CP_UTF8 : GetACP() ), 0, hb_parc(1), -1, wc1, CMDLENGTH );
    if( iParams )
-      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, 256 );
+      MultiByteToWideChar( GetACP(), 0, hb_parc(2), -1, wc2, CMDLENGTH );
    hb_retnl( ( LONG ) ShellExecute( GetActiveWindow(),
       NULL, wc1, (iParams)? wc2:NULL, NULL, SW_SHOWNORMAL ) );
 #else
