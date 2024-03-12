@@ -230,20 +230,18 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    lPlug := hb_isFunction( "HWBUILDER" )
 
    oEdit:Save()
-   IF ( cDop := _GetParams() ) == Nil
-      RETURN Nil
-   ENDIF
 
-   SetColor( oEdit:cColorSel )
-   @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    DirChange( cPathBase )
    IF lPlug
-      cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '","+' + cDop + '")}' ) )
+      cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '",.T.)}' ) )
    ELSE
+      IF ( cDop := _GetParams() ) == Nil
+         RETURN Nil
+      ENDIF
+      @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
       cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
    ENDIF
    DirChange( cCurrDir )
-   SetColor( oEdit:cColor )
 
    IF Empty( cBuff )
       IF lPlug

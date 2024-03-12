@@ -73,44 +73,27 @@ STATIC sResult
 FUNCTION HwBuilder()
    RETURN Nil
 
-FUNCTION hwbc_Run( cFile, cDop )
+FUNCTION hwbc_Run( cFile, lFromEdit )
 
-   LOCAL x, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j
-   LOCAL lAddW := .F., cAddW := "$hb_compile_err", oOld, oldc
+   LOCAL x, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j, cDop
+   LOCAL cAddW := "$hb_compile_err", oOld
 
+   IF Empty( lFromEdit ); lFromEdit := .F.; ENDIF
    sResult := ""
+   HCompiler():aList := {}
+   HGuiLib():aList := {}
    ReadIni( "hwbuild.ini" )
    lQ := .F.
-   IF cDop == Nil
-      cDop := _GetParams()
-      lAddW := .T.
+   IF( cDop := _GetParams( @oComp ) ) == Nil
+      RETURN Nil
    ENDIF
+
    IF !Empty( cDop )
       IF "-q" $ cDop
          lQ := .T.
       ENDIF
       IF "-clean" $ cDop
          lClean := .T.
-      ENDIF
-      IF "-bcc" $ cDop
-         IF ( j := Ascan( HCompiler():aList, {|o|o:id == "bcc"} ) ) > 0
-            oComp := HCompiler():aList[j]
-         ENDIF
-      ELSEIF "-mingw" $ cDop
-         IF ( j := Ascan( HCompiler():aList, {|o|o:id == "mingw"} ) ) > 0
-            oComp := HCompiler():aList[j]
-         ENDIF
-      ELSEIF "-msvc" $ cDop
-         IF ( j := Ascan( HCompiler():aList, {|o|o:id == "msvc"} ) ) > 0
-            oComp := HCompiler():aList[j]
-         ENDIF
-      ELSEIF ( i := At( "-comp=", cDop ) ) > 0
-         j := i + 5
-         DO WHILE ++j <= Len(cDop) .AND. Substr( j,1,1 ) != " "; ENDDO
-         cComp := Substr( cDop, i+6, j-i-6 )
-         IF ( j := Ascan( HCompiler():aList, {|o|o:id == cComp} ) ) > 0
-            oComp := HCompiler():aList[j]
-         ENDIF
       ENDIF
       i := 1
       DO WHILE ( i := hb_At( "{", cDop, i ) ) > 0
@@ -123,15 +106,11 @@ FUNCTION hwbc_Run( cFile, cDop )
       ENDDO
    ENDIF
    IF ( x := Lower( hb_fnameExt( cFile ) ) ) == ".hwprj"
-      IF lAddW
-         oldc := SetColor( TEdit():cColorSel )
-         @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
-         SetColor( oldc )
-      ENDIF
+      @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
       IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar ) )
          oPrg:Build( lClean )
       ENDIF
-      IF lAddW
+      IF !lFromEdit
          oOld := TEdit():aWindows[TEdit():nCurr]
          TEdit():New( sResult, cAddW, TEdit():aRectFull[1], TEdit():aRectFull[2], TEdit():aRectFull[3], TEdit():aRectFull[4] )
          oOld:lShow := .F.
@@ -148,23 +127,31 @@ STATIC FUNCTION ShowResult()
 STATIC FUNCTION FPaths()
    RETURN Nil
 
-STATIC FUNCTION _GetParams()
+STATIC FUNCTION _GetParams( oComp )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets, y1, x1, x2
+   LOCAL aGets, y1, x1, x2, y2, i, j
 
    y1 := Int( MaxRow()/2 ) - 1
-   x1 := Int( MaxCol()/2 ) - 20
-   x2 := x1 + 40
+   x1 := Int( MaxCol()/2 ) - 16
+   x2 := x1 + 32
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, 1, .F., 2 }, ;
-      { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;
+      { y1+2,x1+2, 11, "-{...}" }, ;
       { y1+3,x1+2, 0, "", x2-x1-4 } }
 
-   cBuf := Savescreen( y1, x1, y1 + 4, x2 )
-   @ y1, x1, y1 + 4, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   AAdd( aGets, { y1+4, x1+3, 3, .T., 1 } )
+   AAdd( aGets, { y1+4,x1+2, 11, "(x) default" } )
+   FOR i := 1 TO Len( HCompiler():aList )
+      AAdd( aGets, { y1+4+i, x1+3, 3, .F., 1 } )
+      AAdd( aGets, { y1+4+i,x1+2, 11, "( ) " + HCompiler():aList[i]:id } )
+   NEXT
+   y2 := y1 + 4 + i
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
    KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN )
    edi_READ( aGets )
@@ -176,11 +163,21 @@ STATIC FUNCTION _GetParams()
       IF aGets[5,4]
          xRes := Iif( Empty(xRes), "-clean", xRes + " -clean" )
       ENDIF
+      j := 0
+      FOR i := 8 TO Len( aGets ) STEP 2
+         IF aGets[i,4]
+            IF j > 0
+               oComp := HCompiler():aList[j]
+            ENDIF
+            EXIT
+         ENDIF
+         j ++
+      NEXT
    ELSE
       xRes := Nil
    ENDIF
    SetColor( oldc )
-   Restscreen( y1, x1, y1 + 4, x2, cBuf )
+   Restscreen( y1, x1, y2, x2, cBuf )
 
    RETURN xRes
 
@@ -247,7 +244,7 @@ STATIC FUNCTION ReadIni( cFile )
 
    IF File( cPath := ( _CurrPath() + cFile ) ) .OR. ;
       File( cPath := ( hb_DirBase() + "plugins" + hb_ps() + cFile ) )
-      hIni := _IniRead( cPath )
+      hIni := edi_IniRead( cPath )
       _MsgInfo( "Read options from " + cPath + hb_eol() )
    ENDIF
    cIniPath := cPath
@@ -696,39 +693,6 @@ STATIC FUNCTION _CurrPath()
 #endif
 
    RETURN cPrefix + CurDir() + hb_ps()
-
-STATIC FUNCTION _IniRead( cFileName )
-
-   LOCAL cText := Memoread( cFileName ), aText, i, s, nPos
-   LOCAL hIni, hSect
-
-   IF Empty( cText )
-      RETURN Nil
-   ENDIF
-
-   aText := hb_aTokens( cText, Chr(10) )
-   hIni := hb_Hash()
-
-   FOR i := 1 TO Len( aText )
-      s := Iif( Left( aText[i],1 ) == ' ', Ltrim( aText[i] ), aText[i] )
-      IF Left( s, 1 ) $ ";#"
-         LOOP
-      ENDIF
-      s := Trim( Iif( Right(s,1)==Chr(13), Left( s,Len(s)-1 ), s ) )
-      IF Empty( s )
-         LOOP
-      ENDIF
-
-      IF Left( s,1 ) == '[' .AND. Right( s,1 ) == ']'
-         hSect := hIni[Substr( s,2,Len(s)-2 )] := hb_Hash()
-      ELSEIF !( hSect == Nil )
-         IF ( nPos := At( '=', s ) ) > 0
-            hSect[Trim(Left(s,nPos-1))] := Ltrim( Substr( s,nPos+1 ) )
-         ENDIF
-      ENDIF
-   NEXT
-
-   RETURN hIni
 
 CLASS HCompiler
 

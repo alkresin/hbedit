@@ -4640,7 +4640,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    @ 10,22 SAY _I("Save file as")
    @ 12,22 SAY _I("in directory")
-   @ 15, 22 SAY " Eol: ( ) " + _I("Do not change") + " ( ) Dos/Windows ( ) Unix"
+   @ 15, 22 SAY " Eol: ( ) Do not change  ( ) Dos/Windows ( ) Unix"
    Aadd( aGets, {18,25,2,_I("[Save]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
    Aadd( aGets, {18,58,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8
