@@ -7,7 +7,7 @@
 
 #include "hbclass.ch"
 
-#define HWB_VERSION  "1.7"
+#define HWB_VERSION  "1.8"
 
 #define COMP_ID      1
 #define COMP_EXE     2
@@ -75,16 +75,19 @@ FUNCTION HwBuilder()
 
 FUNCTION hwbc_Run( cFile, lFromEdit )
 
-   LOCAL x, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j, cDop
+   LOCAL cExt, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j, cDop, aDop, cGTlib := ""
    LOCAL cAddW := "$hb_compile_err", oOld
 
    IF Empty( lFromEdit ); lFromEdit := .F.; ENDIF
+   cExt := Lower( hb_fnameExt( cFile ) )
+
    sResult := ""
    HCompiler():aList := {}
    HGuiLib():aList := {}
    ReadIni( "hwbuild.ini" )
    lQ := .F.
-   IF( cDop := _GetParams( @oComp ) ) == Nil
+   lGuiApp := .T.
+   IF( cDop := _GetParams( @oComp, (cExt==".prg") ) ) == Nil
       RETURN Nil
    ENDIF
 
@@ -95,20 +98,34 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
       IF "-clean" $ cDop
          lClean := .T.
       ENDIF
-      i := 1
-      DO WHILE ( i := hb_At( "{", cDop, i ) ) > 0
-         IF ( j := hb_At( "}", cDop, i ) ) > i
-            AAdd( aUserPar, Substr( cDop, i+1, j-i-1 ) )
-            i := j + 1
-         ELSE
-            EXIT
-         ENDIF
-      ENDDO
+      IF cExt == ".prg"
+         aDop := hb_Atokens( cDop, " " )
+         FOR i := 1 TO Len( aDop )
+            IF Left( aDop[i],3 ) == "-gt"
+               cGTlib := Substr( aDop[i], 2 )
+            ENDIF
+         NEXT
+      ELSE
+         i := 1
+         DO WHILE ( i := hb_At( "{", cDop, i ) ) > 0
+            IF ( j := hb_At( "}", cDop, i ) ) > i
+               AAdd( aUserPar, Substr( cDop, i+1, j-i-1 ) )
+               i := j + 1
+            ELSE
+               EXIT
+            ENDIF
+         ENDDO
+      ENDIF
    ENDIF
-   IF ( x := Lower( hb_fnameExt( cFile ) ) ) == ".hwprj"
+   IF cExt == ".hwprj" .OR. cExt == ".prg"
       @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
-      IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar ) )
-         oPrg:Build( lClean )
+      IF cExt == ".hwprj"
+         IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar ) )
+            oPrg:Build( lClean )
+         ENDIF
+      ELSE
+         oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, "", "", "", "", "", "", .F., .F. )
+         oPrg:Build()
       ENDIF
       IF !lFromEdit
          oOld := TEdit():aWindows[TEdit():nCurr]
@@ -116,7 +133,6 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
          oOld:lShow := .F.
          TEdit():nCurr := Len( TEdit():aWindows )
       ENDIF
-   ELSEIF x == ".prg"
    ENDIF
 
    RETURN sResult
@@ -127,7 +143,7 @@ STATIC FUNCTION ShowResult()
 STATIC FUNCTION FPaths()
    RETURN Nil
 
-STATIC FUNCTION _GetParams( oComp )
+STATIC FUNCTION _GetParams( oComp, lPrg )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i, j
@@ -138,8 +154,8 @@ STATIC FUNCTION _GetParams( oComp )
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
-      { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, 1, .F., 2 }, ;
-      { y1+2,x1+2, 11, "-{...}" }, ;
+      { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lPrg,-1,1), .F., 2 }, ;
+      { y1+2,x1+2, 11, Iif( lPrg,"-gt...","-{...}" ) }, ;
       { y1+3,x1+2, 0, "", x2-x1-4 } }
 
    AAdd( aGets, { y1+4, x1+3, 3, .T., 1 } )
@@ -882,7 +898,7 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
 
    RETURN Self
 
-METHOD Open( xSource, oComp, aUserPar ) CLASS HwProject
+METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
 
    LOCAL arr, i, j, n, l, lYes, nPos, af, ap, o, oGui
    LOCAL cLine, cTmp, cTmp2, cSrcPath := "", lLib, lCompDefault := .F.
@@ -904,6 +920,13 @@ METHOD Open( xSource, oComp, aUserPar ) CLASS HwProject
       arr := hb_Atokens( Memoread( xSource ), Chr(10) )
    ENDIF
 
+   IF !Empty( aFiles )
+      FOR i := 1 TO Len( aFiles )
+         IF !( Lower( hb_fnameExt( aFiles[i,1] ) ) == ".hwprj" )
+            AAdd( ::aFiles, aFiles[i] )
+         ENDIF
+      NEXT
+   ENDIF
    FOR i := 1 TO Len( arr )
       IF !Empty( cLine := AllTrim( StrTran( arr[i], Chr(13), "" ) ) ) .AND. !( Left( cLine, 1 ) == "#" )
          DO WHILE Left( cLine,1 ) == '{'
@@ -1195,8 +1218,8 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       NEXT
    ENDIF
    cCmd := _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour " + cHrbDefFlags + ;
-      " -i" + _EnvVarsTran(cPathHrbInc) + ;
-      " -i" + cPathHwguiInc + Iif( Empty( ::cFlagsPrg ), "", " " + ::cFlagsPrg ) + ;
+      " -i" + _EnvVarsTran(cPathHrbInc) + Iif( lGuiApp, " -i" + cPathHwguiInc, "" ) + ;
+      Iif( Empty( ::cFlagsPrg ), "", " " + ::cFlagsPrg ) + ;
       Iif( Empty( cObjPath ), "", " -o" + cObjPath )
    FOR i := 1 TO Len( ::aFiles )
       cFile := _PS( ::aFiles[i,1] )
@@ -1231,7 +1254,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Compile C sources with C compiler
       cOut := Nil
       cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", _EnvVarsTran(cPathHrbInc) ), ;
-         "{gi}", cPathHwguiInc ), "{path}", cCompPath )
+         "{gi}", Iif( lGuiApp, cPathHwguiInc, "" ) ), "{path}", cCompPath )
 
       FOR i := 1 TO Len( ::aFiles )
          cFile := _PS( ::aFiles[i,1] )
@@ -1267,7 +1290,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
 #ifndef __PLATFORM__UNIX
-   IF !lErr
+   IF lGuiApp .AND. !::lLib .AND. !lErr
       // Compile resource files
       cOut := Nil
       IF !Empty( ::oComp:cCmdRes ) .AND. Empty( ::cGtLib )
@@ -1346,7 +1369,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
              ::oComp:cCmdLinkExe, "{out}", cBinary ), "{objs}", cObjs ), "{path}", cCompPath ), ;
              "{f}", Iif( ::cDefFlagsL == Nil, Iif( lGuiApp, ::oComp:cLinkFlagsGui, ;
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
-             "{hL}", cCompHrbLib ), "{gL}", cPathHwguiLib ), ;
+             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp, cPathHwguiLib,"" ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
              "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"
