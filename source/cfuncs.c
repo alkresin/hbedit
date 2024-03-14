@@ -455,6 +455,19 @@ HB_FUNC( CEDI_CHGRP )
       hb_retc_null();
 }
 
+HB_FUNC( CEDI_RUNBACKGROUNDAPP )
+{
+   //hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
+   char scmd[2048];
+   int nLen = hb_parclen( 1 );
+
+   memcpy( scmd, hb_parc(1), nLen );
+   scmd[nLen] = ' ';
+   scmd[nLen+1] = '&';
+   scmd[nLen+2] = '\0';
+   system( hb_parc(1) );
+}
+
 HB_FUNC( CEDI_RUNCONSOLEAPP )
 {
    /* Ensure that output of command does interfere with stdout */
@@ -717,6 +730,46 @@ HB_FUNC( CEDI_WAITPID )
 #include <windows.h>
 #include <tchar.h>
 #define CMDLENGTH  4096
+
+HB_FUNC( CEDI_RUNBACKGROUNDAPP )
+{
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+#ifdef UNICODE
+   TCHAR wc1[CMDLENGTH];
+#endif
+
+   ZeroMemory( &si, sizeof(si) );
+   si.cb = sizeof(si);
+   si.wShowWindow = SW_SHOW;
+   si.dwFlags = STARTF_USESHOWWINDOW;
+   ZeroMemory( &pi, sizeof(pi) );
+
+#ifdef UNICODE
+   MultiByteToWideChar( GetACP(), 0, hb_parc(1), -1, wc1, CMDLENGTH );
+   CreateProcess( NULL,   // No module name (use command line)
+       wc1,            // Command line
+       NULL,           // Process handle not inheritable
+       NULL,           // Thread handle not inheritable
+       FALSE,          // Set handle inheritance to FALSE
+       CREATE_NO_WINDOW,  // No creation flags
+       NULL,           // Use parent's environment block
+       NULL,           // Use parent's starting directory
+       &si,            // Pointer to STARTUPINFO structure
+       &pi );          // Pointer to PROCESS_INFORMATION structure
+#else
+   CreateProcess( NULL,   // No module name (use command line)
+       (LPTSTR)hb_parc(1),  // Command line
+       NULL,           // Process handle not inheritable
+       NULL,           // Thread handle not inheritable
+       FALSE,          // Set handle inheritance to FALSE
+       CREATE_NO_WINDOW,  // No creation flags
+       NULL,           // Use parent's environment block
+       NULL,           // Use parent's starting directory
+       &si,            // Pointer to STARTUPINFO structure
+       &pi );          // Pointer to PROCESS_INFORMATION structure
+#endif
+}
 
 HB_FUNC( CEDI_RUNCONSOLEAPP )
 {
