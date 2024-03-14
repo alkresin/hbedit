@@ -75,7 +75,8 @@ FUNCTION HwBuilder()
 
 FUNCTION hwbc_Run( cFile, lFromEdit )
 
-   LOCAL cExt, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, i, j, cDop, aDop, cGTlib := ""
+   LOCAL cExt, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, aFiles := {}
+   LOCAL i, j, cDop, aDop, cGTlib := ""
    LOCAL cAddW := "$hb_compile_err", oOld
 
    IF Empty( lFromEdit ); lFromEdit := .F.; ENDIF
@@ -103,6 +104,10 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
          FOR i := 1 TO Len( aDop )
             IF Left( aDop[i],3 ) == "-gt"
                cGTlib := Substr( aDop[i], 2 )
+            ELSEIF Left( aDop[i],1 ) != "-" .AND. Lower(hb_fnameExt(aDop[i])) == ".hwprj"
+               Aadd( aFiles, {cFile,""} )
+               cExt := ".hwprj"
+               cFile := aDop[i]
             ENDIF
          NEXT
       ELSE
@@ -120,7 +125,7 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
    IF cExt == ".hwprj" .OR. cExt == ".prg"
       @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
       IF cExt == ".hwprj"
-         IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar ) )
+         IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles ) )
             oPrg:Build( lClean )
          ENDIF
       ELSE
@@ -1254,7 +1259,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Compile C sources with C compiler
       cOut := Nil
       cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", _EnvVarsTran(cPathHrbInc) ), ;
-         "{gi}", Iif( lGuiApp, cPathHwguiInc, "" ) ), "{path}", cCompPath )
+         "{gi}", Iif( lGuiApp, cPathHwguiInc, "." ) ), "{path}", cCompPath )
 
       FOR i := 1 TO Len( ::aFiles )
          cFile := _PS( ::aFiles[i,1] )
@@ -1369,7 +1374,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
              ::oComp:cCmdLinkExe, "{out}", cBinary ), "{objs}", cObjs ), "{path}", cCompPath ), ;
              "{f}", Iif( ::cDefFlagsL == Nil, Iif( lGuiApp, ::oComp:cLinkFlagsGui, ;
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
-             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp, cPathHwguiLib,"" ) ), ;
+             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp, cPathHwguiLib,"." ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
              "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"
