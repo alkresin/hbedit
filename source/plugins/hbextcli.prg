@@ -41,6 +41,55 @@ FUNCTION ecli_Run( cExe, nLog, cDir )
 
    RETURN .T.
 
+FUNCTION ecli_Close()
+
+   conn_SetNoWait( .T. )
+   SendOut( '["endapp"]' )
+   cedi_Sleep( nInterval*2 )
+
+   conn_Exit()
+   cedi_Sleep( nInterval*2 )
+
+   RETURN Nil
+
+FUNCTION ecli_RunProc( cFunc, aParams )
+
+   LOCAL i
+
+   FOR i := 1 TO Len(aParams)
+      IF Valtype( aParams[i] ) != "C"
+         aParams[i] := CnvVal( aParams[i] )
+      ENDIF
+   NEXT
+   SendOut( hb_jsonEncode( { "runproc", cFunc, hb_jsonEncode( aParams ) } ) )
+
+   RETURN Nil
+
+FUNCTION ecli_RunFunc( cFunc, aParams, lNoWait )
+
+   LOCAL cRes := SendOut( hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait )
+
+   IF Left( cRes,1 ) == '"'
+      RETURN Substr( cRes, 2, Len(cRes)-2 )
+   ENDIF
+   RETURN cRes
+
+FUNCTION ecli_CheckAnswer()
+
+   RETURN conn_CheckOut()
+
+FUNCTION ecli_SetVar( cVarName, cValue )
+
+   SendOut( hb_jsonEncode( { "setvar", cVarName, cValue } ) )
+
+   RETURN Nil
+
+FUNCTION ecli_GetVar( cVarName )
+
+   LOCAL cRes := SendOut( hb_jsonEncode( { "getvar", cVarName } ) )
+
+   RETURN Substr( cRes,2,Len(cRes)-2 )
+
 STATIC FUNCTION CnvVal( xRes )
 
    LOCAL cRes := Valtype(xRes), nPos2
@@ -71,34 +120,12 @@ STATIC FUNCTION CnvVal( xRes )
 
    RETURN cRes
 
-FUNCTION ecli_RunProc( cFunc, aParams )
-
-   LOCAL i
-
-   FOR i := 1 TO Len(aParams)
-      IF Valtype( aParams[i] ) != "C"
-         aParams[i] := CnvVal( aParams[i] )
-      ENDIF
-   NEXT
-   SendOut( hb_jsonEncode( { "runproc", cFunc, hb_jsonEncode( aParams ) } ) )
-
-   RETURN Nil
-
-FUNCTION ecli_RunFunc( cFunc, aParams )
-
-   LOCAL cRes := SendOut( hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ) )
-
-   IF Left( cRes,1 ) == '"'
-      RETURN Substr( cRes, 2, Len(cRes)-2 )
-   ENDIF
-   RETURN cRes
-
-STATIC FUNCTION SendOut( s )
+STATIC FUNCTION SendOut( s, lNoWait )
 
    LOCAL cRes
    gWritelog( "   " + Ltrim(Str(nConnType)) + " " + s )
 
-   cRes := conn_Send2SocketOut( "+" + s + cn )
+   cRes := conn_Send2SocketOut( "+" + s + cn, lNoWait )
 
    RETURN Iif( Empty(cRes), "", cRes )
 
@@ -108,7 +135,7 @@ STATIC FUNCTION SendIn( s )
 
    RETURN Nil
 
-FUNCTION MainHandler()
+STATIC FUNCTION MainHandler()
 
    LOCAL arr, cBuffer
 
@@ -130,17 +157,6 @@ FUNCTION MainHandler()
 */
    RETURN Nil
 
-FUNCTION ecli_Close()
-
-   conn_SetNoWait( .T. )
-   SendOut( '["endapp"]' )
-   ecli_Sleep( nInterval*2 )
-
-   conn_Exit()
-   ecli_Sleep( nInterval*2 )
-
-   RETURN Nil
-
 STATIC FUNCTION gWritelog( s )
 
    LOCAL nHand
@@ -157,17 +173,7 @@ STATIC FUNCTION gWritelog( s )
    ENDIF
    RETURN Nil
 
-FUNCTION conn_SetCallBack( b )
-
-   bCallBack := b
-   RETURN Nil
-
-FUNCTION conn_SetVersion( s )
-
-   cVersion := s
-   RETURN Nil
-
-FUNCTION conn_Read( lOut )
+STATIC FUNCTION conn_Read( lOut )
 
    LOCAL n, nPos, s := ""
    LOCAL han := Iif( lOut, handlOut, handlIn )
@@ -190,11 +196,11 @@ FUNCTION conn_Read( lOut )
 
    RETURN Len( s )
 
-FUNCTION conn_GetRecvBuffer()
+STATIC FUNCTION conn_GetRecvBuffer()
 
    RETURN Substr( cBuffRes, 2 )
 
-FUNCTION conn_Send( lOut, cLine )
+STATIC FUNCTION conn_Send( lOut, cLine )
 
    LOCAL han := Iif( lOut, handlOut, handlIn )
 
@@ -207,7 +213,7 @@ FUNCTION conn_Send( lOut, cLine )
 
    RETURN Nil
 
-FUNCTION conn_Send2SocketIn( s )
+STATIC FUNCTION conn_Send2SocketIn( s )
 
    IF lActive
       conn_Send( .F., s )
@@ -215,18 +221,17 @@ FUNCTION conn_Send2SocketIn( s )
 
    RETURN Nil
 
-FUNCTION conn_Send2SocketOut( s )
+STATIC FUNCTION conn_Send2SocketOut( s, lNoWait )
+
+   LOCAL cAns
 
    IF lActive
       conn_Send( .T., s )
-      IF !lNoWait4Answer
+      IF !lNoWait4Answer .AND. Empty( lNoWait )
          DO WHILE lActive
             conn_CheckIn()
-            FSeek( handlOut, 0, 0 )
-            IF FRead( handlOut, @cBufferOut, 1 ) > 0 .AND. Asc( cBufferOut ) == nHisId
-               conn_Read( .T. )
-               gWritelog( "s2out-read: " + conn_GetRecvBuffer() )
-               RETURN conn_GetRecvBuffer()
+            IF !Empty( cAns := conn_CheckOut() )
+               RETURN cAns
             ENDIF
             IF !Empty( bCallBack )
                Eval( bCallBack )
@@ -237,7 +242,7 @@ FUNCTION conn_Send2SocketOut( s )
 
    RETURN Nil
 
-FUNCTION conn_CheckIn()
+STATIC FUNCTION conn_CheckIn()
 
    IF lActive
       FSeek( handlIn, 0, 0 )
@@ -252,12 +257,24 @@ FUNCTION conn_CheckIn()
 
    RETURN .F.
 
-FUNCTION conn_SetNoWait( l )
+STATIC FUNCTION conn_CheckOut()
+
+   IF lActive
+      FSeek( handlOut, 0, 0 )
+      IF FRead( handlOut, @cBufferOut, 1 ) > 0 .AND. Asc( cBufferOut ) == nHisId
+         conn_Read( .T. )
+         gWritelog( "Checkout: " + conn_GetRecvBuffer() )
+         RETURN conn_GetRecvBuffer()
+      ENDIF
+   ENDIF
+   RETURN Nil
+
+STATIC FUNCTION conn_SetNoWait( l )
 
    lNoWait4Answer := l
    RETURN Nil
 
-FUNCTION srv_conn_Create( cFile, lRepl )
+STATIC FUNCTION srv_conn_Create( cFile, lRepl )
 
    nMyId := 2
    nHisId := 1
@@ -289,7 +306,7 @@ FUNCTION srv_conn_Create( cFile, lRepl )
 
    RETURN lActive
 
-PROCEDURE conn_Exit
+STATIC PROCEDURE conn_Exit
 
    lActive := .F.
    FClose( handlIn )

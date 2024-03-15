@@ -1419,6 +1419,23 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
    return;
 }
 
+static void sleep_ns( long int milliseconds )
+{
+#if defined(HB_OS_UNIX) || defined( HB_OS_UNIX ) || defined( HB_OS_BSD )
+   struct timeval tv;
+   tv.tv_sec = milliseconds / 1000;
+   tv.tv_usec = milliseconds % 1000 * 1000;
+   select(0, NULL, NULL, NULL, &tv);
+#else
+   Sleep( milliseconds );
+#endif
+}
+
+HB_FUNC( CEDI_SLEEP )
+{
+   sleep_ns( hb_parni(1) );
+}
+
 /*-
  * Copyright (c) 2008 - 2010 CAS Dev Team
  *
