@@ -22,6 +22,8 @@ FUNCTION hbExtCli()
 
 FUNCTION ecli_Run( cExe, nLog, cDir )
 
+   LOCAL nSec
+
    IF Valtype( nLog ) == "N"
       nLogOn := nLog
    ENDIF
@@ -38,6 +40,14 @@ FUNCTION ecli_Run( cExe, nLog, cDir )
 
    cedi_RunBackgroundApp( cExe + ' dir="' + cDirRoot + '" ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
       Iif( nConnType==2, " type=2", "" ) )
+
+   nSec := Seconds()
+   DO WHILE Seconds() - nSec < 1
+      IF !Empty( ecli_CheckAnswer() )
+         RETURN .T.
+      ENDIF
+      cedi_Sleep( nInterval*2 )
+   ENDDO
 
    RETURN .T.
 
@@ -274,7 +284,7 @@ STATIC FUNCTION conn_SetNoWait( l )
    lNoWait4Answer := l
    RETURN Nil
 
-STATIC FUNCTION srv_conn_Create( cFile, lRepl )
+STATIC FUNCTION srv_conn_Create( cFile )
 
    nMyId := 2
    nHisId := 1
@@ -298,11 +308,6 @@ STATIC FUNCTION srv_conn_Create( cFile, lRepl )
 
    conn_Send( .F., "+v" + cVersion + "/" + PROTOCOL_VER + Chr(10) )
    conn_Send( .T., "+Ok" + Chr(10) )
-   IF lRepl
-   ELSE
-      //conn_Send( .T., "+v" + cVersion + "/" + PROTOCOL_VER + Chr(10) )
-      //conn_Send( .F., "+Ok" + Chr(10) )
-   ENDIF
 
    RETURN lActive
 
