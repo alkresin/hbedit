@@ -20,6 +20,8 @@
 #define S_ASKING          6
 #define S_GETTOKEN        7
 
+DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNFUNC, ECLI_CHECKANSWER
+
 STATIC cIniPath
 STATIC oClient
 STATIC hPlugExtCli
@@ -43,7 +45,7 @@ FUNCTION plug_extLLM( oEdit, cPath )
       IF oClient:lClose
          edi_Writelog( "Close" )
          IF hb_isFunction( "HBEXTCLI" )
-            Eval( &("{||ecli_Close()}") )
+            ecli_Close()
          ENDIF
       ENDIF
       RETURN Nil
@@ -100,10 +102,10 @@ STATIC FUNCTION _clillm_Start()
          cCurrModel := aModels[ iChoic,1 ]
 
          oClient:InsText( 1, 0, "Ext module launching..." )
-         IF Eval( &( '{||ecli_Run("' + cExe + '",1 )}' ) )
+         IF ecli_Run( cExe, 1 )
             oClient:InsText( 2, 0, "Model " + cCurrModel + " loading..." )
             nStatus := S_MODEL_LOADING
-            Eval( &( '{||ecli_RunFunc("OpenModel",{"' + cCurrModel + '"}, .T. )}' ) )
+            ecli_RunFunc( "OpenModel", {cCurrModel}, .T. )
             IF ( xRes := _clillm_Wait() ) == Nil
                oClient:lClose := .T.
             ELSEIF xRes == ""
@@ -141,7 +143,7 @@ STATIC FUNCTION _clillm_Wait()
       ELSEIF nKey == K_ESC
          RETURN Nil
       ENDIF
-      IF !Empty( sAns := Eval( &("{||ecli_CheckAnswer()}") ) )
+      IF !Empty( sAns := ecli_CheckAnswer() )
          sAns := _DropQuotes( sAns )
       ENDIF
    ENDDO
