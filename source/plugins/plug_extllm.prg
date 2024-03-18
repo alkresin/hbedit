@@ -23,7 +23,7 @@
 STATIC cIniPath
 STATIC oClient
 STATIC hPlugExtCli
-STATIC aModels := {}, cCurrModel
+STATIC aModels, cCurrModel
 STATIC nStatus
 STATIC n_ctx := 512, n_predict := -1, n_keep := 0, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
 
@@ -62,6 +62,7 @@ FUNCTION plug_extLLM( oEdit, cPath )
       RETURN Nil
    ENDIF
 
+   aModels := {}
    _clillm_IniRead( (cIniPath := cPath) + "models.ini" )
    IF Empty( aModels )
       edi_Alert( "Check your models.ini" )
@@ -98,23 +99,23 @@ STATIC FUNCTION _clillm_Start()
       IF !Empty( iChoic := FMenu( oClient, aModels, 3, 10 ) )
          cCurrModel := aModels[ iChoic,1 ]
 
-         InsText( 1, 0, "Ext module launching..." )
-         IF Eval( &( '{||ecli_Run("' + cExe + '",1,2 )}' ) )
-            InsText( 2, 0, "Model " + cCurrModel + " loading..." )
+         oClient:InsText( 1, 0, "Ext module launching..." )
+         IF Eval( &( '{||ecli_Run("' + cExe + '",1 )}' ) )
+            oClient:InsText( 2, 0, "Model " + cCurrModel + " loading..." )
             nStatus := S_MODEL_LOADING
-            Eval( &( '{||ecli_RunFunc("OpenModel",{"' + cCurrModel + '"}, .T. )' ) )
+            Eval( &( '{||ecli_RunFunc("OpenModel",{"' + cCurrModel + '"}, .T. )}' ) )
             IF ( xRes := _clillm_Wait() ) == Nil
                oClient:lClose := .T.
             ELSEIF xRes == ""
             ELSEIF xRes == "ok"
                nStatus := S_MODEL_LOADED
-               InsText( 3, 0, "Model loaded" )
+               oClient:InsText( 3, 0, "Model loaded" )
             ELSE
                nStatus := S_MODULE_STARTED
-               InsText( 3, 0, "Can't load model" )
+               oClient:InsText( 3, 0, "Can't load model" )
             ENDIF
          ELSE
-            InsText( 2, 0, "Failed to start module" )
+            oClient:InsText( 2, 0, "Failed to start module" )
          ENDIF
       ELSE
          oClient:lClose := .T.
