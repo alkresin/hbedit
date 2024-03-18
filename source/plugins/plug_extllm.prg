@@ -104,7 +104,7 @@ STATIC FUNCTION _clillm_Start()
             nStatus := S_MODEL_LOADING
             Eval( &( '{||ecli_RunFunc("OpenModel",{"' + cCurrModel + '"}, .T. )' ) )
             IF ( xRes := _clillm_Wait() ) == Nil
-               mnu_Exit( oClient )
+               oClient:lClose := .T.
             ELSEIF xRes == ""
             ELSEIF xRes == "ok"
                nStatus := S_MODEL_LOADED
@@ -116,7 +116,8 @@ STATIC FUNCTION _clillm_Start()
          ELSE
             InsText( 2, 0, "Failed to start module" )
          ENDIF
-
+      ELSE
+         oClient:lClose := .T.
       ENDIF
    ENDIF
 
