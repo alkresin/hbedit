@@ -1,3 +1,10 @@
+/*
+ * Client for extgui modules
+ * HbEdit plugin
+ *
+ * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 #include "fileio.ch"
 #define PROTOCOL_VER "1.1"

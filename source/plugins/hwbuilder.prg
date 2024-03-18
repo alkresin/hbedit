@@ -1,7 +1,8 @@
 /*
+ * HbEdit plugin
  * HwBuild - HwGUI Builder
  *
- * Copyright 2023 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
