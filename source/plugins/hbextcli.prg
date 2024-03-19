@@ -56,7 +56,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir )
       cedi_Sleep( nInterval*2 )
    ENDDO
 
-   RETURN .T.
+   RETURN .F.
 
 FUNCTION ecli_Close()
 
