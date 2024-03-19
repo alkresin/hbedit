@@ -963,8 +963,8 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
          IF Empty( cLine )
             LOOP
          ENDIF
-         IF ( nPos := At( "=", cLine ) ) > 0
-            IF ( cTmp := Lower( Left( cLine, nPos-1 ) ) ) == "srcpath"
+         IF ( nPos := At( "=", cLine ) ) > 0 .AND. !( " " $ (cTmp := Trim( Left( cLine, nPos-1 ) )) )
+            IF ( cTmp := Lower( cTmp ) ) == "srcpath"
                cSrcPath := _DropSlash( Substr( cLine, nPos + 1 ) ) + hb_ps()
 
             ELSEIF cTmp == "def_cflags"

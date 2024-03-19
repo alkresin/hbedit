@@ -20,7 +20,7 @@
 #define S_ASKING          6
 #define S_GETTOKEN        7
 
-DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER
+DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRITELOG
 
 STATIC cIniPath
 STATIC oClient
@@ -126,6 +126,7 @@ STATIC FUNCTION _clillm_Start()
             ELSEIF xRes == "ok"
                nStatus := S_MODEL_LOADED
                _Textout( "Model loaded" )
+               _Textout( "Press F2 to start dialog" )
                oClient:WriteTopPane()
             ELSE
                nStatus := S_MODULE_STARTED
@@ -221,7 +222,7 @@ STATIC FUNCTION _clillm_Wait()
             oClient:lShow := .F.
             TEdit():nCurr ++
          ENDIF
-         EXIT
+         RETURN ""
       ELSEIF nKey == K_ESC
          RETURN Nil
       ENDIF
@@ -306,6 +307,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
             EXIT
          ELSEIF xRes == ""
             // Ctrl-Tab
+            lPaused := .T.
             EXIT
          ELSE
             xRes := _DropQuotes( xRes )

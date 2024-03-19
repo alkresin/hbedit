@@ -174,7 +174,7 @@ STATIC FUNCTION MainHandler()
 */
    RETURN Nil
 
-STATIC FUNCTION gWritelog( s )
+FUNCTION gWritelog( s )
 
    LOCAL nHand
 
