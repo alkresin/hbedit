@@ -42,10 +42,11 @@ harbour plug_hbc_files_compare.prg -n -gh -q
 harbour plug_hbc_folders_compare.prg -n -gh -q
 harbour plug_hbc_ftp.prg -n -gh -q -I%HB_INSTALL%\include
 harbour plug_hbc_img_quick.prg -n -gh -q
+harbour plug_hbc_latin.prg -n -gh -q
+harbour plug_hbc_menu.prg -n -gh -q
 harbour hbc_gthwg_q.prg -n -gh -q
 harbour hwbuilder.prg -n -gh -q -I%HB_INSTALL%\include
 harbour hbextcli.prg -n -gh -q -I%HB_INSTALL%\include
-harbour plug_hbc_latin.prg -n -gh -q
-harbour plug_hbc_menu.prg -n -gh -q
+harbour plug_extllm.prg -n -gh -q
 cd ..\..\
 

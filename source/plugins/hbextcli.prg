@@ -21,13 +21,12 @@ STATIC nInterval := 20
 STATIC handlIn := -1, handlOut := -1, cBufferIn, cBufferOut, cBuffRes
 STATIC lActive := .F., cVersion := "1.0"
 STATIC nMyId, nHisId
-STATIC lNoWait4Answer := .F.
 STATIC bCallBack := Nil
 
 FUNCTION hbExtCli()
    RETURN Nil
 
-FUNCTION ecli_Run( cExe, nLog, cDir )
+FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
 
    LOCAL nSec
 
@@ -40,13 +39,16 @@ FUNCTION ecli_Run( cExe, nLog, cDir )
    IF !( Right( cDirRoot,1 ) $ "\/" )
       cDirRoot += hb_ps()
    ENDIF
-   gwritelog( cdirroot )
+   //gwritelog( cdirroot )
+   IF !Empty( cFile ) .AND. Valtype( cFile ) == "C"
+      cFileRoot := cFile
+   ENDIF
    IF !srv_conn_Create( cDirRoot + cFileRoot, .F. )
       RETURN .F.
    ENDIF
 
    cedi_RunBackgroundApp( cExe + ' dir="' + cDirRoot + '" ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
-      Iif( nConnType==2, " type=2", "" ) )
+      Iif( !Empty(cFile).AND.Valtype(cFile)=="C", " file="+cFile, "" ) )
 
    nSec := Seconds()
    DO WHILE Seconds() - nSec < 1
@@ -60,8 +62,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir )
 
 FUNCTION ecli_Close()
 
-   conn_SetNoWait( .T. )
-   SendOut( '["endapp"]' )
+   SendOut( '["endapp"]', .T. )
    cedi_Sleep( nInterval*2 )
 
    conn_Exit()
@@ -244,7 +245,7 @@ STATIC FUNCTION conn_Send2SocketOut( s, lNoWait )
 
    IF lActive
       conn_Send( .T., s )
-      IF !lNoWait4Answer .AND. Empty( lNoWait )
+      IF Empty( lNoWait )
          DO WHILE lActive
             conn_CheckIn()
             IF !Empty( cAns := conn_CheckOut() )
@@ -284,11 +285,6 @@ STATIC FUNCTION conn_CheckOut()
          RETURN conn_GetRecvBuffer()
       ENDIF
    ENDIF
-   RETURN Nil
-
-STATIC FUNCTION conn_SetNoWait( l )
-
-   lNoWait4Answer := l
    RETURN Nil
 
 STATIC FUNCTION srv_conn_Create( cFile )

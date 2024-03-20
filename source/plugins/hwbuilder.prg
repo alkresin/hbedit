@@ -1314,8 +1314,10 @@ METHOD Build( lClean, lSub ) CLASS HwProject
             _RunApp( cLine, @cOut )
             IF Valtype( cOut ) == "C"
                _ShowProgress( cOut, 1,, @cFullOut )
-               AAdd( a4Delete, "hwgui_xp.rc" )
-               AAdd( a4Delete, cResFile )
+               //IF !::lMake
+                  AAdd( a4Delete, "hwgui_xp.rc" )
+                  AAdd( a4Delete, cResFile )
+               //ENDIF
                cResList += cResFile
             ENDIF
          ENDIF

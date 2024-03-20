@@ -28,7 +28,6 @@ STATIC hPlugExtCli
 STATIC aModels, cCurrModel
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F.
-STATIC n_ctx := 512, n_predict := -1, n_keep := 0, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
 
 FUNCTION plug_extLLM( oEdit, cPath )
 
@@ -115,7 +114,7 @@ STATIC FUNCTION _clillm_Start()
       IF !Empty( iChoic := FMenu( oClient, aModels, 3, 10 ) )
          cCurrModel := aModels[ iChoic,1 ]
          _Textout( "Ext module launching..." )
-         IF ecli_Run( cExe, nLogLevel )
+         IF ecli_Run( cExe, nLogLevel,, "hbedit_llm" )
             _clillm_SetParams()
             _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
@@ -148,6 +147,7 @@ STATIC FUNCTION _clillm_SetParams()
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i, j
+   LOCAL n_ctx := 512, n_predict := -1, n_keep := 0, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 20
@@ -267,18 +267,21 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _clillm_Ask()
 
    LOCAL x := Int( (oClient:x2 + oClient:x1)/2 )
+   LOCAL s
 
    lPaused := .F.
    IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
       nStatus := S_CNT_CREATING
-      IF ecli_RunFunc( "CreateContext",{} ) == "ok"
+      IF ( s := ecli_RunFunc( "CreateContext",{} ) ) == "ok"
          nStatus := S_ASKING
          ecli_RunFunc( "Ask",{x}, .T. )
          _Textout( "> " + x )
+         _Textout( "" )
          _clillm_Wait4Answer()
       ELSE
+         gWritelog( "CrCont answer: " + s )
          nStatus := S_MODEL_LOADED
-         _Textout( "Can't create context" )
+         _Textout( "Can't create context (" + s + ")" )
       ENDIF
    ENDIF
 
