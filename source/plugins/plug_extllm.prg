@@ -304,6 +304,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
       _Textout( "Canceled." )
    ELSEIF xRes == ""
       // Ctrl-Tab
+      lPaused := .T.
    ELSE
       nStatus := S_GETTOKEN
       oClient:WriteTopPane()
@@ -347,7 +348,7 @@ STATIC FUNCTION _Textout( cLine, lSameLine )
       n ++
       oClient:InsText( n, 0, cLine )
    ELSE
-      oClient:InsText( n, hb_utf8Len( oClient:aText[n] ), cLine )
+      oClient:InsText( n, hb_utf8Len( oClient:aText[n] ) + 1, cLine )
    ENDIF
    n := Max( 1, Row() - oClient:y1 )
    oClient:TextOut( n )
