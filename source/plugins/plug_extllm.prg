@@ -46,6 +46,10 @@ FUNCTION plug_extLLM( oEdit, cPath )
                DevOut( "Esc - Stop" )
             ENDIF
          ENDIF
+         DevOut( "  Ctrl-Tab - Switch Buffer" )
+         IF !( (nStatus == S_ASKING .OR. nStatus == S_GETTOKEN) .AND. !lPaused )
+            DevOut( "  F10 - Close" )
+         ENDIF
       ENDIF
       DevPos( nRow, nCol )
       RETURN Nil
@@ -90,7 +94,9 @@ FUNCTION plug_extLLM( oEdit, cPath )
    oClient:bOnKey := {|o,n| _clillm_OnKey(o,n) }
    oClient:bStartEdit := {|| _clillm_Start() }
    oClient:bEndEdit := bEndEdit
-   oClient:cp := "RU866"
+   oClient:cp := "UTF8"
+   hb_cdpSelect( oClient:cp )
+   oClient:lUtf8 := .T.
    oClient:lWrap := .T.
    nStatus := S_INIT
 
@@ -341,7 +347,7 @@ STATIC FUNCTION _Textout( cLine, lSameLine )
       n ++
       oClient:InsText( n, 0, cLine )
    ELSE
-      oClient:InsText( n, Len( oClient:aText[n] ), cLine )
+      oClient:InsText( n, hb_utf8Len( oClient:aText[n] ), cLine )
    ENDIF
    n := Max( 1, Row() - oClient:y1 )
    oClient:TextOut( n )
