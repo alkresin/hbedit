@@ -10,6 +10,7 @@
 #define K_CTRL_TAB  404
 #define K_SH_TAB    271
 #define K_F2         -1
+#define K_F5         -4
 
 #define S_INIT            0
 #define S_MODULE_STARTED  1
@@ -17,8 +18,9 @@
 #define S_MODEL_LOADING   3
 #define S_MODEL_LOADED    4
 #define S_CNT_CREATING    5
-#define S_ASKING          6
-#define S_GETTOKEN        7
+#define S_CNT_CREATED     6
+#define S_ASKING          7
+#define S_GETTOKEN        8
 
 DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRITELOG
 
@@ -37,8 +39,8 @@ FUNCTION plug_extLLM( oEdit, cPath )
       IF Empty( l )
          DevPos( y, o:x1 )
          DevOut( "LLM Client  " )
-         IF nStatus == S_MODEL_LOADED
-            DevOut( "F2 - Ask a question" )
+         IF nStatus == S_CNT_CREATED
+            DevOut( "F2 - Ask a question  F5 - Reset" )
          ELSEIF nStatus == S_ASKING .OR. nStatus == S_GETTOKEN
             IF lPaused
                DevOut( "Space - Continue" )
@@ -117,7 +119,11 @@ STATIC FUNCTION _clillm_Start()
    ENDIF
 
    IF nStatus == S_INIT
-      IF !Empty( iChoic := FMenu( oClient, aModels, 3, 10 ) )
+      aMenu := Array( Len( aModels ) )
+      FOR iChoic := 1 TO Len( aModels )
+         aMenu[iChoic] := hb_fnameName( aModels[iChoic,1] )
+      NEXT
+      IF !Empty( iChoic := FMenu( oClient, aMenu, 3, 10 ) )
          cCurrModel := aModels[ iChoic,1 ]
          _Textout( "Ext module launching..." )
          IF ecli_Run( cExe, nLogLevel,, "hbedit_llm" )
@@ -129,8 +135,14 @@ STATIC FUNCTION _clillm_Start()
                oClient:lClose := .T.
             ELSEIF xRes == ""
             ELSEIF xRes == "ok"
-               nStatus := S_MODEL_LOADED
-               _Textout( "Model loaded" )
+               IF ecli_RunFunc( "CreateContext",{} ) == "ok"
+                  nStatus := S_CNT_CREATED
+                  _Textout( "Model loaded" )
+               ELSE
+                  nStatus := S_MODULE_STARTED
+                  ecli_RunProc( "CloseModel",{} )
+                  _Textout( "Can't create context" )
+               ENDIF
                _Textout( "Press F2 to start dialog" )
                oClient:WriteTopPane()
             ELSE
@@ -153,7 +165,7 @@ STATIC FUNCTION _clillm_SetParams()
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i, j
-   LOCAL n_ctx := 512, n_predict := -1, n_keep := 0, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
+   LOCAL n_ctx := 512, n_predict := -1, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 20
@@ -163,7 +175,6 @@ STATIC FUNCTION _clillm_SetParams()
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "n_ctx" }, { y1+1,x1+10, 0, Ltrim(Str(n_ctx)), 6 }, ;
       { y1+1,x1+20, 11, "n_predict" }, { y1+1,x1+31, 0, Ltrim(Str(n_predict)), 6 }, ;
-      { y1+2,x1+2, 11, "n_keep" }, { y1+2,x1+10, 0, Ltrim(Str(n_keep)), 6 }, ;
       { y1+3,x1+2, 11, "temp" }, { y1+3,x1+10, 0, Ltrim(Str(temp)), 6 }, ;
       { y1+3,x1+20, 11, "penalty_r" }, { y1+3,x1+31, 0, Ltrim(Str(penalty_r)), 6 }, ;
       { y1+4,x1+2, 11, "top_k" }, { y1+4,x1+10, 0, Ltrim(Str(top_k)), 6 }, ;
@@ -183,24 +194,20 @@ STATIC FUNCTION _clillm_SetParams()
          n_predict := Val(AllTrim(aGets[5,4]))
          xRes += 'n=' + Ltrim(Str(n_predict)) + Chr(1)
       ENDIF
-      IF Val(AllTrim(aGets[7,4])) != n_keep
-         n_keep := Val(AllTrim(aGets[7,4]))
-         xRes += 'n-keep=' + Ltrim(Str(n_keep)) + Chr(1)
-      ENDIF
-      IF Val(AllTrim(aGets[9,4])) != temp
-         temp := Val(AllTrim(aGets[9,4]))
+      IF Val(AllTrim(aGets[7,4])) != temp
+         temp := Val(AllTrim(aGets[7,4]))
          xRes += 'temp=' + Ltrim(Str(temp)) + Chr(1)
       ENDIF
-      IF Val(AllTrim(aGets[11,4])) != penalty_r
-         penalty_r := Val(AllTrim(aGets[11,4]))
+      IF Val(AllTrim(aGets[9,4])) != penalty_r
+         penalty_r := Val(AllTrim(aGets[9,4]))
          xRes += 'repeat-penalty=' + Ltrim(Str(penalty_r)) + Chr(1)
       ENDIF
-      IF Val(AllTrim(aGets[13,4])) != top_k
-         top_k := Val(AllTrim(aGets[13,4]))
+      IF Val(AllTrim(aGets[11,4])) != top_k
+         top_k := Val(AllTrim(aGets[11,4]))
          xRes += 'top-k=' + Ltrim(Str(top_k)) + Chr(1)
       ENDIF
-      IF Val(AllTrim(aGets[15,4])) != top_p
-         top_p := Val(AllTrim(aGets[15,4]))
+      IF Val(AllTrim(aGets[13,4])) != top_p
+         top_p := Val(AllTrim(aGets[13,4]))
          xRes += 'top-k=' + Ltrim(Str(top_p)) + Chr(1)
       ENDIF
 
@@ -245,8 +252,14 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
    LOCAL nKey := hb_keyStd(nKeyExt)
 
    IF nKey == K_F2
-      IF nStatus == S_MODEL_LOADED
+      IF nStatus == S_CNT_CREATED
          _clillm_Ask()
+         RETURN -1
+      ENDIF
+
+   ELSEIF nKey == K_F5
+      IF nStatus == S_CNT_CREATED
+         _clillm_Reset()
          RETURN -1
       ENDIF
 
@@ -277,18 +290,25 @@ STATIC FUNCTION _clillm_Ask()
 
    lPaused := .F.
    IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
-      nStatus := S_CNT_CREATING
-      IF ( s := ecli_RunFunc( "CreateContext",{} ) ) == "ok"
-         nStatus := S_ASKING
-         ecli_RunFunc( "Ask",{x}, .T. )
-         _Textout( "> " + x )
-         _Textout( "" )
-         _clillm_Wait4Answer()
-      ELSE
-         gWritelog( "CrCont answer: " + s )
-         nStatus := S_MODEL_LOADED
-         _Textout( "Can't create context (" + s + ")" )
-      ENDIF
+      nStatus := S_ASKING
+      ecli_RunFunc( "Ask",{x}, .T. )
+      _Textout( "> " + x )
+      _Textout( "" )
+      _clillm_Wait4Answer()
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _clillm_Reset()
+
+   ecli_RunFunc( "CloseContext",{} )
+   IF ecli_RunFunc( "CreateContext",{} ) == "ok"
+      nStatus := S_CNT_CREATED
+      _Textout( "Ok. Press F2 to start dialog" )
+   ELSE
+      nStatus := S_MODULE_STARTED
+      ecli_RunProc( "CloseModel",{} )
+      _Textout( "Can't create context" )
    ENDIF
 
    RETURN Nil
@@ -299,8 +319,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
 
    IF ( xRes := _clillm_Wait() ) == Nil
       // ESC pressed
-      ecli_RunProc( "CloseContext",{} )
-      nStatus := S_MODEL_LOADED
+      nStatus := S_CNT_CREATED
       _Textout( "Canceled." )
    ELSEIF xRes == ""
       // Ctrl-Tab
@@ -312,8 +331,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
       DO WHILE .T.
          IF ( xRes := _clillm_Wait() ) == Nil
             // ESC pressed
-            ecli_RunProc( "CloseContext",{} )
-            nStatus := S_MODEL_LOADED
+            nStatus := S_CNT_CREATED
             EXIT
          ELSEIF xRes == ""
             // Ctrl-Tab
@@ -322,9 +340,8 @@ STATIC FUNCTION _clillm_Wait4Answer()
          ELSE
             xRes := _DropQuotes( xRes )
             IF xRes == '===='
-               ecli_RunProc( "CloseContext",{} )
-               nStatus := S_MODEL_LOADED
-               _Textout( xRes, .T. )
+               nStatus := S_CNT_CREATED
+               _Textout( " ==", .T. )
                EXIT
             ELSE
                ecli_RunFunc( "GetNextToken",{}, .T. )
