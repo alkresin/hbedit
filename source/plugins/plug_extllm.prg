@@ -11,6 +11,8 @@
 #define K_SH_TAB    271
 #define K_F2         -1
 #define K_F5         -4
+#define K_F10        -9
+#define K_CTRL_PGDN  30
 
 #define S_INIT            0
 #define S_MODULE_STARTED  1
@@ -30,6 +32,7 @@ STATIC hPlugExtCli
 STATIC aModels, cCurrModel
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F.
+STATIC cQue
 
 FUNCTION plug_extLLM( oEdit, cPath )
 
@@ -289,10 +292,12 @@ STATIC FUNCTION _clillm_Ask()
    LOCAL s
 
    lPaused := .F.
-   IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
+   _clillm_MsgGet( 4, x-30, 8, x+30 )
+   //IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
+   IF !Empty( cQue )
       nStatus := S_ASKING
-      ecli_RunFunc( "Ask",{x}, .T. )
-      _Textout( "> " + x )
+      ecli_RunFunc( "Ask",{cQue}, .T. )
+      _Textout( "> " + cQue )
       _Textout( "" )
       _clillm_Wait4Answer()
    ENDIF
@@ -384,6 +389,47 @@ STATIC FUNCTION _DropQuotes( s )
    ENDIF
 
    RETURN s
+
+STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2 )
+
+   LOCAL nCurr := TEdit():nCurr, cBuff
+   LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
+   LOCAL bOnKey := {|o,n|
+      LOCAL nKey := hb_keyStd(n)
+      IF nKey == K_F10 .OR. nKey == K_CTRL_PGDN
+         cQue := Trim( oNew:ToString( " " ) )
+         oNew:lClose := .T.
+         RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         RETURN -1
+      ELSEIF nKey == K_ESC
+         cQue := ""
+         oNew:lClose := .T.
+         RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         RETURN -1
+      ENDIF
+      RETURN 0
+   }
+
+   cBuff := SaveScreen( y1-1, x1-1, y2+3, x2+1 )
+   hb_cdpSelect( "RU866" )
+   @ y1-1, x1-1, y2+3, x2+1 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y2+1, x1-1 SAY "Ã"
+   @ y2+1, x2+1 SAY "´"
+   @ y2+1, x1 TO y2+1, x2
+   hb_cdpSelect( oClient:cp )
+   @ y2+2, x1+4 SAY "Ctrl-PgDn, F10 - Save and Exit   ESC - Quit"
+   SetColor( oldc )
+
+   oNew := TEdit():New( "", "$QUE", y1, x1, y2, x2,, .F. )
+   oNew:lBuiltIn := .T.
+   oNew:lCtrlTab := .F.
+   oNew:lWrap := .T.
+   oNew:nMode := 0
+   oNew:bOnKey := bOnKey
+   oNew:Edit()
+   TEdit():nCurr := nCurr
+
+   RETURN Nil
 
 STATIC FUNCTION _clillm_IniRead( cFileName )
 

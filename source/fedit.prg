@@ -113,7 +113,7 @@ CLASS TEdit
    DATA   nxFirst, nyFirst, nxOfLine
    DATA   aText
    DATA   lWrap       INIT .F.
-   DATA   nMode                       // Current mode (Edit, Vim, Cmd)
+   DATA   nMode                       // Current mode ( 0 - Edit, 1 - Vim, Cmd)
    DATA   nDopMode    INIT 0          // A state in a Vim mode after pressing some keys
                                       // (m, ', 0..9, ...) when other keys are expected
    DATA   cSyntaxType
@@ -125,6 +125,7 @@ CLASS TEdit
    DATA   lTopPane    INIT .T.
    DATA   nTopName    INIT 36
 
+   DATA   lBuiltIn    INIT .F.
    DATA   lCtrlTab    INIT .T.
    DATA   lReadOnly   INIT .F.
    DATA   lUtf8       INIT .F.
@@ -190,7 +191,7 @@ METHOD New( cText, cFileName, y1, x1, y2, x2, cColor, lTopPane ) CLASS TEdit
    ENDIF
    IF Empty( ::aRectFull )
 #ifndef __BUILT_IN
-      IF !Empty( ::cLangCP ) .AND. !Empty( cTmp := edi_FindPath( "hbedit_"+Lower(::cLangCP)+".hbl" ) )
+      IF !::lBuiltIn .AND. !Empty( ::cLangCP ) .AND. !Empty( cTmp := edi_FindPath( "hbedit_"+Lower(::cLangCP)+".hbl" ) )
          cTmp := hb_MemoRead( cTmp )
          IF hb_i18n_Check( cTmp )
             hb_i18n_Set( hb_i18n_RestoreTable(cTmp) )
@@ -1209,8 +1210,12 @@ METHOD onKey( nKeyExt ) CLASS TEdit
          CASE K_CTRL_PGDN
          CASE K_CTRL_END
             IF hb_keyVal( nKeyExt ) == 87  // Ctrl-W
-               ::nDopMode := nKey
-               cDopMode := "W"
+#ifndef __BUILT_IN
+               IF !::lBuiltIn
+                  ::nDopMode := nKey
+                  cDopMode := "W"
+               ENDIF
+#endif
             ELSE
                edi_Move( Self, 71 )
             ENDIF
@@ -1244,8 +1249,10 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             EXIT
 #ifndef __BUILT_IN
          CASE K_CTRL_F4
-            mnu_OpenFile( Self )
-            ::lTextOut := .T.
+            IF !::lBuiltIn
+               mnu_OpenFile( Self )
+               ::lTextOut := .T.
+            ENDIF
             EXIT
 #endif
          CASE K_CTRL_F7
@@ -1621,7 +1628,7 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                   IF ::lTopPane .AND. nRow == ::y1-1 .AND. nCol < 8
                      IF ::nby1 >= 0 .AND. ::nby2 >= 0
                         mnu_Sele( Self )
-                     ELSE
+                     ELSEIF !::lBuiltIn
 #ifndef __BUILT_IN
                         mnu_Main( Self )
 #endif
@@ -1656,15 +1663,21 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                ENDIF
                EXIT
             CASE K_F1
-               mnu_Help( Self )
-               ::lTextOut := .T.
-               edi_SetPos( Self )
+               IF !::lBuiltIn
+                  mnu_Help( Self )
+                  ::lTextOut := .T.
+                  edi_SetPos( Self )
+               ENDIF
                EXIT
             CASE K_F2
-               ::Save()
+               IF !::lBuiltIn
+                  ::Save()
+               ENDIF
                EXIT
             CASE K_SH_F2
-               mnu_Save( Self, .T. )
+               IF !::lBuiltIn
+                  mnu_Save( Self, .T. )
+               ENDIF
                EXIT
             CASE K_F3
                mnu_F3( Self )
@@ -1673,12 +1686,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
 #ifndef __BUILT_IN
             CASE K_F4
-               mnu_F4( Self, {2, 6} )
-               ::lTextOut := .T.
+               IF !::lBuiltIn
+                  mnu_F4( Self, {2, 6} )
+                  ::lTextOut := .T.
+               ENDIF
                EXIT
             CASE K_SH_F4
-               mnu_NewBuf( Self )
-               ::lTextOut := .T.
+               IF !::lBuiltIn
+                  mnu_NewBuf( Self )
+                  ::lTextOut := .T.
+               ENDIF
                EXIT
 #endif
             CASE K_F7
@@ -1687,14 +1704,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
 #ifndef __BUILT_IN
             CASE K_F8
-               mnu_Syntax( Self, {2, 6} )
-               ::lTextOut := .T.
+               IF !::lBuiltIn
+                  mnu_Syntax( Self, {2, 6} )
+                  ::lTextOut := .T.
+               ENDIF
                EXIT
 #endif
             CASE K_F9
                IF ::nby1 >= 0 .AND. ::nby2 >= 0
                   mnu_Sele( Self )
-               ELSE
+               ELSEIF !::lBuiltIn
 #ifndef __BUILT_IN
                   mnu_Main( Self )
 #endif
@@ -1716,12 +1735,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                EXIT
 #ifndef __BUILT_IN
             CASE K_F11
-               mnu_Plugins( Self )
-               ::lTextOut := .T.
+               IF !::lBuiltIn
+                  mnu_Plugins( Self )
+                  ::lTextOut := .T.
+               ENDIF
                EXIT
             CASE K_F12
-               mnu_Buffers( Self, {2, 6} )
-               ::lTextOut := .T.
+               IF !::lBuiltIn
+                  mnu_Buffers( Self, {2, 6} )
+                  ::lTextOut := .T.
+               ENDIF
                EXIT
 #endif
             CASE K_SH_F7
@@ -2030,7 +2053,7 @@ METHOD ToString( cEol, cp ) CLASS TEdit
    LOCAL i, nLen := Len( ::aText ), cBom := e"\xef\xbb\xbf", s := Iif( ::lBom, cBom, "" )
    LOCAL lTrim := hb_hGetDef( TEdit():options,"trimspaces", .F. )
 
-   IF Empty( cEol )
+   IF cEol == Nil
       cEol := ::cEol
    ENDIF
    IF Empty( ::aText[nLen] )
@@ -3265,7 +3288,7 @@ FUNCTION mnu_Exit( oEdit )
 
    LOCAL nRes := 2
 
-   IF oEdit:lUpdated
+   IF !oEdit:lBuiltIn .AND. oEdit:lUpdated
       nRes := edi_Alert( _I("File has been modified. Save?"), _I("Yes"), _I("No"), _I("Cancel") )
    ENDIF
    IF nRes == 1 .OR. nRes == 2

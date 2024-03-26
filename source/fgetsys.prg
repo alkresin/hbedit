@@ -323,17 +323,6 @@ FUNCTION edi_READ( aGets, pKeys )
             ENDIF
             s := s_cb2t()
             KEYBOARD s
-            /*
-            aGets[nCurr,G_VALUE] := cp_Left( lUtf8,aGets[nCurr,G_VALUE],x-1 ) + ;
-                  s + cp_Substr( lUtf8,aGets[nCurr,G_VALUE],x )
-            DevPos( y, aGets[nCurr,G_X] )
-            DevOut( aGets[nCurr,G_VALUE] )
-            nx += cp_Len( lUtf8, s )
-            IF nx > aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1
-               nx := aGets[nCurr,G_X] + aGets[nCurr,G_WIDTH] - 1
-            ENDIF
-            DevPos( y, nx )
-            */
          ENDIF
 
       ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_DOWN ;
