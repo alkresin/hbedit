@@ -292,7 +292,7 @@ STATIC FUNCTION _clillm_Ask()
    LOCAL s
 
    lPaused := .F.
-   _clillm_MsgGet( 4, x-30, 8, x+30 )
+   _clillm_MsgGet( 4, x-30, 8, x+30, oClient:cp )
    //IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
    IF !Empty( cQue )
       nStatus := S_ASKING
@@ -390,7 +390,7 @@ STATIC FUNCTION _DropQuotes( s )
 
    RETURN s
 
-STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2 )
+STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2, cp )
 
    LOCAL nCurr := TEdit():nCurr, cBuff
    LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
@@ -426,6 +426,13 @@ STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2 )
    oNew:lWrap := .T.
    oNew:nMode := 0
    oNew:bOnKey := bOnKey
+   IF !Empty( cp )
+      oNew:cp := cp
+      hb_cdpSelect( cp )
+      IF cp == "UTF8"
+         oNew:lUtf8 := .T.
+      ENDIF
+   ENDIF
    oNew:Edit()
    TEdit():nCurr := nCurr
 
