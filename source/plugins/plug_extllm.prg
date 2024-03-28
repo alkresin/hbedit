@@ -230,7 +230,7 @@ STATIC FUNCTION _clillm_Wait()
    LOCAL nKey, sAns := ""
 
    DO WHILE .T.
-      nKey := Inkey( 0.1 )
+      nKey := Inkey( 0.05 )
       IF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
          IF Len( TEdit():aWindows ) == 1
             Hbc( oClient )
@@ -332,7 +332,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
    ELSE
       nStatus := S_GETTOKEN
       oClient:WriteTopPane()
-      ecli_RunFunc( "GetNextToken",{}, .T. )
+      ecli_RunFunc( "GetNextToken",{2}, .T. )
       DO WHILE .T.
          IF ( xRes := _clillm_Wait() ) == Nil
             // ESC pressed
@@ -344,12 +344,12 @@ STATIC FUNCTION _clillm_Wait4Answer()
             EXIT
          ELSE
             xRes := _DropQuotes( xRes )
-            IF xRes == '===='
+            IF Right( xRes,4 ) == '===='
                nStatus := S_CNT_CREATED
-               _Textout( " ==", .T. )
+               _Textout( hb_strShrink(xRes,4) + " ==", .T. )
                EXIT
             ELSE
-               ecli_RunFunc( "GetNextToken",{}, .T. )
+               ecli_RunFunc( "GetNextToken",{2}, .T. )
                _Textout( xRes, .T. )
                IF oClient:LineToRow( oClient:nLine ) >= oClient:y2
                   oClient:GoTo( oClient:nLine, Len( oClient:aText[oClient:nLine] ) )
