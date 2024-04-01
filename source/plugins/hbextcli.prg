@@ -28,7 +28,7 @@ FUNCTION hbExtCli()
 
 FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
 
-   LOCAL nSec
+   LOCAL nSec, cRun
 
    IF Valtype( nLog ) == "N"
       nLogOn := nLog
@@ -47,8 +47,13 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
       RETURN .F.
    ENDIF
 
-   cedi_RunBackgroundApp( cExe + ' dir="' + cDirRoot + '" ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
-      Iif( !Empty(cFile).AND.Valtype(cFile)=="C", " file="+cFile, "" ) )
+   IF ' ' $ cDirRoot
+      cDirRoot := '"' + cDirRoot + '"'
+   ENDIF
+   cRun := cExe + ' dir=' + cDirRoot + ' type=2 ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
+      Iif( !Empty(cFile).AND.Valtype(cFile)=="C", " file="+cFile, "" )
+   gWritelog( cRun )
+   cedi_RunBackgroundApp( cRun )
 
    nSec := Seconds()
    DO WHILE Seconds() - nSec < 1
