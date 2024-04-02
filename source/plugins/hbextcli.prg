@@ -92,7 +92,7 @@ FUNCTION ecli_RunFunc( cFunc, aParams, lNoWait )
 
    LOCAL cRes := SendOut( hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait )
 
-   IF Left( cRes,1 ) == '"'
+   IF Valtype( cRes ) == "C" .AND. Left( cRes,1 ) == '"'
       RETURN Substr( cRes, 2, Len(cRes)-2 )
    ENDIF
    RETURN cRes
