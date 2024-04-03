@@ -12,70 +12,70 @@
 
 #define GUIS_VERSION   "1.4"
 
-STATIC nConnType := 2
 STATIC cn := e"\n"
-STATIC nLogOn := 0, cLogFile := "extclient.log"
-STATIC cFileRoot := "gs", cDirRoot
+STATIC cLogFile := "extclient.log"
 STATIC nInterval := 20
 
-STATIC handlIn := -1, handlOut := -1, cBufferIn, cBufferOut, cBuffRes
-STATIC lActive := .F., cVersion := "1.0"
+STATIC cVersion := "1.0"
 STATIC nMyId, nHisId
-STATIC bCallBack := Nil
 
 FUNCTION hbExtCli()
    RETURN Nil
 
 FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
 
-   LOCAL nSec, cRun
+   LOCAL h := hb_hash(), nSec, cRun
+   LOCAL nLogOn, cDirRoot, cFileRoot := "gs"
 
-   IF Valtype( nLog ) == "N"
-      nLogOn := nLog
-   ENDIF
-
-   nConnType := 2
+   nLogOn := Iif( Valtype( nLog ) == "N", nLog, 0 )
    cDirRoot := Iif( Empty( cDir ), hb_DirTemp(), cDir )
    IF !( Right( cDirRoot,1 ) $ "\/" )
       cDirRoot += hb_ps()
    ENDIF
-   //gwritelog( cdirroot )
-   IF !Empty( cFile ) .AND. Valtype( cFile ) == "C"
-      cFileRoot := cFile
-   ENDIF
-   IF !srv_conn_Create( cDirRoot + cFileRoot, .F. )
-      RETURN .F.
-   ENDIF
-
    IF ' ' $ cDirRoot
       cDirRoot := '"' + cDirRoot + '"'
    ENDIF
+
+   h["log"] := nLogOn
+   h["cb"] := Nil
+   h["active"] := .F.
+   h["hin"] := -1
+   h["hout"] := -1
+   h["bufres"] := ""
+
+   IF !Empty( cFile ) .AND. Valtype( cFile ) == "C"
+      cFileRoot := cFile
+   ENDIF
+   IF !srv_conn_Create( h, cDirRoot + cFileRoot, .F. )
+      RETURN .F.
+   ENDIF
+
    cRun := cExe + ' dir=' + cDirRoot + ' type=2 ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
       Iif( !Empty(cFile).AND.Valtype(cFile)=="C", " file="+cFile, "" )
-   gWritelog( cRun )
+   gWritelog( h, cRun )
    cedi_RunBackgroundApp( cRun )
 
    nSec := Seconds()
    DO WHILE Seconds() - nSec < 1
-      IF !Empty( ecli_CheckAnswer() )
-         RETURN .T.
+      IF !Empty( ecli_CheckAnswer( h ) )
+         RETURN h
       ENDIF
       cedi_Sleep( nInterval*2 )
    ENDDO
 
-   RETURN .F.
+   RETURN Nil
 
-FUNCTION ecli_Close()
+FUNCTION ecli_Close( h )
 
-   SendOut( '["endapp"]', .T. )
+   SendOut( h, '["endapp"]', .T. )
    cedi_Sleep( nInterval*2 )
 
-   conn_Exit()
+   conn_Exit( h )
    cedi_Sleep( nInterval*2 )
 
    RETURN Nil
 
-FUNCTION ecli_RunProc( cFunc, aParams )
+FUNCTION ecli_RunProc( h, cFunc, aParams )
 
    LOCAL i
 
@@ -84,32 +84,32 @@ FUNCTION ecli_RunProc( cFunc, aParams )
          aParams[i] := CnvVal( aParams[i] )
       ENDIF
    NEXT
-   SendOut( hb_jsonEncode( { "runproc", cFunc, hb_jsonEncode( aParams ) } ) )
+   SendOut( h, hb_jsonEncode( { "runproc", cFunc, hb_jsonEncode( aParams ) } ) )
 
    RETURN Nil
 
-FUNCTION ecli_RunFunc( cFunc, aParams, lNoWait )
+FUNCTION ecli_RunFunc( h, cFunc, aParams, lNoWait )
 
-   LOCAL cRes := SendOut( hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait )
+   LOCAL cRes := SendOut( h, hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait )
 
    IF Valtype( cRes ) == "C" .AND. Left( cRes,1 ) == '"'
       RETURN Substr( cRes, 2, Len(cRes)-2 )
    ENDIF
    RETURN cRes
 
-FUNCTION ecli_CheckAnswer()
+FUNCTION ecli_CheckAnswer( h )
 
-   RETURN conn_CheckOut()
+   RETURN conn_CheckOut( h )
 
-FUNCTION ecli_SetVar( cVarName, cValue )
+FUNCTION ecli_SetVar( h, cVarName, cValue )
 
-   SendOut( hb_jsonEncode( { "setvar", cVarName, cValue } ) )
+   SendOut( h, hb_jsonEncode( { "setvar", cVarName, cValue } ) )
 
    RETURN Nil
 
-FUNCTION ecli_GetVar( cVarName )
+FUNCTION ecli_GetVar( h, cVarName )
 
-   LOCAL cRes := SendOut( hb_jsonEncode( { "getvar", cVarName } ) )
+   LOCAL cRes := SendOut( h, hb_jsonEncode( { "getvar", cVarName } ) )
 
    RETURN Substr( cRes,2,Len(cRes)-2 )
 
@@ -143,48 +143,43 @@ STATIC FUNCTION CnvVal( xRes )
 
    RETURN cRes
 
-STATIC FUNCTION SendOut( s, lNoWait )
+STATIC FUNCTION SendOut( h, s, lNoWait )
 
    LOCAL cRes
-   gWritelog( "   " + Ltrim(Str(nConnType)) + " " + s )
+   gWritelog( h, " " + s )
 
-   cRes := conn_Send2SocketOut( "+" + s + cn, lNoWait )
+   cRes := conn_Send2SocketOut( h, "+" + s + cn, lNoWait )
 
    RETURN Iif( Empty(cRes), "", cRes )
 
-STATIC FUNCTION SendIn( s )
+STATIC FUNCTION SendIn( h, s )
 
-   conn_Send2SocketIn( s )
+   conn_Send2SocketIn( h, s )
 
    RETURN Nil
 
-STATIC FUNCTION MainHandler()
+STATIC FUNCTION MainHandler( h )
 
    LOCAL arr, cBuffer
 
-   cBuffer := conn_GetRecvBuffer()
+   cBuffer := conn_GetRecvBuffer( h )
 
-   gWritelog( cBuffer )
+   gWritelog( h, cBuffer )
 
    hb_jsonDecode( cBuffer, @arr )
    IF Valtype(arr) != "A" .OR. Empty(arr)
-      SendIn( "+Wrong" + cn )
+      SendIn( h, "+Wrong" + cn )
       RETURN Nil
    ENDIF
-   SendIn( "+Ok" + cn )
+   SendIn( h, "+Ok" + cn )
 
-/*
-   IF !Parse( arr, .F. )
-      gWritelog( "Parsing error" )
-   ENDIF
-*/
    RETURN Nil
 
-FUNCTION gWritelog( s )
+FUNCTION gWritelog( h, s )
 
    LOCAL nHand
 
-   IF nLogOn > 0
+   IF h["log"] > 0
       IF ! File( cLogFile )
          nHand := FCreate( cLogFile )
       ELSE
@@ -196,11 +191,11 @@ FUNCTION gWritelog( s )
    ENDIF
    RETURN Nil
 
-STATIC FUNCTION conn_Read( lOut )
+STATIC FUNCTION conn_Read( h, lOut )
 
    LOCAL n, nPos, s := ""
-   LOCAL han := Iif( lOut, handlOut, handlIn )
-   LOCAL cBuffer := Iif( lOut, cBufferOut, cBufferIn )
+   LOCAL han := Iif( lOut, h["hout"], h["hin"] )
+   LOCAL cBuffer := Space( BUFFLEN )
 
    FSeek( han, 1, 0 )
    DO WHILE ( n := FRead( han, @cBuffer, Len(cBuffer ) ) ) > 0
@@ -215,19 +210,19 @@ STATIC FUNCTION conn_Read( lOut )
       ENDIF
    ENDDO
 
-   cBuffRes := s
+   h["bufres"] := s
 
    RETURN Len( s )
 
-STATIC FUNCTION conn_GetRecvBuffer()
+STATIC FUNCTION conn_GetRecvBuffer( h )
 
-   RETURN Substr( cBuffRes, 2 )
+   RETURN Substr( h["bufres"], 2 )
 
-STATIC FUNCTION conn_Send( lOut, cLine )
+STATIC FUNCTION conn_Send( h, lOut, cLine )
 
-   LOCAL han := Iif( lOut, handlOut, handlIn )
+   LOCAL han := Iif( lOut, h["hout"], h["hin"] )
 
-   IF lActive
+   IF h["active"]
       FSeek( han, 1, 0 )
       FWrite( han, cLine )
       FSeek( han, 0, 0 )
@@ -236,28 +231,28 @@ STATIC FUNCTION conn_Send( lOut, cLine )
 
    RETURN Nil
 
-STATIC FUNCTION conn_Send2SocketIn( s )
+STATIC FUNCTION conn_Send2SocketIn( h, s )
 
-   IF lActive
-      conn_Send( .F., s )
+   IF h["active"]
+      conn_Send( h, .F., s )
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION conn_Send2SocketOut( s, lNoWait )
+STATIC FUNCTION conn_Send2SocketOut( h, s, lNoWait )
 
    LOCAL cAns
 
-   IF lActive
-      conn_Send( .T., s )
+   IF h["active"]
+      conn_Send( h, .T., s )
       IF Empty( lNoWait )
-         DO WHILE lActive
-            conn_CheckIn()
-            IF !Empty( cAns := conn_CheckOut() )
+         DO WHILE h["active"]
+            conn_CheckIn( h )
+            IF !Empty( cAns := conn_CheckOut( h ) )
                RETURN cAns
             ENDIF
-            IF !Empty( bCallBack )
-               Eval( bCallBack )
+            IF !Empty( h["cb"] )
+               Eval( h["cb"] )
             ENDIF
          ENDDO
       ENDIF
@@ -265,64 +260,67 @@ STATIC FUNCTION conn_Send2SocketOut( s, lNoWait )
 
    RETURN Nil
 
-STATIC FUNCTION conn_CheckIn()
+STATIC FUNCTION conn_CheckIn( h )
 
-   IF lActive
-      FSeek( handlIn, 0, 0 )
-      IF FRead( handlIn, @cBufferIn, 1 ) > 0 .AND. Asc( cBufferIn ) == nHisId
-         gWritelog( "Checkin-1" )
-         IF conn_Read( .F. ) > 0
-            MainHandler()
+   LOCAL hIn := h["hin"], bufIn := Space( 10 )
+
+   IF h["active"]
+      FSeek( hIn, 0, 0 )
+      IF FRead( hIn, @bufIn, 1 ) > 0 .AND. Asc( bufIn ) == nHisId
+         gWritelog( h, "Checkin" )
+         IF conn_Read( h, .F. ) > 0
+            MainHandler( h )
          ENDIF
          RETURN .T.
       ENDIF
    ENDIF
-
    RETURN .F.
 
-STATIC FUNCTION conn_CheckOut()
+STATIC FUNCTION conn_CheckOut( h )
 
-   IF lActive
-      FSeek( handlOut, 0, 0 )
-      IF FRead( handlOut, @cBufferOut, 1 ) > 0 .AND. Asc( cBufferOut ) == nHisId
-         conn_Read( .T. )
-         gWritelog( "Checkout: " + conn_GetRecvBuffer() )
-         RETURN conn_GetRecvBuffer()
+   LOCAL hOut := h["hout"], bufOut := Space( 10 )
+
+   IF h["active"]
+      FSeek( hOut, 0, 0 )
+      IF FRead( hOut, @bufOut, 1 ) > 0 .AND. Asc( bufOut ) == nHisId
+         conn_Read( h, .T. )
+         gWritelog( h, "Checkout: " + conn_GetRecvBuffer( h ) )
+         RETURN conn_GetRecvBuffer( h )
       ENDIF
    ENDIF
    RETURN Nil
 
-STATIC FUNCTION srv_conn_Create( cFile )
+STATIC FUNCTION srv_conn_Create( h, cFile )
+
+   LOCAL handlIn, handlOut
 
    nMyId := 2
    nHisId := 1
 
    handlIn := FCreate( cFile + ".gs1" )
-   //hwg_writelog( cFile + ".gs1" + " " + str(handlIn) )
    FClose( handlIn )
 
    handlOut := FCreate( cFile + ".gs2" )
    FClose( handlOut )
 
    handlIn := FOpen( cFile + ".gs1", FO_READWRITE + FO_SHARED )
-   gwritelog( "Open in " + cFile + ".gs1" + " " + str(handlIn) )
+   gwritelog( h, "Open in " + cFile + ".gs1" + " " + str(handlIn) )
    handlOut := FOpen( cFile + ".gs2", FO_READWRITE + FO_SHARED )
-   gwritelog( "Open out " + cFile + ".gs2" + " " + str(handlOut) )
+   gwritelog( h, "Open out " + cFile + ".gs2" + " " + str(handlOut) )
 
-   cBufferIn := Space( BUFFLEN )
-   cBufferOut := Space( BUFFLEN )
+   h["active"] := ( handlIn >= 0 .AND. handlOut >= 0 )
+   h["hin"] := handlIn
+   h["hout"] := handlOut
 
-   lActive := ( handlIn >= 0 .AND. handlOut >= 0 )
+   conn_Send( h, .F., "+v" + cVersion + "/" + PROTOCOL_VER + Chr(10) )
+   conn_Send( h, .T., "+Ok" + Chr(10) )
 
-   conn_Send( .F., "+v" + cVersion + "/" + PROTOCOL_VER + Chr(10) )
-   conn_Send( .T., "+Ok" + Chr(10) )
+   RETURN h["active"]
 
-   RETURN lActive
+STATIC PROCEDURE conn_Exit( h )
 
-STATIC PROCEDURE conn_Exit
-
-   lActive := .F.
-   FClose( handlIn )
-   FClose( handlOut )
+   h["active"] := .F.
+   FClose( h["hin"] )
+   FClose( h["hout"] )
 
    RETURN

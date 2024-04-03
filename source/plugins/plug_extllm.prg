@@ -28,6 +28,7 @@ DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRI
 
 STATIC cIniPath
 STATIC oClient
+STATIC hExt
 STATIC hPlugExtCli
 STATIC aModels, cCurrModel
 STATIC nLogLevel := 0
@@ -62,7 +63,8 @@ FUNCTION plug_extLLM( oEdit, cPath )
    LOCAL bEndEdit := {||
       IF oClient:lClose
          IF hb_isFunction( "HBEXTCLI" )
-            ecli_Close()
+            ecli_Close( hExt )
+            hExt := Nil
          ENDIF
       ENDIF
       RETURN Nil
@@ -129,21 +131,21 @@ STATIC FUNCTION _clillm_Start()
       IF !Empty( iChoic := FMenu( oClient, aMenu, 3, 10 ) )
          cCurrModel := aModels[ iChoic,1 ]
          _Textout( "Ext module launching..." )
-         IF ecli_Run( cExe, nLogLevel,, "hbedit_llm" )
+         IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
             _clillm_SetParams()
             _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
-            ecli_RunFunc( "OpenModel", {cCurrModel}, .T. )
+            ecli_RunFunc( hExt, "OpenModel", {cCurrModel}, .T. )
             IF ( xRes := _clillm_Wait() ) == Nil
                oClient:lClose := .T.
             ELSEIF xRes == ""
             ELSEIF xRes == "ok"
-               IF ecli_RunFunc( "CreateContext",{} ) == "ok"
+               IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
                   nStatus := S_CNT_CREATED
                   _Textout( "Model loaded" )
                ELSE
                   nStatus := S_MODULE_STARTED
-                  ecli_RunProc( "CloseModel",{} )
+                  ecli_RunProc( hExt, "CloseModel",{} )
                   _Textout( "Can't create context" )
                ENDIF
                _Textout( "Press F2 to start dialog" )
@@ -216,7 +218,7 @@ STATIC FUNCTION _clillm_SetParams()
 
       IF !Empty( xRes )
          nStatus := S_MODEL_PARAMS
-         ecli_RunFunc( "SetParams",{xRes} )
+         ecli_RunFunc( hExt, "SetParams",{xRes} )
       ENDIF
    ENDIF
 
@@ -242,7 +244,7 @@ STATIC FUNCTION _clillm_Wait()
       ELSEIF nKey == K_ESC
          RETURN Nil
       ENDIF
-      IF !Empty( sAns := ecli_CheckAnswer() )
+      IF !Empty( sAns := ecli_CheckAnswer( hExt ) )
          sAns := _DropQuotes( sAns )
          EXIT
       ENDIF
@@ -296,7 +298,7 @@ STATIC FUNCTION _clillm_Ask()
    //IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
    IF !Empty( cQue )
       nStatus := S_ASKING
-      ecli_RunFunc( "Ask",{cQue}, .T. )
+      ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
       _Textout( "> " + cQue )
       _Textout( "" )
       _clillm_Wait4Answer()
@@ -306,13 +308,13 @@ STATIC FUNCTION _clillm_Ask()
 
 STATIC FUNCTION _clillm_Reset()
 
-   ecli_RunFunc( "CloseContext",{} )
-   IF ecli_RunFunc( "CreateContext",{} ) == "ok"
+   ecli_RunFunc( hExt, "CloseContext",{} )
+   IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
       nStatus := S_CNT_CREATED
       _Textout( "Ok. Press F2 to start dialog" )
    ELSE
       nStatus := S_MODULE_STARTED
-      ecli_RunProc( "CloseModel",{} )
+      ecli_RunProc( hExt, "CloseModel",{} )
       _Textout( "Can't create context" )
    ENDIF
 
@@ -332,7 +334,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
    ELSE
       nStatus := S_GETTOKEN
       oClient:WriteTopPane()
-      ecli_RunFunc( "GetNextToken",{2}, .T. )
+      ecli_RunFunc( hExt, "GetNextToken",{2}, .T. )
       DO WHILE .T.
          IF ( xRes := _clillm_Wait() ) == Nil
             // ESC pressed
@@ -349,7 +351,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
                _Textout( hb_strShrink(xRes,4) + " ==", .T. )
                EXIT
             ELSE
-               ecli_RunFunc( "GetNextToken",{2}, .T. )
+               ecli_RunFunc( hExt, "GetNextToken",{2}, .T. )
                _Textout( xRes, .T. )
                IF oClient:LineToRow( oClient:nLine ) >= oClient:y2
                   oClient:GoTo( oClient:nLine, Len( oClient:aText[oClient:nLine] ) )
