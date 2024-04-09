@@ -37,6 +37,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
    ENDIF
 
    h["log"] := nLogOn
+   h["dir"] := cDirRoot
    h["cb"] := Nil
    h["active"] := .F.
    h["hin"] := -1
@@ -177,13 +178,14 @@ STATIC FUNCTION MainHandler( h )
 
 FUNCTION gWritelog( h, s )
 
-   LOCAL nHand
+   LOCAL nHand, cFile
 
    IF h["log"] > 0
-      IF ! File( cLogFile )
-         nHand := FCreate( cLogFile )
+      cFile := h["dir"] + cLogFile
+      IF ! File( cFile )
+         nHand := FCreate( cFile )
       ELSE
-         nHand := FOpen( cLogFile, 1 )
+         nHand := FOpen( cFile, 1 )
       ENDIF
       FSeek( nHand, 0, 2 )
       FWrite( nHand, s + cn )
