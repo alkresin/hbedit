@@ -14,6 +14,7 @@
 
 STATIC cn := e"\n"
 STATIC cLogFile := "extclient.log"
+STATIC aExt := {}, nExtId := 0
 STATIC nInterval := 20
 
 STATIC cVersion := "1.0"
@@ -37,6 +38,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
    ENDIF
 
    h["log"] := nLogOn
+   h["id"] := ++ nExtId
    h["dir"] := cDirRoot
    h["cb"] := Nil
    h["active"] := .F.
@@ -59,6 +61,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
    nSec := Seconds()
    DO WHILE Seconds() - nSec < 1
       IF !Empty( ecli_CheckAnswer( h ) )
+         AAdd( aExt, h )
          RETURN h
       ENDIF
       cedi_Sleep( nInterval*2 )
@@ -68,11 +71,20 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
 
 FUNCTION ecli_Close( h )
 
+   LOCAL i, id := h["id"]
+
    SendOut( h, '["endapp"]', .T. )
    cedi_Sleep( nInterval*2 )
 
    conn_Exit( h )
    cedi_Sleep( nInterval*2 )
+
+   FOR i := 1 TO Len( aExt )
+      IF aExt[i]["id"] == id
+         hb_ADel( aExt, i, .T. )
+         EXIT
+      ENDIF
+   NEXT
 
    RETURN Nil
 
