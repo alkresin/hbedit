@@ -132,7 +132,10 @@ STATIC FUNCTION _clillm_Start()
          cCurrModel := aModels[ iChoic,1 ]
          _Textout( "Ext module launching..." )
          IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
-            _clillm_SetParams()
+            IF !_clillm_SetParams()
+               oClient:lClose := .T.
+               RETURN Nil
+            ENDIF
             _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
             ecli_RunFunc( hExt, "OpenModel", {cCurrModel}, .T. )
@@ -169,8 +172,9 @@ STATIC FUNCTION _clillm_Start()
 STATIC FUNCTION _clillm_SetParams()
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets, y1, x1, x2, y2, i, j
+   LOCAL aGets, y1, x1, x2, y2, i, j, lOk := .F.
    LOCAL n_ctx := 512, n_predict := -1, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
+   LOCAL min_p := 0.05, penalize_nl := 0
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 20
@@ -179,11 +183,13 @@ STATIC FUNCTION _clillm_SetParams()
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "n_ctx" }, { y1+1,x1+10, 0, Ltrim(Str(n_ctx)), 6 }, ;
-      { y1+1,x1+20, 11, "n_predict" }, { y1+1,x1+31, 0, Ltrim(Str(n_predict)), 6 }, ;
+      { y1+1,x1+20, 11, "n_predict" }, { y1+1,x1+32, 0, Ltrim(Str(n_predict)), 6 }, ;
       { y1+3,x1+2, 11, "temp" }, { y1+3,x1+10, 0, Ltrim(Str(temp)), 6 }, ;
-      { y1+3,x1+20, 11, "penalty_r" }, { y1+3,x1+31, 0, Ltrim(Str(penalty_r)), 6 }, ;
+      { y1+3,x1+20, 11, "penalty_r" }, { y1+3,x1+32, 0, Ltrim(Str(penalty_r)), 6 }, ;
       { y1+4,x1+2, 11, "top_k" }, { y1+4,x1+10, 0, Ltrim(Str(top_k)), 6 }, ;
-      { y1+4,x1+20, 11, "top_p" }, { y1+4,x1+31, 0, Ltrim(Str(top_p)), 6 } ;
+      { y1+4,x1+20, 11, "top_p" }, { y1+4,x1+32, 0, Ltrim(Str(top_p)), 6 }, ;
+      { y1+5,x1+2, 11, "min_p" }, { y1+5,x1+10, 0, Ltrim(Str(min_p)), 6 }, ;
+      { y1+5,x1+20, 11, "penalize_nl" }, { y1+5,x1+32, 0, Ltrim(Str(penalize_nl)), 6 } ;
       }
 
    cBuf := Savescreen( y1, x1, y2, x2 )
@@ -213,19 +219,28 @@ STATIC FUNCTION _clillm_SetParams()
       ENDIF
       IF Val(AllTrim(aGets[13,4])) != top_p
          top_p := Val(AllTrim(aGets[13,4]))
-         xRes += 'top-k=' + Ltrim(Str(top_p)) + Chr(1)
+         xRes += 'top-p=' + Ltrim(Str(top_p)) + Chr(1)
+      ENDIF
+      IF Val(AllTrim(aGets[15,4])) != min_p
+         min_p := Val(AllTrim(aGets[15,4]))
+         xRes += 'min-p=' + Ltrim(Str(min_p)) + Chr(1)
+      ENDIF
+      IF Val(AllTrim(aGets[17,4])) != penalize_nl
+         penalize_nl := Val(AllTrim(aGets[17,4]))
+         xRes += 'penalize_nl=' + Ltrim(Str(penalize_nl)) + Chr(1)
       ENDIF
 
       IF !Empty( xRes )
          nStatus := S_MODEL_PARAMS
          ecli_RunFunc( hExt, "SetParams",{xRes} )
       ENDIF
+      lOk := .T.
    ENDIF
 
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cBuf )
 
-   RETURN Nil
+   RETURN lOk
 
 STATIC FUNCTION _clillm_Wait()
 
