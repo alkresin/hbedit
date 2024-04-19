@@ -1264,7 +1264,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Compile C sources with C compiler
       cOut := Nil
       cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", _EnvVarsTran(cPathHrbInc) ), ;
-         "{gi}", Iif( lGuiApp, cPathHwguiInc, "." ) ), "{path}", cCompPath )
+         "{gi}", Iif( lGuiApp.AND.lHarbourApp, cPathHwguiInc, "." ) ), "{path}", cCompPath )
 
       FOR i := 1 TO Len( ::aFiles )
          cFile := _PS( ::aFiles[i,1] )
@@ -1352,16 +1352,16 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Link the app
       cBinary := Iif( Empty( ::cOutName ), hb_fnameNameExt( ::aFiles[1,1] ), ::cOutName )
       cOut := Nil
-      IF lGuiApp
+      IF lGuiApp .AND. lHarbourApp
          aLibs := hb_ATokens( cLibsHwGUI, " " )
          FOR i := 1 TO Len( aLibs )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
          NEXT
       ENDIF
-      IF !Empty( ::cGtLib )
-         cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", ::cGtLib )
-      ENDIF
       IF lHarbourApp
+         IF !Empty( ::cGtLib )
+            cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", ::cGtLib )
+         ENDIF
          aLibs := hb_ATokens( cLibsHrb, " " )
          FOR i := 1 TO Len( aLibs )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
@@ -1385,7 +1385,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
              ::oComp:cCmdLinkExe, "{out}", cBinary ), "{objs}", cObjs ), "{path}", cCompPath ), ;
              "{f}", Iif( ::cDefFlagsL == Nil, Iif( lGuiApp, ::oComp:cLinkFlagsGui, ;
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
-             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp, cPathHwguiLib,"." ) ), ;
+             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp.AND.lHarbourApp, cPathHwguiLib,"." ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
              "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"
