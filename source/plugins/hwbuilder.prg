@@ -8,7 +8,7 @@
 
 #include "hbclass.ch"
 
-#define HWB_VERSION  "1.8"
+#define HWB_VERSION  "1.12"
 
 #define COMP_ID      1
 #define COMP_EXE     2
@@ -630,6 +630,25 @@ STATIC FUNCTION _EnvVarsTran( cLine )
 
    RETURN cLine
 
+STATIC FUNCTION _PrjVarsTran( aPrjVars, cLine )
+
+   LOCAL i, nPos := 1, nPos2, nLen, cVar, cValue
+
+   DO WHILE ( nPos := hb_At( '$', cLine, nPos ) ) > 0
+      nPos2 := nPos + 2
+      nLen := Len( cLine )
+      DO WHILE nPos2 < nLen .AND. !( Substr( cLine, nPos2, 1 ) $ "/\." )
+         nPos2 ++
+      ENDDO
+      cVar := Substr( cLine, nPos+1, nPos2-nPos-1 )
+      IF ( i := Ascan( aPrjVars, {|a|a[1] == cVar} ) ) > 0
+         cValue := aPrjVars[i,2]
+         cLine := Left( cLine, nPos-1 ) + cValue + Substr( cLine, nPos2 )
+      ENDIF
+   ENDDO
+
+   RETURN cLine
+
 STATIC FUNCTION _AddFromFile( cFile, l2Line )
 
    LOCAL cPath
@@ -908,6 +927,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
 
    LOCAL arr, i, j, n, l, lYes, nPos, af, ap, o, oGui
    LOCAL cLine, cTmp, cTmp2, cSrcPath := "", lLib, lCompDefault := .F.
+   LOCAL aPrjVars := {}
 
    IF Empty( oComp )
       oComp := HCompiler():aList[1]
@@ -964,41 +984,46 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
             LOOP
          ENDIF
          IF ( nPos := At( "=", cLine ) ) > 0 .AND. !( " " $ (cTmp := Trim( Left( cLine, nPos-1 ) )) )
-            IF ( cTmp := Lower( cTmp ) ) == "srcpath"
+            IF Left( cTmp,1 ) == "$"
+               AAdd( aPrjVars, { Substr( cTmp, 2 ), AllTrim( Substr( cLine, nPos + 1 ) ) } )
+            ELSEIF ( cTmp := Lower( cTmp ) ) == "srcpath"
                cSrcPath := _DropSlash( Substr( cLine, nPos + 1 ) ) + hb_ps()
 
             ELSEIF cTmp == "def_cflags"
-               ::cDefFlagsC := Substr( cLine, nPos + 1 )
+               ::cDefFlagsC := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "def_lflags"
-               ::cDefFlagsL := Substr( cLine, nPos + 1 )
+               ::cDefFlagsL := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "def_libflags"
-               ::cDefFlagsLib := Substr( cLine, nPos + 1 )
+               ::cDefFlagsLib := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "prgflags"
-               ::cFlagsPrg += ( Iif( Empty(::cFlagsPrg), "", " " ) + Substr( cLine, nPos + 1 ) )
+               ::cFlagsPrg += ( Iif( Empty(::cFlagsPrg), "", " " ) + ;
+                  _PrjVarsTran( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "cflags"
-               ::cFlagsC += ( Iif( Empty(::cFlagsC), "", " " ) + Substr( cLine, nPos + 1 ) )
+               ::cFlagsC += ( Iif( Empty(::cFlagsC), "", " " ) + ;
+                  _PrjVarsTran( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "gtlib"
                ::cGtLib := Substr( cLine, nPos + 1 )
 
             ELSEIF cTmp == "libs"
-               ::cLibsDop += Iif( Empty(::cLibsDop), "", " " ) + Substr( cLine, nPos + 1 )
+               ::cLibsDop += Iif( Empty(::cLibsDop), "", " " ) + ;
+                  _PrjVarsTran( Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "libspath"
-               ::cLibsPath := _DropSlash( Substr( cLine, nPos + 1 ) )
+               ::cLibsPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "outpath"
-               ::cOutPath := _DropSlash( Substr( cLine, nPos + 1 ) )
+               ::cOutPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "outname"
                ::cOutName := Substr( cLine, nPos + 1 )
 
             ELSEIF cTmp == "objpath"
-               ::cObjPath := _DropSlash( Substr( cLine, nPos + 1 ) )
+               ::cObjPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "target"
                ::lLib := Substr( cLine, nPos + 1 ) == "lib"
@@ -1090,7 +1115,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
          ELSE
             IF ( nPos := At( " ", cLine ) ) > 0
                cTmp := Left( cLine, nPos - 1 )
-               cTmp2 := AllTrim( Substr( cLine, nPos + 1 ) )
+               cTmp2 := _PrjVarsTran( AllTrim( Substr( cLine, nPos + 1 ) ) )
             ELSE
                cTmp := cLine
                cTmp2 := Nil
