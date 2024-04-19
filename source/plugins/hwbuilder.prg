@@ -1144,7 +1144,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
 METHOD Build( lClean, lSub ) CLASS HwProject
 
    LOCAL i, cCmd, cComp, cLine, cOut, cFullOut := "", lErr := .F., to, tc
-   LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath
+   LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath, lHarbourApp := .F.
    LOCAL aLibs, cLibs := "", a4Delete := {}, tStart := hb_DtoT( Date(), Seconds()-1 )
    LOCAL aEnv, cResFile := "", cResList := ""
    LOCAL cCompPath, cCompHrbLib
@@ -1214,7 +1214,6 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    cCompPath := _EnvVarsTran( ::oComp:cPath )
    cCompHrbLib := _EnvVarsTran( ::oComp:cPathHrbLib )
 
-   // Compile prg sources with Harbour
    IF !Empty( ::oComp:aEnv )
       aEnv := Array( Len(::oComp:aEnv),2 )
       FOR i := 1 TO Len( ::oComp:aEnv )
@@ -1222,7 +1221,11 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          aEnv[i,2] := getenv( aEnv[i,1] )
          hb_setenv( ::oComp:aEnv[i,1], ::oComp:aEnv[i,2] )
       NEXT
+   ELSEIF ::oComp:family == "msvc"
+      _ShowProgress( "Error: Environment variables are absent in hwbuild.ini", 1,, @cFullOut )
    ENDIF
+
+   // Compile prg sources with Harbour
    cCmd := _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour " + cHrbDefFlags + ;
       " -i" + _EnvVarsTran(cPathHrbInc) + Iif( lGuiApp, " -i" + cPathHwguiInc, "" ) + ;
       Iif( Empty( ::cFlagsPrg ), "", " " + ::cFlagsPrg ) + ;
@@ -1230,6 +1233,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    FOR i := 1 TO Len( ::aFiles )
       cFile := _PS( ::aFiles[i,1] )
       IF Lower( hb_fnameExt( cFile )) == ".prg"
+         lHarbourApp := .T.
          cObjFile := cObjPath + hb_fnameName( cFile ) + ".c"
          IF ::lMake .AND. File( cObjFile ) .AND. hb_vfTimeGet( cObjFile, @to ) .AND. ;
             hb_vfTimeGet( cFile, @tc ) .AND. to >= tc
@@ -1278,6 +1282,8 @@ METHOD Build( lClean, lSub ) CLASS HwProject
                _ShowProgress( "> " + cLine, 1, hb_fnameNameExt(cFile), @cFullOut )
                _RunApp( cLine, @cOut )
                IF Valtype( cOut ) != "C"
+                  _ShowProgress( "Error: the compiler didn't start", 1,, @cFullOut )
+                  lErr := .T.
                   EXIT
                ENDIF
                _ShowProgress( cOut, 1,, @cFullOut )
@@ -1355,10 +1361,12 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       IF !Empty( ::cGtLib )
          cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", ::cGtLib )
       ENDIF
-      aLibs := hb_ATokens( cLibsHrb, " " )
-      FOR i := 1 TO Len( aLibs )
-         cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
-      NEXT
+      IF lHarbourApp
+         aLibs := hb_ATokens( cLibsHrb, " " )
+         FOR i := 1 TO Len( aLibs )
+            cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
+         NEXT
+      ENDIF
       IF !Empty( ::cLibsDop )
          aLibs := hb_ATokens( ::cLibsDop, Iif( ',' $ ::cLibsDop, ",", " " ) )
          FOR i := 1 TO Len( aLibs )
