@@ -157,7 +157,7 @@ STATIC FUNCTION FPaths()
 STATIC FUNCTION _GetParams( oComp, lHwprj )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets, y1, x1, x2, y2, i, j
+   LOCAL aGets, y1, x1, x2, y2, i := 0, j
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 16
@@ -170,12 +170,16 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
       { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt... -l"lib1 lib2"' ) }, ;
       { y1+4,x1+2, 0, "", x2-x1-4 } }
 
-   AAdd( aGets, { y1+5, x1+3, 3, .T., 1 } )
-   AAdd( aGets, { y1+5,x1+2, 11, "(x) default" } )
-   FOR i := 1 TO Len( HCompiler():aList )
-      AAdd( aGets, { y1+5+i, x1+3, 3, .F., 1 } )
-      AAdd( aGets, { y1+5+i,x1+2, 11, "( ) " + HCompiler():aList[i]:id } )
-   NEXT
+   IF Len( HCompiler():aList ) > 1
+      AAdd( aGets, { y1+5, x1+3, 3, .T., 1 } )
+      AAdd( aGets, { y1+5,x1+2, 11, "(x) default" } )
+      FOR i := 1 TO Len( HCompiler():aList )
+         AAdd( aGets, { y1+5+i, x1+3, 3, .F., 1 } )
+         AAdd( aGets, { y1+5+i,x1+2, 11, "( ) " + HCompiler():aList[i]:id } )
+      NEXT
+   ELSEIF Len( HCompiler():aList ) == 1
+      oComp := HCompiler():aList[1]
+   ENDIF
    y2 := y1 + 5 + i
 
    cBuf := Savescreen( y1, x1, y2, x2 )
