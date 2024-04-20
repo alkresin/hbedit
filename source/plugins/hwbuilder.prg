@@ -66,7 +66,7 @@ STATIC lUnix := .F.
 STATIC cExeExt := ".exe"
 STATIC cLibsHrb := "hbvm hbrtl gtgui gtwin hbcpage hblang hbrdd hbmacro hbpp rddntx rddcdx rddfpt hbsix hbcommon hbct hbcplr hbpcre hbzlib"
 #endif
-STATIC cLibsHwGUI := "", lGuiApp := .T.
+STATIC cLibsHwGUI := ""
 
 STATIC cFontMain := "", lProgressOn := .T., cExtView := ""
 STATIC sResult
@@ -76,9 +76,9 @@ FUNCTION HwBuilder()
 
 FUNCTION hwbc_Run( cFile, lFromEdit )
 
-   LOCAL cExt, oPrg, lClean := .F., oComp, cComp, aUserPar := {}, aFiles := {}
-   LOCAL i, j, cDop, aDop, cGTlib := ""
-   LOCAL cAddW := "$hb_compile_err", oOld
+   LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., oComp, cComp, aUserPar := {}, aFiles := {}
+   LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := ""
+   LOCAL cAddW := "$hb_compile_err", oOld, oPane
 
    IF Empty( lFromEdit ); lFromEdit := .F.; ENDIF
    cExt := Lower( hb_fnameExt( cFile ) )
@@ -88,8 +88,7 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
    HGuiLib():aList := {}
    ReadIni( "hwbuild.ini" )
    lQ := .F.
-   lGuiApp := .T.
-   IF( cDop := _GetParams( @oComp, (cExt==".prg") ) ) == Nil
+   IF( cDop := _GetParams( @oComp, (cExt==".hwprj") ) ) == Nil
       RETURN Nil
    ENDIF
 
@@ -100,38 +99,44 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
       IF "-clean" $ cDop
          lClean := .T.
       ENDIF
-      IF cExt == ".prg"
-         aDop := hb_Atokens( cDop, " " )
-         FOR i := 1 TO Len( aDop )
-            IF Left( aDop[i],3 ) == "-gt"
-               cGTlib := Substr( aDop[i], 2 )
-            ELSEIF Left( aDop[i],1 ) != "-" .AND. Lower(hb_fnameExt(aDop[i])) == ".hwprj"
-               Aadd( aFiles, {cFile,""} )
-               cExt := ".hwprj"
-               cFile := aDop[i]
-            ENDIF
-         NEXT
-      ELSE
-         i := 1
-         DO WHILE ( i := hb_At( "{", cDop, i ) ) > 0
-            IF ( j := hb_At( "}", cDop, i ) ) > i
-               AAdd( aUserPar, Substr( cDop, i+1, j-i-1 ) )
-               i := j + 1
-            ELSE
-               EXIT
-            ENDIF
-         ENDDO
+      IF "-gui=" $ cDop
+         lNoGui := .T.
       ENDIF
+      aDop := hb_Atokens( cDop, " ", .T. )
+      FOR i := 1 TO Len( aDop )
+         IF Left( aDop[i],3 ) == "-gt"
+            cGTlib := Substr( aDop[i], 2 )
+         ELSEIF Left( aDop[i],1 ) == '{'
+            IF ( j := At( "}", aDop[i] ) ) > 2
+               AAdd( aUserPar, Substr( cDop, 2, j-1 ) )
+            ENDIF
+         ELSEIF Left( aDop[i],2 ) == "-l"
+            cLibsDop += _DropQuotes( Substr( aDop[1],3 ) )
+         ELSEIF Left( aDop[i],1 ) != "-" .AND. Lower(hb_fnameExt(aDop[i])) == ".hwprj"
+            Aadd( aFiles, {cFile,""} )
+            cExt := ".hwprj"
+            cFile := aDop[i]
+         ENDIF
+      NEXT
    ENDIF
-   IF cExt == ".hwprj" .OR. cExt == ".prg"
+   IF cExt == ".hwprj" .OR. cExt == ".prg" .OR. cExt == ".c" .OR. cExt == ".cpp"
       @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
       IF cExt == ".hwprj"
          IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles ) )
             oPrg:Build( lClean )
          ENDIF
       ELSE
-         oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, "", "", "", "", "", "", .F., .F. )
+         oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
+            "", "", "", "", "", .F., .F., lNoGui )
          oPrg:Build()
+      ENDIF
+      cFile := hb_fnameNameExt( cFile )
+      IF Len( (oPane := FilePane():aPanes[1]):aDir ) >= oPane:nCurrent ;
+        .AND. oPane:aDir[oPane:nCurrent,1] == cFile
+        oPane:Refresh()
+      ELSEIF Len( ( oPane := FilePane():aPanes[2]):aDir ) >= oPane:nCurrent ;
+        .AND. oPane:aDir[oPane:nCurrent,1] == cFile
+        oPane:Refresh()
       ENDIF
       IF !lFromEdit
          oOld := TEdit():aWindows[TEdit():nCurr]
@@ -149,7 +154,7 @@ STATIC FUNCTION ShowResult()
 STATIC FUNCTION FPaths()
    RETURN Nil
 
-STATIC FUNCTION _GetParams( oComp, lPrg )
+STATIC FUNCTION _GetParams( oComp, lHwprj )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i, j
@@ -160,17 +165,18 @@ STATIC FUNCTION _GetParams( oComp, lPrg )
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
-      { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lPrg,-1,1), .F., 2 }, ;
-      { y1+2,x1+2, 11, Iif( lPrg,"-gt...","-{...}" ) }, ;
-      { y1+3,x1+2, 0, "", x2-x1-4 } }
+      { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
+      { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, 1, .T., 2 }, ;
+      { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt... -l"lib1 lib2"' ) }, ;
+      { y1+4,x1+2, 0, "", x2-x1-4 } }
 
-   AAdd( aGets, { y1+4, x1+3, 3, .T., 1 } )
-   AAdd( aGets, { y1+4,x1+2, 11, "(x) default" } )
+   AAdd( aGets, { y1+5, x1+3, 3, .T., 1 } )
+   AAdd( aGets, { y1+5,x1+2, 11, "(x) default" } )
    FOR i := 1 TO Len( HCompiler():aList )
-      AAdd( aGets, { y1+4+i, x1+3, 3, .F., 1 } )
-      AAdd( aGets, { y1+4+i,x1+2, 11, "( ) " + HCompiler():aList[i]:id } )
+      AAdd( aGets, { y1+5+i, x1+3, 3, .F., 1 } )
+      AAdd( aGets, { y1+5+i,x1+2, 11, "( ) " + HCompiler():aList[i]:id } )
    NEXT
-   y2 := y1 + 4 + i
+   y2 := y1 + 5 + i
 
    cBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -178,15 +184,18 @@ STATIC FUNCTION _GetParams( oComp, lPrg )
    KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN )
    edi_READ( aGets )
    IF LastKey() == 13
-      xRes := AllTrim( aGets[7,4] )
+      xRes := AllTrim( aGets[9,4] )
       IF aGets[3,4]
          xRes := Iif( Empty(xRes), "-q", xRes + " -q" )
       ENDIF
       IF aGets[5,4]
          xRes := Iif( Empty(xRes), "-clean", xRes + " -clean" )
       ENDIF
+      IF !aGets[7,4]
+         xRes := Iif( Empty(xRes), "-gui=", xRes + " -gui=" )
+      ENDIF
       j := 0
-      FOR i := 8 TO Len( aGets ) STEP 2
+      FOR i := 10 TO Len( aGets ) STEP 2
          IF aGets[i,4]
             IF j > 0
                oComp := HCompiler():aList[j]
@@ -856,7 +865,7 @@ CLASS HGuilib
 
 ENDCLASS
 
-METHOD New( id )
+METHOD New( id ) CLASS HGuilib
 
    ::id := id
 
@@ -881,6 +890,9 @@ CLASS HwProject
    DATA cOutPath, cOutName, cObjPath
    DATA lLib       INIT .F.
    DATA lMake      INIT .F.
+   DATA lHarbour   INIT .F.
+   DATA lGuiLib    INIT .T.
+   DATA lGuiLinkFlag  INIT .F.
 
    DATA cDefFlagsC INIT Nil
    DATA cDefFlagsL INIT Nil
@@ -896,7 +908,9 @@ CLASS HwProject
 ENDCLASS
 
 METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
-      cOutName, cObjPath, lLib, lMake ) CLASS HwProject
+      cOutName, cObjPath, lLib, lMake, lNoGui ) CLASS HwProject
+
+   LOCAL i
 
    IF PCount() > 1
       ::aFiles := aFiles
@@ -919,6 +933,17 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
       ::cObjPath  := cObjPath
       ::lLib  := lLib
       ::lMake := lMake
+      IF lNoGui
+         ::lGuiLib := .F.
+      ENDIF
+      IF ::lGuiLib
+         ::lGuiLinkFlag := .T.
+      ENDIF
+      FOR i := 1 TO Len( ::aFiles )
+         IF Lower( hb_fnameExt( ::aFiles[i,1] ) ) == ".prg"
+           ::lHarbour := .T.
+         ENDIF
+      NEXT
    ENDIF
 
    RETURN Self
@@ -990,40 +1015,40 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
                cSrcPath := _DropSlash( Substr( cLine, nPos + 1 ) ) + hb_ps()
 
             ELSEIF cTmp == "def_cflags"
-               ::cDefFlagsC := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
+               ::cDefFlagsC := _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "def_lflags"
-               ::cDefFlagsL := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
+               ::cDefFlagsL := _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "def_libflags"
-               ::cDefFlagsLib := _PrjVarsTran( Substr( cLine, nPos + 1 ) )
+               ::cDefFlagsLib := _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "prgflags"
                ::cFlagsPrg += ( Iif( Empty(::cFlagsPrg), "", " " ) + ;
-                  _PrjVarsTran( Substr( cLine, nPos + 1 ) ) )
+                  _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "cflags"
                ::cFlagsC += ( Iif( Empty(::cFlagsC), "", " " ) + ;
-                  _PrjVarsTran( Substr( cLine, nPos + 1 ) ) )
+                  _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "gtlib"
                ::cGtLib := Substr( cLine, nPos + 1 )
 
             ELSEIF cTmp == "libs"
                ::cLibsDop += Iif( Empty(::cLibsDop), "", " " ) + ;
-                  _PrjVarsTran( Substr( cLine, nPos + 1 ) )
+                  _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) )
 
             ELSEIF cTmp == "libspath"
-               ::cLibsPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
+               ::cLibsPath := _PrjVarsTran( aPrjVars, _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "outpath"
-               ::cOutPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
+               ::cOutPath := _PrjVarsTran( aPrjVars, _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "outname"
                ::cOutName := Substr( cLine, nPos + 1 )
 
             ELSEIF cTmp == "objpath"
-               ::cObjPath := _PrjVarsTran( _DropSlash( Substr( cLine, nPos + 1 ) ) )
+               ::cObjPath := _PrjVarsTran( aPrjVars, _DropSlash( Substr( cLine, nPos + 1 ) ) )
 
             ELSEIF cTmp == "target"
                ::lLib := Substr( cLine, nPos + 1 ) == "lib"
@@ -1044,7 +1069,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
             ELSEIF cTmp == "guilib"
                cTmp := Substr( cLine, nPos + 1 )
                IF Empty( cTmp ) .OR. cTmp == '""'
-                  lGuiApp := .F.
+                  ::lGuiLib := .F.
                ELSEIF ( j := Ascan( HGuilib():aList, {|o|o:id == cTmp} ) ) > 0
                   oGui := HGuilib():aList[j]
                   cGuiId := oGui:id
@@ -1083,6 +1108,9 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
                IF o == Nil
                   RETURN Nil
                ENDIF
+               IF o:lHarbour
+                  ::lHarbour := .T.
+               ENDIF
                IF Empty( o:cObjPath ) .AND. !Empty( ::cObjPath )
                   o:cObjPath := ::cObjPath
                ENDIF
@@ -1115,7 +1143,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
          ELSE
             IF ( nPos := At( " ", cLine ) ) > 0
                cTmp := Left( cLine, nPos - 1 )
-               cTmp2 := _PrjVarsTran( AllTrim( Substr( cLine, nPos + 1 ) ) )
+               cTmp2 := _PrjVarsTran( aPrjVars, AllTrim( Substr( cLine, nPos + 1 ) ) )
             ELSE
                cTmp := cLine
                cTmp2 := Nil
@@ -1142,9 +1170,14 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
       ENDIF
    NEXT
 
+   IF ::lGuiLib
+      ::lGuiLinkFlag := .T.
+   ENDIF
    IF !Empty( ::cGtLib )
-      //::cLibsDop := Iif( Empty( ::cLibsDop ), ::cGtLib, ::cLibsDop + " " + ::cGtLib )
       ::cFlagsPrg += " -d__" + Upper( ::cGtLib ) + "__"
+      IF ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg"
+         ::lGuiLinkFlag := .T.
+      ENDIF
    ENDIF
 
    IF !Empty( ::aProjects ) .AND. Empty( ::aFiles ) .AND. !::lLib
@@ -1160,6 +1193,12 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
    IF Empty( ::aFiles ) .AND. Empty( ::aProjects )
       _MsgStop( "Source files missing", "Project error" )
       RETURN Nil
+   ELSE
+      FOR i := 1 TO Len( ::aFiles )
+         IF Lower( hb_fnameExt( ::aFiles[i,1] ) ) == ".prg"
+           ::lHarbour := .T.
+         ENDIF
+      NEXT
    ENDIF
 
    ::oComp := oComp
@@ -1169,15 +1208,17 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
 METHOD Build( lClean, lSub ) CLASS HwProject
 
    LOCAL i, cCmd, cComp, cLine, cOut, cFullOut := "", lErr := .F., to, tc
-   LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath, lHarbourApp := .F.
+   LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath
    LOCAL aLibs, cLibs := "", a4Delete := {}, tStart := hb_DtoT( Date(), Seconds()-1 )
    LOCAL aEnv, cResFile := "", cResList := ""
    LOCAL cCompPath, cCompHrbLib
 
-   IF Empty( lClean ) .AND. !Empty( cLine := CheckOptions( Self ) )
-      _MsgStop( cLine + hb_eol() + "Check your hwbuild.ini", "Wrong options" )
-      FPaths()
-      RETURN Nil
+   IF Empty( lSub ) .AND. Empty( lClean ) .AND. !Empty( i := CheckOptions( Self, @cLine ) )
+      IF !( i == 2 .AND. !::lGuiLib )
+         _MsgStop( cLine + hb_eol() + "Check your hwbuild.ini", "Wrong options" )
+         FPaths()
+         //RETURN Nil
+      ENDIF
    ENDIF
 
    FOR i := 1 TO Len( ::aProjects )
@@ -1222,12 +1263,6 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       hb_DirBuild( ::cOutPath )
    ENDIF
 
-   IF !Empty( ::cGtLib )
-      IF !( ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg" )
-         lGuiApp := .F.
-      ENDIF
-   ENDIF
-
    FOR i := 1 TO Len( ::aFiles )
       IF !( cFile := Lower( hb_fnameExt(::aFiles[i,1]) ) ) == ".prg" .AND. !( cFile == ".c" ) ;
          .AND. !( cFile == ".cpp" ).AND. !( cFile == ::oComp:cObjExt ) .AND. !( cFile == ".rc" )
@@ -1250,15 +1285,17 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       _ShowProgress( "Error: Environment variables are absent in hwbuild.ini", 1,, @cFullOut )
    ENDIF
 
+   _ShowProgress( "Harbour: "+Iif(::lHarbour,"Yes","No") + ;
+      " Guilib: "+Iif(::lGuiLib,"Yes","No") + ;
+      " GuiFlags: "+Iif(::lGuiLinkFlag,"Yes","No"), 1,, @cFullOut )
    // Compile prg sources with Harbour
    cCmd := _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour " + cHrbDefFlags + ;
-      " -i" + _EnvVarsTran(cPathHrbInc) + Iif( lGuiApp, " -i" + cPathHwguiInc, "" ) + ;
+      " -i" + _EnvVarsTran(cPathHrbInc) + Iif( ::lGuiLib, " -i" + cPathHwguiInc, "" ) + ;
       Iif( Empty( ::cFlagsPrg ), "", " " + ::cFlagsPrg ) + ;
       Iif( Empty( cObjPath ), "", " -o" + cObjPath )
    FOR i := 1 TO Len( ::aFiles )
       cFile := _PS( ::aFiles[i,1] )
       IF Lower( hb_fnameExt( cFile )) == ".prg"
-         lHarbourApp := .T.
          cObjFile := cObjPath + hb_fnameName( cFile ) + ".c"
          IF ::lMake .AND. File( cObjFile ) .AND. hb_vfTimeGet( cObjFile, @to ) .AND. ;
             hb_vfTimeGet( cFile, @tc ) .AND. to >= tc
@@ -1268,6 +1305,8 @@ METHOD Build( lClean, lSub ) CLASS HwProject
             _ShowProgress( "> " + cLine, 1, hb_fnameNameExt( cFile ), @cFullOut )
             _RunApp( cLine, @cOut )
             IF Valtype( cOut ) != "C"
+               _ShowProgress( "Error: the Harbour compiler didn't start", 1,, @cFullOut )
+               lErr := .T.
                EXIT
             ENDIF
             _ShowProgress( cOut, 1,, @cFullOut )
@@ -1289,7 +1328,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Compile C sources with C compiler
       cOut := Nil
       cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", _EnvVarsTran(cPathHrbInc) ), ;
-         "{gi}", Iif( lGuiApp.AND.lHarbourApp, cPathHwguiInc, "." ) ), "{path}", cCompPath )
+         "{gi}", Iif( ::lGuiLib.AND.::lHarbour, cPathHwguiInc, "." ) ), "{path}", cCompPath )
 
       FOR i := 1 TO Len( ::aFiles )
          cFile := _PS( ::aFiles[i,1] )
@@ -1327,49 +1366,54 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
 #ifndef __PLATFORM__UNIX
-   IF lGuiApp .AND. !::lLib .AND. !lErr
+   IF ::lGuiLib .AND. !::lLib .AND. !lErr .AND. !Empty( ::oComp:cCmdRes )
       // Compile resource files
       cOut := Nil
-      IF !Empty( ::oComp:cCmdRes ) .AND. Empty( ::cGtLib )
-         IF File( cPathHwgui + "\image\WindowsXP.Manifest" )
-            cLine := '1 24 "' + cPathHwgui + '\image\WindowsXP.Manifest"'
-            cResFile := "hwgui_xp.res"
-            IF ::oComp:family == "mingw"
-               cLine := Strtran( cLine, '\', '/' )
-               cResFile := "hwgui_xp.o"
-            ENDIF
-            hb_MemoWrit( "hwgui_xp.rc", cLine )
+      IF File( cPathHwgui + "\image\WindowsXP.Manifest" )
+         cLine := '1 24 "' + cPathHwgui + '\image\WindowsXP.Manifest"'
+         cResFile := "hwgui_xp.res"
+         IF ::oComp:family == "mingw"
+            cLine := Strtran( cLine, '\', '/' )
+            cResFile := "hwgui_xp.o"
+         ENDIF
+         hb_MemoWrit( "hwgui_xp.rc", cLine )
+         cLine := StrTran( StrTran( StrTran( ::oComp:cCmdRes, "{path}", cCompPath ), ;
+         "{src}", "hwgui_xp.rc" ), "{out}", "hwgui_xp" )
+         _ShowProgress( "> " + cLine, 1,, @cFullOut)
+         _RunApp( cLine, @cOut )
+         IF Valtype( cOut ) == "C"
+            _ShowProgress( cOut, 1,, @cFullOut )
+            AAdd( a4Delete, "hwgui_xp.rc" )
+            AAdd( a4Delete, cResFile )
+            cResList += cResFile
+         ELSE
+            _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
+            lErr := .T.
+         ENDIF
+      ENDIF
+   ENDIF
+   IF ::lGuiLinkFlag .AND. !::lLib .AND. !lErr .AND. !Empty( ::oComp:cCmdRes )
+      cOut := Nil
+      FOR i := 1 TO Len( ::aFiles )
+         cFile := _PS( ::aFiles[i,1] )
+         IF Lower( hb_fnameExt( cFile )) == ".rc"
             cLine := StrTran( StrTran( StrTran( ::oComp:cCmdRes, "{path}", cCompPath ), ;
-            "{src}", "hwgui_xp.rc" ), "{out}", "hwgui_xp" )
+               "{src}", cFile ), "{out}", hb_fnameName( cFile ) + ;
+               Iif( ::oComp:family == "mingw", "_rc", "" ) )
             _ShowProgress( "> " + cLine, 1,, @cFullOut)
             _RunApp( cLine, @cOut )
             IF Valtype( cOut ) == "C"
                _ShowProgress( cOut, 1,, @cFullOut )
-               //IF !::lMake
-                  AAdd( a4Delete, "hwgui_xp.rc" )
-                  AAdd( a4Delete, cResFile )
-               //ENDIF
-               cResList += cResFile
+               cResFile := hb_fnameName( cFile ) + Iif( ::oComp:family == "mingw", "_rc.o", ".res" )
+               AAdd( a4Delete, cResFile )
+               cResList += " " + cResFile
+            ELSE
+              _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
+              lErr := .T.
+              EXIT
             ENDIF
          ENDIF
-
-         FOR i := 1 TO Len( ::aFiles )
-            cFile := _PS( ::aFiles[i,1] )
-            IF Lower( hb_fnameExt( cFile )) == ".rc"
-               cLine := StrTran( StrTran( StrTran( ::oComp:cCmdRes, "{path}", cCompPath ), ;
-                  "{src}", cFile ), "{out}", hb_fnameName( cFile ) + ;
-                  Iif( ::oComp:family == "mingw", "_rc", "" ) )
-               _ShowProgress( "> " + cLine, 1,, @cFullOut)
-               _RunApp( cLine, @cOut )
-               IF Valtype( cOut ) == "C"
-                  _ShowProgress( cOut, 1,, @cFullOut )
-                  cResFile := hb_fnameName( cFile ) + Iif( ::oComp:family == "mingw", "_rc.o", ".res" )
-                  AAdd( a4Delete, cResFile )
-                  cResList += " " + cResFile
-               ENDIF
-            ENDIF
-         NEXT
-      ENDIF
+      NEXT
    ENDIF
 #endif
 
@@ -1377,13 +1421,13 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Link the app
       cBinary := Iif( Empty( ::cOutName ), hb_fnameNameExt( ::aFiles[1,1] ), ::cOutName )
       cOut := Nil
-      IF lGuiApp .AND. lHarbourApp
+      IF ::lGuiLib .AND. ::lHarbour
          aLibs := hb_ATokens( cLibsHwGUI, " " )
          FOR i := 1 TO Len( aLibs )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
          NEXT
       ENDIF
-      IF lHarbourApp
+      IF ::lHarbour
          IF !Empty( ::cGtLib )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", ::cGtLib )
          ENDIF
@@ -1408,9 +1452,9 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          cBinary := Iif( Empty(::cOutPath), "", ::cOutPath+hb_ps() ) + hb_fnameExtSet( cBinary, cExeExt )
          cLine := StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( ;
              ::oComp:cCmdLinkExe, "{out}", cBinary ), "{objs}", cObjs ), "{path}", cCompPath ), ;
-             "{f}", Iif( ::cDefFlagsL == Nil, Iif( lGuiApp, ::oComp:cLinkFlagsGui, ;
+             "{f}", Iif( ::cDefFlagsL == Nil, Iif( ::lGuiLinkFlag, ::oComp:cLinkFlagsGui, ;
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
-             "{hL}", cCompHrbLib ), "{gL}", Iif( lGuiApp.AND.lHarbourApp, cPathHwguiLib,"." ) ), ;
+             "{hL}", cCompHrbLib ), "{gL}", Iif( ::lGuiLib.AND.::lHarbour, cPathHwguiLib,"." ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
              "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"
