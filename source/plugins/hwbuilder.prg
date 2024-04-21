@@ -591,13 +591,15 @@ STATIC FUNCTION _HasError( cLine )
    DO WHILE ( nPos := hb_AtI( "error", cLine, nPos ) ) > 0
 
       l := .F.
-      c := Iif( nPos == 1, 'a', Substr( cLine, nPos-1, 1 ) )
-      IF c < 'A' .OR. (c > 'Z' .AND. c < 'a') .OR. c > 'z'
-         l := .T.
+      IF nPos > 1
+         c := Substr( cLine, nPos-1, 1 )
+         IF c < 'A' .OR. (c > 'Z' .AND. c < 'a' .AND. c != '_' ) .OR. c > 'z'
+            l := .T.
+         ENDIF
       ENDIF
       nPos += 5
       c := Iif( nPos > Len( cLine ), 'a', Substr( cLine, nPos, 1 ) )
-      IF c < 'A' .OR. (c > 'Z' .AND. c < 'a') .OR. c > 'z'
+      IF c < 'A' .OR. (c > 'Z' .AND. c < 'a' .AND. c != '_') .OR. c > 'z'
          IF l
             RETURN .T.
          ENDIF
@@ -1356,6 +1358,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
                ENDIF
                _ShowProgress( cOut, 1,, @cFullOut )
                IF _HasError( cOut )
+                  //_ShowProgress( "Error: "+cLine, 1,, @cFullOut )
                   lErr := .T.
                   EXIT
                ENDIF
