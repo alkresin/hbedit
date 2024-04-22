@@ -166,7 +166,7 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
-      { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, 1, .T., 2 }, ;
+      { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, Iif(lHwprj,-1,1), .T., 2 }, ;
       { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt... -l"lib1 lib2"' ) }, ;
       { y1+4,x1+2, 0, "", x2-x1-4 } }
 
@@ -631,7 +631,7 @@ STATIC FUNCTION _EnvVarsTran( cLine )
    DO WHILE ( nPos := hb_At( '$', cLine, nPos ) ) > 0
       nPos2 := nPos + 2
       nLen := Len( cLine )
-      DO WHILE nPos2 < nLen .AND. !( Substr( cLine, nPos2, 1 ) $ "/\." )
+      DO WHILE nPos2 <= nLen .AND. !( Substr( cLine, nPos2, 1 ) $ "/\. " )
          nPos2 ++
       ENDDO
       cVar := Substr( cLine, nPos+1, nPos2-nPos-1 )
@@ -641,6 +641,7 @@ STATIC FUNCTION _EnvVarsTran( cLine )
          _MsgStop( cVar, "Variable does not exist" )
          RETURN cLine
       ENDIF
+      nPos ++
    ENDDO
 
    RETURN cLine
@@ -649,18 +650,21 @@ STATIC FUNCTION _PrjVarsTran( aPrjVars, cLine )
 
    LOCAL i, nPos := 1, nPos2, nLen, cVar, cValue
 
-   DO WHILE ( nPos := hb_At( '$', cLine, nPos ) ) > 0
-      nPos2 := nPos + 2
-      nLen := Len( cLine )
-      DO WHILE nPos2 < nLen .AND. !( Substr( cLine, nPos2, 1 ) $ "/\." )
-         nPos2 ++
+   IF !Empty( aPrjVars )
+      DO WHILE ( nPos := hb_At( '$', cLine, nPos ) ) > 0
+         nPos2 := nPos + 2
+         nLen := Len( cLine )
+         DO WHILE nPos2 <= nLen .AND. !( Substr( cLine, nPos2, 1 ) $ "/\. " )
+            nPos2 ++
+         ENDDO
+         cVar := Substr( cLine, nPos+1, nPos2-nPos-1 )
+         IF ( i := Ascan( aPrjVars, {|a|a[1] == cVar} ) ) > 0
+            cValue := aPrjVars[i,2]
+            cLine := Left( cLine, nPos-1 ) + cValue + Substr( cLine, nPos2 )
+         ENDIF
+         nPos ++
       ENDDO
-      cVar := Substr( cLine, nPos+1, nPos2-nPos-1 )
-      IF ( i := Ascan( aPrjVars, {|a|a[1] == cVar} ) ) > 0
-         cValue := aPrjVars[i,2]
-         cLine := Left( cLine, nPos-1 ) + cValue + Substr( cLine, nPos2 )
-      ENDIF
-   ENDDO
+   ENDIF
 
    RETURN cLine
 
@@ -954,11 +958,11 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
 
    RETURN Self
 
-METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
+METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
 
    LOCAL arr, i, j, n, l, lYes, nPos, af, ap, o, oGui
    LOCAL cLine, cTmp, cTmp2, cSrcPath := "", lLib, lCompDefault := .F.
-   LOCAL aPrjVars := {}
+   LOCAL aPrjVars := Iif( Empty( aParentVars ), {}, AClone( aParentVars ) )
 
    IF Empty( oComp )
       oComp := HCompiler():aList[1]
@@ -1110,7 +1114,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
                IF i < Len( arr )
                   i --
                ENDIF
-               AAdd( ::aProjects, o := HwProject():Open( ap, oComp ) )
+               AAdd( ::aProjects, o := HwProject():Open( ap, oComp, aUserPar,, aPrjVars ) )
                IF o == Nil
                   RETURN Nil
                ENDIF
@@ -1176,14 +1180,15 @@ METHOD Open( xSource, oComp, aUserPar, aFiles ) CLASS HwProject
       ENDIF
    NEXT
 
-   IF ::lGuiLib
-      ::lGuiLinkFlag := .T.
-   ENDIF
    IF !Empty( ::cGtLib )
+      ::lGuiLib := .F.
       ::cFlagsPrg += " -d__" + Upper( ::cGtLib ) + "__"
       IF ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg"
          ::lGuiLinkFlag := .T.
       ENDIF
+   ENDIF
+   IF ::lGuiLib
+      ::lGuiLinkFlag := .T.
    ENDIF
 
    IF !Empty( ::aProjects ) .AND. Empty( ::aFiles ) .AND. !::lLib
