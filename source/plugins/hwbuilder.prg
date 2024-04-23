@@ -106,9 +106,9 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
       FOR i := 1 TO Len( aDop )
          IF Left( aDop[i],3 ) == "-gt"
             cGTlib := Substr( aDop[i], 2 )
-         ELSEIF Left( aDop[i],1 ) == '{'
-            IF ( j := At( "}", aDop[i] ) ) > 2
-               AAdd( aUserPar, Substr( cDop, 2, j-1 ) )
+         ELSEIF Left( aDop[i],2 ) == '-{'
+            IF ( j := At( "}", aDop[i] ) ) > 3
+               AAdd( aUserPar, Substr( cDop, 3, j-3 ) )
             ENDIF
          ELSEIF Left( aDop[i],2 ) == "-l"
             cLibsDop += _DropQuotes( Substr( aDop[1],3 ) )

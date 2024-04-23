@@ -32,7 +32,7 @@ STATIC hExt
 STATIC hPlugExtCli
 STATIC aModels, cCurrModel
 STATIC nLogLevel := 0
-STATIC nStatus, lPaused := .F.
+STATIC nStatus, lPaused := .F., cModType
 STATIC cQue
 
 FUNCTION plug_extLLM( oEdit, cPath )
@@ -44,7 +44,11 @@ FUNCTION plug_extLLM( oEdit, cPath )
          DevPos( y, o:x1 )
          DevOut( "LLM Client  " )
          IF nStatus == S_CNT_CREATED
-            DevOut( "F2 - Ask a question  F5 - Reset" )
+            IF cModType == "sd"
+               DevOut( "F2 - Input prompt" )
+            ELSE
+               DevOut( "F2 - Ask a question  F5 - Reset" )
+            ENDIF
          ELSEIF nStatus == S_ASKING .OR. nStatus == S_GETTOKEN
             IF lPaused
                DevOut( "Space - Continue" )
@@ -62,7 +66,7 @@ FUNCTION plug_extLLM( oEdit, cPath )
    }
    LOCAL bEndEdit := {||
       IF oClient:lClose
-         IF hb_isFunction( "HBEXTCLI" )
+         IF hb_isFunction( "HBEXTCLI" ) .AND. !Empty( hExt )
             ecli_Close( hExt )
             hExt := Nil
          ENDIF
@@ -126,10 +130,12 @@ STATIC FUNCTION _clillm_Start()
    IF nStatus == S_INIT
       aMenu := Array( Len( aModels ) )
       FOR iChoic := 1 TO Len( aModels )
-         aMenu[iChoic] := hb_fnameName( aModels[iChoic,1] )
+         aMenu[iChoic] := Iif( Empty(aModels[iChoic,3]), "", "("+aModels[iChoic,3]+")" ) ;
+            + hb_fnameName( aModels[iChoic,1] )
       NEXT
       IF !Empty( iChoic := FMenu( oClient, aMenu, 3, 10 ) )
          cCurrModel := aModels[ iChoic,1 ]
+         cModType := aModels[iChoic,3]
          _Textout( "Ext module launching..." )
          IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
             IF !_clillm_SetParams()
@@ -138,20 +144,27 @@ STATIC FUNCTION _clillm_Start()
             ENDIF
             _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
-            ecli_RunFunc( hExt, "OpenModel", {cCurrModel}, .T. )
+            ecli_RunFunc( hExt, Iif( cModType=="sd", "sd__OpenModel", "OpenModel" ), ;
+               {cCurrModel}, .T. )
             IF ( xRes := _clillm_Wait() ) == Nil
                oClient:lClose := .T.
             ELSEIF xRes == ""
             ELSEIF xRes == "ok"
-               IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
+               IF cModType == "sd"
                   nStatus := S_CNT_CREATED
                   _Textout( "Model loaded" )
+                  _Textout( "Press F2 to input prompt" )
                ELSE
-                  nStatus := S_MODULE_STARTED
-                  ecli_RunProc( hExt, "CloseModel",{} )
-                  _Textout( "Can't create context" )
+                  IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
+                     nStatus := S_CNT_CREATED
+                     _Textout( "Model loaded" )
+                  ELSE
+                     nStatus := S_MODULE_STARTED
+                     ecli_RunProc( hExt, "CloseModel",{} )
+                     _Textout( "Can't create context" )
+                  ENDIF
+                  _Textout( "Press F2 to start dialog" )
                ENDIF
-               _Textout( "Press F2 to start dialog" )
                oClient:WriteTopPane()
             ELSE
                nStatus := S_MODULE_STARTED
@@ -242,7 +255,7 @@ STATIC FUNCTION _clillm_SetParams()
 
    RETURN lOk
 
-STATIC FUNCTION _clillm_Wait()
+STATIC FUNCTION _clillm_Wait( lNoEsc )
 
    LOCAL nKey, sAns := ""
 
@@ -256,7 +269,7 @@ STATIC FUNCTION _clillm_Wait()
             TEdit():nCurr ++
          ENDIF
          RETURN ""
-      ELSEIF nKey == K_ESC
+      ELSEIF nKey == K_ESC .AND. Empty( lNoEsc )
          RETURN Nil
       ENDIF
       IF !Empty( sAns := ecli_CheckAnswer( hExt ) )
@@ -278,7 +291,7 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_F5
-      IF nStatus == S_CNT_CREATED
+      IF Empty( cModType ) .AND. nStatus == S_CNT_CREATED
          _clillm_Reset()
          RETURN -1
       ENDIF
@@ -306,17 +319,27 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _clillm_Ask()
 
    LOCAL x := Int( (oClient:x2 + oClient:x1)/2 )
-   LOCAL s
+   LOCAL s, xRes
 
    lPaused := .F.
    _clillm_MsgGet( 4, x-30, 8, x+30, oClient:cp )
    //IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
    IF !Empty( cQue )
       nStatus := S_ASKING
-      ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
-      _Textout( "> " + cQue )
-      _Textout( "" )
-      _clillm_Wait4Answer()
+      IF cModType == "sd"
+         ecli_RunFunc( hExt, "sd__Txt2Img",{cQue}, .T. )
+         _Textout( "> " + cQue )
+         _Textout( "Waiting..." )
+         IF Empty( xRes := _clillm_Wait( .T. ) )
+         ELSE
+            _Textout( " Done!", .T. )
+         ENDIF
+      ELSE
+         ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
+         _Textout( "> " + cQue )
+         _Textout( "" )
+         _clillm_Wait4Answer()
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -478,10 +501,12 @@ STATIC FUNCTION _clillm_IniRead( cFileName )
          s1 := Trim( Left(s,nPos-1) )
          s2 := Ltrim( Substr( s,nPos+1 ) )
          IF Left( s1, 5 ) == "model"
-            AAdd( aModels, { s2, "" } )
+            AAdd( aModels, { s2, "", "" } )
          ELSEIF s1 == "c" .OR. s1 == "n" .OR. s1 == "temp" .OR. s1 == "repeat-penalty" ;
             .OR. s1 == "top-k" .OR. s1 == "top-n" .OR. s1 == "n-keep"
             ATail( aModels )[2] += s1 + '=' + s2 + Chr(1)
+         ELSEIF s1 == "model-type"
+            ATail( aModels )[3] := s2
          ELSEIF Left( s1, 3 ) == "log"
             nLogLevel := Val( s2 )
          ENDIF
