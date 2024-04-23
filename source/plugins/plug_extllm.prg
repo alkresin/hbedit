@@ -505,7 +505,7 @@ STATIC FUNCTION _clillm_IniRead( cFileName )
          ELSEIF s1 == "c" .OR. s1 == "n" .OR. s1 == "temp" .OR. s1 == "repeat-penalty" ;
             .OR. s1 == "top-k" .OR. s1 == "top-n" .OR. s1 == "n-keep"
             ATail( aModels )[2] += s1 + '=' + s2 + Chr(1)
-         ELSEIF s1 == "model-type"
+         ELSEIF s1 == "mod-type"
             ATail( aModels )[3] := s2
          ELSEIF Left( s1, 3 ) == "log"
             nLogLevel := Val( s2 )
