@@ -138,9 +138,12 @@ STATIC FUNCTION _clillm_Start()
          cModType := aModels[iChoic,3]
          _Textout( "Ext module launching..." )
          IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
-            IF !_clillm_SetParams()
-               oClient:lClose := .T.
-               RETURN Nil
+            IF cModType == "sd"
+            ELSE
+               IF !_clillm_SetParams()
+                  oClient:lClose := .T.
+                  RETURN Nil
+               ENDIF
             ENDIF
             _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
