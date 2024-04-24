@@ -10,6 +10,7 @@
 #define K_CTRL_TAB  404
 #define K_SH_TAB    271
 #define K_F2         -1
+#define K_F3         -2
 #define K_F5         -4
 #define K_F10        -9
 #define K_CTRL_PGDN  30
@@ -30,7 +31,9 @@ STATIC cIniPath
 STATIC oClient
 STATIC hExt
 STATIC hPlugExtCli
-STATIC aModels, cCurrModel
+STATIC aModels, cCurrModel, nCurrModel
+STATIC cImgPath, cImgPrefix
+STATIC cLastImage, cLastPrompt := ""
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F., cModType
 STATIC cQue
@@ -43,22 +46,26 @@ FUNCTION plug_extLLM( oEdit, cPath )
       IF Empty( l )
          DevPos( y, o:x1 )
          DevOut( "LLM Client  " )
-         IF nStatus == S_CNT_CREATED
-            IF cModType == "sd"
-               DevOut( "F2 - Input prompt" )
-            ELSE
-               DevOut( "F2 - Ask a question  F5 - Reset" )
+         IF nStatus == S_MODEL_LOADING
+            DevOut( "Esc - Abort" )
+         ELSE
+            IF nStatus == S_CNT_CREATED
+               IF cModType == "sd"
+                  DevOut( "F2 - Input prompt" )
+               ELSE
+                  DevOut( "F2 - Ask a question  F5 - Reset" )
+               ENDIF
+            ELSEIF nStatus == S_ASKING .OR. nStatus == S_GETTOKEN
+               IF lPaused
+                  DevOut( "Space - Continue" )
+               ELSE
+                  DevOut( "Esc - Stop" )
+               ENDIF
             ENDIF
-         ELSEIF nStatus == S_ASKING .OR. nStatus == S_GETTOKEN
-            IF lPaused
-               DevOut( "Space - Continue" )
-            ELSE
-               DevOut( "Esc - Stop" )
+            DevOut( "  Ctrl-Tab - Switch Buffer" )
+            IF !( (nStatus == S_ASKING .OR. nStatus == S_GETTOKEN) .AND. !lPaused )
+               DevOut( "  F10 - Close" )
             ENDIF
-         ENDIF
-         DevOut( "  Ctrl-Tab - Switch Buffer" )
-         IF !( (nStatus == S_ASKING .OR. nStatus == S_GETTOKEN) .AND. !lPaused )
-            DevOut( "  F10 - Close" )
          ENDIF
       ENDIF
       DevPos( nRow, nCol )
@@ -110,12 +117,13 @@ FUNCTION plug_extLLM( oEdit, cPath )
    oClient:lUtf8 := .T.
    oClient:lWrap := .T.
    nStatus := S_INIT
+   cLastPrompt := ""
 
    RETURN Nil
 
 STATIC FUNCTION _clillm_Start()
 
-   LOCAL aMenu, iChoic, xRes
+   LOCAL aMenu, i, xRes
    LOCAL cExe := cIniPath + "llama_exsrv"
 #ifndef __PLATFORM__UNIX
    cExe += ".exe"
@@ -129,13 +137,12 @@ STATIC FUNCTION _clillm_Start()
 
    IF nStatus == S_INIT
       aMenu := Array( Len( aModels ) )
-      FOR iChoic := 1 TO Len( aModels )
-         aMenu[iChoic] := Iif( Empty(aModels[iChoic,3]), "", "("+aModels[iChoic,3]+")" ) ;
-            + hb_fnameName( aModels[iChoic,1] )
+      FOR i := 1 TO Len( aModels )
+         aMenu[i] := Iif( Empty(aModels[i,3]), "", "("+aModels[i,3]+")" ) + hb_fnameName( aModels[i,1] )
       NEXT
-      IF !Empty( iChoic := FMenu( oClient, aMenu, 3, 10 ) )
-         cCurrModel := aModels[ iChoic,1 ]
-         cModType := aModels[iChoic,3]
+      IF !Empty( nCurrModel := FMenu( oClient, aMenu, 3, 10 ) )
+         cCurrModel := aModels[ nCurrModel,1 ]
+         cModType := aModels[ nCurrModel,3 ]
          _Textout( "Ext module launching..." )
          IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
             IF cModType == "sd"
@@ -145,22 +152,22 @@ STATIC FUNCTION _clillm_Start()
                   RETURN Nil
                ENDIF
             ENDIF
-            _Textout( "Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
+            _Textout( Time() + " Model " + hb_fnameNameExt( cCurrModel ) + " loading..." )
             nStatus := S_MODEL_LOADING
+            oClient:WriteTopPane()
             ecli_RunFunc( hExt, Iif( cModType=="sd", "sd__OpenModel", "OpenModel" ), ;
                {cCurrModel}, .T. )
-            IF ( xRes := _clillm_Wait() ) == Nil
+            IF ( xRes := _clillm_Wait( ,.T. ) ) == Nil
                oClient:lClose := .T.
-            ELSEIF xRes == ""
             ELSEIF xRes == "ok"
                IF cModType == "sd"
                   nStatus := S_CNT_CREATED
-                  _Textout( "Model loaded" )
+                  _Textout( Time() + " Model loaded" )
                   _Textout( "Press F2 to input prompt" )
                ELSE
                   IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
                      nStatus := S_CNT_CREATED
-                     _Textout( "Model loaded" )
+                     _Textout( Time() + " Model loaded" )
                   ELSE
                      nStatus := S_MODULE_STARTED
                      ecli_RunProc( hExt, "CloseModel",{} )
@@ -258,13 +265,14 @@ STATIC FUNCTION _clillm_SetParams()
 
    RETURN lOk
 
-STATIC FUNCTION _clillm_Wait( lNoEsc )
+STATIC FUNCTION _clillm_Wait( lNoEsc, lNoTab, lShowTime )
 
    LOCAL nKey, sAns := ""
+   STATIC nTicks := 0
 
    DO WHILE .T.
       nKey := Inkey( 0.05 )
-      IF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
+      IF (nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB) .AND. Empty( lNoTab )
          IF Len( TEdit():aWindows ) == 1
             Hbc( oClient )
          ELSE
@@ -278,6 +286,10 @@ STATIC FUNCTION _clillm_Wait( lNoEsc )
       IF !Empty( sAns := ecli_CheckAnswer( hExt ) )
          sAns := _DropQuotes( sAns )
          EXIT
+      ENDIF
+      IF !Empty(lShowTime) .AND. ++ nTicks >= 20
+         nTicks := 0
+         _Textout( Time(), .T., .T. )
       ENDIF
    ENDDO
 
@@ -293,6 +305,12 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
          RETURN -1
       ENDIF
 
+   ELSEIF nKey == K_F3
+
+      IF !Empty( cLastImage ) .AND. !( Left( cLastImage,1 ) == Chr(1) )
+         _ShowImage( cLastImage )
+      ENDIF
+
    ELSEIF nKey == K_F5
       IF Empty( cModType ) .AND. nStatus == S_CNT_CREATED
          _clillm_Reset()
@@ -304,7 +322,11 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
          IF lPaused
             lPaused := .F.
             oClient:WriteTopPane()
-            _clillm_Wait4Answer()
+            IF cModType == "sd"
+               _clillm_Wait4ImgReady()
+            ELSE
+               _clillm_Wait4Answer()
+            ENDIF
          ENDIF
       ENDIF
 
@@ -322,20 +344,31 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _clillm_Ask()
 
    LOCAL x := Int( (oClient:x2 + oClient:x1)/2 )
-   LOCAL s, xRes
+   LOCAL cImg, nPos, cParams
 
    lPaused := .F.
-   _clillm_MsgGet( 4, x-30, 8, x+30, oClient:cp )
-   //IF !Empty( x := edi_MsgGet( "Your question", 3, x-30, x+30 ) )
+   _clillm_MsgGet( cLastPrompt, 4, x-30, 8, x+30, oClient:cp )
    IF !Empty( cQue )
+      cLastPrompt := cQue
       nStatus := S_ASKING
+      oClient:WriteTopPane()
       IF cModType == "sd"
-         ecli_RunFunc( hExt, "sd__Txt2Img",{cQue}, .T. )
-         _Textout( "> " + cQue )
-         _Textout( "Waiting..." )
-         IF Empty( xRes := _clillm_Wait( .T. ) )
+         IF Empty( hb_fnameName( cImg := _NewImgName() ) )
+            _Textout( cImg + " is full. Clean it before generate new images." )
+            RETURN Nil
          ELSE
-            _Textout( " Done!", .T. )
+            cParams := "s=-1~o=" + cImg
+            IF Left( cQue,1 ) == '{' .AND. ( nPos := At( '}', cQue ) ) > 3
+               cParams += '~' + Substr( cQue, 2, nPos-2 )
+               cQue := Substr( cQue, nPos+1 )
+            ENDIF
+            ecli_RunFunc( hExt, "sd__SetParams",{cParams} )
+            ecli_RunFunc( hExt, "sd__Txt2Img",{cQue}, .T. )
+            _Textout( "> " + cQue )
+            _Textout( Time() + " Waiting for " + cImg + " ..." )
+            _Textout( Time() )
+            cLastImage := Chr(1) + cImg
+            _clillm_Wait4ImgReady()
          ENDIF
       ELSE
          ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
@@ -405,7 +438,38 @@ STATIC FUNCTION _clillm_Wait4Answer()
 
    RETURN Nil
 
-STATIC FUNCTION _Textout( cLine, lSameLine )
+STATIC FUNCTION _clillm_Wait4ImgReady()
+
+   LOCAL xRes
+
+   IF Empty( xRes := _clillm_Wait( .T.,, .T. ) )
+      lPaused := .T.
+   ELSE
+      _Textout( Time() + " Done. Press F3 to view", .T., .T. )
+      nStatus := S_CNT_CREATED
+      IF !Empty( cLastImage ) .AND. Left( cLastImage,1 ) == Chr(1)
+         cLastImage := Substr( cLastImage, 2 )
+      ENDIF
+   ENDIF
+   oClient:WriteTopPane()
+
+   RETURN Nil
+
+STATIC FUNCTION _ShowImage( cFileName )
+
+   LOCAL cGthwgHrb := "hbc_gthwg_q.hrb"
+
+   IF !hb_hHaskey( FilePane():hMisc,"gthwg_plug" )
+      FilePane():hMisc["gthwg_plug"] := Iif( File( cIniPath + cGthwgHrb ), ;
+         hb_hrbLoad( cIniPath + cGthwgHrb ), Nil )
+   ENDIF
+   IF !Empty( FilePane():hMisc["gthwg_plug"] )
+      hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cFileName, "dlg" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _Textout( cLine, lSameLine, lFromStart )
 
    LOCAL n := Len( oClient:aText )
 
@@ -413,7 +477,11 @@ STATIC FUNCTION _Textout( cLine, lSameLine )
       n ++
       oClient:InsText( n, 0, cLine )
    ELSE
-      oClient:InsText( n, hb_utf8Len( oClient:aText[n] ) + 1, cLine )
+      IF Empty( lFromStart )
+         oClient:InsText( n, hb_utf8Len( oClient:aText[n] ) + 1, cLine )
+      ELSE
+         oClient:InsText( n, 0, cLine, .T. )
+      ENDIF
    ENDIF
    n := Max( 1, Row() - oClient:y1 )
    oClient:TextOut( n )
@@ -433,7 +501,22 @@ STATIC FUNCTION _DropQuotes( s )
 
    RETURN s
 
-STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2, cp )
+STATIC FUNCTION _NewImgName()
+
+   LOCAL i, cRes, cImg := Iif( !Empty(aModels[nCurrModel,4]), aModels[nCurrModel,4], ;
+      Iif( !Empty(cImgPath), cImgPath, hb_DirTemp() ) ) + ;
+      Iif( !Empty(aModels[nCurrModel,5]), aModels[nCurrModel,5], ;
+      Iif( !Empty(cImgPrefix), cImgPrefix, "out_" ) )
+
+      FOR i := 1 TO 9999
+         IF !File( cRes := ( cImg + PAdl( Ltrim(Str(i)), 4, '0' ) + ".png" ) )
+            RETURN cRes
+         ENDIF
+      NEXT
+
+   RETURN hb_fnameDir( cImg )
+
+STATIC FUNCTION _clillm_MsgGet( cText, y1, x1, y2, x2, cp )
 
    LOCAL nCurr := TEdit():nCurr, cBuff
    LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
@@ -463,7 +546,7 @@ STATIC FUNCTION _clillm_MsgGet( y1, x1, y2, x2, cp )
    @ y2+2, x1+4 SAY "Ctrl-PgDn, F10 - Save and Exit   ESC - Quit"
    SetColor( oldc )
 
-   oNew := TEdit():New( "", "$QUE", y1, x1, y2, x2,, .F. )
+   oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, .F. )
    oNew:lBuiltIn := .T.
    oNew:lCtrlTab := .F.
    oNew:lWrap := .T.
@@ -504,13 +587,28 @@ STATIC FUNCTION _clillm_IniRead( cFileName )
          s1 := Trim( Left(s,nPos-1) )
          s2 := Ltrim( Substr( s,nPos+1 ) )
          IF Left( s1, 5 ) == "model"
-            AAdd( aModels, { s2, "", "" } )
+            AAdd( aModels, { s2, "", "", "", "" } )
          ELSEIF s1 == "c" .OR. s1 == "n" .OR. s1 == "temp" .OR. s1 == "repeat-penalty" ;
             .OR. s1 == "top-k" .OR. s1 == "top-n" .OR. s1 == "n-keep"
             ATail( aModels )[2] += s1 + '=' + s2 + Chr(1)
          ELSEIF s1 == "mod-type"
             ATail( aModels )[3] := s2
-         ELSEIF Left( s1, 3 ) == "log"
+         ELSEIF s1 == "img-path"
+            IF !( Right( s2,1 ) $ "\/" )
+               s2 += hb_ps()
+            ENDIF
+            IF Empty( aModels )
+               cImgPath := s2
+            ELSE
+               ATail( aModels )[4] := s2
+            ENDIF
+         ELSEIF s1 == "img-prefix"
+            IF Empty( aModels )
+               cImgPrefix := s2
+            ELSE
+               ATail( aModels )[5] := s2
+            ENDIF
+         ELSEIF s1 == "log"
             nLogLevel := Val( s2 )
          ENDIF
       ENDIF
