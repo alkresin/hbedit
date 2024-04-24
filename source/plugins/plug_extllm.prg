@@ -357,7 +357,7 @@ STATIC FUNCTION _clillm_Ask()
             _Textout( cImg + " is full. Clean it before generate new images." )
             RETURN Nil
          ELSE
-            cParams := "s=-1~o=" + cImg
+            cParams := "o=" + cImg
             IF Left( cQue,1 ) == '{' .AND. ( nPos := At( '}', cQue ) ) > 3
                cParams += '~' + Substr( cQue, 2, nPos-2 )
                cQue := Substr( cQue, nPos+1 )
