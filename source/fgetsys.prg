@@ -439,7 +439,7 @@ STATIC FUNCTION checkPict( cPict, nKey, xr )
    ENDIF
    RETURN .T.
 
-FUNCTION edi_Wait( cText, cColor )
+FUNCTION edi_Wait( cText, cColor, lReplace )
 
    LOCAL oldc, cp, aText, i, nLen := 0
    STATIC cBuffScr, x1, y1 := 10, x2, y2
@@ -458,10 +458,12 @@ FUNCTION edi_Wait( cText, cColor )
       NEXT
       nLen += 4
 
-      x1 := Int( (MaxCol()-nLen)/2 )
-      x2 := x1+nLen
-      y2 := y1+Len(aText)+1
-      cBuffScr := SaveScreen( y1, x1, y2, x2 )
+      IF Empty( lReplace )
+         x1 := Int( (MaxCol()-nLen)/2 )
+         x2 := x1+nLen
+         y2 := y1+Len(aText)+1
+         cBuffScr := SaveScreen( y1, x1, y2, x2 )
+      ENDIF
       @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
       hb_cdpSelect( cp )
       FOR i := 1 TO Len( aText )
