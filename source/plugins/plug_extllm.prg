@@ -34,6 +34,7 @@ STATIC hPlugExtCli
 STATIC aModels, cCurrModel, nCurrModel
 STATIC cImgPath, cImgPrefix
 STATIC cLastImage, cLastPrompt := ""
+STATIC nStartProc := 0
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F., cModType
 STATIC cQue
@@ -289,7 +290,7 @@ STATIC FUNCTION _clillm_Wait( lNoEsc, lNoTab, lShowTime )
       ENDIF
       IF !Empty(lShowTime) .AND. ++ nTicks >= 20
          nTicks := 0
-         edi_Wait( Time(),, .T. )
+         edi_Wait( _Timediff( Seconds(), nStartProc ),, .T. )
       ENDIF
    ENDDO
 
@@ -362,6 +363,7 @@ STATIC FUNCTION _clillm_Ask()
                cParams += '~' + Substr( cQue, 2, nPos-2 )
                cQue := Substr( cQue, nPos+1 )
             ENDIF
+            nStartProc := Seconds()
             ecli_RunFunc( hExt, "sd__SetParams",{cParams} )
             ecli_RunFunc( hExt, "sd__Txt2Img",{cQue}, .T. )
             _Textout( "> " + cQue )
@@ -441,11 +443,11 @@ STATIC FUNCTION _clillm_Wait4ImgReady()
 
    LOCAL xRes
 
-   edi_Wait( Time() )
+   edi_Wait( "00:00:00" )
    IF Empty( xRes := _clillm_Wait( .T.,, .T. ) )
       lPaused := .T.
    ELSE
-      _Textout( Time() + " Done. Press F3 to view" )
+      _Textout( "Done (" + _Timediff( Seconds(), nStartProc ) + "). Press F3 to view" )
       nStatus := S_CNT_CREATED
       IF !Empty( cLastImage ) .AND. Left( cLastImage,1 ) == Chr(1)
          cLastImage := Substr( cLastImage, 2 )
@@ -501,6 +503,12 @@ STATIC FUNCTION _DropQuotes( s )
    ENDIF
 
    RETURN s
+
+STATIC FUNCTION _Timediff( n1, n2 )
+
+   LOCAL n := Int( n2 - n1 )
+   RETURN Padl(Ltrim(Str(Int(n/3600))),2,'0') + ":" + Padl(Ltrim(Str(Int((n%3600)/60))),2,'0') + ;
+      ":" + Padl(Ltrim(Str(Int(n%60))),2,'0')
 
 STATIC FUNCTION _NewImgName()
 
