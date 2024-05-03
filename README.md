@@ -56,32 +56,38 @@ A fullscreen console multiplatform text editor with built-in file manager
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
     + hwg_funcs.txt         - HwGUI functions list for plug_prg_init
+    + hwbuilder.hrb         - HwBuilder plugin
     + plug_android_project.prg - creating and maintaining java android projects
     + plug_1c_spis.prg      - 1C functions list
     + plug_bat_init.prg     - a start plugin for .bat files
     + plug_c_init.prg       - a start plugin for .c files
     + plug_calculator.prg   - Calculator
     + plug_chartable.prg    - Chartable
+    + plug_extllm.hrb       - Llama.prg client
     + plug_gm_chess.prg     - A Chess game
     + plug_gm_life.prg      - A Life game
     + plug_gm_sokoban.prg   - A Sokoban game
     + plug_gm_strek.prg     - A Star Trek game
     + plug_gm_sudoku.prg    - A Sudoku game
     + plug_gm_tetris.prg    - A Tetris game
+    + plug_gm_ugolki.hrb    - An ugolki game
     + plug_go_build.prg     - Golang build project
     + plug_go_fmt.prg       - Golang formatting
     + plug_go_init.prg      - a start plugin for .go files
     + plug_go_run.prg       - Golang run code
     + plug_go_spis.prg      - Golang functions list
+    + plug_hbc_ext_all.hrb  - For internal use
     + plug_hbc_ext_fb2.prg    - file commander plugin, simple fb2 reader (.fb2)
     + plug_hbc_ext_fb2zip.prg - file commander plugin, simple fb2 reader (.fb2.zip)
     + plug_hbc_fb2_quick.prg  - file commander plugin, fb2 quick view
     + plug_hbc_files_compare.prg   - file commander plugin, compares files
     + plug_hbc_folders_compare.prg - file commander plugin, compares folders
     + plug_hbc_ftp.prg      - file commander plugin for ftp access
+    + plug_hbc_img_quick.hrb - Images quick view
     + plug_hbc_latin.prg    - file commander plugin, converts file names
     + plug_hbc_menu.prg     - a plugin, which complements file commander context menu
     + plug_hbp_init.prg     - a start plugin for .hbp files
+    + plug_hwprj_init.hrb   - HwBuilder start plugin
     + plug_java_init.prg    - a start plugin for .java files
     + plug_lisp_init.prg    - a start plugin for .lisp files
     + plug_palette.prg      - a current palette viewer
