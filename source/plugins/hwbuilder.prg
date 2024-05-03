@@ -352,6 +352,9 @@ STATIC FUNCTION ReadIni( cFile )
                   ELSEIF key == "def_linkflags" .AND. !Empty( cTmp := aSect[ key ] )
                      oComp:cLinkFlagsGui := cTmp
                      oComp:lLinkFlagsGui := .T.
+                  ELSEIF key == "def_linkflagscons" .AND. !Empty( cTmp := aSect[ key ] )
+                     oComp:cLinkFlagsCons := cTmp
+                     oComp:lLinkFlagsCons := .T.
                   ELSEIF key == "def_libflags" .AND. !Empty( cTmp := aSect[ key ] )
                      oComp:cLinkFlagsLib := cTmp
                      oComp:lLinkFlagsLib := .T.
@@ -496,7 +499,7 @@ STATIC FUNCTION WriteIni()
    FOR EACH oComp IN HCompiler():aList
       n ++
       s += "[C_COMPILER" + Iif( n == 1, "", "_" + Ltrim(Str(n)) ) + "]" + cr + ;
-         "id=" + oComp:id + cr + "bin_path=" + ;
+         "id=" + oComp:id + "family=" + oComp:family + cr + "bin_path=" + ;
          oComp:cPath + cr + "harbour_lib_path=" + oComp:cPathHrbLib + cr + ;
          "def_cflags=" + oComp:cFlags + cr + "def_linkflags=" + oComp:cLinkFlagsGui + cr + ;
          + "def_libflags=" + oComp:cLinkFlagsLib + cr + "def_syslibs=" + oComp:cSysLibs + cr
@@ -544,6 +547,9 @@ STATIC FUNCTION IsIniDataChanged()
       ENDIF
       IF !oComp:lLinkFlagsGui .AND. !Empty( oComp:cLinkFlagsGui )
          RETURN ( oComp:lLinkFlagsGui := .T. )
+      ENDIF
+      IF !oComp:lLinkFlagsCons .AND. !Empty( oComp:cLinkFlagsCons )
+         RETURN ( oComp:lLinkFlagsCons := .T. )
       ENDIF
       IF !oComp:lLinkFlagsLib .AND. !Empty( oComp:cLinkFlagsLib )
          RETURN ( oComp:lLinkFlagsLib := .T. )
@@ -757,12 +763,12 @@ STATIC FUNCTION _CurrPath()
 CLASS HCompiler
 
    CLASS VAR aDef        SHARED INIT { ;
-      {"bcc", "bcc32.exe", "\lib\win\bcc", "-c -d -w -O2", "-Gn -aa -Tpe", "-Gn -ap", "", ;
+      {"bcc", "bcc32.exe", "\lib\win\bcc", "-c -d -w -O2", "-Gn -aa -Tpe c0w32.obj", "-Gn -ap c0x32.obj", "", ;
          "hbvm.lib", "hwgui.lib", ;
          "{path}\bcc32.exe {f} -I{hi} -I{gi} -o{obj} {src}", ;
          "{path}\brc32 -r {src} -fo{out}", ;
          "{path}\tlib {f} {out} {objs}", ;
-         "{path}\ilink32 {f} -L{hL} -L{gL} {dL} c0w32.obj {objs}, {out},, {libs},, {res}", ;
+         "{path}\ilink32 -L{hL} -L{gL} {dL} {f} {objs}, {out},, {libs},, {res}", ;
          "", "", "", "", "ws2_32.lib cw32.lib import32.lib iphlpapi.lib" }, ;
       {"mingw", "gcc.exe", "\lib\win\mingw", "-c -Wall", "-Wall -mwindows", "-Wall", "", ;
          "libhbvm.a", "libhwgui.a", ;
@@ -816,6 +822,7 @@ CLASS HCompiler
    DATA lPathHrbLib      INIT .F.
    DATA lFlags           INIT .F.
    DATA lLinkFlagsGui    INIT .F.
+   DATA lLinkFlagsCons   INIT .F.
    DATA lLinkFlagsLib    INIT .F.
    DATA lSysLibs         INIT .F.
 
