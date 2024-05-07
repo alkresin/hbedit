@@ -18,12 +18,12 @@
 STATIC lSea, cSea, aSea
 STATIC lDown := .T.
 
-FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea )
+FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea, bKeys )
 
    LOCAL cScBuf, nCursOld
    LOCAL lUtf8 := hb_cdpisutf8(), nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
    LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
-   LOCAL nLen, arr, tmparr
+   LOCAL nLen, arr, tmparr, l
    LOCAL nFirst := 1, nHeight
 
    IF lMulti == Nil; lMulti := .F.; ENDIF
@@ -263,6 +263,11 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
       ELSEIF nKey == K_ESC .OR. nKey == K_F10
          lDo := .F.
+
+      ELSEIF !Empty( bKeys )
+         IF Valtype( l := Eval( bKeys, nKeyExt, i + nFirst - 1 ) ) == "L"
+            lDo := l
+         ENDIF
       ENDIF
    ENDDO
 

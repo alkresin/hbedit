@@ -2599,7 +2599,15 @@ STATIC FUNCTION hbc_Dirlist()
 
 STATIC FUNCTION hbc_Doclist( n )
 
-   LOCAL i, aMenu, cDir, cpOld, cFile
+   LOCAL i, aMenu, cpOld, cFile, cNewDir
+   LOCAL bKeys := {|nKeyExt,nLine|
+      LOCAL nKey := hb_keyStd( nKeyExt )
+      IF nKey == K_F2
+         cNewDir := hb_fnameDir( Filepane():aDocHis[n,nLine,2] )
+         RETURN .F.
+      ENDIF
+      RETURN Nil
+   }
    STATIC lChecked := .F.
 
    IF !lChecked
@@ -2624,9 +2632,11 @@ STATIC FUNCTION hbc_Doclist( n )
    IF !Empty( aMenu )
       cpOld := hb_cdpSelect( "UTF8" )
       i := FMenu( oHbc, aMenu, oPaneCurr:y1+1, oPaneCurr:x1+1,,, ;
-         FilePane():aClrMenu[1], FilePane():aClrMenu[2],, .T. )
+         FilePane():aClrMenu[1], FilePane():aClrMenu[2],, .T.,,, bKeys )
       hb_cdpSelect( cpOld )
-      IF i > 0
+      IF !Empty( cNewDir )
+         oPaneCurr:ChangeDir( cNewDir )
+      ELSEIF i > 0
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
          hwg_shellExecute( "file://" + Filepane():aDocHis[n,i,2] )
