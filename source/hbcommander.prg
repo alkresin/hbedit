@@ -426,7 +426,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             cExtFull := Lower( Substr( GetFullExt( aDir[1] ), 2 ) )
             cTemp := Substr( cExt,2 )
             IF ','+cTemp+',' $ oPaneCurr:cDocHis
-               AddDocHis( oPaneCurr:cCurrPath + aDir[1], oPaneCurr:cpPane, .F. )
+               AddDocHis( 1, oPaneCurr:cCurrPath + aDir[1], oPaneCurr:cpPane, .F. )
+            ELSEIF ','+cTemp+',' $ oPaneCurr:cDocHis2
+               AddDocHis( 2, oPaneCurr:cCurrPath + aDir[1], oPaneCurr:cpPane, .F. )
+            ELSEIF ','+cTemp+',' $ oPaneCurr:cDocHis3
+               AddDocHis( 3, oPaneCurr:cCurrPath + aDir[1], oPaneCurr:cpPane, .F. )
             ENDIF
             IF ( nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cExtFull .or. '/'+cExtFull+'/' $ a[1]} ) ) == 0
                nPos := Ascan( oPaneCurr:aExtEnter, {|a|a[1] == cTemp .or. '/'+cTemp+'/' $ a[1]} )
@@ -806,10 +810,13 @@ STATIC FUNCTION ReadIni( cIniName )
             NEXT
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "dochis" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            IF Right( cTmp, 1 ) != ","
-               cTmp += ","
-            ENDIF
-            FilePane():cDocHis := cTmp
+            FilePane():cDocHis := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "dochis-2" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():cDocHis2 := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
+         ENDIF
+         IF hb_hHaskey( aSect, cTmp := "dochis-3" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+            FilePane():cDocHis3 := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "docmax" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():nDocMax := Val( cTmp )
@@ -975,7 +982,7 @@ STATIC FUNCTION ReadIni( cIniName )
    ENDIF
 #endif
    FilePane():aCmdHis := {}
-   FilePane():aDocHis := {}
+   FilePane():aDocHis := { {}, {}, {} }
    IF FilePane():hCmdTrie == Nil
       FilePane():hCmdTrie := trie_Create( .F. )
    ENDIF
@@ -993,11 +1000,13 @@ STATIC FUNCTION ReadIni( cIniName )
          NEXT
       ENDIF
       IF hb_hHaskey( hIni, cTmp := "DOCUMENTS" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         arr := ASort( hb_hKeys( aSect ) )
-         FOR i := 1 TO Len(arr)
-            arr[i] := hb_ATokens( aSect[ arr[i] ], ';' )
-         NEXT
-         FilePane():aDocHis := arr
+         FilePane():aDocHis[1] := CrDocHis( aSect )
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "DOCUMENTS-2" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         FilePane():aDocHis[2] := CrDocHis( aSect )
+      ENDIF
+      IF hb_hHaskey( hIni, cTmp := "DOCUMENTS-3" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         FilePane():aDocHis[3] := CrDocHis( aSect )
       ENDIF
    ENDIF
 
@@ -1013,6 +1022,17 @@ STATIC FUNCTION ReadIni( cIniName )
    ENDIF
 
    RETURN aPanes
+
+STATIC FUNCTION CrDocHis( aSect )
+
+   LOCAL i, arr
+
+   arr := ASort( hb_hKeys( aSect ) )
+   FOR i := 1 TO Len(arr)
+      arr[i] := hb_ATokens( aSect[ arr[i] ], ';' )
+   NEXT
+
+   RETURN arr
 
 STATIC FUNCTION SetPanes( aPanes, cDir1, cDir2 )
 
@@ -1063,6 +1083,7 @@ CLASS FilePane
    CLASS VAR aDocHis   SHARED
    CLASS VAR lDocHis   SHARED INIT .F.
    CLASS VAR cDocHis   SHARED INIT ",odt,doc,docx,pdf,djvu,"
+   CLASS VAR cDocHis2, cDocHis3   SHARED
    CLASS VAR nDocMax   SHARED INIT 50
    CLASS VAR aNetInfo  SHARED
    CLASS VAR vx1 SHARED  INIT 0
@@ -1839,7 +1860,7 @@ METHOD RedrawAll() CLASS FilePane
 
 METHOD onExit() CLASS FilePane
 
-   LOCAL cHisDir := hb_DirBase(), s := "", i, nLen
+   LOCAL cHisDir := hb_DirBase(), s := "", i, j, nLen
 #ifdef __PLATFORM__UNIX
    LOCAL sLine
 #endif
@@ -1852,14 +1873,16 @@ METHOD onExit() CLASS FilePane
             s += "c" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aCmdHis[i] + Chr(13) + Chr(10)
          NEXT
       ENDIF
-      IF !Empty( FilePane():aDocHis )
-         s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Chr(13) + Chr(10)
-         nLen := Len(FilePane():aDocHis)
-         FOR i := 1 TO Min( nLen,FilePane():nDocMax )
-            s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[i,1] + ";" + ;
-               FilePane():aDocHis[i,2] + Chr(13) + Chr(10)
-         NEXT
-      ENDIF
+      FOR j := 1 TO 3
+         IF !Empty( FilePane():aDocHis[j] )
+            s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Iif( j>1, "-" + Str(j,1), "" ) + Chr(13) + Chr(10)
+            nLen := Len(FilePane():aDocHis[j])
+            FOR i := 1 TO Min( nLen,FilePane():nDocMax )
+               s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[j,i,1] + ";" + ;
+                  FilePane():aDocHis[j,i,2] + Chr(13) + Chr(10)
+            NEXT
+         ENDIF
+      NEXT
    ENDIF
    IF !Empty( s )
 #ifdef __PLATFORM__UNIX
@@ -2574,18 +2597,18 @@ STATIC FUNCTION hbc_Dirlist()
 
    RETURN Nil
 
-STATIC FUNCTION hbc_Doclist()
+STATIC FUNCTION hbc_Doclist( n )
 
    LOCAL i, aMenu, cDir, cpOld, cFile
    STATIC lChecked := .F.
 
    IF !lChecked
-      FOR i := 1 TO Len( Filepane():aDocHis )
-         cFile := Iif( Filepane():aDocHis[i,1] == "UTF8", Filepane():aDocHis[i,2], ;
-            hb_Utf8ToStr( Filepane():aDocHis[i,2], Filepane():aDocHis[i,1] ) )
-         cpOld := hb_cdpSelect( Filepane():aDocHis[i,1] )
+      FOR i := 1 TO Len( Filepane():aDocHis[n] )
+         cFile := Iif( Filepane():aDocHis[n,i,1] == "UTF8", Filepane():aDocHis[n,i,2], ;
+            hb_Utf8ToStr( Filepane():aDocHis[n,i,2], Filepane():aDocHis[n,i,1] ) )
+         cpOld := hb_cdpSelect( Filepane():aDocHis[n,i,1] )
          IF !File( cFile )
-            hb_ADel( Filepane():aDocHis, i, .T. )
+            hb_ADel( Filepane():aDocHis[n], i, .T. )
             i --
          ENDIF
          hb_cdpSelect( cpOld )
@@ -2593,9 +2616,9 @@ STATIC FUNCTION hbc_Doclist()
       lChecked := .T.
    ENDIF
 
-   aMenu := Array( Len(Filepane():aDocHis) )
-   FOR i := 1 TO Len( Filepane():aDocHis )
-      aMenu[i] := NameShortcut( hb_fnameNameExt(Filepane():aDocHis[i,2]), 48,'~', .T. )
+   aMenu := Array( Len(Filepane():aDocHis[n]) )
+   FOR i := 1 TO Len( Filepane():aDocHis[n] )
+      aMenu[i] := NameShortcut( hb_fnameNameExt(Filepane():aDocHis[n,i,2]), 48,'~', .T. )
    NEXT
 
    IF !Empty( aMenu )
@@ -2606,12 +2629,12 @@ STATIC FUNCTION hbc_Doclist()
       IF i > 0
 #ifdef __PLATFORM__UNIX
 #ifdef GTHWG
-         hwg_shellExecute( "file://" + Filepane():aDocHis[i,2] )
+         hwg_shellExecute( "file://" + Filepane():aDocHis[n,i,2] )
 #endif
 #else
-         cedi_shellExecute( Filepane():aDocHis[i,2], .T. )
+         cedi_shellExecute( Filepane():aDocHis[n,i,2], .T. )
 #endif
-         AddDocHis( Filepane():aDocHis[i,2], Filepane():aDocHis[i,1], .T. )
+         AddDocHis( n, Filepane():aDocHis[n,i,2], Filepane():aDocHis[n,i,1], .T. )
       ENDIF
    ENDIF
 
@@ -2655,16 +2678,26 @@ STATIC FUNCTION hbc_PaneOpt()
 
 STATIC FUNCTION hbc_HistMnu()
 
-   LOCAL aMenu := { {_I("Editing"),,}, {_I("Documents"),,}, {_I("Commands"),,,"Ctrl-F8"} }, nChoic
+   LOCAL aMenu := { {_I("Editing"),,}, {_I("Commands"),,,"Ctrl-F8"}  }, nChoic, i
+
+   FOR i := 1 TO 3
+      IF !Empty( Filepane():aDocHis[i] )
+         AAdd( aMenu, { _I("Documents")+Iif(i==1,"","-"+Str(i,1)),, } )
+      ENDIF
+   NEXT
 
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
       oPaneCurr:y1+Len(aMenu)+3,, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
       hbc_Dirlist()
    ELSEIF nChoic == 2
-      hbc_Doclist()
-   ELSEIF nChoic == 3
       hbc_CmdHis()
+   ELSEIF nChoic == 3
+      hbc_Doclist(1)
+   ELSEIF nChoic == 4
+      hbc_Doclist(2)
+   ELSEIF nChoic == 5
+      hbc_Doclist(3)
    ENDIF
 
    RETURN .T.
@@ -3915,20 +3948,20 @@ STATIC FUNCTION NetInfoSave()
 
    RETURN Nil
 
-STATIC FUNCTION AddDocHis( cDocName, cp, lNoTrans )
+STATIC FUNCTION AddDocHis( n, cDocName, cp, lNoTrans )
 
    LOCAL i
 
    IF !lNoTrans .AND. !( cp == "UTF8" )
       cDocName := hb_strToUtf8( cDocName, cp )
    ENDIF
-   IF ( i := Ascan2( Filepane():aDocHis, cDocName, 2 ) ) > 0
+   IF ( i := Ascan2( Filepane():aDocHis[n], cDocName, 2 ) ) > 0
       IF i > 1
-         ADel( Filepane():aDocHis, i )
-         hb_AIns( Filepane():aDocHis, 1, { cp, cDocName }, .F. )
+         ADel( Filepane():aDocHis[n], i )
+         hb_AIns( Filepane():aDocHis[n], 1, { cp, cDocName }, .F. )
       ENDIF
    ELSE
-      hb_AIns( Filepane():aDocHis, 1, { cp, cDocName }, Len(Filepane():aDocHis)<Filepane():nDocMax )
+      hb_AIns( Filepane():aDocHis[n], 1, { cp, cDocName }, Len(Filepane():aDocHis[n])<Filepane():nDocMax )
    ENDIF
    FilePane():lDocHis := .T.
 
