@@ -12,6 +12,8 @@
    #include "hwpgt.ch"
 #endif
 
+#define SHIFT_PRESSED 0x010000
+
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    LOCAL oy := Row(), ox := Col(), lUtf8
@@ -92,6 +94,60 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass )
    Restscreen( y1, x1, y1 + 2, x2, cBuf )
 
    RETURN xRes
+
+FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp )
+
+   LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
+   LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
+   LOCAL lHwg := ( hb_gtversion() == "HWGUI" )
+   LOCAL bOnKey := {|o,n|
+      LOCAL nKey := hb_keyStd(n), lShift := ( hb_BitAnd( n, SHIFT_PRESSED ) != 0 )
+      IF nKey == K_ENTER .AND. !lHwg
+         RETURN 0
+      ELSEIF ( nKey == K_ENTER .AND. lHwg .AND. lShift ) .OR. ( nKey == K_DOWN .AND. lShift )
+         RETURN 0x4100001A
+      ELSEIF nKey == K_ENTER .AND. !lShift
+         cRes := Trim( oNew:ToString( Chr(10) ) )
+         oNew:lClose := .T.
+         RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         RETURN -1
+      ELSEIF nKey == K_ESC
+         //cRes := ""
+         oNew:lClose := .T.
+         RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         RETURN -1
+      ENDIF
+      RETURN 0
+   }
+
+   cBuff := SaveScreen( y1-1, x1-1, y2+3, x2+1 )
+   cpOld := hb_cdpSelect( "RU866" )
+   @ y1-1, x1-1, y2+3, x2+1 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y2+1, x1-1 SAY "Ã"
+   @ y2+1, x2+1 SAY "´"
+   @ y2+1, x1 TO y2+1, x2
+   hb_cdpSelect( cpOld )
+   @ y2+2, x1+2 SAY "Enter - Save and Exit  " + ;
+      Iif( lHwg, "Shift-Enter","Shift-Down" ) + " - New Line  ESC - Quit"
+   SetColor( oldc )
+
+   oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, .F. )
+   oNew:lBuiltIn := .T.
+   oNew:lCtrlTab := .F.
+   oNew:lWrap := .T.
+   oNew:nMode := 0
+   oNew:bOnKey := bOnKey
+   IF !Empty( cp )
+      oNew:cp := cp
+      hb_cdpSelect( cp )
+      IF cp == "UTF8"
+         oNew:lUtf8 := .T.
+      ENDIF
+   ENDIF
+   oNew:Edit()
+   TEdit():nCurr := nCurr
+
+   RETURN cRes
 
 FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin, aParams )
 

@@ -2064,11 +2064,9 @@ METHOD ToString( cEol, cp ) CLASS TEdit
          ::aText[i] := Trim( ::aText[i] )
       ENDIF
       IF cp != Nil .AND. !( cp == ::cp )
-         //s += hb_strToUtf8( Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ), ::cp ) + cEol
-         s += hb_strToUtf8( ::aText[i], ::cp ) + cEol
+         s += hb_strToUtf8( ::aText[i], ::cp ) + Iif( i<nLen, cEol, "" )
       ELSE
-         //s += Iif( ::lTabs, Strtran(::aText[i],cTabStr,cTab), ::aText[i] ) + cEol
-         s += ::aText[i] + cEol
+         s += ::aText[i] + Iif( i<nLen, cEol, "" )
       ENDIF
    NEXT
 

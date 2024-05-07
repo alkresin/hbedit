@@ -3560,7 +3560,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly )
 
 STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
 
-   LOCAL nRow := Row(), nColInit, nKeyExt, nKey
+   LOCAL nRow := Row(), nColInit, nCol, nKeyExt, nKey, clr, s
 
    DevOut( Iif( cMsg==Nil, "", cMsg ) )
    nColInit := Col()
@@ -3589,7 +3589,20 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
             DevPos( nRow, nColInit )
          ENDIF
       ELSE
-         cRes := ProcessKey( nColInit, cRes, nKeyExt, bKeys )
+         IF nKey == K_CTRL_R .OR. ;
+            ( MaxCol() - nColInit < cp_Len( oHbc:lUtf8, cRes ) .AND. nKey >= 32 .AND. nKey <= 250 )
+            nCol := Col()
+            clr := SetColor()
+            s := edi_MsgGet_ext( cRes, 4, 4, 8, MaxCol()-4, oHbc:cp )
+            SetColor( clr )
+            DevPos( nRow, nCol )
+            SetCursor( SC_NORMAL )
+            IF !Empty( s )
+               RETURN s
+            ENDIF
+         ELSE
+            cRes := ProcessKey( nColInit, cRes, nKeyExt, bKeys )
+         ENDIF
       ENDIF
    ENDDO
 
@@ -3717,6 +3730,7 @@ STATIC FUNCTION Add2Consout( cText )
 STATIC FUNCTION Cons_My( cCommand )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
+   LOCAL nRow, nCol, clr, s, arr
    LOCAL pApp := cedi_StartConsoleApp( cCommand ), nSecInit, hWnd
 
    IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
@@ -3750,7 +3764,7 @@ STATIC FUNCTION Cons_My( cCommand )
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
             IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
-               IF ( i := edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
+               IF ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
                   cedi_ShowWindow( hWnd )
                   cedi_EndConsoleApp( pApp, .T. )
                   pApp := Nil
@@ -3764,12 +3778,40 @@ STATIC FUNCTION Cons_My( cCommand )
             ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
          EXIT
       ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+         Add2Consout( cmd+hb_eol() )
+         ?
          IF !cedi_WriteToConsoleApp( pApp, cmd+hb_eol() )
-         //IF !cedi_WriteToConsoleApp( pApp, hb_eol() )
-            ? "Pipe write error"
+            ?? "Pipe write error"
          ENDIF
       ELSE
-         cmd := ProcessKey( nColInit, cmd, nKeyExt )
+         IF nKey == K_CTRL_R .OR. ;
+            ( MaxCol() - nColInit < cp_Len( oHbc:lUtf8, cmd ) .AND. nKey >= 32 .AND. nKey <= 250 )
+            nCol := Col(); nRow := Row()
+            clr := SetColor()
+            s := edi_MsgGet_ext( cmd, 4, 4, 8, MaxCol()-4, oHbc:cp )
+            SetColor( clr )
+            DevPos( nRow, nCol )
+            SetCursor( SC_NORMAL )
+            IF !Empty( s )
+               Add2Consout( s + hb_eol() )
+               DevPos( nRow, nColInit )
+               IF Chr(10) $ s
+                  arr := hb_ATokens( s, Chr(10) )
+                  DevOut( arr[1] )
+                  FOR i := 2 TO Len( arr )
+                     ? arr[i]
+                  NEXT
+               ELSE
+                  DevOut( s )
+               ENDIF
+               ?
+               IF !cedi_WriteToConsoleApp( pApp, s+hb_eol() )
+                  ?? "Pipe write error"
+               ENDIF
+            ENDIF
+         ELSE
+            cmd := ProcessKey( nColInit, cmd, nKeyExt )
+         ENDIF
          //cedi_WriteToConsoleApp( pApp, Chr(nKey) )
       ENDIF
    ENDDO

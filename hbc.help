@@ -65,6 +65,7 @@ Console mode
    Ctrl-Tab   - Switch between buffers
    Tab        - Command completition
    Ctrl-F8    - Commands History
+   Ctrl-R     - Input long and multiline text
 
    Mouse right button click calls console menu.
 
