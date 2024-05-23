@@ -293,7 +293,7 @@ STATIC FUNCTION _clillm_Wait( lNoEsc, lNoTab, lShowTime )
       ENDIF
       IF !Empty(lShowTime) .AND. ++ nTicks >= 20
          nTicks := 0
-         edi_Wait( _Timediff( Seconds(), nStartProc ),, .T. )
+         edi_Wait( _Timediff( nStartProc, Seconds() ),, .T. )
       ENDIF
    ENDDO
 
@@ -450,7 +450,7 @@ STATIC FUNCTION _clillm_Wait4ImgReady()
    IF Empty( xRes := _clillm_Wait( .T.,, .T. ) )
       lPaused := .T.
    ELSE
-      _Textout( "Done (" + _Timediff( Seconds(), nStartProc ) + "). Press F3 to view" )
+      _Textout( "Done (" + _Timediff( nStartProc, Seconds() ) + "). Press F3 to view" )
       nStatus := S_CNT_CREATED
       IF !Empty( cLastImage ) .AND. Left( cLastImage,1 ) == Chr(1)
          cLastImage := Substr( cLastImage, 2 )

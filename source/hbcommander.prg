@@ -810,13 +810,13 @@ STATIC FUNCTION ReadIni( cIniName )
             NEXT
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "dochis" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            FilePane():cDocHis := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
+            FilePane():cDocHis := "," + cTmp + ","
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "dochis-2" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            FilePane():cDocHis2 := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
+            FilePane():cDocHis2 := "," + cTmp + ","
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "dochis-3" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            FilePane():cDocHis3 := Iif( Right( cTmp, 1 ) != ",", cTmp + ",", cTmp )
+            FilePane():cDocHis3 := "," + cTmp + ","
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "docmax" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             FilePane():nDocMax := Val( cTmp )
@@ -1875,7 +1875,7 @@ METHOD onExit() CLASS FilePane
       ENDIF
       FOR j := 1 TO 3
          IF !Empty( FilePane():aDocHis[j] )
-            s += Chr(13) + Chr(10) + "[DOCUMENTS]" + Iif( j>1, "-" + Str(j,1), "" ) + Chr(13) + Chr(10)
+            s += Chr(13) + Chr(10) + "[DOCUMENTS" + Iif( j>1, "-" + Str(j,1), "" ) + "]" + Chr(13) + Chr(10)
             nLen := Len(FilePane():aDocHis[j])
             FOR i := 1 TO Min( nLen,FilePane():nDocMax )
                s += "d" + PAdl(Ltrim(Str(i)),3,'0') + "=" + FilePane():aDocHis[j,i,1] + ";" + ;
@@ -2692,7 +2692,7 @@ STATIC FUNCTION hbc_HistMnu()
 
    FOR i := 1 TO 3
       IF !Empty( Filepane():aDocHis[i] )
-         AAdd( aMenu, { _I("Documents")+Iif(i==1,"","-"+Str(i,1)),, } )
+         AAdd( aMenu, { _I("Documents")+Iif(i==1,"","-"+Str(i,1)),,i } )
       ENDIF
    NEXT
 
@@ -2704,10 +2704,8 @@ STATIC FUNCTION hbc_HistMnu()
       hbc_CmdHis()
    ELSEIF nChoic == 3
       hbc_Doclist(1)
-   ELSEIF nChoic == 4
-      hbc_Doclist(2)
-   ELSEIF nChoic == 5
-      hbc_Doclist(3)
+   ELSEIF nChoic == 4 .OR. nChoic == 5
+      hbc_Doclist( aMenu[nChoic,3] )
    ENDIF
 
    RETURN .T.
