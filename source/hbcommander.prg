@@ -3296,7 +3296,7 @@ STATIC FUNCTION ShowStdout()
    oNew := TEdit():New( FilePane():cConsOut, cName, oHbc:aRectFull[1], oHbc:aRectFull[2], oHbc:aRectFull[3], oHbc:aRectFull[4] )
    oHbc:lShow := .F.
    TEdit():nCurr := Len( TEdit():aWindows )
-   oNew:lReadOnly := .T.
+   //oNew:lReadOnly := .T.
    edi_Move( oNew, 71 )
 
    RETURN Nil
@@ -3520,6 +3520,8 @@ FUNCTION hbc_Console( xCommand, lSetOnly )
             Errorblock( bOldError )
             SetColor( "W/N" )
             ? hb_ValToExp( xRes )
+            Add2Consout( cCommand + Chr(13)+Chr(10) )
+            Add2Consout( hb_ValToExp( xRes ) )
          ELSEIF oPaneCurr:nPanelMod > 0
             edi_Alert( "Pane is in "+Iif(oPaneCurr:nPanelMod==1,"search","zip") + " mode" )
          ELSEIF oPaneCurr:cIOpref == "net:"
