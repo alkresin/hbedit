@@ -2909,21 +2909,19 @@ STATIC FUNCTION hbc_Search( lSele )
       IF !lSelect .AND. Len( aDir ) > 1
          oPaneCurr:nPanelMod := 1
          oPaneCurr:aDir := aDir
-
-         IF !Empty( cSearch )
-            cs_utf8 := hb_Translate( cSearch,, "UTF8" )
-            IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
-               ADel( TEdit():aSeaHis, i )
-               hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
-            ELSE
-               hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
-            ENDIF
-         ENDIF
-
          lFound := .T.
       ELSEIF lSelect .AND. Len( aDir ) > 0
          oPaneCurr:aSelected := aDir
          lFound := .T.
+      ENDIF
+      IF !Empty( cSearch )
+         cs_utf8 := hb_Translate( cSearch,, "UTF8" )
+         IF ( i := Ascan( TEdit():aSeaHis, {|cs|cs==cs_utf8} ) ) > 0
+            ADel( TEdit():aSeaHis, i )
+            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, .F. )
+         ELSE
+            hb_AIns( TEdit():aSeaHis, 1, cs_utf8, Len(TEdit():aSeaHis)<hb_hGetDef(TEdit():options,"seahismax",10) )
+         ENDIF
       ENDIF
       oPaneCurr:nCurrent := 1
       EXIT
