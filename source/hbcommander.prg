@@ -3753,8 +3753,12 @@ STATIC FUNCTION Cons_My( cCommand )
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
       //IF !Empty( xRes )
       IF !Empty( xRes := removeEscapeCodes( xRes ) )
+         //edi_writelog( xRes, "cons.log" )
          IF Chr(9) $ xRes
-            xRes := StrTran( xRes, Chr(9), Space(8) )
+            xRes := StrTran( xRes, Chr(9), Space(4) )
+         ENDIF
+         IF Chr(0) $ xRes
+            xRes := StrTran( xRes, Chr(0), "" )
          ENDIF
          SetColor( "W/N" )
          Add2Consout( xRes )
@@ -3805,9 +3809,11 @@ STATIC FUNCTION Cons_My( cCommand )
                DevPos( nRow, nColInit )
                IF Chr(10) $ s
                   arr := hb_ATokens( s, Chr(10) )
+                  s := arr[1]
                   DevOut( arr[1] )
                   FOR i := 2 TO Len( arr )
                      ? arr[i]
+                     s += "\n" + arr[i]
                   NEXT
                ELSE
                   DevOut( s )
