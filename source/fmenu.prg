@@ -22,10 +22,14 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    LOCAL cScBuf, nCursOld
    LOCAL lUtf8 := hb_cdpisutf8(), nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
-   LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle := !(Valtype(aMenu[1]) == "A")
+   LOCAL i, j, nKeyExt, nKey, nKeyMapped, lDo := .T., lSingle
    LOCAL nLen, arr, tmparr, l
    LOCAL nFirst := 1, nHeight
 
+   IF Empty( aMenu )
+      RETURN 0
+   ENDIF
+   lSingle := !(Valtype(aMenu[1]) == "A")
    IF lMulti == Nil; lMulti := .F.; ENDIF
    IF lSearch == Nil; lSearch := .F.; ENDIF
    lSea := lSearch; cSea := ""
