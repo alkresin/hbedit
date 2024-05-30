@@ -1083,7 +1083,8 @@ CLASS FilePane
    CLASS VAR aDocHis   SHARED
    CLASS VAR lDocHis   SHARED INIT .F.
    CLASS VAR cDocHis   SHARED INIT ",odt,doc,docx,pdf,djvu,"
-   CLASS VAR cDocHis2, cDocHis3   SHARED
+   CLASS VAR cDocHis2  SHARED INIT ""
+   CLASS VAR cDocHis3  SHARED INIT ""
    CLASS VAR nDocMax   SHARED INIT 50
    CLASS VAR aNetInfo  SHARED
    CLASS VAR vx1 SHARED  INIT 0
