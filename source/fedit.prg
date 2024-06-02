@@ -2781,7 +2781,7 @@ FUNCTION s_cb2t( oEdit )
 
 FUNCTION edi_ReadIni( xIni )
 
-   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, nPos, cTemp, nTemp
+   LOCAL hIni, aIni, nSect, aSect, cSect, cLang, arr, arr1, arr2, s, n, i, j, nPos, cTemp, nTemp
    LOCAL lIncSea := .F., lAutoIndent := .F., lSyntax := .T., lTrimSpaces := .F., lAutoComplete := .F., lAutoVert := .F.
    LOCAL lTab2Spaces := .F., lPathInHead := .F.
    LOCAL nSaveHis := 1, ncmdhis := 20, nseahis := 20, nedithis := 20, nEol := 0, nAutoD := 0
@@ -2932,6 +2932,7 @@ FUNCTION edi_ReadIni( xIni )
                hb_hCaseMatch( aSect, .F. )
                arr := hb_hKeys( aSect )
                TEdit():aPlugins := {}
+               j := 0
                FOR i := 1 TO Len( arr )
                   s := aSect[ arr[i] ]
                   IF ( n := At( ",", s ) ) > 0
@@ -2940,15 +2941,16 @@ FUNCTION edi_ReadIni( xIni )
                         s := Substr( s, n+1 )
                         IF ( n := At( ",", s ) ) > 0
                            Aadd( TEdit():aPlugins, { cTemp, Substr( s, n+1 ), AllTrim( Left( s,n-1 ) ), Nil, Nil } )
+                           j ++
                            IF ( n := At( ",", s := Substr( s, n+1 ) ) ) > 0 .AND. ;
                               ( nTemp := edi_KeyCToN(Substr(s,n+1)) ) != Nil
                               IF hKeyMap == Nil
                                  hKeyMap := hb_Hash()
                               ENDIF
                               IF !Empty( arr2 := hb_hGetDef( hKeyMap, nTemp, Nil ) )
-                                 Aadd( arr2, i )
+                                 Aadd( arr2, j )
                               ELSE
-                                 hKeyMap[nTemp] := { i }
+                                 hKeyMap[nTemp] := { j }
                               ENDIF
                            ENDIF
                         ENDIF
