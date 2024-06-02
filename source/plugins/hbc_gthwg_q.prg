@@ -99,6 +99,7 @@ FUNCTION gthwg_qView( hDC )
       nWidthMax := Int( ( oPane:x2 - oPane:x1 - 4 ) * xKoef )
       nHeightMax := Int( ( oPane:y2 - oPane:y1 - 3 ) * yKoef )
       IF aImgSize[1] <= nWidthMax .AND. aImgSize[2] <= nHeightMax
+         @ oPane:y1+1, oPane:x1+2 SAY PAdr( Ltrim(Str(aImgSize[1])) + "x" + Ltrim(Str(aImgSize[2])), 20 )
          IF nImgType == 1
             hwg_Drawbitmap( hDC, hImage,, Int((oPane:x1+2) * xKoef), Int((oPane:y1+2) * yKoef) )
          ELSEIF nImgType == 2
@@ -226,7 +227,8 @@ STATIC FUNCTION FDlgInit( oDlg, cFileName, handle, nKoef )
    oDlg:cargo["height"] := aBmpSize[2]
    oDlg:cargo["koef"] := nKoef
 
-   oDlg:SetTitle( oDlg:cargo["imgname"] + "  (" + Str(nKoef*100,3,0) + "%)" )
+   oDlg:SetTitle( oDlg:cargo["imgname"] + "  (" + Str(nKoef*100,3,0) + "%  " + ;
+      Ltrim(Str(aBmpSize[1])) + "x" + Ltrim(Str(aBmpSize[2])) + " )" )
 
    RETURN .T.
 
