@@ -394,10 +394,12 @@ METHOD Edit( lShowOnly ) CLASS TEdit
          EXIT
       ENDIF
       IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
+         //edi_Alert( hb_NumToHex(nkeyext) + " " + valtype(i) )
          IF Valtype( i ) == "N"
             nKeyExt := i
          ELSEIF Valtype( i ) == "A"
             IF i[1] == 0
+               edi_Alert( "1" )
                FOR n := 2 TO Len( i ) - 1
                   ::onKey( i[n] )
                NEXT
@@ -405,6 +407,7 @@ METHOD Edit( lShowOnly ) CLASS TEdit
             ELSE
                FOR n := 1 TO Len( i )
                   IF Empty( ::aPlugins[i[n],3] ) .OR. ::aPlugins[i[n],3] == ::cSyntaxType
+                     //edi_Alert( "2a " + Iif(Empty( ::aPlugins[i[n],3] ),"T ","F ") + ::cSyntaxType)
                      i := i[n]
                      EXIT
                   ENDIF
