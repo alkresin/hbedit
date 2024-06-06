@@ -216,39 +216,45 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
 
    RETURN xRes
 
-STATIC FUNCTION CheckOptions( oProject )
+STATIC FUNCTION CheckOptions( oProject, cLine )
 
    LOCAL nDef, oComp := oProject:oComp
 
    IF Empty( cPathHrbBin ) .OR. !File( _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour" + cExeExt )
-      RETURN "Empty or wrong harbour executables path"
+      cLine := "Empty or wrong harbour executables path"
+      RETURN 1
    ENDIF
    IF Empty( cPathHrbInc ) .OR. !File( _EnvVarsTran(cPathHrbInc) + hb_ps() + "hbsetup.ch" )
-      RETURN "Empty or wrong harbour include path"
+      cLine := "Empty or wrong harbour include path"
+      RETURN 1
    ENDIF
    IF cGuiId == "hwgui" .AND. ( Empty( cPathHwguiInc ) .OR. ;
       !File( cPathHwguiInc + hb_ps() + "hwgui.ch" ) )
-      RETURN "Empty or wrong hwgui include path"
+      cLine := "Empty or wrong hwgui include path"
+      RETURN 2
    ENDIF
 
    IF ( nDef := Ascan( HCompiler():aDef, {|a|a[COMP_ID] == oComp:id} ) ) > 0
       IF !oProject:lLib .AND. cGuiId == "hwgui" .AND. ( Empty( cPathHwguiLib ) .OR. ;
          !File( cPathHwguiLib + hb_ps() + HCompiler():aDef[nDef,COMP_HWG] ) )
-         RETURN "Empty or wrong hwgui libraries path"
+         cLine := "Empty or wrong hwgui libraries path"
+         RETURN 2
       ENDIF
 #ifndef __PLATFORM__UNIX
       IF Empty( oComp:cPath ) .OR. !File( _EnvVarsTran(oComp:cPath) + hb_ps() + ;
          HCompiler():aDef[nDef,COMP_EXE] )
-         RETURN "Empty or wrong " + oComp:id + " path"
+         cLine := "Empty or wrong " + oComp:id + " path"
+         RETURN 3
       ENDIF
 #endif
       IF !oProject:lLib .AND. ( Empty( oComp:cPathHrbLib ) .OR. ;
          !File( _EnvVarsTran(oComp:cPathHrbLib) + hb_ps() + HCompiler():aDef[nDef,COMP_HVM] ) )
-         RETURN "Empty or wrong " + oComp:id + " harbour libraries path"
+         cLine := "Empty or wrong " + oComp:id + " harbour libraries path"
+         RETURN 1
       ENDIF
    ENDIF
 
-   RETURN Nil
+   RETURN 0
 
 STATIC FUNCTION FindHarbour()
 
