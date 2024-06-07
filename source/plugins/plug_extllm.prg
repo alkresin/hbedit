@@ -150,6 +150,10 @@ STATIC FUNCTION _clillm_Start()
          _Textout( "Ext module launching..." )
          IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_llm" ) )
             IF cModType == "sd"
+               IF !_clillm_sd_SetParams()
+                  oClient:lClose := .T.
+                  RETURN Nil
+               ENDIF
             ELSE
                IF !_clillm_SetParams()
                   oClient:lClose := .T.
@@ -201,12 +205,12 @@ STATIC FUNCTION _clillm_SetParams()
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i, j, lOk := .F.
    LOCAL n_ctx := 512, n_predict := -1, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
-   LOCAL min_p := 0.05, penalize_nl := 0
+   LOCAL min_p := 0.05, penalize_nl := 0, tb := -1
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 20
    x2 := x1 + 40
-   y2 := y1 + 6
+   y2 := y1 + 7
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
       { y1+1,x1+2, 11, "n_ctx" }, { y1+1,x1+10, 0, Ltrim(Str(n_ctx)), 6 }, ;
@@ -216,7 +220,8 @@ STATIC FUNCTION _clillm_SetParams()
       { y1+4,x1+2, 11, "top_k" }, { y1+4,x1+10, 0, Ltrim(Str(top_k)), 6 }, ;
       { y1+4,x1+20, 11, "top_p" }, { y1+4,x1+32, 0, Ltrim(Str(top_p)), 6 }, ;
       { y1+5,x1+2, 11, "min_p" }, { y1+5,x1+10, 0, Ltrim(Str(min_p)), 6 }, ;
-      { y1+5,x1+20, 11, "penalize_nl" }, { y1+5,x1+32, 0, Ltrim(Str(penalize_nl)), 6 } ;
+      { y1+5,x1+20, 11, "penalize_nl" }, { y1+5,x1+32, 0, Ltrim(Str(penalize_nl)), 6 }, ;
+      { y1+6,x1+2, 11, "tb" }, { y1+5,x1+8, 0, Ltrim(Str(tb)), 6 } ;
       }
 
    cBuf := Savescreen( y1, x1, y2, x2 )
@@ -256,10 +261,51 @@ STATIC FUNCTION _clillm_SetParams()
          penalize_nl := Val(AllTrim(aGets[17,4]))
          xRes += 'penalize_nl=' + Ltrim(Str(penalize_nl)) + Chr(1)
       ENDIF
+      IF Val(AllTrim(aGets[19,4])) != tb
+         tb := Val(AllTrim(aGets[19,4]))
+         xRes += 'tb=' + Ltrim(Str(tb)) + Chr(1)
+      ENDIF
 
       IF !Empty( xRes )
          nStatus := S_MODEL_PARAMS
          ecli_RunFunc( hExt, "SetParams",{xRes} )
+      ENDIF
+      lOk := .T.
+   ENDIF
+
+   SetColor( oldc )
+   Restscreen( y1, x1, y2, x2, cBuf )
+
+   RETURN lOk
+
+STATIC FUNCTION _clillm_sd_SetParams()
+
+   LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets, y1, x1, x2, y2, i, j, lOk := .F.
+   LOCAL t := -1
+
+   y1 := Int( MaxRow()/2 ) - 1
+   x1 := Int( MaxCol()/2 ) - 20
+   x2 := x1 + 40
+   y2 := y1 + 3
+
+   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+      { y1+1,x1+2, 11, "t" }, { y1+1,x1+8, 0, Ltrim(Str(t)), 6 } ;
+      }
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   @ y1, x1, y2, x2 BOX "........ "
+
+   edi_READ( aGets )
+   IF LastKey() == 13
+      IF Val(AllTrim(aGets[3,4])) != t
+         t := Val(AllTrim(aGets[3,4]))
+         xRes += 't=' + Ltrim(Str(t)) + Chr(1)
+      ENDIF
+
+      IF !Empty( xRes )
+         nStatus := S_MODEL_PARAMS
+         ecli_RunFunc( hExt, "sd__SetParams",{xRes} )
       ENDIF
       lOk := .T.
    ENDIF
@@ -555,8 +601,9 @@ STATIC FUNCTION _clillm_IniRead( cFileName )
          IF Left( s1, 5 ) == "model"
             AAdd( aModels, { s2, "", "", "", "" } )
          ELSEIF s1 == "c" .OR. s1 == "n" .OR. s1 == "temp" .OR. s1 == "repeat-penalty" ;
-            .OR. s1 == "top-k" .OR. s1 == "top-n" .OR. s1 == "n-keep"
-            ATail( aModels )[2] += s1 + '=' + s2 + Chr(1)
+            .OR. s1 == "top-k" .OR. s1 == "top-n" .OR. s1 == "n-keep" ;
+            .OR. s1 == "penalize-nl" .OR. s1 == "min-p" .OR. s1 == "tb"
+            ATail( aModels )[2] += s1 + '=' + s2 + '~'
          ELSEIF s1 == "mod-type"
             ATail( aModels )[3] := s2
          ELSEIF s1 == "img-path"
