@@ -537,7 +537,7 @@ STATIC FUNCTION _Textout( cLine, lSameLine, lFromStart )
          oClient:InsText( n, 1, cLine, .T. )
       ENDIF
    ENDIF
-   n := Max( 1, Row() - oClient:y1 )
+   nf := Max( 1, Row() - oClient:y1 )
    oClient:TextOut( nf )
 
    RETURN Nil

@@ -1745,8 +1745,8 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL cSep := "---"
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
       {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
-      {_I("Plugins"),,,"F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
-      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,} }
+      {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Shift-F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
+      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-W"}, .T. )
@@ -1763,17 +1763,19 @@ METHOD PaneMenu() CLASS FilePane
    ELSEIF nChoic == 5
       Plugins( Self )
    ELSEIF nChoic == 6
-      AppList( Self )
+      mnu_Plugins( oHbc )
    ELSEIF nChoic == 7
-      mnu_Buffers( oHbc, {::y1+1,::x1+1} )
+      AppList( Self )
    ELSEIF nChoic == 8
+      mnu_Buffers( oHbc, {::y1+1,::x1+1} )
+   ELSEIF nChoic == 9
       ::Refresh()
       IF ::nCurrent + ::nShift > Len( ::aDir )
          ::nShift := Max( 0, Len( ::aDir ) ) - ::nCells
          ::nCurrent := Len( ::aDir ) - ::nShift
       ENDIF
       ::RedrawAll()
-   ELSEIF nChoic == 9
+   ELSEIF nChoic == 10
       hbc_Console()
    ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
       ShowStdout()
