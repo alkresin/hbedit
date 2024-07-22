@@ -158,6 +158,11 @@ FUNCTION edi_READ( aGets, pKeys )
 
       ELSEIF nKey == K_DEL
          IF aGets[nCurr,G_TYPE] == G_TYPE_STRING
+            IF aOpt[nCurr,G2_OPT]
+               nx := aGets[nCurr,G_X]
+               x := 1
+               aGets[nCurr,G_VALUE] := ""
+            ENDIF
             IF aOpt[nCurr,G2_DELIM]
                LOOP
             ENDIF
@@ -165,9 +170,9 @@ FUNCTION edi_READ( aGets, pKeys )
             IF xr <= cp_Len( lUtf8, aGets[nCurr,G_VALUE] )
                aGets[nCurr,G_VALUE] := cp_Left( lUtf8, aGets[nCurr,G_VALUE], xr-1 ) + ;
                   cp_Substr( lUtf8, aGets[nCurr,G_VALUE], xr+1 )
-               ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
-               DevPos( y, nx )
             ENDIF
+            ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
+            DevPos( y, nx )
          ENDIF
 
       ELSEIF nKey == K_BS
