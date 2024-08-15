@@ -1256,11 +1256,11 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
    IF !Empty( ::cObjPath )
-      cObjPath := ::cObjPath + hb_ps() + ::oComp:id
+      cObjPath := _PS( ::cObjPath ) + hb_ps() + ::oComp:id
       IF !hb_DirExists( cObjPath )
          hb_DirBuild( cObjPath )
       ENDIF
-      cObjPath := _PS( cObjPath ) + hb_ps()
+      cObjPath += hb_ps()
    ELSE
       cObjPath := ""
    ENDIF
