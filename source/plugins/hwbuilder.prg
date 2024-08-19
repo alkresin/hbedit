@@ -8,7 +8,7 @@
 
 #include "hbclass.ch"
 
-#define HWB_VERSION  "1.12"
+#define HWB_VERSION  "1.14"
 
 #define COMP_ID      1
 #define COMP_EXE     2
