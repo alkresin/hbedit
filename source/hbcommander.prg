@@ -689,8 +689,10 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_CTRL_R .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
       oPaneCurr:Refresh()
       IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-         oPaneCurr:nShift := Max( 0, Len( oPaneCurr:aDir ) ) - oPaneCurr:nCells
-         oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
+         oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
+         oPaneCurr:nShift := 0
+         //oPaneCurr:nShift := Max( 0, Len( oPaneCurr:aDir ) ) - oPaneCurr:nCells
+         //oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
       ENDIF
       oPaneCurr:RedrawAll()
    ELSEIF nKey == 43     // +
