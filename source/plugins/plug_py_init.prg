@@ -1,12 +1,15 @@
 #define ALT_PRESSED   0x040000
 #define CTRL_PRESSED  0x020000
+#define K_ALT_R    275
 #define K_ALT_L    294
 #define K_ENTER     13
 #define K_ESC       27
 
 STATIC cIniPath
+STATIC cCompiler
+STATIC lUnix := .F.
 
-FUNCTION Plug_php_Init( oEdit, cPath )
+FUNCTION Plug_py_Init( oEdit, cPath )
 
    LOCAL bOnKeyOrig
    LOCAL bStartEdit := {|o|
@@ -15,15 +18,16 @@ FUNCTION Plug_php_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Php plugin: Alt-L Functions list " + ;
+         DevOut( "Python plugin: Alt-L Functions list  Alt-R - Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          IF oEdit:hCargo == Nil
             oEdit:hCargo := hb_hash()
          ENDIF
-         oEdit:hCargo["help"] := "Php plugin hotkeys:" + Chr(10) + ;
+         oEdit:hCargo["help"] := "Python plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-R  - Run" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -31,7 +35,7 @@ FUNCTION Plug_php_Init( oEdit, cPath )
       RETURN Nil
    }
    LOCAL bOnKey := {|o,n|
-      LOCAL nRes := _php_Init_OnKey(o,n)
+      LOCAL nRes := _py_Init_OnKey(o,n)
       IF bOnKeyOrig != Nil .AND. nRes >= 0
          nRes := Eval( bOnKeyOrig, o, Iif( nRes==0, n, nRes ) )
       ENDIF
@@ -39,56 +43,42 @@ FUNCTION Plug_php_Init( oEdit, cPath )
    }
 
    cIniPath := cPath
+   lUnix := hb_version(20)
    oEdit:bStartEdit := bStartEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
    ENDIF
    oEdit:bOnKey := bOnKey
-   oEdit:bAutoC := {|o,s| _php_AutoC(o,s)}
+   oEdit:bAutoC := {|o,s| _py_AutoC(o,s)}
 
    RETURN Nil
 
-STATIC FUNCTION _php_Init_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION _py_Init_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cWord
 
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_L
-         _php_Spis( oEdit )
+         _py_Spis( oEdit )
+         RETURN -1
+      ELSEIF nKey == K_ALT_R
+         _py_Run( oEdit )
          RETURN -1
       ENDIF
    ENDIF
 
    RETURN 0
 
-STATIC FUNCTION _php_Spis( oEdit )
+STATIC FUNCTION _py_Spis( oEdit )
 
-   LOCAL i, n, arr := oEdit:aText, cLine, cFunc, cfirst, nSkip, arrfnc := {}
-   LOCAL oHili := oEdit:oHili
-   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
 
-   //IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
-   //   oEdit:oHili:Do( Len( oEdit:aText ) )
-   //ENDIF
-   oHili:CheckComm()
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1 //.AND. !Empty( aDop )
-         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
-            IF ( n := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,n+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
-      ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
-      IF cfirst == "function"
-         IF Right( cFunc := cp_Left( oEdit:lUtf8,arr[i],64 ), 1 ) == '{'
-            cFunc := Trim( Left( cFunc, Len( cFunc ) - 1 ) )
-         ENDIF
-         Aadd( arrfnc, { cFunc, Nil, i } )
+      IF cfirst == "class" .OR. cFirst == "def"
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
    NEXT
    IF !Empty( arrfnc )
@@ -108,7 +98,43 @@ STATIC FUNCTION _php_Spis( oEdit )
 
    RETURN Nil
 
-STATIC FUNCTION _php_AutoC( oEdit, cPrefix )
+STATIC FUNCTION _py_Run( oEdit )
+
+   LOCAL cComp := "python", cComp2, i, aEnv, cCmd, cTempFile, cSep := hb_ps()
+   LOCAL bufsc, nScreenH, nScreenW
+
+   IF Empty( cCompiler )
+      IF !lUnix
+         cComp += ".exe"
+      ELSE
+         cComp2 := "python3"
+      ENDIF
+      aEnv := hb_ATokens( GetEnv( "PATH" ), hb_osPathListSeparator() )
+      FOR i := 1 TO Len( aEnv )
+         IF File( aEnv[i] + cSep + cComp )
+            cCompiler := cComp
+            EXIT
+         ELSEIF !Empty(cComp2) .AND. File( aEnv[i] + cSep + cComp2 )
+            cCompiler := cComp2
+            EXIT
+         ENDIF
+      NEXT
+   ENDIF
+
+   IF !Empty( cCompiler )
+      cTempFile := hb_DirTemp() + "hb_py_tmp.py"
+      hb_MemoWrit( cTempFile, oEdit:ToString() )
+      cCmd := cCompiler + " -i " + cTempFile
+      nScreenH := FilePane():vy2 + 1
+      nScreenW := FilePane():vx2 + 1
+      bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
+      hbc_Console( cCmd )
+      Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _py_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie, o := oEdit:oHili
    LOCAL arr, i
