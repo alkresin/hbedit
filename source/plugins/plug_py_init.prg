@@ -124,11 +124,11 @@ STATIC FUNCTION _py_Run( oEdit )
    IF !Empty( cCompiler )
       cTempFile := hb_DirTemp() + "hb_py_tmp.py"
       hb_MemoWrit( cTempFile, oEdit:ToString() )
-      cCmd := cCompiler + " -i " + cTempFile
+      cCmd := cCompiler + " " + cTempFile
       nScreenH := FilePane():vy2 + 1
       nScreenW := FilePane():vx2 + 1
       bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-      hbc_Console( cCmd )
+      hbc_Console( cCmd,, .F. )
       Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    ENDIF
 

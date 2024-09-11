@@ -441,7 +441,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
             IF nPos > 0
                IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
-                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T. )
+                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T., .F. )
                ELSE
 #ifdef __PLATFORM__WINDOWS
                   IF !( oPaneCurr:cpPane == "UTF8" )
@@ -3374,7 +3374,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    RETURN Nil
 
-FUNCTION hbc_Console( xCommand, lSetOnly )
+FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
@@ -3542,7 +3542,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly )
             ENDIF
 #endif
          ELSE
-            Cons_My( cCommand )
+            Cons_My( cCommand, lShowWin )
          ENDIF
          cCommand := ""
       ELSEIF Lastkey() == K_ESC
@@ -3740,7 +3740,7 @@ STATIC FUNCTION Add2Consout( cText )
 
    RETURN Nil
 
-STATIC FUNCTION Cons_My( cCommand )
+STATIC FUNCTION Cons_My( cCommand, lShowWin )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
@@ -3780,8 +3780,8 @@ STATIC FUNCTION Cons_My( cCommand )
 #ifndef __PLATFORM__UNIX
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
-            IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) )
-               IF ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
+            IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) ) .AND. ( lShowWin == Nil .OR. lShowWin )
+               IF !Empty(lShowWin) .OR. ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
                   cedi_ShowWindow( hWnd )
                   cedi_EndConsoleApp( pApp, .T. )
                   pApp := Nil
