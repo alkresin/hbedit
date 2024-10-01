@@ -2550,23 +2550,28 @@ STATIC FUNCTION hbc_FReadArh()
       RETURN Nil
    ENDIF
 
+   oPaneCurr:aZipFull := Nil
    IF cExt == ".zip"
       oPaneCurr:hUnzip := hb_unzipOpen( cFileName )
       IF !Empty( oPaneCurr:hUnzip )
          oPaneCurr:aZipFull := zipRead( oPaneCurr:hUnzip )
-         zipDirRefresh( oPaneCurr, "" )
-         oPaneCurr:nPanelMod := 2
-         oPaneCurr:cIOpref_bak := oPaneCurr:cIOpref
-         oPaneCurr:cIOpref := "zip:"
-         oPaneCurr:net_cAddress_bak := oPaneCurr:net_cAddress
-         oPaneCurr:net_cAddress := cFileName
-         oPaneCurr:nCurrent := 1
-         oPaneCurr:nShift := 0
-         oPaneCurr:Draw()
-         oPaneCurr:DrawCell( ,.T. )
-         oPaneCurr:DrawHead( .T. )
-         RETURN .T.
       ENDIF
+   ELSE
+      oPaneCurr:aZipFull := f7z_Read( cFileName )
+   ENDIF
+   IF !Empty( oPaneCurr:aZipFull )
+      zipDirRefresh( oPaneCurr, "" )
+      oPaneCurr:nPanelMod := 2
+      oPaneCurr:cIOpref_bak := oPaneCurr:cIOpref
+      oPaneCurr:cIOpref := "zip:"
+      oPaneCurr:net_cAddress_bak := oPaneCurr:net_cAddress
+      oPaneCurr:net_cAddress := cFileName
+      oPaneCurr:nCurrent := 1
+      oPaneCurr:nShift := 0
+      oPaneCurr:Draw()
+      oPaneCurr:DrawCell( ,.T. )
+      oPaneCurr:DrawHead( .T. )
+      RETURN .T.
    ENDIF
 
    RETURN .F.
@@ -2748,6 +2753,21 @@ STATIC FUNCTION zipDirRefresh( oPane, cDir )
 
    oPane:zip_cCurrDir := cDir
    oPane:aDir := aDir
+
+   RETURN Nil
+
+STATIC FUNCTION f7z_Read( cFileName )
+
+   LOCAL cRes, aRes, i
+
+   cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
+   IF !Empty( cRes )
+      aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
+      FOR i := 1 TO Len( aRes )
+         IF !Empty( aRes[i] ) .AND. !Empty( hb_ctod( Left( aRes[i],10 ),"yyyy-mm-dd" ) )
+         ENDIF
+      NEXT
+   ENDIF
 
    RETURN Nil
 
