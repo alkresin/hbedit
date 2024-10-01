@@ -2647,6 +2647,8 @@ STATIC FUNCTION hbc_Doclist( n )
          hwg_shellExecute( "file://" + Filepane():aDocHis[n,i,2] )
 #endif
 #else
+         //cedi_shellExecute( Iif( hb_cdpSelect() == "UTF8", Filepane():aDocHis[n,i,2], ;
+         //   hb_Translate( Filepane():aDocHis[n,i,2], "UTF8" ) ), .T. )
          cedi_shellExecute( Filepane():aDocHis[n,i,2], .T. )
 #endif
          AddDocHis( n, Filepane():aDocHis[n,i,2], Filepane():aDocHis[n,i,1], .T. )

@@ -4,6 +4,7 @@
 #define  K_TAB      9
 #define  K_F1      28
 #define  READ_BUFF_LEN 32768
+#define  FO_READ    0
 
 STATIC aCount
 
@@ -165,6 +166,9 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
                dirCompare( arr1, arr2, cDir1+aDir1[i,1], cDir2+aDir2[j,1], cRel1+aDir1[i,1]+ps, cRel2+aDir2[j,1]+ps, lSizOnly, lNoEof, lRecur )
             ENDIF
          ELSE  //IF lSizOnly
+            //edi_writelog( aDir1[i,1] + " " + hb_valtoexp(lNoEof)+hb_valtoexp(lSizOnly)+;
+            //   hb_valtoexp(aDir1[i,2] == aDir2[j,2])+hb_valtoexp(aDir1[i,3] == aDir2[j,3])+;
+            //   hb_valtoexp(fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof)) )
             IF ( lNoEof .AND. !fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof) ) .OR. ;
                ( !lNoEof .AND. ;
                   ( aDir1[i,2] != aDir2[j,2] .OR. ;
@@ -231,11 +235,14 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
    LOCAL handle1, handle2, cBuf1, cBuf2, i, nRet1, nRet2, n1, n2, lRes := .T.
    LOCAL cn := Chr(10), cr := Chr(13), c1, c2
 
-   IF Empty( handle1 := hb_vfOpen( cFile1 ) )
+   //edi_writelog( cFile1 )
+   IF Empty( handle1 := hb_vfOpen( cFile1, FO_READ ) )
+      //edi_writelog("0a "+cFile1 )
       RETURN .F.
    ENDIF
-   IF Empty( handle2 := hb_vfOpen( cFile2 ) )
+   IF Empty( handle2 := hb_vfOpen( cFile2, FO_READ ) )
       hb_vfClose( handle1 )
+      //edi_writelog("0b" )
       RETURN .F.
    ENDIF
    cBuf1 := Space( READ_BUFF_LEN )
@@ -291,6 +298,7 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
          FOR i := 1 TO nRet1
             IF hb_bpeek( cBuf1, i ) != hb_bpeek( cBuf2, i )
                lRes := .F.
+               //edi_writelog( "A: " + ltrim(str(i)) )
                EXIT
             ENDIF
          NEXT
