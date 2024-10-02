@@ -359,12 +359,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             IF oPaneCurr:nPanelMod > 0
                IF oPaneCurr:nPanelMod == 1 .OR. Empty( cTemp := aDir[6] )
                   oPaneCurr:bOnKey := oPaneCurr:bDraw := oPaneCurr:bDrawCell := oPaneCurr:bDrawHead := oPaneCurr:bRefresh := Nil
-                  oPaneCurr:cIOpref := oPaneCurr:cIOpref_bak
                   oPaneCurr:net_cAddress := oPaneCurr:net_cAddress_bak
-                  IF oPaneCurr:nPanelMod == 2
+                  IF oPaneCurr:nPanelMod == 2 .AND. oPaneCurr:cIOpref == "zip:"
                      hb_unzipClose( oPaneCurr:hUnzip )
                      oPaneCurr:hUnzip := Nil
                   ENDIF
+                  oPaneCurr:cIOpref := oPaneCurr:cIOpref_bak
                   oPaneCurr:nPanelMod := 0
                   oPaneCurr:Refresh()
                ELSE
@@ -1421,7 +1421,7 @@ METHOD SetDir( cPath ) CLASS FilePane
       ::cpPane := ::cp
    ENDIF
 
-   IF ::nPanelMod == 2
+   IF ::nPanelMod == 2 .AND. ::cIOpref == "zip:"
       hb_unzipClose( ::hUnzip )
       ::hUnzip := Nil
    ENDIF
@@ -2563,7 +2563,7 @@ STATIC FUNCTION hbc_FReadArh()
       zipDirRefresh( oPaneCurr, "" )
       oPaneCurr:nPanelMod := 2
       oPaneCurr:cIOpref_bak := oPaneCurr:cIOpref
-      oPaneCurr:cIOpref := "zip:"
+      oPaneCurr:cIOpref := Substr( cExt,2 ) + ":"
       oPaneCurr:net_cAddress_bak := oPaneCurr:net_cAddress
       oPaneCurr:net_cAddress := cFileName
       oPaneCurr:nCurrent := 1
@@ -2758,18 +2758,53 @@ STATIC FUNCTION zipDirRefresh( oPane, cDir )
 
 STATIC FUNCTION f7z_Read( cFileName )
 
-   LOCAL cRes, aRes, i
+   LOCAL cRes, aRes, i, nPos, nPos1, lStart := .F., n2, n3, n4, n5
+   LOCAL dDate, cTime, cAttr, nSize, cFile, aFiles := {}
 
    cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
    IF !Empty( cRes )
       aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
       FOR i := 1 TO Len( aRes )
-         IF !Empty( aRes[i] ) .AND. !Empty( hb_ctod( Left( aRes[i],10 ),"yyyy-mm-dd" ) )
+         IF !Empty( aRes[i] )
+            IF Left( aRes[i],10 ) == "----------"
+               IF lStart
+                  EXIT
+               ELSE
+                  lStart := .T.
+                  nPos := 11
+                  DO WHILE Substr( aRes[i],nPos,1 ) != " "; nPos++; ENDDO
+                  DO WHILE Substr( aRes[i],nPos,1 ) == " "; nPos++; ENDDO
+                  n2 := nPos
+                  DO WHILE Substr( aRes[i],nPos,1 ) != " "; nPos++; ENDDO
+                  DO WHILE Substr( aRes[i],nPos,1 ) == " "; nPos++; ENDDO
+                  n3 := nPos
+                  DO WHILE Substr( aRes[i],nPos,1 ) != " "; nPos++; ENDDO
+                  DO WHILE Substr( aRes[i],nPos,1 ) == " "; nPos++; ENDDO
+                  n4 := nPos
+                  DO WHILE Substr( aRes[i],nPos,1 ) != " "; nPos++; ENDDO
+                  DO WHILE Substr( aRes[i],nPos,1 ) == " "; nPos++; ENDDO
+                  n5 := nPos
+               ENDIF
+            ELSEIF lStart .AND. !Empty( dDate := hb_ctod( Left( aRes[i],10 ),"yyyy-mm-dd" ) )
+               nPos := 12
+               DO WHILE Substr( aRes[i],nPos,1 ) == " "; nPos++; ENDDO
+               cTime := Substr( aRes[i],nPos,8 )
+               cAttr := Trim( Substr( aRes[i],n2,n3-n2 ) )
+               nSize := Val( Substr( aRes[i],n3,n4-n3 ) )
+               cFile := Strtran( Trim( Substr( aRes[i],n5 ) ), "\", "/" )
+               IF Right( cFile,1 ) != '/' .AND. "D" $ cAttr
+                  cFile += '/'
+               ENDIF
+               AAdd( aFiles, { cFile, nSize, dDate, cTime, Iif( "D" $ cAttr, "D","" ) } )
+            ENDIF
          ENDIF
+      NEXT
+      FOR i := 1 TO Len( aFiles )
+         edi_writelog( Dtos(aFiles[i,3]) + " " + aFiles[i,4] + " " + aFiles[i,5] + " " + Str(aFiles[i,2],12) + " " + aFiles[i,1] )
       NEXT
    ENDIF
 
-   RETURN Nil
+   RETURN Iif( Empty( aFiles ), Nil, aFiles )
 
 FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
 
@@ -3065,29 +3100,28 @@ STATIC FUNCTION hbc_Unzip()
       {07,12,0,"",56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,_I("[Ok]"),4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cScBuf, oldc, nRes, cPath, nFirst := 0
+   LOCAL cScBuf, oldc, nRes, cPath, nFirst := 0, cRes
 
-   IF cExt == ".zip"
+   oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
+   cScBuf := Savescreen( 05, 10, 10, 70 )
+   hb_cdpSelect( "RU866" )
+   @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ 08, 10 SAY "Ã"
+   @ 08, 70 SAY "´"
+   @ 08, 11 TO 08, 69
+   hb_cdpSelect( oHbc:cp )
 
-      oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
-      cScBuf := Savescreen( 05, 10, 10, 70 )
-      hb_cdpSelect( "RU866" )
-      @ 05, 10, 10, 70 BOX "ÚÄ¿³ÙÄÀ³ "
-      @ 08, 10 SAY "Ã"
-      @ 08, 70 SAY "´"
-      @ 08, 11 TO 08, 69
-      hb_cdpSelect( oHbc:cp )
+   aGets[2,4] := Iif( Empty(oPaneTo:cIOpref), oPaneTo:cCurrPath, "" )
 
-      aGets[2,4] := Iif( Empty(oPaneTo:cIOpref), oPaneTo:cCurrPath, "" )
+   IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
 
-      IF ( nRes := edi_READ( aGets ) ) > 0 .AND. nRes < Len(aGets)
+      Restscreen( 05, 10, 10, 70, cScBuf )
+      cPath := aGets[2,4]
+      IF !Empty(cPath) .AND. !( Right( cPath,1 ) $ "/\" )
+         cPath += hb_ps()
+      ENDIF
 
-         Restscreen( 05, 10, 10, 70, cScBuf )
-         cPath := aGets[2,4]
-         IF !Empty(cPath) .AND. !( Right( cPath,1 ) $ "/\" )
-            cPath += hb_ps()
-         ENDIF
-
+      IF cExt == ".zip"
          hUnzip := hb_unzipOpen( cFileName )
          IF ! Empty( hUnzip )
             aWnd := hbc_Wndinit( 05, 20, 16, 60,, "Unzip" )
@@ -3118,12 +3152,14 @@ STATIC FUNCTION hbc_Unzip()
             oPaneCurr:RedrawAll()
          ENDIF
       ELSE
-         Restscreen( 05, 10, 10, 70, cScBuf )
+         cedi_RunConsoleApp( '7z x -o"' + cPath + '" '+ cFileName,, @cRes )
+         oPaneCurr:Refresh()
+         oPaneCurr:RedrawAll()
       ENDIF
+   ELSE
+      Restscreen( 05, 10, 10, 70, cScBuf )
       SetColor( oldc )
-
    ENDIF
-
 
    RETURN Nil
 
