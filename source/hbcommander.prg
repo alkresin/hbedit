@@ -1113,6 +1113,7 @@ CLASS FilePane
    CLASS VAR xContextMenu SHARED
    CLASS VAR lConsMode SHARED INIT .F.
    CLASS VAR nLastKey SHARED INIT 0
+   CLASS VAR n7z SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
    CLASS VAR cDateFormat SHARED INIT "dd.mm.yy"
    CLASS VAR hMisc SHARED
@@ -1132,7 +1133,7 @@ CLASS FilePane
    DATA nShift        INIT 0
    DATA nCells
    DATA nRows, nWidth
-   DATA nPanelMod     INIT 0      // 0 - default, 1 - Search, 2 - Zip, 3 - QView
+   DATA nPanelMod     INIT 0      // 0 - default, 1 - Search, 2 - Archive, 3 - QView
    DATA nPanelMod_bak
    DATA hUnzip
    DATA pSess
@@ -2007,7 +2008,7 @@ FUNCTION FTransl( cName, cpFrom, cpTo )
  */
 STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
-   LOCAL i, cTemp, cIOpref, handle, nRes := 0, hZip
+   LOCAL i, cTemp, cIOpref, handle, nRes := 0, hZip, cRes
 
    IF hb_vfExists( cFileTo )
       hb_vfTimeGet( cFileTo, @i )
@@ -2018,40 +2019,52 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
 
    //edi_Writelog( "1: " + aDir[1] )
    IF oPaneCurr:nPanelMod == 2
-      i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
-      IF i == 0
-         cIOpref := Left( cFileTo, 4 )
-         IF cIOpref == "net:" .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
-            cTemp := Space( aDir[2] )
-            hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
-            hb_unzipFileClose( oPaneCurr:hUnzip )
-            handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC )
-            hb_vfWrite( handle, cTemp )
-            hb_vfClose( handle )
-         ELSEIF cIOpref != "net:" .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cFileTo ) == 0
-         ELSE
-            edi_Alert( _I("Something goes wrong...") )
-            RETURN 2
+      cIOpref := Left( cFileTo, 4 )
+      IF oPaneCurr:cIOpref == "zip:"
+         i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
+         IF i == 0
+            IF cIOpref == "net:" .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
+               cTemp := Space( aDir[2] )
+               hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
+               hb_unzipFileClose( oPaneCurr:hUnzip )
+               handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC )
+               hb_vfWrite( handle, cTemp )
+               hb_vfClose( handle )
+            ELSEIF cIOpref != "net:" .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cFileTo ) == 0
+            ELSE
+               edi_Alert( _I("Something goes wrong...") )
+               RETURN 2
+            ENDIF
          ENDIF
+      ELSEIF cIOpref == "net:"
+         edi_Alert( cNotPerm )
+      ELSE
+         cedi_RunConsoleApp( '7z e -o"' + hb_fnameDir(cFileTo) + '" '+ ;
+            oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+            " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
       ENDIF
-   ELSEIF Left( cFileTo,4 ) == "zip:"
-      IF ( i := hb_At( ':', cFileTo, 5 ) ) == 0 .OR. Substr( cFileTo, 5, i-4 ) != oPaneTo:net_cAddress
-         nRes := 2
-      ENDIF
-      IF !Empty( hZip := hb_zipOpen( oPaneTo:cCurrPath + oPaneTo:net_cAddress, HB_ZIP_OPEN_ADDINZIP ) )
-         IF hb_zipStoreFile( hZip, oPaneCurr:cCurrPath + aDir[1], Substr( cFileTo, i+1 ) ) != 0
+   ELSEIF oPaneTo:nPanelMod == 2
+      IF oPaneTo:cIOpref == "zip:"
+         IF ( i := hb_At( ':', cFileTo, 5 ) ) == 0 .OR. Substr( cFileTo, 5, i-4 ) != oPaneTo:net_cAddress
             nRes := 2
          ENDIF
-         hb_zipClose( hZip )
+         IF !Empty( hZip := hb_zipOpen( oPaneTo:cCurrPath + oPaneTo:net_cAddress, HB_ZIP_OPEN_ADDINZIP ) )
+            IF hb_zipStoreFile( hZip, oPaneCurr:cCurrPath + aDir[1], Substr( cFileTo, i+1 ) ) != 0
+               nRes := 2
+            ENDIF
+            hb_zipClose( hZip )
+         ELSE
+            nRes := 2
+         ENDIF
       ELSE
-         nRes := 2
+         edi_Alert( cNotPerm )
       ENDIF
    ELSEIF oPaneCurr:nPanelMod == 1
       IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
-   ELSE
+   ELSEIF is7z()
       //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
       IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
@@ -2761,6 +2774,9 @@ STATIC FUNCTION f7z_Read( cFileName )
    LOCAL cRes, aRes, i, nPos, nPos1, lStart := .F., n2, n3, n4, n5
    LOCAL dDate, cTime, cAttr, nSize, cFile, aFiles := {}
 
+   IF !is7z()
+      RETURN Nil
+   ENDIF
    cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
    IF !Empty( cRes )
       aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
@@ -2805,6 +2821,22 @@ STATIC FUNCTION f7z_Read( cFileName )
    ENDIF
 
    RETURN Iif( Empty( aFiles ), Nil, aFiles )
+
+STATIC FUNCTION is7z()
+
+   LOCAL cRes
+
+   IF Filepane():n7z == 0
+      cedi_RunConsoleApp( "7z",, @cRes )
+      IF !Empty( cRes ) .AND. "Copyright" $ cRes
+         Filepane():n7z := 1
+      ELSE
+         edi_Alert( "7z ia absent in your path" )
+         Filepane():n7z := 2
+      ENDIF
+   ENDIF
+
+   RETURN ( Filepane():n7z == 1 )
 
 FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
 
@@ -3102,6 +3134,10 @@ STATIC FUNCTION hbc_Unzip()
       {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cScBuf, oldc, nRes, cPath, nFirst := 0, cRes
 
+   IF !(cExt == ".zip") .AND. !is7z()
+      RETURN Nil
+   ENDIF
+
    oldc := SetColor( oHbc:cColorSel+","+oHbc:cColorSel+",,"+oHbc:cColorGet+","+oHbc:cColorSel )
    cScBuf := Savescreen( 05, 10, 10, 70 )
    hb_cdpSelect( "RU866" )
@@ -3152,7 +3188,9 @@ STATIC FUNCTION hbc_Unzip()
             oPaneCurr:RedrawAll()
          ENDIF
       ELSE
+         aWnd := hbc_Wndinit( 05, 20, 8, 60,, "Restore from archive" )
          cedi_RunConsoleApp( '7z x -o"' + cPath + '" '+ cFileName,, @cRes )
+         hbc_Wndclose( aWnd, _I("Done") )
          oPaneCurr:Refresh()
          oPaneCurr:RedrawAll()
       ENDIF
