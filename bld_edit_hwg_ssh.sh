@@ -19,11 +19,12 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fautoc.prg  -n -q0 -es2 -gc0 -I$HB_INS/in
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/errorsys.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcommander.prg  -n -q0 -es2 -gc0 -dGTHWG -d_USE_SSH2 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fview.prg -n -q0 -es2 -gc0 -d_USE_SSH2 -I$HB_INS/include
+$HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbextcli.prg -n -q0 -es2 -gc0 -d_USE_SSH2 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcvf.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/ssh2/hbcssh2.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 
 gcc hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c \
-     hilight.c fautoc.c errorsys.c hbcommander.c fview.c $SRC_DIR/cfuncs.c \
+     hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c $SRC_DIR/cfuncs.c \
      $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c hbcvf.c hbcssh2.c $SRC_DIR/ssh2/hb_ssh2.c \
       -ohbedit_hwg -I. -I$HB_INS/include -L $HB_INS/lib/linux/gcc -L $HWG_INS/lib -DGTHWG -D_USE_HB \
 	  -Wl,--start-group $HWGUI_LIBS $HARBOUR_LIBS -Wl,--end-group \

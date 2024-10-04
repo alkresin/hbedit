@@ -15,8 +15,10 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fautoc.prg  -n -q0 -es2 -gc0 -I$HB_INS/in
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/errorsys.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcommander.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fview.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
-gcc -I. -I$HB_INS/include -Wall -c hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c $SRC_DIR/cfuncs.c $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c
-gcc -Wall -ohbedit hbedit.o fedit.o fcmd.o fmenu.o fgetsys.o falert.o ffiles.o fdiff.o fkeymaps.o hilight.o fautoc.o errorsys.o hbcommander.o fview.o cfuncs.o trie.o hbtrie.o -L $HB_INS/lib/linux/gcc  \
+$HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbextcli.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
+
+gcc -I. -I$HB_INS/include -Wall -c hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c $SRC_DIR/cfuncs.c $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c
+gcc -Wall -ohbedit hbedit.o fedit.o fcmd.o fmenu.o fgetsys.o falert.o ffiles.o fdiff.o fkeymaps.o hilight.o fautoc.o errorsys.o hbcommander.o fview.o hbextcli.o cfuncs.o trie.o hbtrie.o -L $HB_INS/lib/linux/gcc  \
 	  -Wl,--start-group -lhbdebug  -lhbvm  -lhbrtl  -lhblang  -lhbrdd  \
 	  -lhbmacro -lhbpp -lhbcommon -lrddntx -lrddcdx -lrddfpt -lhbsix \
         -lhbct -lgttrm -lhbcpage -lhbnetio -lpcre -lhbcplr -lhbmzip -lminizip -lm -ldl -lz -lrt -Wl,--end-group

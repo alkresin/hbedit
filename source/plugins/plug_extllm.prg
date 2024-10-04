@@ -34,7 +34,7 @@ DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRI
 STATIC cIniPath
 STATIC oClient
 STATIC hExt
-STATIC hPlugExtCli
+//STATIC hPlugExtCli
 STATIC aModels, cCurrModel, nCurrModel
 STATIC cImgPath, cImgPrefix
 STATIC cLastImage, cLastPrompt := ""
@@ -44,7 +44,8 @@ STATIC nStatus, lPaused := .F., cModType
 
 FUNCTION plug_extLLM( oEdit, cPath )
 
-   LOCAL i, x, cName := "$ClientLLM", cExtPlug := edi_FindPath( "plugins" + hb_ps() + "hbextcli.hrb" )
+   LOCAL i, x, cName := "$ClientLLM"
+   //LOCAL cExtPlug := edi_FindPath( "plugins" + hb_ps() + "hbextcli.hrb" )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       IF Empty( l )
@@ -77,14 +78,15 @@ FUNCTION plug_extLLM( oEdit, cPath )
    }
    LOCAL bEndEdit := {||
       IF oClient:lClose
-         IF hb_isFunction( "HBEXTCLI" ) .AND. !Empty( hExt )
+         //IF hb_isFunction( "HBEXTCLI" ) .AND. !Empty( hExt )
+         IF !Empty( hExt )
             ecli_Close( hExt )
             hExt := Nil
          ENDIF
       ENDIF
       RETURN Nil
    }
-
+/*
    IF !hb_isFunction( "HBEXTCLI" ) .AND. File( cExtPlug )
       x := hb_hrbLoad( cExtPlug )
       IF hb_isFunction( "FILEPANE" )
@@ -97,7 +99,7 @@ FUNCTION plug_extLLM( oEdit, cPath )
       edi_Alert( "Can't load hbectcli.hrb" )
       RETURN Nil
    ENDIF
-
+*/
    aModels := {}
    _clillm_IniRead( (cIniPath := cPath) + "models.ini" )
    IF Empty( aModels )
