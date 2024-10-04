@@ -115,7 +115,7 @@ STATIC FUNCTION _Hbc_Start()
 STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i, aDir
-   LOCAL bufsc
+   LOCAL bufsc, cRes
 
    IF !Empty( oPaneCurr:bOnKey )
       i := Eval( oPaneCurr:bOnKey, oPaneCurr, nKeyExt )
@@ -525,8 +525,18 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       IF nPos == 0
          IF oPaneCurr:nPanelMod == 2
             cTemp := hb_DirTemp() + "hbc_view.tmp"
-            IF hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] ) == 0 ;
-               .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cTemp ) == 0
+            IF oPaneCurr:cIOpref == "zip:"
+               IF hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] ) == 0 ;
+                  .AND. hb_unzipExtractCurrentFile( oPaneCurr:hUnzip, cTemp ) == 0
+                  FileView( cTemp, oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
+                  FErase( cTemp )
+               ENDIF
+            ELSEIF is7z()
+               cTemp := hb_DirTemp() + hb_fnameNameExt( oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
+               FErase( cTemp )
+               cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+                  oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
                FileView( cTemp, oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
                FErase( cTemp )
             ENDIF
@@ -562,15 +572,29 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          ELSEIF Ascan( aRemote, oPaneCurr:cIOpref ) > 0
             //oPaneCurr:cIOpref == "net:" .OR. oPaneCurr:cIOpref == "sftp:"
             mnu_NewBuf( oHbc, cTemp, hb_vfLoad(cTemp), @vfWrit_Net() )
-         ELSEIF oPaneCurr:cIOpref == "zip:"
-            i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
-            IF i == 0 .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
-               cTemp := Space( aDir[2] )
-               hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
-               hb_unzipFileClose( oPaneCurr:hUnzip )
-               mnu_NewBuf( oHbc, "zip|"+oPaneCurr:net_cAddress+"|"+aDir[1], cTemp )
-            ELSE
-               edi_Alert( _I("Something goes wrong...") )
+         ELSEIF oPaneCurr:nPanelMod == 2
+            IF oPaneCurr:cIOpref == "zip:"
+               i := hb_unzipFileGoto( oPaneCurr:hUnzip, oPaneCurr:aZipFull[aDir[ADIR_POS],AZF_POS] )
+               IF i == 0 .AND. hb_unzipFileOpen( oPaneCurr:hUnzip ) == 0
+                  cTemp := Space( aDir[2] )
+                  hb_unzipFileRead( oPaneCurr:hUnzip, @cTemp )
+                  hb_unzipFileClose( oPaneCurr:hUnzip )
+                  mnu_NewBuf( oHbc, "zip|"+oPaneCurr:net_cAddress+"|"+aDir[1], cTemp )
+               ELSE
+                  edi_Alert( _I("Something goes wrong...") )
+               ENDIF
+            ELSEIF is7z()
+               cTemp := hb_DirTemp() + hb_fnameNameExt( oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
+               FErase( cTemp )
+               cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+                  oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+               IF File( cTemp ) .AND. !Empty( cTemp := MemoRead(cTemp) )
+                  mnu_NewBuf( oHbc, oPaneCurr:cIOpref+"|"+oPaneCurr:net_cAddress+"|"+aDir[1], cTemp )
+               ELSE
+                  edi_Alert( _I("Something goes wrong...") )
+               ENDIF
+               FErase( cTemp )
             ENDIF
          ENDIF
       ENDIF
@@ -2038,7 +2062,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
          ENDIF
       ELSEIF cIOpref == "net:"
          edi_Alert( cNotPerm )
-      ELSE
+      ELSEIF is7z()
          cedi_RunConsoleApp( '7z e -o"' + hb_fnameDir(cFileTo) + '" '+ ;
             oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
             " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
@@ -2064,7 +2088,7 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
-   ELSEIF is7z()
+   ELSE
       //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
       IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
@@ -2814,9 +2838,6 @@ STATIC FUNCTION f7z_Read( cFileName )
                AAdd( aFiles, { cFile, nSize, dDate, cTime, Iif( "D" $ cAttr, "D","" ) } )
             ENDIF
          ENDIF
-      NEXT
-      FOR i := 1 TO Len( aFiles )
-         edi_writelog( Dtos(aFiles[i,3]) + " " + aFiles[i,4] + " " + aFiles[i,5] + " " + Str(aFiles[i,2],12) + " " + aFiles[i,1] )
       NEXT
    ENDIF
 
