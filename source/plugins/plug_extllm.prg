@@ -7,7 +7,6 @@
  */
 
 #define K_ENTER      13
-#define K_DOWN       24
 #define K_ESC        27
 #define K_CTRL_TAB  404
 #define K_SH_TAB    271
@@ -15,9 +14,9 @@
 #define K_F3         -2
 #define K_F5         -4
 #define K_F10        -9
-#define K_CTRL_PGDN  30
+#define K_PGDN        3
 
-#define SHIFT_PRESSED 0x010000
+#define CTRL_PRESSED 0x020000
 
 #define S_INIT            0
 #define S_MODULE_STARTED  1
@@ -230,7 +229,7 @@ STATIC FUNCTION _clillm_SetParams()
    @ y1, x1, y2, x2 BOX "........ "
 
    edi_READ( aGets )
-   IF LastKey() == 13
+   IF LastKey() == K_ENTER .OR. LastKey() == K_PGDN
       IF Val(AllTrim(aGets[3,4])) != n_ctx
          n_ctx := Val(AllTrim(aGets[3,4]))
          xRes += 'c=' + Ltrim(Str(n_ctx)) + Chr(1)

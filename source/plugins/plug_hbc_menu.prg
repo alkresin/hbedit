@@ -35,8 +35,9 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       ENDIF
       Aadd( aMenu, { "git pull",,11, } )
       Aadd( aMenu, { "git status",,12, } )
-      Aadd( aMenu, { "git describe",,13, } )
-      Aadd( aMenu, { "git commit",,14, } )
+      Aadd( aMenu, { "git remote",,13, } )
+      Aadd( aMenu, { "git describe",,14, } )
+      Aadd( aMenu, { "git commit",,15, } )
       IF !Empty( aMenuGit )
          FOR i := 1 TO Len( aMenuGit )
             Aadd( aMenu, { aMenuGit[i,1],,100+i, } )
@@ -47,7 +48,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "fossil changes",,15, } )
+      Aadd( aMenu, { "fossil changes",,18, } )
       IF !Empty( aMenuFoss )
          FOR i := 1 TO Len( aMenuFoss )
             Aadd( aMenu, { aMenuFoss[i,1],,130+i, } )
@@ -125,10 +126,12 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
    ELSEIF n == 12
       hbc_Console( "git status" )
    ELSEIF n == 13
-      hbc_Console( "git describe --tags" )
+      hbc_Console( "git remote -v" )
    ELSEIF n == 14
-      hbc_Console( 'git commit -a -m "%m"' )
+      hbc_Console( "git describe --tags" )
    ELSEIF n == 15
+      hbc_Console( 'git commit -a -m "%m"' )
+   ELSEIF n == 18
       hbc_Console( "fossil changes" )
    ELSEIF n == 21
       hbc_Console(  "hbformat %p" )

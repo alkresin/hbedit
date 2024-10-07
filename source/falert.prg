@@ -102,9 +102,9 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp )
    LOCAL lHwg := ( hb_gtversion() == "HWGUI" )
    LOCAL bOnKey := {|o,n|
       LOCAL nKey := hb_keyStd(n), lShift := ( hb_BitAnd( n, SHIFT_PRESSED ) != 0 )
-      IF nKey == K_ENTER .AND. !lHwg
-         RETURN 0
-      ELSEIF ( nKey == K_ENTER .AND. lHwg .AND. lShift ) .OR. ( nKey == K_DOWN .AND. lShift )
+      //IF nKey == K_ENTER .AND. !lHwg
+      //   RETURN 0
+      IF ( nKey == K_ENTER .AND. lHwg .AND. lShift ) .OR. ( nKey == K_DOWN .AND. lShift )
          RETURN 0x4100001A
       ELSEIF nKey == K_ENTER .AND. !lShift
          cRes := Trim( oNew:ToString( Chr(10) ) )
@@ -172,4 +172,3 @@ FUNCTION edi_RunPlugin( oEdit, aPlugins, xPlugin, aParams )
    ENDIF
 
    RETURN .F.
-
