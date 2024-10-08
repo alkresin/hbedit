@@ -335,7 +335,7 @@ STATIC FUNCTION _clillm_Wait( lNoEsc, lNoTab, lShowTime )
          RETURN Nil
       ENDIF
       IF !Empty( sAns := ecli_CheckAnswer( hExt ) )
-         sAns := _DropQuotes( sAns )
+         //sAns := _DropQuotes( sAns )
          EXIT
       ENDIF
       IF !Empty(lShowTime) .AND. ++ nTicks >= 20
@@ -470,7 +470,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
             lPaused := .T.
             EXIT
          ELSE
-            xRes := _DropQuotes( xRes )
+            //xRes := _DropQuotes( xRes )
             IF Right( xRes,4 ) == '===='
                nStatus := S_CNT_CREATED
                _Textout( hb_strShrink(xRes,4) + " ==", .T. )

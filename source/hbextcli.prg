@@ -1,5 +1,6 @@
 /*
- * Client for extgui modules
+ * Ext
+ * A set of routines to launch an external application and keep connection with it
  *
  * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
@@ -12,9 +13,9 @@
 #define GUIS_VERSION   "1.4"
 
 STATIC cn := e"\n"
+STATIC nInterval := 20
 STATIC cLogFile := "extclient.log"
 STATIC aExt := {}, nExtId := 0
-STATIC nInterval := 20
 
 STATIC cVersion := "1.0"
 STATIC nMyId, nHisId
@@ -99,16 +100,32 @@ FUNCTION ecli_RunProc( h, cFunc, aParams )
 
 FUNCTION ecli_RunFunc( h, cFunc, aParams, lNoWait )
 
-   LOCAL cRes := SendOut( h, hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait )
+   LOCAL cRes := SendOut( h, hb_jsonEncode( { "runfunc", cFunc, hb_jsonEncode( aParams ) } ), lNoWait ), xRes
 
+   IF !Empty( cRes )
+      hb_jsonDecode( cRes, @xRes )
+   ENDIF
+   //edi_writelog( "0 " + valtype( cRes ) + valtype( xRes ) )
+   //edi_writelog( cRes )
+   //IF Valtype( xRes ) == "C"
+   //   edi_writelog( xRes )
+   //ENDIF
+/*
    IF Valtype( cRes ) == "C" .AND. Left( cRes,1 ) == '"'
       RETURN Substr( cRes, 2, Len(cRes)-2 )
    ENDIF
-   RETURN cRes
+*/
+   RETURN xRes
 
 FUNCTION ecli_CheckAnswer( h )
 
-   RETURN conn_CheckOut( h )
+   LOCAL cRes := conn_CheckOut( h ), xRes
+
+   IF !Empty( cRes )
+      hb_jsonDecode( cRes, @xRes )
+   ENDIF
+
+   RETURN xRes
 
 FUNCTION ecli_SetVar( h, cVarName, cValue )
 
@@ -155,15 +172,15 @@ STATIC FUNCTION CnvVal( xRes )
 STATIC FUNCTION SendOut( h, s, lNoWait )
 
    LOCAL cRes
-   gWritelog( h, " " + s )
 
+   gWritelog( h, " " + s )
    cRes := conn_Send2SocketOut( h, "+" + s + cn, lNoWait )
 
    RETURN Iif( Empty(cRes), "", cRes )
 
 STATIC FUNCTION SendIn( h, s )
 
-   conn_Send2SocketIn( h, s )
+   conn_Send2SocketIn( h, "+" + s + cn )
 
    RETURN Nil
 
@@ -177,10 +194,10 @@ STATIC FUNCTION MainHandler( h )
 
    hb_jsonDecode( cBuffer, @arr )
    IF Valtype(arr) != "A" .OR. Empty(arr)
-      SendIn( h, "+Wrong" + cn )
+      SendIn( h, '"Wrong"' )
       RETURN Nil
    ENDIF
-   SendIn( h, "+Ok" + cn )
+   SendIn( h, '"Ok"' )
 
    RETURN Nil
 
