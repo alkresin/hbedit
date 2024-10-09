@@ -741,7 +741,7 @@ HB_FUNC( CEDI_RUNBACKGROUNDAPP )
 
    ZeroMemory( &si, sizeof(si) );
    si.cb = sizeof(si);
-   si.wShowWindow = SW_SHOW;
+   si.wShowWindow = SW_HIDE; //SW_SHOW;
    si.dwFlags = STARTF_USESHOWWINDOW;
    ZeroMemory( &pi, sizeof(pi) );
 

@@ -28,7 +28,7 @@
 #define S_ASKING          7
 #define S_GETTOKEN        8
 
-DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRITELOG
+//DYNAMIC ECLI_CLOSE, ECLI_RUN, ECLI_RUNPROC, ECLI_RUNFUNC, ECLI_CHECKANSWER, GWRITELOG
 
 STATIC cIniPath
 STATIC oClient
@@ -334,8 +334,8 @@ STATIC FUNCTION _clillm_Wait( lNoEsc, lNoTab, lShowTime )
       ELSEIF nKey == K_ESC .AND. Empty( lNoEsc )
          RETURN Nil
       ENDIF
-      IF !Empty( sAns := ecli_CheckAnswer( hExt ) )
-         //sAns := _DropQuotes( sAns )
+      IF ( sAns := ecli_CheckAnswer( hExt ) ) != Nil
+         sAns := _DropQuotes( sAns )
          EXIT
       ENDIF
       IF !Empty(lShowTime) .AND. ++ nTicks >= 20
@@ -470,7 +470,7 @@ STATIC FUNCTION _clillm_Wait4Answer()
             lPaused := .T.
             EXIT
          ELSE
-            //xRes := _DropQuotes( xRes )
+            xRes := _DropQuotes( xRes )
             IF Right( xRes,4 ) == '===='
                nStatus := S_CNT_CREATED
                _Textout( hb_strShrink(xRes,4) + " ==", .T. )
@@ -544,14 +544,17 @@ STATIC FUNCTION _Textout( cLine, lSameLine, lFromStart )
    RETURN Nil
 
 STATIC FUNCTION _DropQuotes( s )
-
+/*
    LOCAL nPos
-
    IF Left( s,1 ) == '"'
       s := Substr( s, 2, Len( s ) - 2 )
    ENDIF
    IF ( nPos := At( '\n', s ) ) > 0
       s := Iif( nPos==1, "", Left( s,nPos-1 ) ) + Chr(10) + Substr( s,nPos+2 )
+   ENDIF
+*/
+   IF Chr(10)+Chr(10) $ s
+      s := StrTran( s, Chr(10)+Chr(10), Chr(10) )
    ENDIF
 
    RETURN s
