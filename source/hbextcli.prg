@@ -30,9 +30,6 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
    IF !( Right( cDirRoot,1 ) $ "\/" )
       cDirRoot += hb_ps()
    ENDIF
-   IF ' ' $ cDirRoot
-      cDirRoot := '"' + cDirRoot + '"'
-   ENDIF
 
    h["log"] := nLogOn
    h["id"] := ++ nExtId
@@ -47,10 +44,21 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
       cFileRoot := cFile
    ENDIF
    IF !srv_conn_Create( h, cDirRoot + cFileRoot, .F. )
+      IF h["hin"] >= 0
+         FClose( h["hin"] )
+      ENDIF
+      IF h["hout"]
+         FClose( h["hout"] )
+      ENDIF
       RETURN .F.
    ENDIF
 
-   cRun := cExe + ' dir=' + cDirRoot + ' type=2 ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
+   cDirRoot = 'dir=' + hb_strShrink( cDirRoot, 1 )
+   IF ' ' $ cDirRoot .AND. !( Left(cDirRoot,1) == '"' )
+      cDirRoot := '"' + cDirRoot + '"'
+   ENDIF
+
+   cRun := cExe + ' ' + cDirRoot + ' type=2 ' + Iif( nLogOn>0, "log="+Str(nLogOn,1), "" ) + ;
       Iif( !Empty(cFile).AND.Valtype(cFile)=="C", " file="+cFile, "" )
    gWritelog( h, cRun )
    cedi_RunBackgroundApp( cRun )
@@ -64,7 +72,11 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
       cedi_Sleep( nInterval*2 )
    ENDDO
 
-   RETURN Nil
+   FClose( h["hin"] )
+   FClose( h["hout"] )
+   h["active"] := .F.
+
+   RETURN .F.
 
 FUNCTION ecli_Close( h )
 
@@ -105,16 +117,7 @@ FUNCTION ecli_RunFunc( h, cFunc, aParams, lNoWait )
    IF !Empty( cRes )
       hb_jsonDecode( cRes, @xRes )
    ENDIF
-   //edi_writelog( "0 " + valtype( cRes ) + valtype( xRes ) )
-   //edi_writelog( cRes )
-   //IF Valtype( xRes ) == "C"
-   //   edi_writelog( xRes )
-   //ENDIF
-/*
-   IF Valtype( cRes ) == "C" .AND. Left( cRes,1 ) == '"'
-      RETURN Substr( cRes, 2, Len(cRes)-2 )
-   ENDIF
-*/
+
    RETURN xRes
 
 FUNCTION ecli_CheckAnswer( h )
