@@ -46,7 +46,6 @@ $HB_INS/bin/linux/gcc/harbour plug_hbc_latin.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_hbc_menu.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour hbc_gthwg_q.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour hwbuilder.prg -n -gh -q -I$HB_INS/include
-#$HB_INS/bin/linux/gcc/harbour hbextcli.prg -n -gh -q -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour plug_extllm.prg -n -gh
 cd ../../
 

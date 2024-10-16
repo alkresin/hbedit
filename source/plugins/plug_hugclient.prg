@@ -32,6 +32,7 @@ STATIC cEmail
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F.
 STATIC cCompiler
+STATIC lShareWith, lStream, lWeb, lWebHint
 
 FUNCTION plug_HugClient( oEdit, cPath )
 
@@ -40,7 +41,14 @@ FUNCTION plug_HugClient( oEdit, cPath )
       LOCAL nCol := Col(), nRow := Row()
       IF Empty( l )
          DevPos( y, o:x1 )
-         DevOut( "Hugging Face Client  F1 - Help  F9 - Menu  F10 - Close" )
+         DevOut( "Hugging Face Client" )
+      ENDIF
+      IF nStatus == S_LOGGED
+         DevPos( y, o:x1 + 22 )
+         DevOut( "F1 - Help  F2 - Ask F9 - Menu  F10 - Close" )
+      ELSEIF nStatus == S_ASKING .OR. nStatus == S_GETTOKEN
+         DevPos( y, o:x1 + 22 )
+         DevOut( "ESC - Cancel" )
       ENDIF
       DevPos( nRow, nCol )
       RETURN Nil
@@ -86,6 +94,7 @@ FUNCTION plug_HugClient( oEdit, cPath )
    oClient:lUtf8 := .T.
    oClient:lWrap := .T.
    nStatus := S_INIT
+   lShareWith := .T.; lStream := .F.; lWeb := .F.; lWebHint := .F.
 
    RETURN Nil
 
@@ -179,7 +188,6 @@ STATIC FUNCTION _clihug_Wait( lNoEsc, lNoTab, lShowTime )
          RETURN Nil
       ENDIF
       IF ( sAns := ecli_CheckAnswer( hExt ) ) != Nil
-         sAns := _DropQuotes( sAns )
          EXIT
       ENDIF
    ENDDO
@@ -229,59 +237,99 @@ STATIC FUNCTION _clihug_Menu()
 
    LOCAL aMenu := { {"New conversation",,}, {"Ask your question",,,"F2"}, {"Ids list",,}, ;
    {"Switch",,}, {"Switch all",,}, {"del <id>",,}, ;
-      {"llm - get list",,}, {"llm - switch to <id>",,}, {"Share with author <on|off>",,}, ;
-      {"stream <on|off>",,}, {"web <on|off>",,}, {"web-hint <on|off>",,}, {"exit",,,"F10"} }
-   LOCAL i
+      {"llm - get list",,}, {"llm - switch to <id>",,}, ;
+      {"Share with author <"+Iif(lShareWith,"off","on")+">",,}, ;
+      {"stream <"+Iif(lStream,"off","on")+">",,}, {"web <"+Iif(lWeb,"off","on")+">",,}, ;
+      {"web-hint <"+Iif(lWebHint,"off","on")+">",,}, {"exit",,,"F10"} }
+   LOCAL i, cRes, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+3, oClient:x1+6 )
    IF i > 0
       _Textout( "-----------" )
    ENDIF
    IF i == 1
-      _Textout( ecli_RunFunc( hExt, "execcmd",{"/new"} ) )
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/new"} ) )
+         _Textout( cRes )
+      ENDIF
    ELSEIF i == 2
-      _clihug_Ask()
+      cRes := _clihug_Ask()
    ELSEIF i == 3
-      _Textout( ecli_RunFunc( hExt, "execcmd",{"/ids"} ) )
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/ids"} ) )
+         _Textout( cRes )
+      ENDIF
    ELSEIF i == 4
-      _Textout( ecli_RunFunc( hExt, "execcmd",{"/switch"} ) )
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/switch"} ) )
+         _Textout( cRes )
+      ENDIF
    ELSEIF i == 5
-      _Textout( ecli_RunFunc( hExt, "execcmd",{"/switch", "all"} ) )
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/switch", "all"} ) )
+         _Textout( cRes )
+      ENDIF
    ELSEIF i == 7
-      _Textout( ecli_RunFunc( hExt, "execcmd",{"/llm"} ) )
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/llm"} ) )
+         _Textout( cRes )
+      ENDIF
+   ELSEIF i == 8
+      IF !Empty( xVal := edi_MsgGet( "Input number" ) ) .AND. !Empty( xVal := Val(xVal) )
+         IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/llm"} ) )
+            _Textout( cRes )
+         ENDIF
+      ELSE
+         cRes := 1
+      ENDIF
+   ELSEIF i == 9
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/sharewithauthor",Iif(lShareWith,"off","on") } ) )
+         lShareWith := !lShareWith
+         _Textout( cRes )
+      ENDIF
+   ELSEIF i == 10
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/stream",Iif(lStream,"off","on") } ) )
+         lStream := !lStream
+         _Textout( cRes )
+      ENDIF
+   ELSEIF i == 11
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/web",Iif(lWeb,"off","on") } ) )
+         lWeb := !lWeb
+         _Textout( cRes )
+      ENDIF
+   ELSEIF i == 12
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/web-hint",Iif(lWebHint,"off","on") } ) )
+         lWebHint := !lWebHint
+         _Textout( cRes )
+      ENDIF
+
    ELSEIF i == 13
       hb_keyPut( K_F10 )
    ENDIF
    IF i > 0 .AND. i < 13
-      oClient:TextOut()
+      IF !Empty( cRes )
+         oClient:TextOut()
+      ELSE
+         edi_Alert( "Something goes wrong..." )
+      ENDIF
    ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION _clihug_Ask()
 
-   LOCAL cQue
+   LOCAL cQue, cRes
 
    cQue := edi_MsgGet_ext( "", oClient:y1+3, oClient:x1+6, oClient:y1+10, oClient:x2-12, oClient:cp )
    IF !Empty( cQue )
       _Textout( cQue )
       _Textout( "-----------" )
-      _Textout( ecli_RunFunc( hExt, "ask",{cQue} ) )
-      oClient:TextOut()
+      IF !Empty( cRes := ecli_RunFunc( hExt, "ask",{cQue}, lStream ) )
+         IF lStream
+            nStatus := S_ASKING
+            _clihug_Wait4Answer()
+         ELSE
+            _Textout( cRes )
+            oClient:TextOut()
+         ENDIF
+      ENDIF
    ENDIF
-/*
-   lPaused := .F.
-   cQue := edi_MsgGet_ext( "", 4, x-30, 8, x+30, oClient:cp )
-   IF !Empty( cQue )
-      nStatus := S_ASKING
-      oClient:WriteTopPane()
-      ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
-      _Textout( "> " + cQue )
-      _Textout( "" )
-      _clihug_Wait4Answer()
-   ENDIF
-*/
-   RETURN Nil
+   RETURN Empty( cQue ) .OR. !Empty( cRes )
 
 STATIC FUNCTION _clihug_Wait4Answer()
 
@@ -298,7 +346,7 @@ STATIC FUNCTION _clihug_Wait4Answer()
    ELSE
       nStatus := S_GETTOKEN
       oClient:WriteTopPane()
-      ecli_RunFunc( hExt, "GetNextToken",{2}, .T. )
+      ecli_RunFunc( hExt, "nexttoken",{2}, .T. )
       DO WHILE .T.
          IF ( xRes := _clihug_Wait() ) == Nil
             // ESC pressed
@@ -309,13 +357,12 @@ STATIC FUNCTION _clihug_Wait4Answer()
             lPaused := .T.
             EXIT
          ELSE
-            xRes := _DropQuotes( xRes )
             IF Right( xRes,4 ) == '===='
                nStatus := S_LOGGED
                _Textout( hb_strShrink(xRes,4) + " ==", .T. )
                EXIT
             ELSE
-               ecli_RunFunc( hExt, "GetNextToken",{2}, .T. )
+               ecli_RunFunc( hExt, "nexttoken",{2}, .T. )
                _Textout( xRes, .T. )
                IF oClient:LineToRow( oClient:nLine ) >= oClient:y2
                   oClient:GoTo( oClient:nLine, Len( oClient:aText[oClient:nLine] ) )
@@ -348,14 +395,6 @@ STATIC FUNCTION _Textout( cLine, lSameLine, lFromStart )
    oClient:TextOut( nf )
 
    RETURN Nil
-
-STATIC FUNCTION _DropQuotes( s )
-
-   IF Chr(10)+Chr(10) $ s
-      s := StrTran( s, Chr(10)+Chr(10), Chr(10) )
-   ENDIF
-
-   RETURN s
 
 STATIC FUNCTION _clihug_IniRead( cFileName )
 
