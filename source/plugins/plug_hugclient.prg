@@ -321,7 +321,9 @@ STATIC FUNCTION _clihug_Ask()
       _Textout( "-----------" )
       IF !Empty( cRes := ecli_RunFunc( hExt, "ask",{cQue}, lStream ) )
          IF lStream
-            nStatus := S_ASKING
+            nStatus := S_GETTOKEN
+            oClient:WriteTopPane()
+            ecli_RunFunc( hExt, "nexttoken",{2}, .T. )
             _clihug_Wait4Answer()
          ELSE
             _Textout( cRes )
