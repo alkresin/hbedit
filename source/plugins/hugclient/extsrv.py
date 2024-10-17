@@ -49,8 +49,8 @@ def esrv_Init( aparams ):
     }
 
     conn_SetVersion(GUIS_VERSION)
-    gWritelog(h, f"Connect via files {cDir}{cFileRoot}.*")
-    sRes = client_conn_Connect(h, f"{cDir}{cFileRoot}")
+    gWritelog(h, "Connect via files {}{}.*".format(cDir, cFileRoot) )
+    sRes = client_conn_Connect(h, "{}{}".format(cDir, cFileRoot))
     if not sRes:
         return None
 
@@ -77,7 +77,7 @@ def CnvVal(xRes):
     if isinstance(xRes, list):
         return "Array"
     elif isinstance(xRes, dict):
-        return f"Object of {xRes.__class__.__name__}"
+        return "Object of {}".format(xRes.__class__.__name__)
     elif isinstance(xRes, tuple):
         return "Hash array"
     elif xRes is None:
@@ -106,7 +106,7 @@ def Parse(h, arr):
     cFunc = ""
     xRes = ""
 
-    gWritelog(h, f"Command: {cCommand}")
+    gWritelog(h, "Command: {}".format(cCommand))
 
     if c == "s":
         if cCommand == "setvar":
@@ -147,16 +147,16 @@ def Parse(h, arr):
     elif c == "r":
         if cCommand == "runproc":
             cFunc = arr[1].lower()
-            if cFunc in globals():
-                SendIn(h, '"Ok"')
-                xRes = eval(f"{cFunc}(json.loads(arr[2]))")
-            else:
-                lErr = True
+            SendIn(h, '"Ok"')
+            try:
+                getattr( mparent, cFunc )(json.loads(arr[2]) )
+            except:
+                gWritelog(h, traceback.format_exc())
         elif cCommand == "runfunc":
             cFunc = arr[1].lower()
             try:
                 #xRes = eval(f"{mparent}.{cFunc}(json.loads(arr[2]))")
-                xRes = getattr( mparent, cFunc )(json.loads(arr[2]))
+                xRes = getattr( mparent, cFunc )(json.loads(arr[2]) )
                 SendIn(h, json.dumps(xRes))
             except:
                 gWritelog(h, traceback.format_exc())
@@ -193,7 +193,7 @@ def SendIn(h, s):
     return None
 
 def gVersion(n):
-    return GUIS_VERSION if n == 0 else f"hbExtServer {GUIS_VERSION}"
+    return GUIS_VERSION if n == 0 else "hbExtServer {}".format(GUIS_VERSION)
 
 def gWritelog(h, s):
     if h["log"] > 0:
@@ -299,10 +299,10 @@ def client_conn_Connect(h, cFile):
     nHisId = 2
 
     handlOut = os.open(cFile + ".gs1", os.O_RDWR | os.O_CREAT)
-    gWritelog(h, f"Open out {cFile}.gs1 {handlOut}")
+    gWritelog(h, "Open out {}.gs1 {}".format(cFile,handlOut))
 
     handlIn = os.open(cFile + ".gs2", os.O_RDWR | os.O_CREAT)
-    gWritelog(h, f"Open in {cFile}.gs2 {handlIn}")
+    gWritelog(h, "Open in {}.gs2 {}".format(cFile,handlIn))
 
     h["active"] = handlIn >= 0 and handlOut >= 0
     h["hin"] = handlIn
