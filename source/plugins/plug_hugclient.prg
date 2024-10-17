@@ -242,7 +242,7 @@ STATIC FUNCTION _clihug_Menu()
       {"llm - get list",,}, {"llm - switch to <id>",,}, ;
       {"Share with author <"+Iif(lShareWith,"off","on")+">",,}, ;
       {"stream <"+Iif(lStream,"off","on")+">",,}, {"web <"+Iif(lWeb,"off","on")+">",,}, ;
-      {"web-hint <"+Iif(lWebHint,"off","on")+">",,}, {"exit",,,"F10"} }
+      {"web-hint <"+Iif(lWebHint,"off","on")+">",,}, {"Get history",,}, {"exit",,,"F10"} }
    LOCAL i, cRes, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
@@ -300,9 +300,14 @@ STATIC FUNCTION _clihug_Menu()
       ENDIF
 
    ELSEIF i == 12
+      IF !Empty( cRes := ecli_RunFunc( hExt, "execcmd",{"/gethistory"} ) )
+         _Textout( cRes )
+      ENDIF
+
+   ELSEIF i == 13
       hb_keyPut( K_F10 )
    ENDIF
-   IF i > 0 .AND. i < 12
+   IF i > 0 .AND. i < 13
       IF !Empty( cRes )
          oClient:GoTo( Len( oClient:aText ), 1 )
          oClient:TextOut()

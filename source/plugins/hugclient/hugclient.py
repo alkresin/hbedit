@@ -57,10 +57,10 @@ def handle_command(chatbot: any, aparams) -> None:
 
                if target_id:
                    chatbot.change_conversation(target_id)
-                   return "Switched to conversation with ID: {}\n".format(target_id)
+                   info = chatbot.get_conversation_info()
+                   return "Switched to: {} ({})".format(info.title[:43].replace("\n"," "), info.model )
                else:
                    return "Invalid number"
-               conversation_dict = None
             else:
                return "Error"
 
@@ -71,6 +71,16 @@ def handle_command(chatbot: any, aparams) -> None:
         info = chatbot.get_conversation_info()
         try:
             cres = "{} ({})".format(info.title[:43].replace("\n"," "), info.model )
+        except:
+            cres = "No conversation active"
+        return cres
+
+    elif command == "gethistory":
+        info = chatbot.get_conversation_info()
+        try:
+            cres = ""
+            for i in info.history:
+                cres += "{}\n".format(i)
         except:
             cres = "No conversation active"
         return cres
