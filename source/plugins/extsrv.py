@@ -1,4 +1,10 @@
 
+# Ext
+# A set of routines to launch an external application and keep connection with it - server side
+#
+# Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
+# www - http://www.kresin.ru
+
 import json
 import os
 import sys
@@ -73,26 +79,7 @@ def esrv_Wait(h):
     gWritelog(h, "esrv_Wait: exit")
     return None
 
-def CnvVal(xRes):
-    if isinstance(xRes, list):
-        return "Array"
-    elif isinstance(xRes, dict):
-        return "Object of {}".format(xRes.__class__.__name__)
-    elif isinstance(xRes, tuple):
-        return "Hash array"
-    elif xRes is None:
-        return "Nil"
-    elif isinstance(xRes, str):
-        return xRes
-    elif isinstance(xRes, bool):
-        return "t" if xRes else "f"
-    else:
-        return str(xRes)
-
 def esrv_RunProc(h, cFunc, aParams):
-    for i, param in enumerate(aParams):
-        if not isinstance(param, str):
-            aParams[i] = str(param)
     SendOut(h, json.dumps(("runproc", cFunc, json.dumps(aParams))))
 
     return None
@@ -132,16 +119,7 @@ def Parse(h, arr):
                     cRes = None
                 SendIn(h, json.dumps(cRes))
     elif c == "e":
-        if cCommand == "evalcode":
-            lErr = len(arr) < 2
-            if not lErr:
-                if len(arr) > 2 and arr[2].lower() == "t":
-                    # DoScript(RdScript(,arr[1]))
-                    SendIn(h, json.dumps(cRes))
-                else:
-                    SendIn(h, '"Ok"')
-                    # DoScript(RdScript(,arr[1]))
-        elif cCommand == "exit" or cCommand == "endapp":
+        if cCommand == "exit" or cCommand == "endapp":
             h["end"] = True
             SendIn(h, '"Ok"')
     elif c == "r":

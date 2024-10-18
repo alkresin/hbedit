@@ -1,4 +1,5 @@
-
+# Hugging Face chat client
+#
 from hugchat import hugchat
 from hugchat.login import Login
 import getpass
@@ -6,7 +7,8 @@ import argparse
 import os
 import traceback
 import sys
-sys.path.append('./')
+#sys.path.append('../')
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), os.pardir)))
 from extsrv import esrv_Init, esrv_Wait, gWritelog
 
 email = None
@@ -251,9 +253,16 @@ def nexttoken( aparams ):
                 break
     return "====" if s == "" else s
 
+def xWritelog(s):
+    cFile = "aaa.aaa"
+    with open(cFile, "a") as f:
+        f.write(s + "\n")
+    return None
+
 def main( aparams ):
 
     global hExt
+    #xWritelog( "Start!" )
     hExt = esrv_Init(aparams)
     if hExt == None:
         return None

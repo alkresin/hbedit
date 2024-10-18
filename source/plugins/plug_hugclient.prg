@@ -75,6 +75,12 @@ FUNCTION plug_HugClient( oEdit, cPath )
          RETURN Nil
       ENDIF
    ENDIF
+   cRes := Nil
+   cedi_RunConsoleApp( cCompiler + ' -c "import hugchat"',, @cRes )
+   IF !Empty( cRes )
+      edi_Alert( "You need to install 'hugchat' module for Python" )
+      RETURN Nil
+   ENDIF
 
    _clihug_IniRead( (cIniPath := cPath) + "hugclient.ini" )
 
