@@ -8,9 +8,11 @@
 
 #include "fileio.ch"
 #define PROTOCOL_VER "1.1"
-#define  BUFFLEN   512
+#define GUIS_VERSION "1.4"
+#define SERVER_ID 1
+#define CLIENT_ID 2
 
-#define GUIS_VERSION   "1.4"
+#define  BUFFLEN   512
 
 STATIC cn := e"\n"
 STATIC nInterval := 20
@@ -18,7 +20,7 @@ STATIC cLogFile := "extclient.log"
 STATIC aExt := {}, nExtId := 0
 
 STATIC cVersion := "1.0"
-STATIC nMyId, nHisId
+STATIC nMyId := CLIENT_ID, nHisId := SERVER_ID
 
 FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
 
@@ -43,7 +45,7 @@ FUNCTION ecli_Run( cExe, nLog, cDir, cFile )
    IF !Empty( cFile ) .AND. Valtype( cFile ) == "C"
       cFileRoot := cFile
    ENDIF
-   IF !srv_conn_Create( h, cDirRoot + cFileRoot, .F. )
+   IF !conn_Client_Create( h, cDirRoot + cFileRoot, .F. )
       IF h["hin"] >= 0
          FClose( h["hin"] )
       ENDIF
@@ -283,12 +285,9 @@ STATIC FUNCTION conn_CheckOut( h )
    ENDIF
    RETURN Nil
 
-STATIC FUNCTION srv_conn_Create( h, cFile )
+STATIC FUNCTION conn_Client_Create( h, cFile )
 
    LOCAL handlIn, handlOut
-
-   nMyId := 2
-   nHisId := 1
 
    handlIn := FCreate( cFile + ".gs1" )
    FClose( handlIn )
