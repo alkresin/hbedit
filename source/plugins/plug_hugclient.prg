@@ -148,7 +148,7 @@ STATIC FUNCTION _clihug_Start()
                oClient:lClose := .T.
                RETURN Nil
             ENDIF
-            DirChange( cIniPath + "hugclient" )
+            DirChange( cIniPath + "python" )
             IF ( cRes := ecli_RunFunc( hExt, "setpass",{cPass} ) ) == "Err"
                edi_Alert( "Error..." )
                oClient:lClose := .T.
