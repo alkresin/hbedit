@@ -7,9 +7,6 @@ $HB_INS/bin/linux/gcc/harbour plug_android_project.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_bat_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_c_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_go_init.prg -n -gh
-$HB_INS/bin/linux/gcc/harbour plug_go_spis.prg -n -gh
-$HB_INS/bin/linux/gcc/harbour plug_go_fmt.prg -n -gh
-$HB_INS/bin/linux/gcc/harbour plug_go_run.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_go_build.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_php_init.prg -n -gh
 $HB_INS/bin/linux/gcc/harbour plug_prg_compile.prg -n -gh

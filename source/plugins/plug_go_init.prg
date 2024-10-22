@@ -2,6 +2,8 @@
 #define ALT_PRESSED   0x040000
 #define K_ALT_I   279
 #define K_ALT_R   275
+#define K_ALT_F   289
+#define K_ALT_L   294
 
 STATIC cIniPath
 STATIC nGoInstalled := 0
@@ -16,7 +18,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Go plugin:  Alt-I Info  Alt-R Run" + ;
+         DevOut( "Go plugin:  Alt-I Info   Alt-R Run  Alt-F Format  Alt-L �㭪樨" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
@@ -26,6 +28,8 @@ FUNCTION Plug_go_Init( oEdit, cPath )
          oEdit:hCargo["help"] := "Go plugin hotkeys:" + Chr(10) + ;
             "  Alt-I - Get info about a function or package under cursor" + Chr(10) + ;
             "  Alt-R - Run code" + Chr(10) + ;
+            "  Alt-F - Format code" + Chr(10) + ;
+            "  Alt-L - Functions list" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -90,6 +94,10 @@ FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
          RETURN -1
       ELSEIF nKey == K_ALT_R
          _go_Run()
+      ELSEIF nKey == K_ALT_F
+         _go_Format()
+      ELSEIF nKey == K_ALT_L
+         _go_Spis()
       ENDIF
    ENDIF
 
@@ -152,6 +160,55 @@ STATIC FUNCTION _go_Run()
       bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
       hbc_Console( cCmd,, .F. )
       Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
+   ELSE
+      edi_Alert( "Go is not installed!" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _go_Format()
+
+   LOCAL cRes
+
+   IF nGoInstalled == 0
+      cedi_RunConsoleApp( 'go version',, @cRes )
+      nGoInstalled := Iif( cRes != Nil .AND. "version" $ cRes, 1, -1 )
+   ENDIF
+   IF nGoInstalled == 1
+      oEd:Save()
+      cedi_RunConsoleApp( "gofmt -w " + oEd:cFileName,, @cRes )
+      oEd:SetText( MemoRead( oEd:cFileName ), oEd:cFileName )
+      edi_Alert( "Done!" )
+   ELSE
+      edi_Alert( "Go is not installed!" )
+   ENDIF
+   RETURN Nil
+
+STATIC FUNCTION _go_Spis()
+
+   LOCAL i, n, arr := oEd:aText, cLine, cfirst, nSkip, arrfnc := {}
+
+   FOR i := 1 TO Len( arr )
+      cLine := Lower( Ltrim( arr[i] ) )
+      nSkip := 0
+      cfirst := hb_TokenPtr( cLine, @nSkip )
+      IF cfirst == "func"
+         Aadd( arrfnc, { cp_Left( oEd:lUtf8,arr[i],64 ), Nil, i } )
+      ENDIF
+   NEXT
+   IF !Empty( arrfnc )
+      oEd:TextOut()
+      n := oEd:nLine
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
+      IF ( i := FMenu( oEd, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+         oEd:Goto( arrfnc[i,3] )
+      ENDIF
    ENDIF
 
    RETURN Nil
