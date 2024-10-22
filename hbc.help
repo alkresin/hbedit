@@ -31,7 +31,7 @@ HbCommander - built-in file manager
    Ctrl-F7    - Search
    +          - Search/select
    Ctrl-F8    - Commands History
-   Ctrl-F12   - Quick access to apps, declared in hbc.ini in [APPLIST] section
+   A|a        - Quick access to apps, declared in hbc.ini in [APPLIST] section
    Shift-F1   - Add file/folder to a zip
    Shift-F2   - Extract files from a zip
    Ctrl-O     - Open console

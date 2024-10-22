@@ -161,6 +161,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ELSEIF nKey == K_F10
       mnu_Exit( oEdit_Hbc )
 
+   ELSEIF nKey == K_F12
+      mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
+
    ELSEIF nKey == K_F5
       IF Empty( oPaneCurr:aSelected )
          hbc_FCopyFile( oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
@@ -193,9 +196,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    ELSEIF nKey == K_SH_F11
       mnu_Plugins( oHbc )
-
-   ELSEIF nKey == K_F12
-      mnu_Buffers( oHbc, {oPaneCurr:y1+1,oPaneCurr:x1+1} )
 
    ELSEIF nKey == K_F1
       mnu_Help( oHbc, edi_FindPath( "hbc.help" ), Iif( FilePane():lConsMode,":: :",Nil ) )
@@ -699,8 +699,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
    ELSEIF nKey == K_CTRL_F7
       hbc_Search()
-   ELSEIF nKey == K_CTRL_F12
-      AppList( oPaneCurr )
    ELSEIF nKey == K_SH_F1
       hbc_Zip()
    ELSEIF nKey == K_CTRL_F8
@@ -758,6 +756,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:ChangeDir()
       ELSEIF nKey == 72 .OR. nKey == 104  // H h
          hbc_HistMnu()
+      ELSEIF nKey == 65 .OR. nKey == 97  // A a
+         AppList( oPaneCurr )
       ELSE
          IF !Empty( FilePane():aDefPaths )
             FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -1772,7 +1772,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL cSep := "---"
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
       {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
-      {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Shift-F11"}, {_I("Apps"),,,"Ctrl-F12"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
+      {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Shift-F11"}, {_I("Apps"),,,"A"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
       {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
 
    IF !Empty( FilePane():cConsOut )
