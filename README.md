@@ -48,6 +48,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + hbcommander.prg
     + hbcvf.prg
     + fview.prg         - built-in file manager source files
+    + hbextcli.prg      - client part of "ext" engine for communication between processes
 
     + hbedit.prg        - a wrapper for TEdit class, which implements the editor.
 
@@ -72,10 +73,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_gm_tetris.prg    - A Tetris game
     + plug_gm_ugolki.hrb    - An ugolki game
     + plug_go_build.prg     - Golang build project
-    + plug_go_fmt.prg       - Golang formatting
     + plug_go_init.prg      - a start plugin for .go files
-    + plug_go_run.prg       - Golang run code
-    + plug_go_spis.prg      - Golang functions list
     + plug_hbc_ext_all.hrb  - For internal use
     + plug_hbc_ext_fb2.prg    - file commander plugin, simple fb2 reader (.fb2)
     + plug_hbc_ext_fb2zip.prg - file commander plugin, simple fb2 reader (.fb2.zip)
@@ -87,6 +85,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_hbc_latin.prg    - file commander plugin, converts file names
     + plug_hbc_menu.prg     - a plugin, which complements file commander context menu
     + plug_hbp_init.prg     - a start plugin for .hbp files
+    + plug_hugclient.hrb    - Hugging chat client
     + plug_hwprj_init.hrb   - HwBuilder start plugin
     + plug_java_init.prg    - a start plugin for .java files
     + plug_lisp_init.prg    - a start plugin for .lisp files
@@ -101,6 +100,9 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_sh_init.prg      - a start plugin for .sh files
     + plug_vcs.prg          - a plugin to work with Git and Fossil
     + plug_webservices.prg  - Some web services access
+  + source/plugins/python   - python plugins source files
+    + extsrv.py
+    + hugclient.py
 
 ### Usage
 
