@@ -7,8 +7,8 @@ import argparse
 import os
 import traceback
 import sys
-#sys.path.append('../')
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), os.pardir)))
+sys.path.append('./')
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), os.pardir)))
 from extsrv import esrv_Init, esrv_Wait, gWritelog
 
 email = None

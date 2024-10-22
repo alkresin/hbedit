@@ -107,7 +107,7 @@ FUNCTION plug_HugClient( oEdit, cPath )
 STATIC FUNCTION _clihug_Start()
 
    LOCAL aMenu, i, cRes, cPass
-   LOCAL cExe := cCompiler + " " + cIniPath + "hugclient" + hb_ps() + "hugclient.py"
+   LOCAL cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + "hugclient.py"
 
    IF oClient:hCargo == Nil
       oClient:hCargo := hb_hash()
