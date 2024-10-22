@@ -1,8 +1,11 @@
 
 #define ALT_PRESSED   0x040000
 #define K_ALT_I   279
+#define K_ALT_R   275
 
 STATIC cIniPath
+STATIC nGoInstalled := 0
+STATIC oEd
 
 FUNCTION Plug_go_Init( oEdit, cPath )
 
@@ -13,7 +16,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "Go plugin:  Alt-I Info" + ;
+         DevOut( "Go plugin:  Alt-I Info  Alt-R Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
@@ -22,6 +25,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
          ENDIF
          oEdit:hCargo["help"] := "Go plugin hotkeys:" + Chr(10) + ;
             "  Alt-I - Get info about a function or package under cursor" + Chr(10) + ;
+            "  Alt-R - Run code" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -35,6 +39,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
       RETURN nRes
    }
 
+   oEd := oEdit
    cIniPath := cPath
    oEdit:bAutoC := {|o,s| _go_AutoC(o,s)}
 
@@ -83,6 +88,8 @@ FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
          DevPos( nRow, nCol )
          oEdit:TextOut()
          RETURN -1
+      ELSEIF nKey == K_ALT_R
+         _go_Run()
       ENDIF
    ENDIF
 
@@ -124,6 +131,27 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
       mnu_ToBuf( oEdit, nPos )
    ELSE
       edi_AddWindow( oEdit, cBuff, cAddW, 2, 12, "UTF8" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _go_Run()
+
+   LOCAL cRes, cTempFile, nScreenH, nScreenW, bufsc, cCmd
+
+   IF nGoInstalled == 0
+      cedi_RunConsoleApp( 'go version',, @cRes )
+      nGoInstalled := Iif( cRes != Nil .AND. "version" $ cRes, 1, -1 )
+   ENDIF
+   IF nGoInstalled == 1
+      cTempFile := hb_DirTemp() + "hb_go_tmp.go"
+      hb_MemoWrit( cTempFile, oEd:ToString() )
+      cCmd := "go run " + cTempFile
+      nScreenH := FilePane():vy2 + 1
+      nScreenW := FilePane():vx2 + 1
+      bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
+      hbc_Console( cCmd,, .F. )
+      Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    ENDIF
 
    RETURN Nil
