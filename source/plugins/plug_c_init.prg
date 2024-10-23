@@ -1,8 +1,10 @@
 #define ALT_PRESSED   0x040000
 #define K_ALT_L            294
+#define K_ALT_R            275
 
 STATIC cIniPath
 STATIC lClass
+STATIC nCompiler
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
@@ -13,7 +15,7 @@ FUNCTION Plug_c_Init( oEdit, cPath )
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "C/C++ plugin:  Alt-L Functions list" + ;
+         DevOut( "C/C++ plugin:  Alt-L Functions list  Alt-R Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
@@ -22,6 +24,7 @@ FUNCTION Plug_c_Init( oEdit, cPath )
          ENDIF
          oEdit:hCargo["help"] := "C/C++ plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-R  - Run" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -54,20 +57,85 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
       IF nKey == K_ALT_L
          _c_Spis( oEdit )
          RETURN -1
+      ELSEIF nKey == K_ALT_R
+         _c_Run( oEdit )
+         RETURN -1
       ENDIF
    ENDIF
 
    RETURN 0
 
+STATIC FUNCTION _c_Compiler_Init()
+
+   LOCAL i, aEnv := hb_ATokens( GetEnv( "PATH" ), hb_osPathListSeparator() )
+
+   FOR i := 1 TO Len( aEnv )
+#ifdef __PLATFORM__WINDOWS
+      IF File( aEnv[i] + '\' + "bcc32.exe" )
+         nCompiler := 2
+         EXIT
+      ELSEIF File( aEnv[i] + '\' + "gcc.exe" )
+         nCompiler := 1
+         EXIT
+      ENDIF
+#else
+      IF File( aEnv[i] + '/' + "gcc" )
+         nCompiler := 1
+         EXIT
+      ENDIF
+#endif
+   NEXT
+
+   RETURN Nil
+
+STATIC FUNCTION _c_Run( oEdit )
+
+   LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew
+   LOCAL cTmpC := hb_dirTemp() + cSrcName + ".c", cTmpExe, cRes
+
+   edi_CloseWindow( cFileOut )
+#ifdef __PLATFORM__WINDOWS
+   cTmpExe := hb_dirTemp() + cSrcName + ".exe"
+#else
+   cTmpExe := hb_dirTemp() + cSrcName
+#endif
+   hb_MemoWrit( cTmpC, oEdit:ToString() )
+
+   IF Empty( nCompiler )
+      _c_Compiler_Init()
+   ENDIF
+   IF Empty( nCompiler )
+      edi_Alert( "No one C compiler found" )
+      RETURN Nil
+   ENDIF
+
+   FErase( cTmpExe )
+   // Compiling
+#ifdef __PLATFORM__WINDOWS
+   IF nCompiler == 2
+      cedi_RunConsoleApp( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC, "c:\temp\aaa",, @cRes )
+   ELSE
+      cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
+   ENDIF
+#else
+   cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
+#endif
+
+   IF File( cTmpExe )
+      hbc_Console( cTmpExe, .F. )
+   ELSEIF !Empty( cRes )
+      oNew := edi_AddWindow( oEdit, cRes, cFileOut, 2, 7 )
+      oNew:lReadOnly := .T.
+   ELSE
+      edi_Alert( "Something goes wrong..." )
+   ENDIF
+
+   RETURN Nil
+
 STATIC FUNCTION _c_Spis( oEdit )
 
    LOCAL i, n, arrfnc
    LOCAL oHili := oEdit:oHili
-   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
-
-   //IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
-   //   oEdit:oHili:Do( Len( oEdit:aText ) )
-   //ENDIF
 
    lClass := .F.
    oHili:CheckComm()

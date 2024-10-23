@@ -1103,7 +1103,7 @@ CLASS FilePane
    CLASS VAR aPanes SHARED INIT {}
    CLASS VAR aDefPaths SHARED
    CLASS VAR aExtView, aExtEdit, aExtEnter, aQView SHARED
-   CLASS VAR aCmdHis   SHARED
+   CLASS VAR aCmdHis   SHARED INIT {}
    CLASS VAR lCmdHis   SHARED INIT .F.
    CLASS VAR hCmdTrie  SHARED INIT Nil
    CLASS VAR aDocHis   SHARED
@@ -3550,6 +3550,9 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
       RETURN Nil
    }
 
+   IF Empty( FilePane():cp )
+      Hbc( TEdit():aWindows[TEdit():nCurr] )
+   ENDIF
    FilePane():lConsMode := .T.
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    clr := SetColor( "+W/N" )

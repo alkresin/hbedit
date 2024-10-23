@@ -3267,7 +3267,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
-         "Copyright (C) 2019-2023  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
+         "Copyright (C) 2019-2024  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, cName, ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
@@ -3340,6 +3340,10 @@ FUNCTION mnu_Syntax( oEdit, aXY )
    NEXT
 
    FMenu( oEdit, aMenu, aXY[1], aXY[2] )
+   IF !Empty( oEdit:bStartEdit )
+      Eval( oEdit:bStartEdit, oEdit )
+      edi_Alert( "Init plugin is ready" )
+   ENDIF
 
    RETURN Nil
 

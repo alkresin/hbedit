@@ -93,7 +93,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_php_init.prg     - a start plugin for .php files
     + plug_prg_compile.prg  - Harbour compiling
     + plug_prg_init.prg     - a start plugin for .prg files
-    + plug_py_spis.prg      - Python functions list
+    + plug_py_init.prg      - a start plugin for .py files
     + plug_prg_run.prg      - Harbour run
     + plug_prg_run1c.prg    - Harbour for 1c
     + plug_selection.prg    - Additional operations on selected region
