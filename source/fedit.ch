@@ -11,4 +11,4 @@
    #include "hbfuncsfull.ch"
 #endif
 
-#define HBEDIT_VERSION  "v2.4-92"
+#define HBEDIT_VERSION  "v2.5-41"
