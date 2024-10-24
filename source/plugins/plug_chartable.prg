@@ -1,3 +1,10 @@
+/*
+ * HbEdit plugin - a characters table
+ *
+ * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define CTRL_PRESSED  0x020000
 #define INKEY_ALLEXT   ( 1+2+4+8+16+32+64+128+2048 )
 
@@ -14,12 +21,14 @@
 #define K_CTRL_INS      402
 #define K_LBUTTONDOWN  1002
 #define K_ENTER          13
+#define SC_NORMAL         1
 
 #define HB_GTI_CLIPBOARDDATA    15
 
 FUNCTION plug_CharTable( oEdit )
 
-   LOCAL bufc := SaveScreen( 02, 06, 15, 41 ), nRow := Row(), nCol := Col(), oldc := SetColor( oEdit:cColorSel )
+   LOCAL bufc := SaveScreen( 02, 06, 15, 41 ), nRow := Row(), nCol := Col()
+   LOCAL oldc := SetColor( oEdit:cColorSel ), oldcurs
    LOCAL nKeyExt, nKey, x1 := 8, y1 := 5, x, y, yf := 0, mCol, mRow
    LOCAL lEnd := .F., c
 
@@ -37,6 +46,7 @@ FUNCTION plug_CharTable( oEdit )
    DrawTable( oEdit:lUtf8, yf, y1, x1 )
    ShowChar( oEdit:lUtf8, 0 )
    DevPos( y := y1, x := x1 )
+   oldcurs := SetCursor( SC_NORMAL )
 
    DO WHILE !lEnd
       nKeyExt := Inkey( 0, INKEY_ALLEXT )
@@ -108,6 +118,7 @@ FUNCTION plug_CharTable( oEdit )
       DevPos( y, x )
    ENDDO
 
+   SetCursor( oldcurs )
    RestScreen( 02, 06, 15, 41, bufc )
    DevPos( nRow, nCol )
    SetColor( oldc )

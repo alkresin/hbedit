@@ -246,6 +246,7 @@ STATIC FUNCTION conn_Send2SocketOut( h, s, lNoWait )
             IF !Empty( cAns := conn_CheckOut( h ) )
                RETURN cAns
             ENDIF
+            cedi_Sleep( 2 )
             IF !Empty( h["cb"] )
                Eval( h["cb"] )
             ENDIF

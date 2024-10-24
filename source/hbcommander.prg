@@ -52,6 +52,7 @@ STATIC aRemotePorts := { "2941" }
 STATIC aCpInUse := { "RU866", "RU1251", "UTF8" }
 STATIC aUtf8Auto := { "sftp:", "ftp:" }
 STATIC cNotPerm := "Operation isn't permitted"
+STATIC aNoWin
 
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
 
@@ -992,6 +993,13 @@ STATIC FUNCTION ReadIni( cIniName )
          NEXT
       ENDIF
 
+      IF hb_hHaskey( hIni, cTmp := "CONSOLE" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         IF hb_hHaskey( aSect, "nowindow" ) .AND. !Empty( cTmp := aSect[ "nowindow" ] )
+            aNoWin := hb_ATokens( cTmp )
+         ENDIF
+      ENDIF
+
       IF hb_hHaskey( hIni, cTmp := "MISC" ) .AND. !Empty( aSect := hIni[ cTmp ] )
          hb_hCaseMatch( aSect, .F. )
          arr := hb_hKeys( aSect )
@@ -1184,6 +1192,7 @@ CLASS FilePane
    METHOD DrawCell( nCell, lSel )
    METHOD DrawHead( lSel )
    METHOD PaneMenu()
+   METHOD PaneCurr()  INLINE oPaneCurr
    METHOD ContextMenu()
    METHOD RedrawAll()
    METHOD onExit()
@@ -3900,6 +3909,9 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
 #ifndef __PLATFORM__UNIX
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
             nSecInit := 0
+            IF !Empty( aNoWin ) .AND. Ascan( aNoWin, hb_ATokens( cCommand )[1] ) > 0
+               lShowWin := .F.
+            ENDIF
             IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) ) .AND. ( lShowWin == Nil .OR. lShowWin )
                IF !Empty(lShowWin) .OR. ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
                   cedi_ShowWindow( hWnd )

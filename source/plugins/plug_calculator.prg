@@ -1,3 +1,10 @@
+/*
+ * HbEdit plugin - a cexpressions calculator
+ *
+ * Copyright 2019 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define K_ESC       27
 #define K_F5        -4
 #define K_F10       -9
