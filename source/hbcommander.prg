@@ -759,6 +759,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          hbc_HistMnu()
       ELSEIF nKey == 65 .OR. nKey == 97  // A a
          AppList( oPaneCurr )
+      ELSEIF nKey == 90 .OR. nKey == 122 // Z z
+         mnu_Plugins( oHbc )
       ELSE
          IF !Empty( FilePane():aDefPaths )
             FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -1781,7 +1783,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL cSep := "---"
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
       {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
-      {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Shift-F11"}, {_I("Apps"),,,"A"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
+      {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Z"}, {_I("Apps"),,,"A"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
       {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
 
    IF !Empty( FilePane():cConsOut )

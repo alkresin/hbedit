@@ -22,6 +22,7 @@ harbour plug_selection.prg -n -gh -q
 harbour plug_chartable.prg -n -gh -q
 harbour plug_calculator.prg -n -gh -q
 harbour plug_palette.prg -n -gh -q
+harbour plug_games.prg -n -gh -q
 harbour plug_gm_tetris.prg -n -gh -q
 harbour plug_gm_sokoban.prg -n -gh -q
 harbour plug_gm_strek.prg -n -gh -q

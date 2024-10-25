@@ -10,11 +10,11 @@ hExt = None
 def fu1( aparams ):
     fname, fext = os.path.splitext( aparams[1] )
     if fext == ".jpg" or fext == ".png":
-        img = cv.imread(cv.samples.findFile(aparams[0]+aparams[1]))
+        img = cv.imread(aparams[0]+aparams[1])
         if img is None:
             return "Could not read the image"
      
-        cv.imshow("Display window", img)
+        cv.imshow("{} {}x{}".format(aparams[1],img.shape[0],img.shape[1]), img)
         k = cv.waitKey(0)
 
     return ":end;"

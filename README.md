@@ -65,6 +65,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_calculator.prg   - Calculator
     + plug_chartable.prg    - Chartable
     + plug_extllm.hrb       - Llama.prg client
+    + plug_games.prg        - A list of games
     + plug_gm_chess.prg     - A Chess game
     + plug_gm_life.prg      - A Life game
     + plug_gm_sokoban.prg   - A Sokoban game
