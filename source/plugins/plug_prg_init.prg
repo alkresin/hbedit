@@ -1,6 +1,7 @@
 #define ALT_PRESSED   0x040000
 #define CTRL_PRESSED  0x020000
 #define K_LDBLCLK 1006
+#define K_ALT_A    286
 #define K_ALT_D    288
 #define K_ALT_I    279
 #define K_ALT_L    294
@@ -10,7 +11,7 @@
 #define K_DOWN      24
 #define K_CTRL_RIGHT 2
 
-STATIC cIniPath
+STATIC cIniPath, oEd
 STATIC lIsCurl := .F., cServAddr
 STATIC lDescri := .T., lSources := .F., lChglog := .F., lSamples := .F., lRu := .F.
 STATIC aHwgFuncs, aHbFuncs
@@ -36,6 +37,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
             "  Alt-D  - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
             "  Alt-I  - Get info about a function under cursor" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-A  - Add to code a standard construction" + Chr(10) + ;
             "  Alt-H  - Build with hwbc" + Chr(10) + ;
             "  Ctrl-B - Go to a matched keyword (IF...ENDIF, etc.)" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
@@ -53,6 +55,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
    }
 
    cIniPath := cPath
+   oEd := oEdit
    oEdit:bStartEdit := bStartEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
@@ -84,6 +87,9 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
          RETURN -1
       ELSEIF nKey == K_ALT_H
          _prg_Init_Build( oEdit )
+         RETURN -1
+      ELSEIF nKey == K_ALT_A
+         _prg_AddCode()
          RETURN -1
       ENDIF
    ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
@@ -144,6 +150,24 @@ STATIC FUNCTION _prg_Spis( oEdit )
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _prg_AddCode()
+
+   LOCAL aMenu := { "IF ... ENDIF", "IF ... ELSE ...", "DO ... ENDDO", ;
+      "FOR ... NEXT", "FOR EACH ... NEXT", "SWITCH ... CASE ...", ;
+      "FUNC ... RETURN", "STATIC FUNC ... RETURN", "CLASS ... ENDCLASS" }, i
+   LOCAL aCode := { e"IF\rENDIF\n", e"IF\rELSE\rENDIF\n", e"DO\rENDDO\n", ;
+      e"FOR i := 1 TO\rNEXT\n", e"FOR EACH x IN\rNEXT\n", e"SWITCH\rCASE\rENDCASE\n", ;
+      e"FUNCTION\r   RETURN Nil\n", e"STATIC FUNCTION\r   RETURN Nil\n", e"CLASS\r   DATA\r   METHOD\rENDCLASS" }
+
+   IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
+      RETURN Nil
+   ENDIF
+
+   oEd:InsText( oEd:nLine, oEd:nPos, StrTran( aCode[i], Chr(13), Chr(10)+Space(oEd:nPos-1) ) )
+   oEd:TextOut()
 
    RETURN Nil
 
