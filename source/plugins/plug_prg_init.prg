@@ -11,7 +11,7 @@
 #define K_DOWN      24
 #define K_CTRL_RIGHT 2
 
-STATIC cIniPath, oEd
+STATIC cIniPath
 STATIC lIsCurl := .F., cServAddr
 STATIC lDescri := .T., lSources := .F., lChglog := .F., lSamples := .F., lRu := .F.
 STATIC aHwgFuncs, aHbFuncs
@@ -55,7 +55,6 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
    }
 
    cIniPath := cPath
-   oEd := oEdit
    oEdit:bStartEdit := bStartEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
@@ -89,7 +88,7 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
          _prg_Init_Build( oEdit )
          RETURN -1
       ELSEIF nKey == K_ALT_A
-         _prg_AddCode()
+         _prg_AddCode( oEdit )
          RETURN -1
       ENDIF
    ELSEIF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
@@ -153,7 +152,7 @@ STATIC FUNCTION _prg_Spis( oEdit )
 
    RETURN Nil
 
-STATIC FUNCTION _prg_AddCode()
+STATIC FUNCTION _prg_AddCode( oEdit )
 
    LOCAL aMenu := { "IF ... ENDIF", "IF ... ELSE ...", "DO ... ENDDO", ;
       "FOR ... NEXT", "FOR EACH ... NEXT", "SWITCH ... CASE ...", ;
@@ -162,12 +161,12 @@ STATIC FUNCTION _prg_AddCode()
       e"FOR i := 1 TO\rNEXT\n", e"FOR EACH x IN\rNEXT\n", e"SWITCH\rCASE\rENDCASE\n", ;
       e"FUNCTION\r   RETURN Nil\n", e"STATIC FUNCTION\r   RETURN Nil\n", e"CLASS\r   DATA\r   METHOD\rENDCLASS" }
 
-   IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
+   IF ( i := FMenu( oEdit, aMenu, oEdit:y1+2, oEdit:x1+4 ) ) == 0
       RETURN Nil
    ENDIF
 
-   oEd:InsText( oEd:nLine, oEd:nPos, StrTran( aCode[i], Chr(13), Chr(10)+Space(oEd:nPos-1) ) )
-   oEd:TextOut()
+   oEdit:InsText( oEdit:nLine, oEdit:nPos, StrTran( aCode[i], Chr(13), Chr(10)+Space(oEdit:nPos-1) ) )
+   oEdit:TextOut()
 
    RETURN Nil
 
