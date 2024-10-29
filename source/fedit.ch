@@ -10,6 +10,9 @@
 #else
    #include "hbfuncsfull.ch"
    #ifdef GTHWG
+      #ifdef __PLATFORM__UNIX
+         #define __GTK__
+      #endif
       #include "hwgextern.ch"
    #endif
 #endif
