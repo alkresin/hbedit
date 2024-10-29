@@ -1,0 +1,474 @@
+/*
+ * HbEdit plugin - aiTutor support
+ *
+ * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
+#define K_ENTER  13
+
+STATIC cIniPath
+STATIC oEd
+STATIC lShowHelp := .T.
+STATIC aTutor, cTutorCurr, cLang, aTrace
+STATIC aLangs := { "harbour", "python", "c", "go", "java" }
+STATIC aExt := { ".prg", ".py", ".c", ".go", ".java" }
+STATIC cn := e"\n"
+
+FUNCTION plug_itutor( oEdit, cPath )
+
+   LOCAL i, s
+
+   oEd := oEdit
+   cIniPath := cPath
+
+   IF Empty( aTutor )
+      _itu_SeleBook()
+   ENDIF
+
+   IF Empty( aTutor )
+      edi_Alert( "No info found" )
+      RETURN Nil
+   ENDIF
+
+   IF !_itu_Show( aTutor, 0 )
+      aTrace := {}
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_Show( arr, nLevel )
+
+   LOCAL nDop := Iif( nLevel==0, 2, 0 ), oNew, cRes, lLoop := .F.
+   LOCAL aMenu, i, j, nCurr
+   LOCAL bKeys := {|nKeyExt, nRow|
+      IF nKeyExt == 0x41000001  // F1
+         lShowHelp := .T.
+         lLoop := .T.
+         RETURN .F.
+      ELSEIF nRow > nDop
+         IF nKeyExt == 0x41000015   // Ins
+            IF !_itu_Ins( arr, nRow-nDop )
+               RETURN .T.
+            ENDIF
+            lLoop := .T.
+            RETURN .F.
+         ELSEIF nKeyExt == 0x41000016  // Del
+            _itu_Del( arr, nRow-nDop )
+            lLoop := .T.
+            RETURN .F.
+         ELSEIF nKeyExt == 0x41000003  // F3
+            _itu_Comment( arr, nRow-nDop )
+            lLoop := .T.
+            RETURN .F.
+         ELSEIF nKeyExt == 0x41000004  // F4
+            _itu_Rename( arr, nRow-nDop )
+            lLoop := .T.
+            RETURN .F.
+         ENDIF
+      ENDIF
+      RETURN .T.
+   }
+
+   DO WHILE .T.
+      aMenu := Array( Len(arr)+nDop )
+      IF nDop > 0
+         aMenu[1] := { "== " + cTutorCurr + " ==" ,, }
+         aMenu[2] := { "---",, }
+      ENDIF
+      FOR i := 1 TO Len( arr )
+         IF Valtype( arr[i,2] ) == "A".AND. !Empty( arr[i,2] )
+            aMenu[i+nDop] := { arr[i,1],,, ">" }
+         ELSE
+            aMenu[i+nDop] := { arr[i,1],, }
+         ENDIF
+      NEXT
+      IF lShowHelp
+         edi_Alert( "iTutor plugin hotkeys:;F1 - Show this screen;Ins - Insert chapter or module near current position;Del - Delete chapter or module;F3 - View/edit chapter's comments;F4 - Rename chapter or module" )
+         lShowHelp := .F.
+      ENDIF
+      lLoop := .F.
+      IF !Empty(aTrace)
+         nCurr := aTrace[1]
+         hb_ADel( aTrace, 1, .T. )
+         KEYBOARD Chr(K_ENTER)
+      ELSE
+         nCurr := Nil
+      ENDIF
+      IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4,,,,, nCurr,,,, bKeys ) ) == 0
+         IF lLoop
+            lLoop := .F.
+            LOOP
+         ELSEIF Lastkey() == -9
+            aTrace := {}
+            RETURN .T.
+         ELSE
+            RETURN .F.
+         ENDIF
+      ENDIF
+      lLoop := .F.
+      IF nDop > 0
+         IF i == 1
+            _itu_SeleBook()
+            arr := aTutor
+            LOOP
+         ELSE
+            i -= nDop
+         ENDIF
+      ENDIF
+      IF Valtype( arr[i,2] ) == "A"
+         IF !Empty( arr[i,2] )
+            IF _itu_Show( arr[i,2], nLevel+1 )
+               hb_AIns( aTrace, 1, i+nDop, .T. )
+               RETURN .T.
+            ENDIF
+         ELSE
+            _itu_Ins( arr[i,2], 1, .T. )
+         ENDIF
+      ELSE
+         oNew := TEdit():aWindows[TEdit():nCurr]
+         cRes := "$" + arr[i,1] + Iif( (j:=Ascan(aLangs,cLang))>0,aExt[j],"" )
+         IF __ObjHasMsg( oNew, "hcargo" ) .AND. !Empty( oNew:hCargo ) .AND. ;
+            hb_hHaskey( oNew:hCargo, "itutor_arr" )
+            oNew:Settext( arr[i,2], cRes )
+            oNew:lUpdated := .F.
+         ELSE
+            oNew := mnu_NewBuf( oEd, cRes, arr[i,2], @_itu_Save() )
+            IF Empty( oNew:hCargo )
+               oNew:hCargo := hb_hash()
+            ENDIF
+         ENDIF
+         oNew:hCargo["itutor_arr"] := arr[i]
+         aTrace := {}
+         RETURN .T.
+      ENDIF
+   ENDDO
+
+   RETURN .T.
+
+STATIC FUNCTION _itu_Ins( arr, nRow, lToEmpty )
+
+   LOCAL i, cName, cText, lComm := .F., lMod := .F., arr1, aMenu
+
+   IF !Empty( lToEmpty )
+      IF ( i := FMenu( oEd, {"Insert module to", "Insert chapter to"}, oEd:y1+2, oEd:x1+4 ) ) == 0
+         RETURN .F.
+      ENDIF
+      IF i == 2
+         i := 3
+      ENDIF
+   ELSE
+      IF ( i := FMenu( oEd, {"Insert module before", "Insert module after", ;
+         "Insert chapter before", "Insert chapter after"}, oEd:y1+2, oEd:x1+4 ) ) == 0
+         RETURN .F.
+      ENDIF
+   ENDIF
+   // Get the name of module or chapter
+   IF Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24 ) )
+      RETURN .F.
+   ENDIF
+
+   IF i < 3
+      // If module, get the code
+      IF Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+         RETURN .F.
+      ENDIF
+      hb_AIns( arr, nRow + i-1, { cName, cText, ">" }, .T. )
+   ELSE
+      // If chapter, add it and request a comment and module for it
+      hb_AIns( arr, nRow + i-3, arr1 := { cName, {} }, .T. )
+      DO WHILE !lMod .OR. !lComm
+         aMenu := {}
+         IF !lComm
+            AAdd( aMenu, "Add comment" )
+         ENDIF
+         IF !lMod
+            AAdd( aMenu, "Add module" )
+         ENDIF
+         IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
+            EXIT
+         ELSEIF i == 1 .AND. !lComm
+            IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+               AAdd( arr1, cText )
+               lComm := .T.
+            ENDIF
+         ELSE
+            IF !Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24 ) )
+               IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+                  AAdd( arr1[2], { cName, cText, ">" } )
+                  lMod := .T.
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDDO
+   ENDIF
+   IF edi_Alert( "Really update the book?", "Yes", "No" ) == 1
+      _itu_WriteBook()
+   ENDIF
+
+   RETURN .T.
+
+STATIC FUNCTION _itu_Del( arr, nRow )
+
+   IF Valtype( arr[nRow,2] ) == "A" .AND. !Empty( arr[nRow,2] )
+      edi_Alert( "The Chapter isn't empty!" )
+      RETURN .T.
+   ENDIF
+   IF edi_Alert( "Really update the book?", "Yes", "No" ) == 1
+      hb_ADel( arr, nRow, .T. )
+      _itu_WriteBook()
+   ENDIF
+
+   RETURN .T.
+
+STATIC FUNCTION _itu_Comment( arr, nRow )
+
+   LOCAL cComm := Iif( Len(arr[nRow]) > 2, arr[nRow,3], "" ), cRes
+
+   cRes := edi_MsgGet_ext( cComm, oEd:y1+2, oEd:x1+16, oEd:y1+10, oEd:x2-16, "UTF8" )
+   IF !Empty( cRes ) .AND. !( cRes == cComm ) .AND. ;
+      edi_Alert( "Really update the book?", "Yes", "No" ) == 1
+      arr[nRow,3] := cRes
+      _itu_WriteBook()
+   ENDIF
+
+   RETURN .T.
+
+STATIC FUNCTION _itu_Rename( arr, nRow )
+
+   LOCAL cRes := edi_MsgGet( "Change title:", oEd:y1+8, oEd:x1+24, oEd:x2-24,, arr[nRow,1] )
+
+   IF !Empty( cRes ) .AND. edi_Alert( "Really update the book?", "Yes", "No" ) == 1
+      arr[nRow,1] := cRes
+      _itu_WriteBook()
+   ENDIF
+
+   RETURN .T.
+
+FUNCTION _itu_Save( cFileName, cText, oEdit )
+
+   LOCAL arr := oEdit:hCargo["itutor_arr"], dDateMod, cTimeMod
+
+   IF hb_fnameName( cFileName ) == "$" + arr[1]
+      IF edi_Alert( "Really update the book?", "Yes", "No" ) == 1
+         arr[2] := cText
+         _itu_WriteBook()
+      ENDIF
+   ELSE
+      hb_MemoWrit( cFileName, cText )
+      IF hb_fGetDateTime( cFileName, @dDateMod, @cTimeMod )
+         oEdit:dDateMod := dDateMod
+         oEdit:cTimeMod := cTimeMod
+      ENDIF
+      oEdit:lUpdated := .F.
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_WriteBook()
+
+   LOCAL cFile := cIniPath + "itutor" + hb_ps() + cTutorCurr
+   LOCAL cFileNew := cFile + ".new", han, i
+   LOCAL cFileBack := cFile + ".bak"
+
+   IF (han := FCreate( cFileNew )) == -1
+      edi_Alert( "Can't create " + cFileNew )
+   ENDIF
+   FWrite( han, '<?xml version="1.0" encoding="UTF-8"?>' + cn + '<init lang="' + ;
+      cLang + '">' + cn )
+
+   FOR i := 1 TO Len( aTutor )
+      _itu_WriteChapter( han, aTutor[i], 1 )
+   NEXT
+   FWrite( han, '</init>' )
+   FClose( han )
+
+   FErase( cFileBack )
+   IF !File( cFile ) .OR. FRename( cFile, cFileBack ) == 0
+      FRename( cFileNew, cFile )
+   ELSE
+      edi_Alert( "Can't rename " + cFile + " to " + cFileBack )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_WriteChapter( han, arr, nLevel )
+
+   LOCAL i
+
+   FWrite( han, Space( nLevel*2 ) + '<chapter name="' + arr[1] + '" >' + cn )
+   IF Len( arr ) > 2 .AND. !Empty( arr[3] )
+      FWrite( han, Space( nLevel*2 + 2 ) + '<comment>' + cn + ;
+         Space( nLevel*2 + 4 ) + '<![CDATA[' + arr[3] + ']]>' + cn + ;
+         Space( nLevel*2 + 2 ) + '</comment>' + cn )
+   ENDIF
+   FOR i := 1 TO Len( arr[2] )
+      IF Valtype( arr[2,i,2] ) == "A"
+         _itu_WriteChapter( han, arr[2,i], nLevel+1 )
+      ELSE
+         FWrite( han, Space( nLevel*2 + 2 ) + '<module name="' + arr[2,i,1] + '"' + arr[2,i,3] + cn + ;
+         Space( nLevel*2 + 4 ) + '<![CDATA[' + arr[2,i,2] + ']]>' + cn + ;
+         Space( nLevel*2 + 2 ) + '</module>' + cn )
+      ENDIF
+   NEXT
+   FWrite( han, Space( nLevel*2 ) + '</chapter>' + cn )
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_SeleBook()
+
+   LOCAL aMenu := Directory( cIniPath + "itutor" + hb_ps() + "*.xml" )
+   LOCAL i
+
+   FOR i := 1 TO Len( aMenu )
+      aMenu[i] := aMenu[i,1]
+   NEXT
+   hb_AIns( aMenu, 1, "---", .T. )
+   hb_AIns( aMenu, 1, "Create new", .T. )
+
+   IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
+      RETURN Nil
+   ENDIF
+
+   IF i == 1
+      _itu_Create()
+      RETURN Nil
+   ENDIF
+   cTutorCurr := aMenu[i]
+   _itu_Load()
+   //edi_Writelog( hb_Valtoexp(aTutor) )
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_Create()
+
+   LOCAL cFile := edi_MsgGet( "File name:", oEd:y1+6, oEd:x1+24, oEd:x2-24 )
+   LOCAL i, s
+
+   IF Empty( cFile )
+      RETURN Nil
+   ENDIF
+   IF ( i := FMenu( oEd, aLangs, oEd:y1+6, oEd:x1+24 ) ) == 0
+      RETURN Nil
+   ENDIF
+
+   cLang := aLangs[i]
+   cTutorCurr := hb_fnameExtSet( cFile, ".xml" )
+   aTutor := { {"Introduction", {}, "Start"} }
+   _itu_WriteBook()
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_Load()
+
+   LOCAL cBuff := Memoread( cIniPath + "itutor" + hb_ps() + cTutorCurr )
+   LOCAL nPos := 0, c
+
+   aTutor := {}
+   IF ( nPos := At( "<init", cBuff ) ) == 0
+      edi_Writelog( "Error in tutor 1" )
+      RETURN Nil
+   ENDIF
+   IF ( cLang := _itu_GetAttr( cBuff, nPos, "lang" ) ) == Nil
+      edi_Writelog( "Error in tutor 2" )
+      RETURN Nil
+   ENDIF
+
+   DO WHILE ( nPos := hb_At( "<chapter", cBuff, nPos ) ) > 0
+      IF ( nPos := _itu_AddChapter( cBuff, nPos, aTutor ) ) == -1
+         edi_Alert( "Wrong tutor file" )
+         aTutor := {}
+         RETURN Nil
+      ENDIF
+      nPos ++
+   ENDDO
+
+   RETURN Nil
+
+STATIC FUNCTION _itu_AddChapter( cBuff, nPos, arr )
+
+   LOCAL c, nPos2, arr1, lFirst := .T., cTemp
+
+   IF ( c := _itu_GetAttr( cBuff, nPos, "name" ) ) == Nil
+      RETURN -1
+   ENDIF
+   // add chapter array { cName, {} }
+   AAdd( arr, { c, arr1 := {} } )
+   nPos += 12
+   DO WHILE ( nPos := hb_At( "<", cBuff, nPos ) ) > 0
+      nPos ++
+      IF ( c := Substr( cBuff, nPos, 1 ) ) == "/"
+         nPos ++
+         IF ( c := Substr( cBuff, nPos, 1 ) ) == "c"
+            IF Substr( cBuff, nPos, 7 ) == "chapter"
+               RETURN nPos + 7
+            ENDIF
+         ENDIF
+      ELSEIF c == "m"
+         IF Substr( cBuff, nPos, 6 ) == "module"
+            lFirst := .F.
+            IF ( nPos2 := hb_At( "</module", cBuff, nPos ) ) == 0
+               edi_Writelog( "Error in tutor 3:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+               RETURN -1
+            ENDIF
+            IF ( c := _itu_GetAttr( cBuff, nPos, "name", @cTemp ) ) == Nil
+               RETURN -1
+            ENDIF
+            IF ( nPos := hb_At( "<![CDATA[", cBuff, nPos ) ) < nPos2 .AND. ;
+               ( nPos2 := hb_Rat( "]]>", cBuff, nPos, nPos2 ) ) > 0
+               nPos += 9
+               AAdd( arr1, { c,Substr( cBuff, nPos, nPos2-nPos ), cTemp } )
+            ELSE
+               AAdd( arr1, { c,"", cTemp } )
+            ENDIF
+            nPos := nPos2 + 7
+         ENDIF
+      ELSEIF c == "c"
+         IF Substr( cBuff, nPos, 7 ) == "chapter"
+            lFirst := .F.
+            IF ( nPos2 := _itu_AddChapter( cBuff, nPos, arr1 ) ) == -1
+               RETURN -1
+            ENDIF
+            nPos := nPos2
+         ELSEIF Substr( cBuff, nPos, 7 ) == "comment" .AND. lFirst
+            lFirst := .F.
+            IF ( nPos2 := hb_At( "</comment", cBuff, nPos ) ) == 0
+               edi_Writelog( "Error in tutor 3:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+               RETURN -1
+            ENDIF
+            IF ( nPos := hb_At( "<![CDATA[", cBuff, nPos ) ) < nPos2 .AND. ;
+               ( nPos2 := hb_Rat( "]]>", cBuff, nPos, nPos2 ) ) > 0
+               nPos += 9
+               AAdd( ATail(arr), Substr( cBuff, nPos, nPos2-nPos ) )
+            ENDIF
+            nPos := nPos2 + 7
+         ENDIF
+      ENDIF
+
+   ENDDO
+
+   RETURN nPos
+
+STATIC FUNCTION _itu_GetAttr( cBuff, nPos, cAttr, cRest )
+
+   LOCAL nPos2, nPos3
+
+   // Find chapter name
+   IF ( nPos2 := hb_At( cAttr+"=", cBuff, nPos ) ) == 0 .OR. nPos2 > ( nPos3 := hb_At( ">", cBuff, nPos ) )
+      edi_Writelog( "Error in tutor 4:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+      RETURN Nil
+   ENDIF
+   nPos := nPos2 + Len(cAttr) + 1
+   DO WHILE Substr( cBuff, nPos, 1 ) == ' '; nPos++; ENDDO
+   IF Substr( cBuff, nPos, 1 ) != '"'
+      edi_Writelog( "Error in tutor 5:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+      RETURN Nil
+   ENDIF
+   nPos ++
+   IF ( nPos2 := hb_At( '"', cBuff, nPos ) ) == 0
+      edi_Writelog( "Error in tutor 6:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+      RETURN Nil
+   ENDIF
+
+   cRest := Substr( cBuff, nPos2+1, nPos3-nPos2 )
+   RETURN Substr(cBuff,nPos,nPos2-nPos)

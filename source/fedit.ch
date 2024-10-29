@@ -9,6 +9,9 @@
    #define _NO_HBC
 #else
    #include "hbfuncsfull.ch"
+   #ifdef GTHWG
+      #include "hwgextern.ch"
+   #endif
 #endif
 
 #define HBEDIT_VERSION  "v2.5-41"

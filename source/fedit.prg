@@ -2110,7 +2110,7 @@ METHOD Save( cFileName ) CLASS TEdit
          ::cTimeMod := cTimeMod
       ENDIF
    ELSE
-      ::funsave:exec( cFileName, ::ToString(), Self )
+      ::funSave:exec( cFileName, ::ToString(), Self )
    ENDIF
    ::lUpdated := .F.
 

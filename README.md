@@ -88,6 +88,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_hbp_init.prg     - a start plugin for .hbp files
     + plug_hugclient.hrb    - Hugging chat client
     + plug_hwprj_init.hrb   - HwBuilder start plugin
+    + plug_itutor.hrb       - Tutorials support
     + plug_java_init.prg    - a start plugin for .java files
     + plug_lisp_init.prg    - a start plugin for .lisp files
     + plug_palette.prg      - a current palette viewer
@@ -99,6 +100,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_prg_run1c.prg    - Harbour for 1c
     + plug_selection.prg    - Additional operations on selected region
     + plug_sh_init.prg      - a start plugin for .sh files
+    + plug_topython.hrb     - a middleware for python based plugins
     + plug_vcs.prg          - a plugin to work with Git and Fossil
     + plug_webservices.prg  - Some web services access
   + source/plugins/python   - python plugins source files

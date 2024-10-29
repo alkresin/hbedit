@@ -46,4 +46,6 @@ harbour hbc_gthwg_q.prg -n -gh -q
 harbour hwbuilder.prg -n -gh -q -I%HB_INSTALL%\include
 harbour plug_extllm.prg -n -gh -q
 harbour plug_hugclient.prg -n -gh -q
+harbour plug_iTutor.prg -n -gh -q
+harbour plug_topython.prg -n -gh -q
 cd ..\..\

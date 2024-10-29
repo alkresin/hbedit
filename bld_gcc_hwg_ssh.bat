@@ -8,7 +8,7 @@ set SRC_PATH=source
 set HB_LIBS=-lhbvm -lhbrdd -lhbmacro -lhbrtl -lhbcpage -lhblang -lhbcommon -lrddntx  -lrddcdx -lrddfpt -lhbsix -lgtgui -lgthwg -lhbpcre -lhbcplr -lhbct -lhbzlib -lhbmzip -lminizip -lhbwin -lhbnetio -lhwgui -lprocmisc -lhbxml
 
 %HB_INSTALL%\bin\harbour %SRC_PATH%\hbedit.prg /n /q /w /dGTHWG  -I%HB_INSTALL%\include %1 2>harbour.out
-%HB_INSTALL%\bin\harbour %SRC_PATH%\fedit.prg /n /q /w /d_FULL /dGTHWG /d_USE_SSH2 -I%HB_INSTALL%\include %1 2>>harbour.out
+%HB_INSTALL%\bin\harbour %SRC_PATH%\fedit.prg /n /q /w /d_FULL /dGTHWG /d_USE_SSH2 -I%HB_INSTALL%\include -I%HWGUI_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fmenu.prg /n /q /w -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fcmd.prg /n /q /w -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fgetsys.prg /n /q /w -I%HB_INSTALL%\include %1 2>>harbour.out

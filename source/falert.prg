@@ -72,16 +72,17 @@ FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
 
    RETURN i
 
-FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass )
+FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets
 
+   IF Empty( cInitValue ); cInitValue := ""; ENDIF
    y1 := Iif( y1 == Nil, Int( MaxRow()/2 ) - 1, y1 )
    x1 := Iif( x1 == Nil, Int( MaxCol()/2 ) - 15, x1 )
    x2 := Iif( x2 == Nil, x1 + 30, x2 )
 
-   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, "", x2-x1-4,,,Iif(Empty(lPass),Nil,"@P") } }
+   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, cInitValue, x2-x1-4,,,Iif(Empty(lPass),Nil,"@P") } }
 
    cBuf := Savescreen( y1, x1, y1 + 2, x2 )
    @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
