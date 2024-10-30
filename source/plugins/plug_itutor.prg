@@ -39,7 +39,7 @@ FUNCTION plug_itutor( oEdit, cPath )
 
 STATIC FUNCTION _itu_Show( arr, nLevel )
 
-   LOCAL nDop := Iif( nLevel==0, 2, 0 ), oNew, cRes, lLoop := .F.
+   LOCAL nDop := Iif( nLevel==0, 2, 0 ), oNew, cRes, lLoop := .F., cpold
    LOCAL aMenu, i, j, nCurr
    LOCAL bKeys := {|nKeyExt, nRow|
       IF nKeyExt == 0x41000001  // F1
@@ -84,7 +84,7 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
          ENDIF
       NEXT
       IF lShowHelp
-         edi_Alert( "iTutor plugin hotkeys:;F1 - Show this screen;Ins - Insert chapter or module near current position;Del - Delete chapter or module;F3 - View/edit chapter's comments;F4 - Rename chapter or module" )
+         edi_Alert( "iTutor plugin hotkeys:;F1 - Show this screen;Ins - Insert chapter or module near current position;Del - Delete chapter or module;F3 - View/edit chapter's comments;F4 - Rename chapter or module;Esc - Level up;F10 - Exit" )
          lShowHelp := .F.
       ENDIF
       lLoop := .F.
@@ -95,7 +95,10 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
       ELSE
          nCurr := Nil
       ENDIF
-      IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4,,,,, nCurr,,,, bKeys ) ) == 0
+      cpOld := hb_cdpSelect( "UTF8" )
+      i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4,,,,, nCurr,,,, bKeys )
+      hb_cdpSelect( cpold )
+      IF i == 0
          IF lLoop
             lLoop := .F.
             LOOP
@@ -134,6 +137,9 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
             oNew:lUpdated := .F.
          ELSE
             oNew := mnu_NewBuf( oEd, cRes, arr[i,2], @_itu_Save() )
+            oNew:cp := "UTF8"
+            hb_cdpSelect( oNew:cp )
+            oNew:lUtf8 := .T.
             IF Empty( oNew:hCargo )
                oNew:hCargo := hb_hash()
             ENDIF
@@ -164,13 +170,13 @@ STATIC FUNCTION _itu_Ins( arr, nRow, lToEmpty )
       ENDIF
    ENDIF
    // Get the name of module or chapter
-   IF Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24 ) )
+   IF Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24,,, "UTF8" ) )
       RETURN .F.
    ENDIF
 
    IF i < 3
       // If module, get the code
-      IF Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+      IF Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
          RETURN .F.
       ENDIF
       hb_AIns( arr, nRow + i-1, { cName, cText, ">" }, .T. )
@@ -188,13 +194,13 @@ STATIC FUNCTION _itu_Ins( arr, nRow, lToEmpty )
          IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
             EXIT
          ELSEIF i == 1 .AND. !lComm
-            IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+            IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
                AAdd( arr1, cText )
                lComm := .T.
             ENDIF
          ELSE
-            IF !Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24 ) )
-               IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" ) )
+            IF !Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24,,, "UTF8" ) )
+               IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
                   AAdd( arr1[2], { cName, cText, ">" } )
                   lMod := .T.
                ENDIF
@@ -225,7 +231,7 @@ STATIC FUNCTION _itu_Comment( arr, nRow )
 
    LOCAL cComm := Iif( Len(arr[nRow]) > 2, arr[nRow,3], "" ), cRes
 
-   cRes := edi_MsgGet_ext( cComm, oEd:y1+2, oEd:x1+16, oEd:y1+10, oEd:x2-16, "UTF8" )
+   cRes := edi_MsgGet_ext( cComm, oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" )
    IF !Empty( cRes ) .AND. !( cRes == cComm ) .AND. ;
       edi_Alert( "Really update the book?", "Yes", "No" ) == 1
       arr[nRow,3] := cRes
@@ -236,7 +242,7 @@ STATIC FUNCTION _itu_Comment( arr, nRow )
 
 STATIC FUNCTION _itu_Rename( arr, nRow )
 
-   LOCAL cRes := edi_MsgGet( "Change title:", oEd:y1+8, oEd:x1+24, oEd:x2-24,, arr[nRow,1] )
+   LOCAL cRes := edi_MsgGet( "Change title:", oEd:y1+8, oEd:x1+24, oEd:x2-24,, arr[nRow,1], "UTF8" )
 
    IF !Empty( cRes ) .AND. edi_Alert( "Really update the book?", "Yes", "No" ) == 1
       arr[nRow,1] := cRes

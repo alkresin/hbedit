@@ -18,7 +18,7 @@
 STATIC lSea, cSea, aSea
 STATIC lDown := .T.
 
-FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea, bKeys )
+FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch, lMulti, bSea, bKeys, cTitle )
 
    LOCAL cScBuf, nCursOld
    LOCAL lUtf8 := hb_cdpisutf8(), nRow := Row(), nCol := Col(), nr, nc, oldc, xRes := 0, mRow, mCol
@@ -44,7 +44,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
    nLen := Len( aMenu )
 
    IF x2 == Nil
-      x2 := 0
+      x2 := Iif( Empty(cTitle), 0, Len(cTitle) + 4 )
       FOR i := 1 TO nLen
          IF lSingle
             x2 := Max( x2, cp_Len(lUtf8,aMenu[i]) )
@@ -61,6 +61,9 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
    cScBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   IF !Empty( cTitle )
+      @ y1, x1+2 SAY cTitle
+   ENDIF
    IF lSea
       @ y2, x1+2 SAY "[" + Replicate( " ",x2-x1-6 ) + "]" COLOR clrMenuSel
       SetCursor( SC_NORMAL )
