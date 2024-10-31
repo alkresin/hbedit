@@ -176,7 +176,7 @@ STATIC FUNCTION _itu_Ins( arr, nRow, lToEmpty )
 
    IF i < 3
       // If module, get the code
-      IF Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
+      IF Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8", .T. ) )
          RETURN .F.
       ENDIF
       hb_AIns( arr, nRow + i-1, { cName, cText, ">" }, .T. )
@@ -194,13 +194,13 @@ STATIC FUNCTION _itu_Ins( arr, nRow, lToEmpty )
          IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
             EXIT
          ELSEIF i == 1 .AND. !lComm
-            IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
+            IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8", .T. ) )
                AAdd( arr1, cText )
                lComm := .T.
             ENDIF
          ELSE
             IF !Empty( cName := edi_MsgGet( "Name:", oEd:y1+8, oEd:x1+24, oEd:x2-24,,, "UTF8" ) )
-               IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8" ) )
+               IF !Empty( cText := edi_MsgGet_ext( "", oEd:y1+2, oEd:x1+16, oEd:y1+18, oEd:x2-16, "UTF8", .T. ) )
                   AAdd( arr1[2], { cName, cText, ">" } )
                   lMod := .T.
                ENDIF
@@ -231,7 +231,7 @@ STATIC FUNCTION _itu_Comment( arr, nRow )
 
    LOCAL cComm := Iif( Len(arr[nRow]) > 2, arr[nRow,3], "" ), cRes
 
-   cRes := edi_MsgGet_ext( cComm, oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8" )
+   cRes := edi_MsgGet_ext( cComm, oEd:y1+2, oEd:x1+16, oEd:y1+16, oEd:x2-16, "UTF8", .T. )
    IF !Empty( cRes ) .AND. !( cRes == cComm ) .AND. ;
       edi_Alert( "Really update the book?", "Yes", "No" ) == 1
       arr[nRow,3] := cRes

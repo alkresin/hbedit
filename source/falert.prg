@@ -102,21 +102,27 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    RETURN xRes
 
-FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp )
+FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10 )
 
    LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
    LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
    LOCAL lHwg := ( hb_gtversion() == "HWGUI" )
    LOCAL bOnKey := {|o,n|
       LOCAL nKey := hb_keyStd(n), lShift := ( hb_BitAnd( n, SHIFT_PRESSED ) != 0 )
-      //IF nKey == K_ENTER .AND. !lHwg
-      //   RETURN 0
-      IF ( nKey == K_ENTER .AND. lHwg .AND. lShift ) .OR. ( nKey == K_DOWN .AND. lShift )
+      IF Empty(lF10) .AND. ( ;
+         ( nKey == K_ENTER .AND. lHwg .AND. lShift ) .OR. ( nKey == K_DOWN .AND. !lHwg .AND. lShift ) )
          RETURN 0x4100001A
-      ELSEIF nKey == K_ENTER .AND. !lShift
+      ELSEIF Empty(lF10) .AND. nKey == K_ENTER .AND. !lShift
          cRes := Trim( oNew:ToString( Chr(10) ) )
          oNew:lClose := .T.
          RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         RETURN -1
+      ELSEIF nKey == K_F10
+         IF !Empty(lF10)
+            cRes := Trim( oNew:ToString( Chr(10) ) )
+            oNew:lClose := .T.
+            RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         ENDIF
          RETURN -1
       ELSEIF nKey == K_ESC
          //cRes := ""
@@ -134,8 +140,12 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp )
    @ y2+1, x2+1 SAY "´"
    @ y2+1, x1 TO y2+1, x2
    hb_cdpSelect( cpOld )
-   @ y2+2, x1+2 SAY "Enter - Save and Exit  " + ;
-      Iif( lHwg, "Shift-Enter","Shift-Down" ) + " - New Line  ESC - Quit"
+   IF Empty(lF10)
+      @ y2+2, x1+2 SAY "Enter - Save and Exit  " + ;
+         Iif( lHwg, "Shift-Enter","Shift-Down" ) + " - New Line  ESC - Quit"
+   ELSE
+      @ y2+2, x1+2 SAY "F10 - Save and Exit  ESC - Quit"
+   ENDIF
    SetColor( oldc )
 
    oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, .F. )
