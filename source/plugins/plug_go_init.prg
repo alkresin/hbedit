@@ -216,7 +216,7 @@ STATIC FUNCTION _go_Spis()
 STATIC FUNCTION _go_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie, o := oEdit:oHili
-   LOCAL arr, i, nPos, nLen, nPrefLen := Len( cPrefix )
+   LOCAL arr, i, nLen, nPrefLen := Len( cPrefix )
 
    IF Empty( hb_hGetDef( o:hHili, "htrie", Nil ) )
       arr := hb_ATokens( Iif(Empty(o:cKeywords1),"",o:cKeywords1) + " " + ;
@@ -238,10 +238,8 @@ STATIC FUNCTION _go_AutoC( oEdit, cPrefix )
                hTrie := trie_Create( .T. )
             ENDIF
             trie_Add( hTrie, arr[i] )
-            //edi_Alert( "Add " + arr[i] )
          ENDIF
       NEXT
-      //edi_Alert( cPrefix + " :" + str(Len(arr)) + Str(trie_Count(hTrie,"aDi")) )
    ENDIF
 
    RETURN hTrie

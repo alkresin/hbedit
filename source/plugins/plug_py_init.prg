@@ -122,6 +122,7 @@ STATIC FUNCTION _py_Run( oEdit )
    ENDIF
 
    IF !Empty( cCompiler )
+      hb_setenv( "PYTHONIOENCODING", "utf-8" )
       cTempFile := hb_DirTemp() + "hb_py_tmp.py"
       hb_MemoWrit( cTempFile, oEdit:ToString() )
       cCmd := cCompiler + " " + cTempFile
@@ -137,7 +138,7 @@ STATIC FUNCTION _py_Run( oEdit )
 STATIC FUNCTION _py_AutoC( oEdit, cPrefix )
 
    LOCAL hTrieLang, hTrie, o := oEdit:oHili
-   LOCAL arr, i
+   LOCAL arr, i, nLen, nPrefLen := Len( cPrefix )
 
    IF Empty( hTrieLang := hb_hGetDef( o:hHili, "htrie", Nil ) )
       arr := hb_ATokens( Iif(Empty(o:cKeywords1),"",o:cKeywords1) + " " + ;
@@ -150,5 +151,46 @@ STATIC FUNCTION _py_AutoC( oEdit, cPrefix )
          ENDIF
       NEXT
    ENDIF
+   IF !Empty( arr := _py_KeyWords( oEdit, cPrefix ) )
+      FOR i := 1 TO Len( arr )
+         IF ( nLen := Len( arr[i] ) ) >= 4 .AND. nLen > nPrefLen
+            IF Empty( hTrie )
+               hTrie := trie_Create( .T. )
+            ENDIF
+            trie_Add( hTrie, arr[i] )
+         ENDIF
+      NEXT
+   ENDIF
 
    RETURN hTrie
+
+STATIC FUNCTION _py_KeyWords( oEdit, cPrefix )
+
+   LOCAL i, nPos, aText := oEdit:aText, lGlob := .T., cLine, cfirst, cSecond, nSkip, aWords := {}
+
+   FOR i := 1 TO Len( aText )
+      cLine := Ltrim( aText[i] )
+      nSkip := 0
+      cfirst := hb_TokenPtr( cLine, @nSkip )
+      IF cfirst == "class" .OR. cFirst == "def"
+         lGlob := .F.
+         cSecond := hb_TokenPtr( cLine, @nSkip )
+         IF ( nPos := At( "(", cSecond ) ) > 0
+            cSecond := Left( cSecond, nPos )
+         ENDIF
+         IF Len( cSecond ) > 3
+            Aadd( aWords, cSecond )
+         ENDIF
+      ELSEIF cfirst == "import"
+         cSecond := hb_TokenPtr( cLine, @nSkip )
+         IF Len( cSecond ) > 3 .AND. Empty( hb_TokenPtr( cLine, @nSkip ) )
+            Aadd( aWords, cSecond )
+         ENDIF
+      ELSEIF lGlob .AND. Left( cFirst,1 ) >= "A" .AND. ( ( nPos := At( "=", cFirst ) ) > 0 ;
+         .OR. Left( cSecond := hb_TokenPtr( cLine, @nSkip ),1 ) == "=" )
+         // Adding global vars
+         AAdd( aWords, Iif( nPos > 0, Left( cFirst,nPos-1 ), cFirst ) )
+      ENDIF
+   NEXT
+
+   RETURN aWords
