@@ -65,16 +65,12 @@ STATIC FUNCTION _php_Spis( oEdit )
 
    LOCAL i, n, arr := oEdit:aText, cLine, cFunc, cfirst, nSkip, arrfnc := {}
    LOCAL oHili := oEdit:oHili
-   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
-   //IF !Empty( aDop ) .AND. oEdit:oHili:nDopChecked < Len( aDop )
-   //   oEdit:oHili:Do( Len( oEdit:aText ) )
-   //ENDIF
    oHili:CheckComm()
    FOR i := 1 TO Len( arr )
       cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1 //.AND. !Empty( aDop )
-         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
+      IF i > 1
+         IF oHili:IsComm( i-1 ) == 1
             IF ( n := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,n+2 ) )
             ELSE

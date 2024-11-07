@@ -170,7 +170,7 @@ STATIC FUNCTION _c_Funcs( oEdit, oHili, nLineEnd )
    ENDIF
    FOR i := 1 TO nLineEnd
       cLine := AllTrim( arr[i] )
-      IF i > 1 //.AND. !Empty( aDop )
+      IF i > 1
          // Checks if a line is commented with /* */ operators, using a hilight object
          IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
@@ -327,13 +327,12 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
    LOCAL i, nPos, c, aText := oEdit:aText, cLine, cfirst, cSecond, nSkip, aWords := {}
    LOCAL lGlob := .T., nPrefLen := Len( cPrefix ), nLine0, nLineCurr := oEdit:nLine
    LOCAL oHili := oEdit:oHili
-   //LOCAL aDop := Iif( !Empty(oEdit:oHili) .AND. !Empty(oEdit:oHili:aDop), oEdit:oHili:aDop, Nil )
 
    FOR i := 1 TO Len( aText )
       cLine := Ltrim( aText[i] )
-      IF i > 1 //.AND. !Empty( aDop )
+      IF i > 1
          // Checks if a line is commented with /* */ operators, using a hilight object
-         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
+         IF oHili:IsComm( i-1 ) == 1
             IF ( nPos := At( "*/", cLine ) ) > 0
                cLine := Ltrim( Substr( cLine,nPos+2 ) )
             ELSE

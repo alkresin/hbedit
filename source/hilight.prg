@@ -48,7 +48,7 @@ CLASS Hili INHERIT HiliBase
    DATA   cKeywords1, cKeywords2   // A list of keywords (commands), divided by space
    DATA   cKeywords3, cKeywords4, cKeywords5
    DATA   cScomm                   // A string, which starts single line comments
-   DATA   cSleft
+   DATA   cSLeft
    DATA   cMcomm1, cMcomm2         // Start and end strings for multiline comments
 
    DATA   lMultiComm
@@ -106,8 +106,8 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
    IF !Empty( cSComm )
       ::cScomm := AllTrim( cScomm )
    ENDIF
-   IF !Empty( cSleft )
-      ::cSleft := AllTrim( cSleft )
+   IF !Empty( cSLeft )
+      ::cSLeft := AllTrim( cSLeft )
    ENDIF
 
    IF !Empty( cMComm )
@@ -154,7 +154,7 @@ METHOD SET( oEdit ) CLASS Hili
    oHili:cKeywords4 := ::cKeywords4
    oHili:cKeywords5 := ::cKeywords5
    oHili:cScomm     := ::cScomm
-   oHili:cSleft     := ::cSleft
+   oHili:cSLeft     := ::cSLeft
    oHili:cMcomm1    := ::cMcomm1
    oHili:cMcomm2    := ::cMcomm2
    oHili:lCase      := ::lCase
@@ -210,10 +210,10 @@ METHOD DO( nLine ) CLASS Hili
       nLenS := Len( ::cScomm )
    ENDIF
 
-   IF Empty( ::cSleft )
+   IF Empty( ::cSLeft )
       cf := ""
    ELSE
-      cf := Left( ::cSleft, 1 )
+      cf := Left( ::cSLeft, 1 )
    ENDIF
 
    DO WHILE nPos <= nLen .AND. cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) $ cSpaces; nPos ++ ; ENDDO
@@ -245,7 +245,7 @@ METHOD DO( nLine ) CLASS Hili
          ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
          nPos += nLenM - 1
 
-      ELSEIF lFirst .AND. c == cf .AND. cedi_Substr( lUtf8, cLine, nPos, Len(::cSleft), nStartOffs, nStartPos ) == ::cSleft
+      ELSEIF lFirst .AND. c == cf .AND. cedi_Substr( lUtf8, cLine, nPos, Len(::cSLeft), nStartOffs, nStartPos ) == ::cSLeft
          nPos1 := nPos
          IF ( !Empty(::cScomm) .AND. ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 ) .OR. ;
             ( !Empty(::cMcomm1) .AND. ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0 )

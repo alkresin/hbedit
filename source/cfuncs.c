@@ -1408,8 +1408,10 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
             {
                pLine = pEnd;
                iMulti = 1;
+               pLine += iLenM1-1;
             }
-            pLine += iLenM1-1;
+            else
+               pLine == ptr + iLenM1-1;
          }
          pLine ++;
       }
