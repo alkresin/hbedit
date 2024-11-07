@@ -104,13 +104,16 @@ STATIC FUNCTION _prg_Spis( oEdit )
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
    LOCAL lSorted := .F., lToLoop := .F.
    LOCAL oHili := oEdit:oHili
-   LOCAL bKeys := {|nKeyExt, nRow|
+   LOCAL bKeys := {|nKeyExt,nRow|
+      LOCAL nn
       IF nKeyExt == 0x41000009  // F9
+         nn := arrfnc[nRow,3]
          IF lSorted
             ASort( arrfnc,,, {|a1,a2| a1[3] < a2[3] } )
          ELSE
             ASort( arrfnc,,, {|a1,a2| a1[1] < a2[1] } )
          ENDIF
+         n := Ascan2( arrfnc, nn, 3 )
          lSorted := !lSorted
          lToLoop := .T.
          RETURN .F.
@@ -160,7 +163,8 @@ STATIC FUNCTION _prg_Spis( oEdit )
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
       DO WHILE .T.
-         IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, " Functions list  F9 - Sort " ) ) > 0 .OR. lToLoop
+         IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, ;
+            " Functions list  F9 - Sort " ) ) > 0 .OR. lToLoop
             IF !lToLoop
                oEdit:Goto( arrfnc[i,3] )
                EXIT
