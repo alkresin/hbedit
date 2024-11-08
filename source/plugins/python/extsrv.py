@@ -19,7 +19,8 @@ BUFFLEN = 2048
 
 # Global variables
 cVersion = "1.0"
-nMyId, nHisId = 1, 2
+nClientId = 2
+nServerId = 1
 nInterval = 20
 cn = "\n"
 cLogFile = "extserver.log"
@@ -27,7 +28,7 @@ mparent = None
 
 def esrv_Init( aparams ):
     global mparent
-    nLogOn = 1
+    nLogOn = 0
     cDir = None
     cFileRoot = "gs"
 
@@ -56,7 +57,7 @@ def esrv_Init( aparams ):
 
     conn_SetVersion(GUIS_VERSION)
     gWritelog(h, "Connect via files {}{}.*".format(cDir, cFileRoot) )
-    sRes = client_conn_Connect(h, "{}{}".format(cDir, cFileRoot))
+    sRes = conn_Server_Connect(h, "{}{}".format(cDir, cFileRoot))
     if not sRes:
         return None
 
@@ -221,7 +222,7 @@ def conn_Send(h, lOut, cLine):
         os.lseek(han, 1, os.SEEK_SET)
         os.write(han, cLine.encode())
         os.lseek(han, 0, os.SEEK_SET)
-        os.write(han, chr(nMyId).encode())
+        os.write(han, chr(nServerId).encode())
 
     return None
 
@@ -252,7 +253,7 @@ def conn_CheckIn(h):
 
     if h["active"]:
         os.lseek(hIn, 0, os.SEEK_SET)
-        if os.read(hIn, 1) == chr(nHisId).encode():
+        if os.read(hIn, 1) == chr(nClientId).encode():
             gWritelog(h, "Checkin")
             if conn_Read(h, False) > 0:
                 MainHandler(h)
@@ -265,16 +266,13 @@ def conn_CheckOut(h):
 
     if h["active"]:
         os.lseek(hOut, 0, os.SEEK_SET)
-        if os.read(hOut, 1) == chr(nHisId).encode():
+        if os.read(hOut, 1) == chr(nClientId).encode():
             conn_Read(h, True)
             gWritelog(h, "Checkout: " + conn_GetRecvBuffer(h))
             return conn_GetRecvBuffer(h)
     return None
 
-def client_conn_Connect(h, cFile):
-    global nMyId, nHisId
-    nMyId = 1
-    nHisId = 2
+def conn_Server_Connect(h, cFile):
 
     handlOut = os.open(cFile + ".gs1", os.O_RDWR | os.O_CREAT)
     gWritelog(h, "Open out {}.gs1 {}".format(cFile,handlOut))

@@ -198,8 +198,6 @@ def setpass( aparams ):
 
     lOk = True
     try:
-        gWritelog(hExt, "email: " + email)
-        gWritelog(hExt, "pass: " + aparams[0])
         sign = Login(email, aparams[0])
         cookies = sign.login()
         sign.saveCookiesToDir()

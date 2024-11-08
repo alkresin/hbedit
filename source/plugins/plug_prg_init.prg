@@ -6,6 +6,7 @@
 #define K_ALT_I    279
 #define K_ALT_L    294
 #define K_ALT_H    291
+#define K_ALT_V    303
 #define K_ENTER     13
 #define K_ESC       27
 #define K_DOWN      24
@@ -37,6 +38,7 @@ FUNCTION Plug_prg_Init( oEdit, cPath )
             "  Alt-D  - Dictionary (Harbour and HwGUI functions list)" + Chr(10) + ;
             "  Alt-I  - Get info about a function under cursor" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-V  - Current function structure" + Chr(10) + ;
             "  Alt-A  - Add to code a standard construction" + Chr(10) + ;
             "  Alt-H  - Build with hwbc" + Chr(10) + ;
             "  Ctrl-B - Go to a matched keyword (IF...ENDIF, etc.)" + Chr(10) + ;
@@ -84,6 +86,9 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == K_ALT_L
          _prg_Spis( oEdit )
          RETURN -1
+      ELSEIF nKey == K_ALT_V
+         _prg_FuncStru( oEdit )
+         RETURN -1
       ELSEIF nKey == K_ALT_H
          _prg_Init_Build( oEdit )
          RETURN -1
@@ -99,27 +104,13 @@ STATIC FUNCTION _prg_Init_OnKey( oEdit, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION _prg_Spis( oEdit )
+STATIC FUNCTION _prg_GetFuncList( oEdit, lFuncStru )
 
-   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, arrfnc := {}, lClassDef := .F.
-   LOCAL lSorted := .F., lToLoop := .F.
+   LOCAL arrfnc := {}, nCurr := oEdit:nLine, aNew, nEnd := Len( oEdit:aText )
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, cSecond, nSkip, lClassDef := .F.
+   LOCAL a4Stru := { "if", "elseif", "else", "endif", "end", "do", "enddo", ;
+      "for", "next", "switch", "case", "otherwise", "endswitch", "with", "endwith" }
    LOCAL oHili := oEdit:oHili
-   LOCAL bKeys := {|nKeyExt,nRow|
-      LOCAL nn
-      IF nKeyExt == 0x41000009  // F9
-         nn := arrfnc[nRow,3]
-         IF lSorted
-            ASort( arrfnc,,, {|a1,a2| a1[3] < a2[3] } )
-         ELSE
-            ASort( arrfnc,,, {|a1,a2| a1[1] < a2[1] } )
-         ENDIF
-         n := Ascan2( arrfnc, nn, 3 )
-         lSorted := !lSorted
-         lToLoop := .T.
-         RETURN .F.
-      ENDIF
-      RETURN .T.
-   }
 
    oHili:CheckComm()
    FOR i := 1 TO Len( arr )
@@ -140,18 +131,81 @@ STATIC FUNCTION _prg_Spis( oEdit )
             .OR. cfirst == "func" .OR. cfirst == "proc" .OR. ( cfirst == "static" .AND. ;
             ( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "function" .OR. ;
             cSecond == "procedure" .OR. cSecond == "func" .OR. cSecond == "proc" ) )
-         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         aNew := { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i }
+         IF nCurr < i .AND. lFuncStru
+            nEnd := i - 1
+            EXIT
+         ELSEIF lFuncStru
+            IF Empty( arrfnc )
+               Aadd( arrfnc, aNew )
+            ELSE
+               arrfnc[1] := aNew
+            ENDIF
+         ELSE
+            Aadd( arrfnc, aNew )
+         ENDIF
       ELSEIF cfirst == "class" .or. ( cfirst == "create" .AND. ;
             ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "class" )
          IF cfirst == "create" .OR. ( !( ( cSecond := hb_TokenPtr( cLine, @nSkip ) ) == "var" ) ;
                .AND. !( cSecond == "data" ) )
             lClassDef := .T.
-            Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+            aNew := { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i }
+            IF nCurr < i .AND. lFuncStru
+               nEnd := i - 1
+               EXIT
+            ELSEIF !lFuncStru
+               Aadd( arrfnc, aNew )
+            ENDIF
          ENDIF
       ELSEIF cfirst == "end" .or. cfirst == "endclass"
          lClassDef := .F.
       ENDIF
    NEXT
+   IF lFuncStru .AND. !Empty( arrfnc )
+      FOR i := arrfnc[1,3] TO nEnd
+         cLine := Lower( Ltrim( arr[i] ) )
+         IF i > 1
+            IF oHili:IsComm( i-1 ) == 1
+               IF ( n := At( "*/", cLine ) ) > 0
+                  cLine := Ltrim( Substr( cLine,n+2 ) )
+               ELSE
+                  LOOP
+               ENDIF
+            ENDIF
+         ENDIF
+         nSkip := 0
+         cfirst := hb_TokenPtr( cLine, @nSkip )
+         IF hb_Ascan( a4Stru, cfirst,,, .T. ) > 0
+            AAdd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN arrfnc
+
+STATIC FUNCTION _prg_Spis( oEdit )
+
+   LOCAL i, n, arrfnc
+   LOCAL lSorted := .F., lToLoop := .F.
+   LOCAL bKeys := {|nKeyExt,nRow|
+      LOCAL nn
+      IF nKeyExt == 0x41000009  // F9
+         nn := arrfnc[nRow,3]
+         IF lSorted
+            ASort( arrfnc,,, {|a1,a2| a1[3] < a2[3] } )
+         ELSE
+            ASort( arrfnc,,, {|a1,a2| a1[1] < a2[1] } )
+         ENDIF
+         n := Ascan2( arrfnc, nn, 3 )
+         lSorted := !lSorted
+         lToLoop := .T.
+         RETURN .F.
+      ENDIF
+      RETURN .T.
+   }
+
+   arrfnc := _prg_GetFuncList( oEdit, .F. )
+
    IF !Empty( arrfnc )
       oEdit:TextOut()
       n := oEdit:nLine
@@ -164,7 +218,74 @@ STATIC FUNCTION _prg_Spis( oEdit )
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
       DO WHILE .T.
          IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, ;
-            " Functions list  F9 - Sort " ) ) > 0 .OR. lToLoop
+            " Functions list  F9 - " + Iif(lSorted,"Natural order ","Sort by name ") ) ) > 0 .OR. lToLoop
+            IF !lToLoop
+               oEdit:Goto( arrfnc[i,3] )
+               EXIT
+            ENDIF
+            lToLoop := .F.
+         ELSE
+            EXIT
+         ENDIF
+      ENDDO
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _prg_FuncStru( oEdit )
+
+   LOCAL i, n, arrfnc, arrcopy, nIndentMin := 999
+   LOCAL lToLoop := .F., lTops := .F.
+   LOCAL bKeys := {|nKeyExt,nRow|
+      LOCAL nn, nInd
+      IF nKeyExt == 0x41000009  // F9
+         nn := arrfnc[nRow,3]
+         IF lTops
+            arrfnc := AClone( arrcopy )
+         ELSE
+            IF Empty( arrcopy )
+               arrcopy := AClone( arrfnc )
+               FOR i := 2 TO Len(arrfnc)
+                  IF (nInd := (Len(arrfnc[i,1]) - Len(Ltrim(arrfnc[i,1])))) < nIndentMin
+                     nIndentMin := nInd
+                  ENDIF
+               NEXT
+            ENDIF
+            FOR i := Len(arrfnc) TO 1 STEP -1
+               IF Len(arrfnc[i,1]) - Len(Ltrim(arrfnc[i,1])) > nIndentMin
+                  hb_ADel( arrfnc, i, .T. )
+               ENDIF
+            NEXT
+         ENDIF
+         nInd := oEdit:nLine
+         FOR i := 1 TO Len(arrfnc)
+            IF arrfnc[i,3] > nInd
+               n := i - 1
+               EXIT
+            ENDIF
+         NEXT
+         lTops := !lTops
+         lToLoop := .T.
+         RETURN .F.
+      ENDIF
+      RETURN .T.
+   }
+
+   arrfnc := _prg_GetFuncList( oEdit, .T. )
+
+   IF !Empty( arrfnc )
+      oEdit:TextOut()
+      n := oEdit:nLine
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
+      DO WHILE .T.
+         IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, ;
+            " Function structure  F9 - " + Iif(lTops, "All ", "Tops only ") ) ) > 0 .OR. lToLoop
             IF !lToLoop
                oEdit:Goto( arrfnc[i,3] )
                EXIT

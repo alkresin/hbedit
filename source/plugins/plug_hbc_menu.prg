@@ -180,59 +180,64 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
 STATIC FUNCTION _hbc_readini()
 
-   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), cTmp, aSect, arr, i, nPos
+   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), aIni, cTmp, nSect, aSect, arr, i, nPos
 
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
-
-      IF hb_hHaskey( hIni, cTmp := "MAIN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         hb_hCaseMatch( aSect, .F. )
-         IF hb_hHaskey( aSect, cTmp := "harbour_path" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            cPath_Hrb := cTmp
-            IF !Right( cPath_Hrb,1 ) $ "/\"
-               cPath_Hrb += hb_ps()
+      aIni := hb_hKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Upper(aIni[nSect]) == "MAIN"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTmp := "harbour_path" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+                  cPath_Hrb := cTmp
+                  IF !Right( cPath_Hrb,1 ) $ "/\"
+                     cPath_Hrb += hb_ps()
+                  ENDIF
+               ENDIF
+            ENDIF
+         ELSEIF Upper(aIni[nSect]) == "GIT"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := hb_hKeys( aSect )
+               aMenuGit := Array( Len( arr ) )
+               FOR i := 1 TO Len( arr )
+                  IF !Empty( cTmp := aSect[ arr[i] ] )
+                     IF ( nPos := At( ',', cTmp ) ) > 0
+                        aMenuGit[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+                     ENDIF
+                  ENDIF
+               NEXT
+            ENDIF
+         ELSEIF Upper(aIni[nSect]) == "FOSSIL"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := hb_hKeys( aSect )
+               aMenuFoss := Array( Len( arr ) )
+               FOR i := 1 TO Len( arr )
+                  IF !Empty( cTmp := aSect[ arr[i] ] )
+                     IF ( nPos := At( ',', cTmp ) ) > 0
+                        aMenuFoss[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+                     ENDIF
+                  ENDIF
+               NEXT
+            ENDIF
+         ELSEIF Upper(aIni[nSect]) == "C"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := hb_hKeys( aSect )
+               aMenuC := Array( Len( arr ) )
+               FOR i := 1 TO Len( arr )
+                  IF !Empty( cTmp := aSect[ arr[i] ] )
+                     IF ( nPos := At( ',', cTmp ) ) > 0
+                        aMenuC[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
+                     ENDIF
+                  ENDIF
+               NEXT
             ENDIF
          ENDIF
-      ENDIF
-      IF hb_hHaskey( hIni, cTmp := "GIT" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         hb_hCaseMatch( aSect, .F. )
-         arr := hb_hKeys( aSect )
-         aMenuGit := Array( Len( arr ) )
-         FOR i := 1 TO Len( arr )
-            IF !Empty( cTmp := aSect[ arr[i] ] )
-               IF ( nPos := At( ',', cTmp ) ) > 0
-                  aMenuGit[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
-               ENDIF
-            ENDIF
-         NEXT
-      ENDIF
-      IF hb_hHaskey( hIni, cTmp := "FOSSIL" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         hb_hCaseMatch( aSect, .F. )
-         arr := hb_hKeys( aSect )
-         aMenuFoss := Array( Len( arr ) )
-         FOR i := 1 TO Len( arr )
-            IF !Empty( cTmp := aSect[ arr[i] ] )
-               IF ( nPos := At( ',', cTmp ) ) > 0
-                  aMenuFoss[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
-               ENDIF
-            ENDIF
-         NEXT
-      ENDIF
-      IF hb_hHaskey( hIni, cTmp := "C" ) .AND. !Empty( aSect := hIni[ cTmp ] )
-         hb_hCaseMatch( aSect, .F. )
-         arr := hb_hKeys( aSect )
-         aMenuC := Array( Len( arr ) )
-         FOR i := 1 TO Len( arr )
-            IF !Empty( cTmp := aSect[ arr[i] ] )
-               IF ( nPos := At( ',', cTmp ) ) > 0
-                  aMenuC[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
-               ENDIF
-            ENDIF
-         NEXT
-
-      ENDIF
+      NEXT
    ENDIF
-
    IF Empty( cPath_Hrb )
       IF hb_Version(20) // 20 - HB_VERSION_UNIX_COMPAT
          cPath_Hrb := "/usr/local/bin/"
