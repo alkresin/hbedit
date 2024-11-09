@@ -52,6 +52,9 @@ FUNCTION plug_hbc_latin( oPane )
       i := 0
       DO WHILE ++ i <= Len( aFiles )
          cIn := aFiles[i]
+         IF hb_cdpSelect() != "RU866"
+            cIn := hb_Translate( cIn, hb_cdpSelect(), "RU866" )
+         ENDIF
          IF aGets[3,4]
             cOut := hb_strReplace( cIn, cTrnl, aTranslL )
             cOut := hb_strReplace( cOut, cTrnu, aTranslU )
@@ -67,8 +70,8 @@ FUNCTION plug_hbc_latin( oPane )
             cOut := Upper( Left(cIn,1) ) + Lower( Substr(cIn,2) )
          ENDIF
          IF !Empty( cOut ) .AND. !( cIn == cOut )
-            Aadd( arr, cIn + "  --> " + cOut )
-            FRename( cIn, cOut )
+            Aadd( arr, aFiles[i] + "  --> " + cOut )
+            FRename( aFiles[i], cOut )
          ENDIF
       ENDDO
       IF Empty( arr )

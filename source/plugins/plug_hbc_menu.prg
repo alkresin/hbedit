@@ -2,11 +2,12 @@
 STATIC cIniPath
 STATIC cPath_Hrb
 STATIC aMenuGit, aMenuFoss, aMenuC
+STATIC aExt := {}, aCmds := {}
 
 FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
    LOCAL i, lGit := .F., lFoss := .F., lGo := .F.
-   LOCAL cFile, cExt
+   LOCAL cFile, cExt, n
 
    IF Empty( cIniPath )
       cIniPath := cPath
@@ -85,18 +86,27 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
          Aadd( aMenu, { "compile with Mingw",,37 } )
          Aadd( aMenu, { "compile with Borland",,38 } )
       ENDIF
+      /*
       IF !Empty( aMenuC )
          FOR i := 1 TO Len( aMenuC )
             Aadd( aMenu, { aMenuC[i,1],,200+i, } )
          NEXT
-      ENDIF
+      ENDIF */
+   ELSEIF !Empty( aExt ) .AND. aExt[1,1] == "*"
+      FOR i := 1 TO Len( aCmds[1] )
+         Aadd( aMenu, { aCmds[1,i,1],,200+i, } )
+      NEXT
+   ELSEIF !Empty( aExt ) .AND. ( n := Ascan(aExt, {|a|hb_Ascan(a,cExt,.T.)>0}) ) > 0
+      FOR i := 1 TO Len( aCmds[n] )
+         Aadd( aMenu, { aCmds[n,i,1],,230+i, } )
+      NEXT
    ENDIF
 
    RETURN {|n| _hbc_menu_exec(n,oPane)}
 
 STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
-   LOCAL lRefr := .F., cFile, cDir, i
+   LOCAL lRefr := .F., cFile, cDir, cExt, i
 
    IF n == 5
       oPane:cIOpref := oPane:cIOpref_bak
@@ -164,12 +174,20 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       ELSE
          hbc_Console( aMenuFoss[n-130,2] )
       ENDIF
+   /*
    ELSEIF !Empty( aMenuC ) .AND. n > 200 .AND. n < 250 .AND. ;
       (n-200) <= Len( aMenuC ) .AND. !Empty( aMenuC[n-200] )
       IF hb_TokenCount( aMenuC[n-200,2], ",", .T. ) > 1
          hbc_Console( hb_ATokens( aMenuC[n-200,2],",",.T. ) )
       ELSE
          hbc_Console( aMenuC[n-200,2] )
+      ENDIF */
+   ELSEIF !Empty( aCmds ) .AND. n > 200 .AND. n < 230
+      hbc_Console( aCmds[1,n-200,2] )
+   ELSEIF !Empty( aCmds ) .AND. n > 230
+      cExt := hb_fnameExt( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
+      IF ( i := Ascan(aExt, {|a|hb_Ascan(a,cExt,.T.)>0}) ) > 0
+         hbc_Console( aCmds[i,n-230,2] )
       ENDIF
    ENDIF
    IF lRefr
@@ -180,13 +198,36 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
 STATIC FUNCTION _hbc_readini()
 
-   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), aIni, cTmp, nSect, aSect, arr, i, nPos
+   LOCAL hIni := edi_iniRead( cIniPath + "plug_hbc_menu.ini" ), aIni
+   LOCAL cTmp, nSect, cSect, aSect, arr, arr1, i, nPos
 
    IF !Empty( hIni )
       hb_hCaseMatch( hIni, .F. )
       aIni := hb_hKeys( hIni )
       FOR nSect := 1 TO Len( aIni )
-         IF Upper(aIni[nSect]) == "MAIN"
+         cSect := Upper(aIni[nSect])
+         IF Left( cSect, 4 ) == "EXT_"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := hb_hKeys( aSect )
+               arr1 := {}
+               FOR i := 1 TO Len( arr )
+                  IF !(arr[i]=="ext") .AND. !Empty( cTmp := aSect[ arr[i] ] )
+                     AAdd( arr1, hb_ATokens( cTmp, ',' ) )
+                  ENDIF
+               NEXT
+               IF hb_hHaskey( aSect, cTmp := "ext" ) .AND. !Empty( cTmp := aSect[ cTmp ] ) ;
+                  .AND. !Empty( arr1 )
+                  IF AllTrim(cTmp) == "*"
+                     hb_Ains( aExt, 1, {cTmp}, .T. )
+                     hb_Ains( aCmds, 1, arr1, .T. )
+                  ELSE
+                     AAdd( aExt, hb_ATokens( cTmp ) )
+                     AAdd( aCmds, arr1 )
+                  ENDIF
+               ENDIF
+            ENDIF
+         ELSEIF cSect == "MAIN"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTmp := "harbour_path" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
@@ -222,6 +263,7 @@ STATIC FUNCTION _hbc_readini()
                   ENDIF
                NEXT
             ENDIF
+         /*
          ELSEIF Upper(aIni[nSect]) == "C"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
@@ -234,7 +276,7 @@ STATIC FUNCTION _hbc_readini()
                      ENDIF
                   ENDIF
                NEXT
-            ENDIF
+            ENDIF */
          ENDIF
       NEXT
    ENDIF
