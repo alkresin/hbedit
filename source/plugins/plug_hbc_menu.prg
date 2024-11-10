@@ -65,44 +65,37 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
    cFile := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
    cExt := hb_fnameExt( cFile )
-   IF !Empty( cExt )
-      IF cExt == ".prg"
-         IF !Empty( aMenu )
-            Aadd( aMenu, { "---",,, } )
-         ENDIF
-         Aadd( aMenu, { "format",,21 } )
-         Aadd( aMenu, { "compile",,22 } )
-      ELSEIF cExt == ".go"
-         IF !Empty( aMenu ) .AND. !lGo
-            Aadd( aMenu, { "---",,, } )
-         ENDIF
-         Aadd( aMenu, { "run "+cFile,,32 } )
-      ELSEIF cExt == ".c" .OR. cExt == ".cpp"
-         IF !Empty( aMenu )
-            Aadd( aMenu, { "---",,, } )
-         ENDIF
-         IF hb_Version(20)
-            Aadd( aMenu, { "compile",,37 } )
-          ELSE
-            Aadd( aMenu, { "compile with Mingw",,37 } )
-            Aadd( aMenu, { "compile with Borland",,38 } )
-         ENDIF
-         /*
-         IF !Empty( aMenuC )
-            FOR i := 1 TO Len( aMenuC )
-               Aadd( aMenu, { aMenuC[i,1],,200+i, } )
-            NEXT
-         ENDIF */
-      ELSEIF !Empty( aExt ) .AND. aExt[1,1] == "*"
-         FOR i := 1 TO Len( aCmds[1] )
-            Aadd( aMenu, { aCmds[1,i,1],,200+i, } )
-         NEXT
-      ELSEIF !Empty( aExt ) .AND. ( n := Ascan(aExt, {|a|hb_Ascan(a,cExt,,,.T.)>0}) ) > 0
-         FOR i := 1 TO Len( aCmds[n] )
-            Aadd( aMenu, { aCmds[n,i,1],,230+i, } )
-         NEXT
-         //edi_Writelog( cExt + " " + str(n) )
+   IF cExt == ".prg"
+      IF !Empty( aMenu )
+         Aadd( aMenu, { "---",,, } )
       ENDIF
+      Aadd( aMenu, { "format",,21 } )
+      Aadd( aMenu, { "compile",,22 } )
+   ELSEIF cExt == ".go"
+      IF !Empty( aMenu ) .AND. !lGo
+         Aadd( aMenu, { "---",,, } )
+      ENDIF
+      Aadd( aMenu, { "run "+cFile,,32 } )
+   ELSEIF cExt == ".c" .OR. cExt == ".cpp"
+      IF !Empty( aMenu )
+         Aadd( aMenu, { "---",,, } )
+      ENDIF
+      IF hb_Version(20)
+         Aadd( aMenu, { "compile",,37 } )
+       ELSE
+         Aadd( aMenu, { "compile with Mingw",,37 } )
+         Aadd( aMenu, { "compile with Borland",,38 } )
+      ENDIF
+   ENDIF
+   IF !(cExt == ".") .AND. !Empty( aExt ) .AND. aExt[1,1] == "*"
+      FOR i := 1 TO Len( aCmds[1] )
+         Aadd( aMenu, { aCmds[1,i,1],,200+i, } )
+      NEXT
+   ENDIF
+   IF !Empty( cExt ) .AND. !Empty( aExt ) .AND. ( n := Ascan(aExt, {|a|hb_Ascan(a,cExt,,,.T.)>0}) ) > 0
+      FOR i := 1 TO Len( aCmds[n] )
+         Aadd( aMenu, { aCmds[n,i,1],,230+i, } )
+      NEXT
    ENDIF
 
    RETURN {|n| _hbc_menu_exec(n,oPane)}
