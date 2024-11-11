@@ -460,11 +460,16 @@ STATIC FUNCTION _itu_GetAttr( cBuff, nPos, cAttr, cRest )
    LOCAL nPos2, nPos3
 
    // Find chapter name
-   IF ( nPos2 := hb_At( cAttr+"=", cBuff, nPos ) ) == 0 .OR. nPos2 > ( nPos3 := hb_At( ">", cBuff, nPos ) )
+   nPos3 := hb_At( ">", cBuff, nPos )
+   IF ( nPos2 := hb_At( cAttr, cBuff, nPos ) ) > 0
+      nPos2 := nPos2 + Len(cAttr)
+      DO WHILE Substr( cBuff, nPos2, 1 ) == ' '; nPos2++; ENDDO
+   ENDIF
+   IF nPos2 == 0 .OR. Substr( cBuff, nPos2, 1 ) != "=" .OR. nPos2 > nPos3
       edi_Writelog( "Error in tutor 4:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
       RETURN Nil
    ENDIF
-   nPos := nPos2 + Len(cAttr) + 1
+   nPos := nPos2 + 1
    DO WHILE Substr( cBuff, nPos, 1 ) == ' '; nPos++; ENDDO
    IF Substr( cBuff, nPos, 1 ) != '"'
       edi_Writelog( "Error in tutor 5:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )

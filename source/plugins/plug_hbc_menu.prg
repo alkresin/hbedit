@@ -102,7 +102,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
 STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
-   LOCAL lRefr := .F., cFile, cDir, cExt, i
+   LOCAL lRefr := .F., cFile, cDir, cExt, i, cCmd
 
    IF n == 5
       oPane:cIOpref := oPane:cIOpref_bak
@@ -170,20 +170,22 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       ELSE
          hbc_Console( aMenuFoss[n-130,2] )
       ENDIF
-   /*
-   ELSEIF !Empty( aMenuC ) .AND. n > 200 .AND. n < 250 .AND. ;
-      (n-200) <= Len( aMenuC ) .AND. !Empty( aMenuC[n-200] )
-      IF hb_TokenCount( aMenuC[n-200,2], ",", .T. ) > 1
-         hbc_Console( hb_ATokens( aMenuC[n-200,2],",",.T. ) )
-      ELSE
-         hbc_Console( aMenuC[n-200,2] )
-      ENDIF */
    ELSEIF !Empty( aCmds ) .AND. n > 200 .AND. n < 230
-      hbc_Console( aCmds[1,n-200,2] )
+      cCmd := aCmds[1,n-200,2]
+      IF Left( cCmd,1 ) == "@"
+         hbc_Console( Substr(cCmd,2),, .F. )
+       ELSE
+         hbc_Console( cCmd,, .T. )
+      ENDIF
    ELSEIF !Empty( aCmds ) .AND. n > 230
       cExt := hb_fnameExt( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
       IF ( i := Ascan(aExt, {|a|hb_Ascan(a,cExt,,,.T.)>0}) ) > 0
-         hbc_Console( aCmds[i,n-230,2] )
+         cCmd := aCmds[i,n-230,2]
+         IF Left( cCmd,1 ) == "@"
+             hbc_Console( Substr(cCmd,2),, .F. )
+          ELSE
+             hbc_Console( cCmd,, .T. )
+         ENDIF
       ENDIF
    ENDIF
    IF lRefr
@@ -259,20 +261,6 @@ STATIC FUNCTION _hbc_readini()
                   ENDIF
                NEXT
             ENDIF
-         /*
-         ELSEIF Upper(aIni[nSect]) == "C"
-            IF !Empty( aSect := hIni[ aIni[nSect] ] )
-               hb_hCaseMatch( aSect, .F. )
-               arr := hb_hKeys( aSect )
-               aMenuC := Array( Len( arr ) )
-               FOR i := 1 TO Len( arr )
-                  IF !Empty( cTmp := aSect[ arr[i] ] )
-                     IF ( nPos := At( ',', cTmp ) ) > 0
-                        aMenuC[i] := { Left( cTmp, nPos-1 ), AllTrim( Substr( cTmp, nPos+1 ) ) }
-                     ENDIF
-                  ENDIF
-               NEXT
-            ENDIF */
          ENDIF
       NEXT
    ENDIF

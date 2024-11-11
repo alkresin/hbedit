@@ -3502,6 +3502,11 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    RETURN Nil
 
+/*
+  lShowWin = .F. - don't show window
+  lShowWin = .T. - show window
+  lShowWin = Nil - ask, show window or not
+ */
 FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
@@ -3672,6 +3677,8 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
                ssh2_Channel_Close( oPaneCurr:pSess )
             ENDIF
 #endif
+         /* ELSEIF Valtype( lShowWin ) == "L" .AND. lShowWin
+            cedi_RunApp( cCommand, .T. ) */
          ELSE
             Cons_My( cCommand, lShowWin )
          ENDIF
@@ -3875,8 +3882,13 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
-   LOCAL pApp := cedi_StartConsoleApp( cCommand ), nSecInit, hWnd
+   //LOCAL pApp := cedi_StartConsoleApp( cCommand, !Empty(lShowWin) ), nSecInit, hWnd
+   LOCAL pApp, nSecInit, hWnd, hSelf
 
+#ifndef __PLATFORM__UNIX
+   hSelf := cedi_GetActiveWindow()
+#endif
+   pApp := cedi_StartConsoleApp( cCommand, 2 )
    IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
       ? _I("Error starting app"), xRes
       cedi_EndConsoleApp( pApp )
@@ -3886,8 +3898,16 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
    DevPos( Maxrow(), nColInit := 0 )
    ?
    nSecInit := Seconds()
+#ifndef __PLATFORM__UNIX
+   cedi_Sleep( 20 )
+   IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
+      cedi_HideWindow( hWnd )
+      cedi_Sleep( 1 )
+      cedi_SetActive( hSelf )
+      //edi_Writelog( "Hide1" )
+   ENDIF
+#endif
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
-      //IF !Empty( xRes )
       IF !Empty( xRes := removeEscapeCodes( xRes ) )
          //edi_writelog( xRes, "cons.log" )
          IF Chr(9) $ xRes
@@ -3901,7 +3921,7 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
          ?? xRes
          nColInit := Col()
          cmd := ""
-         nSecInit := 0
+         //nSecInit := 0
       ENDIF
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
       IF nKeyExt == Nil
@@ -3909,12 +3929,22 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
       ENDIF
       IF nKeyExt == 0
 #ifndef __PLATFORM__UNIX
-         IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.3
+         IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.2
+            IF Empty( hWnd )
+               IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
+                  cedi_HideWindow( hWnd )
+                  cedi_Sleep( 1 )
+                  cedi_SetActive( hSelf )
+                  //edi_Writelog( "Hide2" )
+                  hWnd := Nil
+               ENDIF
+            ENDIF
+            //edi_Writelog( "1" )
             nSecInit := 0
             IF !Empty( aNoWin ) .AND. Ascan( aNoWin, hb_ATokens( cCommand )[1] ) > 0
                lShowWin := .F.
             ENDIF
-            IF !Empty( hWnd := cedi_GETHWNDBYPID( pApp ) ) .AND. ( lShowWin == Nil .OR. lShowWin )
+            IF !Empty( hWnd ) .AND. ( lShowWin == Nil .OR. lShowWin )
                IF !Empty(lShowWin) .OR. ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
                   cedi_ShowWindow( hWnd )
                   cedi_EndConsoleApp( pApp, .T. )

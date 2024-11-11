@@ -942,7 +942,7 @@ typedef struct {
 
 } PROCESS_HANDLES;
 
-static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
+static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName, short int uiShow )
 {
    STARTUPINFO siStartInfo;
    BOOL bSuccess;
@@ -957,7 +957,7 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    siStartInfo.hStdError = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdOutput = pHandles->g_hChildStd_OUT_Wr;
    siStartInfo.hStdInput = pHandles->g_hChildStd_IN_Rd;
-   //siStartInfo.wShowWindow = SW_HIDE;
+   siStartInfo.wShowWindow = uiShow;
    siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
 
 #ifdef UNICODE
@@ -968,18 +968,6 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName )
    bSuccess = CreateProcess( NULL, ( LPTSTR ) hb_parc( 1 ), NULL, NULL,
          TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &siStartInfo, &(pHandles->piProcInfo) );
 #endif
-/*
-   bSuccess = CreateProcess( NULL,
-         ( LPTSTR ) pName,      // command line
-         NULL,                  // process security attributes
-         NULL,                  // primary thread security attributes
-         TRUE,                  // handles are inherited
-         CREATE_NEW_CONSOLE,                     // creation flags
-         NULL,                  // use parent's environment
-         NULL,                  // use parent's current directory
-         &siStartInfo,          // STARTUPINFO pointer
-         &(pHandles->piProcInfo) );         // receives PROCESS_INFORMATION
-*/
    if( !bSuccess )
    {
       return 0;
@@ -1035,14 +1023,9 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
    SECURITY_ATTRIBUTES saAttr;
    DWORD mode = PIPE_READMODE_BYTE | PIPE_WAIT;
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_xgrab( sizeof(PROCESS_HANDLES) );
+   short int uiShow = (HB_ISNUM(2))? (short int)hb_parni(2) : 0;
 
    memset( pHandles, 0, sizeof( PROCESS_HANDLES ) );
-   /*
-   g_hChildStd_IN_Rd = NULL;
-   g_hChildStd_IN_Wr = NULL;
-   g_hChildStd_OUT_Rd = NULL;
-   g_hChildStd_OUT_Wr = NULL;
-   */
 
 // Set the bInheritHandle flag so pipe handles are inherited.
    saAttr.nLength = sizeof( SECURITY_ATTRIBUTES );
@@ -1070,7 +1053,7 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
       pHandles->iRes = 5; hb_retptr( (void*) pHandles ); return;
    }
 
-   if( !CreateChildProcess( pHandles, (char*) hb_parc(1) ) ) {
+   if( !CreateChildProcess( pHandles, (char*) hb_parc(1), uiShow ) ) {
       pHandles->iRes = GetLastError(); hb_retptr( (void*) pHandles ); return;
    }
 
@@ -1163,6 +1146,26 @@ HB_FUNC( CEDI_ENDCONSOLEAPP )
 
 }
 
+HB_FUNC( CEDI_GETHWNDVISIBLEBYPID )
+{
+   PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
+   DWORD mypid = pHandles->piProcInfo.dwProcessId;
+   DWORD pid;
+   HWND h = GetTopWindow( 0 );
+
+   while ( h )
+   {
+      GetWindowThreadProcessId( h,&pid );
+      if( pid == mypid && IsWindowVisible(h) )
+      {
+         hb_retptr( h );
+         return;
+      }
+      h = GetNextWindow( h , GW_HWNDNEXT );
+   }
+   hb_ret();
+}
+
 HB_FUNC( CEDI_GETHWNDBYPID )
 {
    PROCESS_HANDLES * pHandles = (PROCESS_HANDLES *) hb_parptr( 1 );
@@ -1185,7 +1188,23 @@ HB_FUNC( CEDI_GETHWNDBYPID )
 
 HB_FUNC( CEDI_SHOWWINDOW )
 {
-   ShowWindow( ( HWND ) hb_parptr( 1 ), SW_SHOW );
+   ShowWindow( ( HWND ) hb_parptr( 1 ), SW_SHOWNORMAL );
+}
+
+HB_FUNC( CEDI_HIDEWINDOW )
+{
+   ShowWindow( ( HWND ) hb_parptr( 1 ), SW_HIDE );
+}
+
+HB_FUNC( CEDI_GETACTIVEWINDOW )
+{
+   hb_retptr( GetActiveWindow() );
+}
+
+HB_FUNC( CEDI_SETACTIVE )
+{
+   SetActiveWindow( ( HWND ) hb_parptr( 1 ) );
+   SetForegroundWindow( ( HWND ) hb_parptr( 1 ) );
 }
 
 HB_FUNC( CEDI_SHELLEXECUTE )
