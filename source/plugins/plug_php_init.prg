@@ -68,15 +68,8 @@ STATIC FUNCTION _php_Spis( oEdit )
 
    oHili:CheckComm()
    FOR i := 1 TO Len( arr )
-      cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1
-         IF oHili:IsComm( i-1 ) == 1
-            IF ( n := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,n+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
+      IF Empty( cLine := Lower(Ltrim( oHili:Getline(i) )) )
+         LOOP
       ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )

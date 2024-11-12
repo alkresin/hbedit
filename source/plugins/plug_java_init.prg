@@ -101,18 +101,7 @@ STATIC FUNCTION _java_Funcs( oEdit )
    LOCAL lUtf8 := oEdit:lUtf8, cQuotes := ['"], cFind := ['"{}], nLevel := 0
 
    FOR i := 1 TO nLineEnd
-      cLine := AllTrim( arr[i] )
-      IF i > 1
-         // Checks if a line is commented with /* */ operators, using a hilight object
-         IF oHili:IsComm( i-1 ) == 1
-            IF ( nPos := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,nPos+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
-      ENDIF
-      IF Empty( cLine )
+      IF Empty( cLine := Alltrim( oHili:Getline(i) ) )
          LOOP
       ENDIF
 
@@ -318,4 +307,3 @@ STATIC FUNCTION _java_AutoC( oEdit, cPrefix )
    ENDIF
    */
    RETURN hTrie
-

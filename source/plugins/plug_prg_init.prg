@@ -114,15 +114,8 @@ STATIC FUNCTION _prg_GetFuncList( oEdit, lFuncStru )
 
    oHili:CheckComm()
    FOR i := 1 TO Len( arr )
-      cLine := Lower( Ltrim( arr[i] ) )
-      IF i > 1
-         IF oHili:IsComm( i-1 ) == 1
-            IF ( n := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,n+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
+      IF Empty( cLine := Lower(Ltrim( oHili:Getline(i) )) )
+         LOOP
       ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
@@ -163,15 +156,8 @@ STATIC FUNCTION _prg_GetFuncList( oEdit, lFuncStru )
    NEXT
    IF lFuncStru .AND. !Empty( arrfnc )
       FOR i := arrfnc[1,3] TO nEnd
-         cLine := Lower( Ltrim( arr[i] ) )
-         IF i > 1
-            IF oHili:IsComm( i-1 ) == 1
-               IF ( n := At( "*/", cLine ) ) > 0
-                  cLine := Ltrim( Substr( cLine,n+2 ) )
-               ELSE
-                  LOOP
-               ENDIF
-            ENDIF
+         IF Empty( cLine := Lower(Ltrim( oHili:Getline(i) )) )
+            LOOP
          ENDIF
          nSkip := 0
          cfirst := hb_TokenPtr( cLine, @nSkip )
@@ -493,7 +479,7 @@ STATIC FUNCTION _prg_IsCommented( oEdit, nLine, nPos )
 
    IF nLine > 1
       // Check if a line is commented with /* */ operators, using a hilight object
-      IF oEdit:oHili:IsComm( nLine-1 ) == 1 //aDop[nLine-1] == 1
+      IF oEdit:oHili:IsComm( nLine-1 ) == 1
          IF ( n := ( At( "*/", s ) ) ) == 0 .OR. n > nCol
             lRes := .T.
          ENDIF

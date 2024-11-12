@@ -2,6 +2,7 @@
 #define CTRL_PRESSED  0x020000
 #define K_ALT_R    275
 #define K_ALT_L    294
+#define K_ALT_V    303
 #define K_ENTER     13
 #define K_ESC       27
 
@@ -27,6 +28,7 @@ FUNCTION Plug_py_Init( oEdit, cPath )
          ENDIF
          oEdit:hCargo["help"] := "Python plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
+            "  Alt-V  - Functions structure" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
@@ -61,6 +63,9 @@ STATIC FUNCTION _py_Init_OnKey( oEdit, nKeyExt )
       IF nKey == K_ALT_L
          _py_Spis( oEdit )
          RETURN -1
+      ELSEIF nKey == K_ALT_V
+         _py_FuncStru( oEdit )
+         RETURN -1
       ELSEIF nKey == K_ALT_R
          _py_Run( oEdit )
          RETURN -1
@@ -72,15 +77,81 @@ STATIC FUNCTION _py_Init_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _py_Spis( oEdit )
 
    LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL oHili := oEdit:oHili
 
+   oHili:CheckComm()
    FOR i := 1 TO Len( arr )
-      cLine := Lower( Ltrim( arr[i] ) )
+      IF Empty( cLine := oHili:Getline(i) )
+         LOOP
+      ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF cfirst == "class" .OR. cFirst == "def"
          Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
    NEXT
+   IF !Empty( arrfnc )
+      oEdit:TextOut()
+      n := oEdit:nLine
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+         oEdit:Goto( arrfnc[i,3] )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _py_FuncStru( oEdit )
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL oHili := oEdit:oHili, nLine := oEdit:nLine, nIndent := -1, nIndTmp
+   LOCAL a4Stru := { "if", "elif", "else:", "for", "while", "with", "try:", "except", "except:" }
+
+   oHili:CheckComm()
+   FOR i := nLine TO 1 STEP -1
+      IF Empty( cLine := Ltrim( oHili:Getline(i) ) )
+         LOOP
+      ENDIF
+      IF nIndent == -1 .AND. !Empty( cLine )
+         nIndent := Len( arr[i] ) - Len( cLine )
+         nLine := i
+      ENDIF
+      //edi_Writelog( str(i)+" "+str(nLine)+" "+str(nIndent) )
+      nSkip := 0
+      cfirst := hb_TokenPtr( cLine, @nSkip )
+      IF ( cfirst == "class" .OR. cFirst == "def" ) .AND. ;
+         ( ( i == nLine ) .OR. Len( arr[i] ) - Len( cLine ) < nIndent )
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         //nIndent := Len( arr[i] ) - Len( cLine )
+         EXIT
+      ELSEIF !Empty( cLine ) .AND. Len( arr[i] ) - Len( cLine ) < nIndent
+         nIndent := Len( arr[i] ) - Len( cLine )
+      ENDIF
+   NEXT
+
+   DO WHILE ++i <= Len(arr)
+      IF Empty( cLine := oHili:Getline(i) )
+         LOOP
+      ENDIF
+      nSkip := 0
+      cfirst := hb_TokenPtr( cLine, @nSkip )
+
+      IF ( cfirst == "class" .OR. cFirst == "def" )
+         IF (nIndTmp := Len( arr[i] ) - Len( Ltrim(cLine) )) < nIndent .OR. nIndTmp == 0
+            EXIT
+         ELSE
+            Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         ENDIF
+      ELSEIF hb_Ascan( a4Stru, cfirst,,, .T. ) > 0
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+      ENDIF
+   ENDDO
+
    IF !Empty( arrfnc )
       oEdit:TextOut()
       n := oEdit:nLine

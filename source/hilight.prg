@@ -50,11 +50,11 @@ CLASS Hili INHERIT HiliBase
    DATA   cScomm                   // A string, which starts single line comments
    DATA   cSLeft
    DATA   cMcomm1, cMcomm2         // Start and end strings for multiline comments
+   DATA   cMcomm3, cMcomm4         // Second pair for multiline comments
 
    DATA   lMultiComm
    DATA   cQuo  INIT cQuotes
-   //DATA   aDop
-   DATA   pDop
+   DATA   pDop, pDop3
    DATA   nDopChecked  INIT 0
 
    METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5, ;
@@ -65,13 +65,14 @@ CLASS Hili INHERIT HiliBase
    METHOD AddItem( nPos1, nPos2, nType )
    METHOD IsComm( nLine )
    METHOD CheckComm( nLine )
+   METHOD Getline( nLine )
    METHOD End()
 
 ENDCLASS
 
 METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
       cSComm, cSLeft, cMComm, lCase, cQuo ) CLASS Hili
-   LOCAL nPos
+   LOCAL nPos, arr
 
    ::aLineStru := Array( 20, 3 )
 
@@ -111,10 +112,16 @@ METHOD New( hHili, cKeywords1, cKeywords2, cKeywords3, cKeywords4, cKeywords5,;
    ENDIF
 
    IF !Empty( cMComm )
-      ::cMcomm1 := AllTrim( cMcomm )
-      IF !Empty( ::cMcomm1 ) .AND. ( nPos := At( " ", ::cMcomm1 ) ) > 0
-         ::cMcomm2 := LTrim( SubStr( ::cMcomm1,nPos + 1 ) )
-         ::cMcomm1 := Trim( Left( ::cMcomm1,nPos - 1 ) )
+      arr := hb_ATokens( cMComm )
+      ::cMcomm1 := arr[1]
+      IF Len(arr) > 1
+         ::cMcomm2 := arr[2]
+      ENDIF
+      IF Len(arr) > 2
+         ::cMcomm3 := arr[3]
+      ENDIF
+      IF Len(arr) > 3
+         ::cMcomm4 := arr[4]
       ENDIF
    ENDIF
    IF ValType( lCase ) == 'L'
@@ -157,6 +164,8 @@ METHOD SET( oEdit ) CLASS Hili
    oHili:cSLeft     := ::cSLeft
    oHili:cMcomm1    := ::cMcomm1
    oHili:cMcomm2    := ::cMcomm2
+   oHili:cMcomm3    := ::cMcomm3
+   oHili:cMcomm4    := ::cMcomm4
    oHili:lCase      := ::lCase
    oHili:oEdit      := oEdit
 
@@ -166,8 +175,8 @@ METHOD SET( oEdit ) CLASS Hili
  */
 
 METHOD DO( nLine ) CLASS Hili
-   LOCAL aText, cLine, nLen, nLenS, nLenM, i, lUtf8 := ::oEdit:lUtf8
-   LOCAL cs, cm, cf
+   LOCAL aText, cLine, nLen, nLenS, nLenM, nLenM3, i, lUtf8 := ::oEdit:lUtf8
+   LOCAL cs, cm, cm3 := "", cf, lComm3 := !Empty( ::cMcomm3 )
    LOCAL nPos := 1, nPos1, nPrev, cWord, c, lFirst := .T., nStartOffs := 1, nStartPos := 1
 
    ::nItems := 0
@@ -182,24 +191,42 @@ METHOD DO( nLine ) CLASS Hili
    ELSE
       cm := Left( ::cMcomm1, 1 )
       nLenM := Len( ::cMcomm1 )
+      IF lComm3
+         cm3 := Left( ::cMcomm3, 1 )
+         nLenM3 := Len( ::cMcomm3 )
+      ENDIF
 
       ::CheckComm( nLine )
 
-      //::aDop[nLine] := 0
+      nPos := 1
       bitarr_Set( ::pDop, nLine, 0 )
-      IF nLine > 1 .AND. bitarr_Test( ::pDop, nLine-1 ) //!Empty( ::aDop[nLine - 1] )
-         IF ( nPos := At( ::cMcomm2, cLine ) ) == 0
-            ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM )
-            ::lMultiComm := .T.
-            //::aDop[nLine] := 1
-            bitarr_Set( ::pDop, nLine, 1 )
-            RETURN Nil
-         ELSE
-            ::AddItem( 1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
-            nPos += nLenM
+      IF lComm3
+         bitarr_Set( ::pDop3, nLine, 0 )
+      ENDIF
+      IF nLine > 1
+         IF  bitarr_Test( ::pDop, nLine-1 )
+            IF ( nPos := At( ::cMcomm2, cLine ) ) == 0
+               ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM )
+               ::lMultiComm := .T.
+               bitarr_Set( ::pDop, nLine, 1 )
+               RETURN Nil
+            ELSE
+               ::AddItem( 1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
+               nPos += nLenM
+            ENDIF
+         ELSEIF lComm3
+            IF bitarr_Test( ::pDop3, nLine-1 )
+               IF ( nPos := At( ::cMcomm4, cLine ) ) == 0
+                  ::AddItem( 1, cp_Len( lUtf8,cLine ), HILIGHT_MCOMM )
+                  ::lMultiComm := .T.
+                  bitarr_Set( ::pDop3, nLine, 1 )
+                  RETURN Nil
+               ELSE
+                  ::AddItem( 1, nPos+Len(::cMcomm4)-1, HILIGHT_MCOMM )
+                  nPos += nLenM
+               ENDIF
+            ENDIF
          ENDIF
-      ELSE
-         nPos := 1
       ENDIF
    ENDIF
 
@@ -239,16 +266,26 @@ METHOD DO( nLine ) CLASS Hili
          IF ( nPos := cp_At( lUtf8, ::cMcomm2, cLine, nPos1 + 1 ) ) == 0
             nPos := nLen
             ::lMultiComm := .T.
-            //::aDop[nLine] := 1
             bitarr_Set( ::pDop, nLine, 1 )
          ENDIF
          ::AddItem( nPos1, nPos+Len(::cMcomm2)-1, HILIGHT_MCOMM )
          nPos += nLenM - 1
 
+      ELSEIF c == cm3 .AND. cedi_Substr( lUtf8, cLine, nPos, nLenM, nStartOffs, nStartPos ) == ::cMcomm3
+         nPos1 := nPos
+         IF ( nPos := cp_At( lUtf8, ::cMcomm4, cLine, nPos1 + 1 ) ) == 0
+            nPos := nLen
+            ::lMultiComm := .T.
+            bitarr_Set( ::pDop3, nLine, 1 )
+         ENDIF
+         ::AddItem( nPos1, nPos+Len(::cMcomm4)-1, HILIGHT_MCOMM )
+         nPos += nLenM - 1
+
       ELSEIF lFirst .AND. c == cf .AND. cedi_Substr( lUtf8, cLine, nPos, Len(::cSLeft), nStartOffs, nStartPos ) == ::cSLeft
          nPos1 := nPos
          IF ( !Empty(::cScomm) .AND. ( nPos := cp_At( lUtf8, ::cScomm, cLine, nPos1 + 1 ) ) > 0 ) .OR. ;
-            ( !Empty(::cMcomm1) .AND. ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0 )
+            ( !Empty(::cMcomm1) .AND. ( nPos := cp_At( lUtf8, ::cMcomm1, cLine, nPos1 + 1 ) ) > 0 ) .OR. ;
+            ( lComm3 .AND. ( nPos := cp_At( lUtf8, ::cMcomm3, cLine, nPos1 + 1 ) ) > 0 )
             nPos --
          ELSE
             nPos := nLen
@@ -301,44 +338,74 @@ METHOD AddItem( nPos1, nPos2, nType ) CLASS Hili
 
 METHOD IsComm( nLine ) CLASS Hili
 
-   //RETURN Iif( !Empty(::aDop) .AND. Len(::aDop) >= nLine, ::aDop[nLine], 0 )
-   RETURN Iif( !Empty(::pDop), Iif( bitarr_Test( ::pDop,nLine ), 1, 0 ) , 0 )
+   LOCAL nComm := Iif( !Empty(::pDop), Iif( bitarr_Test( ::pDop,nLine ), 1, 0 ) , 0 )
+   IF nComm == 0 .AND. !Empty(::pDop3)
+      nComm := Iif( bitarr_Test( ::pDop3,nLine ), 2, 0 )
+   ENDIF
+   RETURN nComm
 
 METHOD CheckComm( nLine ) CLASS Hili
 
-   //LOCAL i, s := ""
+   IF nLine == Nil
+      nLine := Len( ::oEdit:aText )
+   ENDIF
    IF !Empty( ::cMcomm1 )
       IF Empty( ::pDop )
          ::pDop := bitarr_Init( Len( ::oEdit:aText ) + 64 )
          ::nDopChecked := 0
       ENDIF
 
-      IF nLine == Nil
-         nLine := Len( ::oEdit:aText )
-      ENDIF
       IF ::nDopChecked < nLine - 1
-         //CheckMultiComm( Self, nLine )
-         //edi_Writelog( ltrim(str(::nDopChecked+1)) + ':' + ltrim(str(nLine)) )
          cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop, ::cQuo, ;
-            Iif(Empty(::cScomm),"",::cScomm), Iif(Empty(::cMcomm1),"",::cMcomm1), Iif(Empty(::cMcomm2),"",::cMcomm2) )
-         //FOR i := 1 TO Len( ::oEdit:aText )
-         //   s += Iif( bitarr_Test( ::pDop, i ), '1','0' )
-         //NEXT
-         //edi_Writelog( s )
-         ::nDopChecked := nLine
+            Iif(Empty(::cScomm),"",::cScomm), ::cMcomm1, Iif(Empty(::cMcomm2),"",::cMcomm2) )
       ENDIF
-      //IF ::nDopChecked < nLine
-      //   ::nDopChecked := nLine
-      //ENDIF
+   ENDIF
+   IF !Empty( ::cMcomm3 )
+      IF Empty( ::pDop3 )
+         ::pDop3 := bitarr_Init( Len( ::oEdit:aText ) + 64 )
+      ENDIF
+
+      IF ::nDopChecked < nLine - 1
+         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop3, ::cQuo, ;
+            Iif(Empty(::cScomm),"",::cScomm), ::cMcomm3, Iif(Empty(::cMcomm4),"",::cMcomm4) )
+      ENDIF
+   ENDIF
+   IF ::nDopChecked < nLine - 1
+      ::nDopChecked := nLine
    ENDIF
 
    RETURN Nil
+
+METHOD Getline( nLine ) CLASS Hili
+
+   LOCAL cLine := ::oEdit:aText[nLine], n
+
+   IF nLine > 1
+      IF ::IsComm( nLine-1 ) == 1
+         IF ( n := At( ::cMcomm2, cLine ) ) > 0
+            cLine := Ltrim( Substr( cLine,n+Len(::cMcomm2) ) )
+         ELSE
+            cLine := ""
+         ENDIF
+      ELSEIF ::IsComm( nLine-1 ) == 2
+         IF ( n := At( ::cMcomm4, cLine ) ) > 0
+            cLine := Ltrim( Substr( cLine,n+Len(::cMcomm4) ) )
+         ELSE
+            cLine := ""
+         ENDIF
+      ENDIF
+   ENDIF
+   RETURN cLine
 
 METHOD End() CLASS Hili
 
    IF !Empty( ::pDop )
       bitarr_Release( ::pDop )
       ::pDop := Nil
+   ENDIF
+   IF !Empty( ::pDop3 )
+      bitarr_Release( ::pDop3 )
+      ::pDop3 := Nil
    ENDIF
 
    RETURN Nil
@@ -347,75 +414,3 @@ STATIC FUNCTION IsLetter( c )
 
    RETURN Len( c ) > 1 .OR. ( c >= "A" .AND. c <= "Z" ) .OR. ( c >= "a" .AND. c <= "z" ) .OR. ;
       c == "_" .OR. Asc( c ) >= 128
-
-/*
-STATIC FUNCTION CheckMultiComm( oHili, nLine )
-
-   LOCAL cLine, nLen, c, nPos, nStartOffs, nStartPos, lUtf8 := oHili:oEdit:lUtf8 //, aDop := oHili:aDop
-   LOCAL pDop := oHili:pDop
-   LOCAL cScomm := oHili:cScomm, cMcomm1 := oHili:cMcomm1, cMcomm2 := oHili:cMcomm2, cQuo := oHili:cQuo
-   LOCAL cs, nLenS, cm, nLenM
-   LOCAL lMultiComm := .F.
-
-   aText := oHili:oEdit:aText
-   IF Empty( cScomm )
-      cs := ""
-   ELSE
-      cs := Left( cScomm, 1 )
-      nLenS := Len( cScomm )
-   ENDIF
-   IF Empty( cMcomm1 )
-      cm := ""
-   ELSE
-      cm := Left( cMcomm1, 1 )
-      nLenM := Len( cMcomm1 )
-   ENDIF
-
-   FOR i := oHili:nDopChecked + 1 TO nLine
-
-      cLine := aText[i]
-      nLen := cp_Len( lUtf8, cLine )
-      nStartOffs := nStartPos := 1
-
-      IF i > 1 .AND. bitarr_Test( pDop, i-1 ) //!Empty( aDop[i-1] )
-         IF ( nPos := At( cMcomm2, cLine ) ) == 0
-            //aDop[i] := 1
-            bitarr_Set( pDop, i, 1 )
-            LOOP
-         ELSE
-            lMultiComm := .F.
-            nPos += nLenM
-         ENDIF
-      ELSE
-         nPos := 1
-      ENDIF
-
-      DO WHILE nPos <= nLen .AND. cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) $ cSpaces; nPos ++ ; ENDDO
-      DO WHILE nPos <= nLen
-         IF ( c := cedi_Peek( lUtf8, cLine, nPos, @nStartOffs, @nStartPos ) ) == ""
-            LOOP
-
-         ELSEIF c $ cQuo
-            IF ( nPos := cp_At( lUtf8, c, cLine, nPos + 1 ) ) == 0
-               nPos := nLen
-            ENDIF
-
-         ELSEIF c == cs .AND. cedi_Substr( lUtf8, cLine, nPos, nLenS, nStartOffs, nStartPos ) == cScomm
-            nPos := nLen + 1
-            EXIT
-
-         ELSEIF c == cm .AND. cedi_Substr( lUtf8, cLine, nPos, nLenM, nStartOffs, nStartPos ) == cMcomm1
-            IF ( nPos := cp_At( lUtf8, cMcomm2, cLine, nPos + 1 ) ) == 0
-               nPos := nLen
-               lMultiComm := .T.
-            ENDIF
-            nPos += nLenM - 1
-         ENDIF
-         nPos ++
-      ENDDO
-      //aDop[i] := Iif( lMultiComm, 1, 0 )
-      bitarr_Set( pDop, i, lMultiComm )
-   NEXT
-
-   RETURN Nil
-*/

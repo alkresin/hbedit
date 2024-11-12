@@ -1784,7 +1784,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
       {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
       {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Z"}, {_I("Apps"),,,"A"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
-      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
+      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {_I("Edit")+ " hbedit.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-W"}, .T. )
@@ -1815,10 +1815,12 @@ METHOD PaneMenu() CLASS FilePane
       ::RedrawAll()
    ELSEIF nChoic == 10
       hbc_Console()
-   ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 4
+   ELSEIF !Empty( FilePane():cConsOut ) .AND. nChoic == Len( aMenu ) - 5
       ShowStdout()
-   ELSEIF nChoic == Len( aMenu ) - 2
+   ELSEIF nChoic == Len( aMenu ) - 3
       mnu_NewBuf( oHbc, hb_DirBase() + "hbc.ini" )
+   ELSEIF nChoic == Len( aMenu ) - 2
+      mnu_NewBuf( oHbc, hb_DirBase() + "hbedit.ini" )
 
    ELSEIF nChoic == Len( aMenu )
       RETURN .F.

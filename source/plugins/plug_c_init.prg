@@ -169,21 +169,9 @@ STATIC FUNCTION _c_Funcs( oEdit, oHili, nLineEnd )
       arrfnc := {}
    ENDIF
    FOR i := 1 TO nLineEnd
-      cLine := AllTrim( arr[i] )
-      IF i > 1
-         // Checks if a line is commented with /* */ operators, using a hilight object
-         IF oHili:IsComm( i-1 ) == 1 //aDop[i-1] == 1
-            IF ( nPos := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,nPos+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
-      ENDIF
-      IF Empty( cLine )
+      IF Empty( cLine := Alltrim( oHili:Getline(i) ) )
          LOOP
       ENDIF
-
       nPos := 1
       DO WHILE ( nPos := Iif( lUtf8, cedi_utf8pbrk( cFind, cLine, nPos ), cedi_strpbrk( cFind, cLine, nPos ) ) ) != -1
          IF ( c := cp_Substr( lUtf8,cLine,nPos,1 ) ) $ cQuotes
@@ -329,16 +317,8 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
    LOCAL oHili := oEdit:oHili
 
    FOR i := 1 TO Len( aText )
-      cLine := Ltrim( aText[i] )
-      IF i > 1
-         // Checks if a line is commented with /* */ operators, using a hilight object
-         IF oHili:IsComm( i-1 ) == 1
-            IF ( nPos := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,nPos+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
+      IF Empty( cLine := Ltrim( oHili:Getline(i) ) )
+         LOOP
       ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )

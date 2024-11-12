@@ -461,16 +461,8 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
 
    oHili:CheckComm()
    FOR i := 1 TO Len( aText )
-      cLine := Ltrim( aText[i] )
-      IF i > 1
-         // Checks if a line is commented with /* */ operators, using a hilight object
-         IF oHili:IsComm( i-1 ) == 1
-            IF ( nPos := At( "*/", cLine ) ) > 0
-               cLine := Ltrim( Substr( cLine,nPos+2 ) )
-            ELSE
-               LOOP
-            ENDIF
-         ENDIF
+      IF Empty( cLine := Ltrim( oHili:Getline(i) ) )
+         LOOP
       ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
@@ -539,16 +531,8 @@ STATIC FUNCTION _go_KeyWords( oEdit, cPrefix, lImports )
 
    IF !Empty( nLine0 )
       FOR i := nLine0 TO nLineCurr - 1
-         cLine := Ltrim( aText[i] )
-         IF i > 1
-            // Checks if a line is commented with /* */ operators, using a hilight object
-            IF oHili:IsComm( i-1 ) == 1
-               IF ( nPos := At( "*/", cLine ) ) > 0
-                  cLine := Ltrim( Substr( cLine,nPos+2 ) )
-               ELSE
-                  LOOP
-               ENDIF
-            ENDIF
+         IF Empty( cLine := Alltrim( oHili:Getline(i) ) )
+            LOOP
          ENDIF
          nSkip := 0
          IF i == nLine0
