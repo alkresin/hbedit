@@ -1368,18 +1368,19 @@ HB_FUNC( BITARR_TEST )
 }
 
 /*
- * cedi_CheckMultiComm( pText, iFrom, iTo, pDop, cQuo, cScomm, cMcomm1, cMcomm2 )
+ * cedi_CheckMultiComm( pText, iFrom, iTo, pDopBase, pDop, cQuo, cScomm, cMcomm1, cMcomm2 )
  */
 HB_FUNC( CEDI_CHECKMULTICOMM )
 {
    PHB_ITEM pText = hb_param( 1, HB_IT_ARRAY );
    int iFrom = hb_parni(2), iTo = hb_parni(3), i;
-   bitarr *pDop = (bitarr*) hb_parptr(4);
+   bitarr *pDopBase = (bitarr*) hb_parptr(4);
+   bitarr *pDop = (bitarr*) hb_parptr(5);
    const char * pLine, *pEnd, *ptr;
-   const char * cQuo = hb_parc(5);
-   const char * cScomm = hb_parc(6);
-   const char * cMcomm1 = hb_parc(7);
-   const char * cMcomm2 = hb_parc(8);
+   const char * cQuo = hb_parc(6);
+   const char * cScomm = hb_parc(7);
+   const char * cMcomm1 = hb_parc(8);
+   const char * cMcomm2 = hb_parc(9);
    char c;
    int iLenM1 = strlen( cMcomm1 ), iLenM2 = strlen( cMcomm2 ), iLenS = strlen( cScomm );
    int iMulti = ( (iFrom>1 && bitarr_Test(pDop,iFrom-2) == 1)? 1 : 0 );
@@ -1387,6 +1388,8 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
    //_writelog( "_ac.log", 0, "chk-0 %d %d\r\n", iFrom, iTo );
    for( i=iFrom; i<=iTo; i++ )
    {
+      if( pDopBase && bitarr_Test(pDopBase,i) == 1 )
+         continue;
       pLine = hb_arrayGetCPtr( pText, i );
       pEnd = pLine + hb_arrayGetCLen( pText, i );
       if( pEnd == pLine )

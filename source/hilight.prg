@@ -356,7 +356,7 @@ METHOD CheckComm( nLine ) CLASS Hili
       ENDIF
 
       IF ::nDopChecked < nLine - 1
-         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop, ::cQuo, ;
+         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, Nil, ::pDop, ::cQuo, ;
             Iif(Empty(::cScomm),"",::cScomm), ::cMcomm1, Iif(Empty(::cMcomm2),"",::cMcomm2) )
       ENDIF
    ENDIF
@@ -366,7 +366,7 @@ METHOD CheckComm( nLine ) CLASS Hili
       ENDIF
 
       IF ::nDopChecked < nLine - 1
-         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop3, ::cQuo, ;
+         cedi_CheckMultiComm( ::oEdit:aText, ::nDopChecked + 1, nLine, ::pDop, ::pDop3, ::cQuo, ;
             Iif(Empty(::cScomm),"",::cScomm), ::cMcomm3, Iif(Empty(::cMcomm4),"",::cMcomm4) )
       ENDIF
    ENDIF
