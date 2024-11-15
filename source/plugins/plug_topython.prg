@@ -38,8 +38,8 @@ FUNCTION plug_toPython( oEdit, cPath )
 
    cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + aPyPlugins[i,1]
    IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_py" ) )
-      xRes := ecli_RunFunc( hExt, "initinfo",{} )
-      IF Empty( xRes )
+      ecli_RunFunc( hExt, "initinfo",{}, .T. )
+      IF Empty( xRes :=_topy_CheckAnswer() )
          edi_Alert( "No initial info" )
          ecli_Close( hExt )
          hExt := Nil
@@ -64,6 +64,25 @@ FUNCTION plug_toPython( oEdit, cPath )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION _topy_CheckAnswer()
+
+   LOCAL sAns, nSec := Seconds(), arr
+
+   DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
+      IF Inkey( 0.02 ) == 27
+         EXIT
+      ENDIF
+      IF Empty(arr) .AND. Seconds() - nSec > 1
+         arr := hbc_Wndinit( 8, 30, 10, 50,, "Wait" )
+         hbc_Wndout( arr, "Press ESC to exit" )
+      ENDIF
+   ENDDO
+   IF !Empty(arr)
+      hbc_Wndclose( arr )
+   ENDIF
+
+   RETURN sAns
 
 STATIC FUNCTION _topy_CheckPython()
 
