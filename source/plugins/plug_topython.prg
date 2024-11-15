@@ -11,6 +11,7 @@ STATIC aPyPlugins := {}
 STATIC cCompiler
 STATIC nLogLevel := 0
 STATIC hExt
+STATIC lEscPressed := .F.
 
 FUNCTION plug_toPython( oEdit, cPath )
 
@@ -48,9 +49,13 @@ FUNCTION plug_toPython( oEdit, cPath )
       DO WHILE !Empty( xRes )
          xRes := _topy_Parse( xRes )
          IF Valtype( xRes ) == "A"
-            xRes := ecli_RunFunc( hExt, xRes[1],xRes[2] )
-            IF Empty( xRes )
-               edi_Alert( "Bad answer..." )
+            ecli_RunFunc( hExt, xRes[1], xRes[2], .T. )
+            IF Empty( xRes :=_topy_CheckAnswer() )
+               IF lEscPressed
+                  EXIT
+               ELSE
+                  edi_Alert( "Bad answer..." )
+               ENDIF
             ENDIF
          ELSE
             EXIT
@@ -69,8 +74,10 @@ STATIC FUNCTION _topy_CheckAnswer()
 
    LOCAL sAns, nSec := Seconds(), arr
 
+   lEscPressed := .F.
    DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
       IF Inkey( 0.02 ) == 27
+         lEscPressed := .T.
          EXIT
       ENDIF
       IF Empty(arr) .AND. Seconds() - nSec > 1
