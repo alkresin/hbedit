@@ -253,9 +253,9 @@ STATIC FUNCTION _itu_Rename( arr, nRow )
 
 FUNCTION _itu_Save( cFileName, cText, oEdit )
 
-   LOCAL arr := oEdit:hCargo["itutor_arr"], dDateMod, cTimeMod
+   LOCAL arr := oEdit:hCargo["itutor_arr"], dDateMod, cTimeMod, nPos
 
-   IF hb_fnameName( cFileName ) == "$" + arr[1]
+   IF ( nPos := At( "$", cFileName ) ) > 0 .AND. Substr( cFileName,nPos+1 ) == arr[1] + hb_fnameExt( cFileName )
       IF edi_Alert( "Really update the book?", "Yes", "No" ) == 1
          arr[2] := cText
          _itu_WriteBook()

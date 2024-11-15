@@ -126,7 +126,11 @@ STATIC FUNCTION _py_FuncStru( oEdit )
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF ( cfirst == "class" .OR. cFirst == "def" ) .AND. ;
          ( ( i == nLine ) .OR. Len( arr[i] ) - Len( cLine ) < nIndent )
-         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+         IF Chr(9) $ cFirst
+             cFirst := StrTran( cFirst, Chr(9), "  " )
+         ENDIF
+         Aadd( arrfnc, { cFirst, Nil, i } )
          //nIndent := Len( arr[i] ) - Len( cLine )
          EXIT
       ELSEIF !Empty( cLine ) .AND. Len( arr[i] ) - Len( cLine ) < nIndent
@@ -139,16 +143,24 @@ STATIC FUNCTION _py_FuncStru( oEdit )
          LOOP
       ENDIF
       nSkip := 0
-      cfirst := hb_TokenPtr( cLine, @nSkip )
+      cfirst := hb_TokenPtr( Ltrim(cLine), @nSkip )
 
       IF ( cfirst == "class" .OR. cFirst == "def" )
          IF (nIndTmp := Len( arr[i] ) - Len( Ltrim(cLine) )) < nIndent .OR. nIndTmp == 0
             EXIT
          ELSE
-            Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+            cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+            IF Chr(9) $ cFirst
+                cFirst := StrTran( cFirst, Chr(9), "  " )
+            ENDIF
+            Aadd( arrfnc, { cFirst, Nil, i } )
          ENDIF
       ELSEIF hb_Ascan( a4Stru, cfirst,,, .T. ) > 0
-         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
+         cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+         IF Chr(9) $ cFirst
+             cFirst := StrTran( cFirst, Chr(9), "  " )
+         ENDIF
+         Aadd( arrfnc, { cFirst, Nil, i } )
       ENDIF
    ENDDO
 

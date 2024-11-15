@@ -4,6 +4,7 @@
 #define K_ALT_R   275
 #define K_ALT_F   289
 #define K_ALT_L   294
+#define K_ALT_V    303
 
 STATIC cIniPath
 STATIC nGoInstalled := 0
@@ -30,6 +31,7 @@ FUNCTION Plug_go_Init( oEdit, cPath )
             "  Alt-R - Run code" + Chr(10) + ;
             "  Alt-F - Format code" + Chr(10) + ;
             "  Alt-L - Functions list" + Chr(10) + ;
+            "  Alt-V - Function structure" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -97,7 +99,9 @@ FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == K_ALT_F
          _go_Format()
       ELSEIF nKey == K_ALT_L
-         _go_Spis()
+         _go_Spis( oEdit )
+      ELSEIF nKey == K_ALT_V
+         _go_FuncStru( oEdit )
       ENDIF
    ENDIF
 
@@ -184,21 +188,25 @@ STATIC FUNCTION _go_Format()
    ENDIF
    RETURN Nil
 
-STATIC FUNCTION _go_Spis()
+STATIC FUNCTION _go_Spis( oEdit )
 
-   LOCAL i, n, arr := oEd:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL oHili := oEdit:oHili
 
+   oHili:CheckComm()
    FOR i := 1 TO Len( arr )
-      cLine := Lower( Ltrim( arr[i] ) )
+      IF Empty( cLine := Lower( Ltrim( oHili:Getline(i) ) ) )
+         LOOP
+      ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
       IF cfirst == "func"
-         Aadd( arrfnc, { cp_Left( oEd:lUtf8,arr[i],64 ), Nil, i } )
+         Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
    NEXT
    IF !Empty( arrfnc )
-      oEd:TextOut()
-      n := oEd:nLine
+      oEdit:TextOut()
+      n := oEdit:nLine
       FOR i := 1 TO Len( arrfnc )
          IF arrfnc[i,3] > n
             n := i - 1
@@ -206,8 +214,81 @@ STATIC FUNCTION _go_Spis()
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEd, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
-         oEd:Goto( arrfnc[i,3] )
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+         oEdit:Goto( arrfnc[i,3] )
+      ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _go_FuncStru( oEdit )
+   LOCAL i, n, arr := oEdit:aText, cLine, cfirst, nSkip, arrfnc := {}
+   LOCAL oHili := oEdit:oHili, nLine := oEdit:nLine, nIndent := -1, nIndTmp
+   LOCAL a4Stru := { "if", "} else", "for", "case", "default:", "switch" }
+
+   oHili:CheckComm()
+   FOR i := nLine TO 1 STEP -1
+      IF Empty( cLine := Ltrim( oHili:Getline(i) ) )
+         LOOP
+      ENDIF
+      IF nIndent == -1 .AND. !Empty( cLine )
+         nIndent := Len( arr[i] ) - Len( cLine )
+         nLine := i
+      ENDIF
+      nSkip := 0
+      cfirst := hb_TokenPtr( cLine, @nSkip )
+      IF ( cfirst == "func" ) .AND. ;
+         ( ( i == nLine ) .OR. Len( arr[i] ) - Len( cLine ) < nIndent )
+         cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+         IF Chr(9) $ cFirst
+             cFirst := StrTran( cFirst, Chr(9), "  " )
+         ENDIF
+         Aadd( arrfnc, { cFirst, Nil, i } )
+         //nIndent := Len( arr[i] ) - Len( cLine )
+         EXIT
+      ELSEIF !Empty( cLine ) .AND. Len( arr[i] ) - Len( cLine ) < nIndent
+         nIndent := Len( arr[i] ) - Len( cLine )
+      ENDIF
+   NEXT
+
+   DO WHILE ++i <= Len(arr)
+      IF Empty( cLine := oHili:Getline(i) )
+         LOOP
+      ENDIF
+      nSkip := 0
+      cfirst := hb_TokenPtr( Ltrim(cLine), @nSkip )
+
+      IF ( cfirst == "func" )
+         IF (nIndTmp := Len( arr[i] ) - Len( Ltrim(cLine) )) < nIndent .OR. nIndTmp == 0
+            EXIT
+         ELSE
+            cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+            IF Chr(9) $ cFirst
+                cFirst := StrTran( cFirst, Chr(9), "  " )
+            ENDIF
+            Aadd( arrfnc, { cFirst, Nil, i } )
+         ENDIF
+      ELSEIF hb_Ascan( a4Stru, cfirst,,, .T. ) > 0
+         cFirst := cp_Left( oEdit:lUtf8,arr[i],64 )
+         IF Chr(9) $ cFirst
+             cFirst := StrTran( cFirst, Chr(9), "  " )
+         ENDIF
+         Aadd( arrfnc, { cFirst, Nil, i } )
+      ENDIF
+   ENDDO
+
+   IF !Empty( arrfnc )
+      oEdit:TextOut()
+      n := oEdit:nLine
+      FOR i := 1 TO Len( arrfnc )
+         IF arrfnc[i,3] > n
+            n := i - 1
+            EXIT
+         ENDIF
+      NEXT
+      n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+         oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF
 

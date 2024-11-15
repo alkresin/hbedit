@@ -1836,8 +1836,9 @@ METHOD WriteTopPane( lClear ) CLASS TEdit
                DevPos( y, ::x1+8 )
                nF9 := 8
             ENDIF
-            DevOut( Iif( hb_hGetDef(::options,"pathinhead",.F.), NameShortcut(::cFileName,::nTopName,'~'), ;
-               cp_Left( ::lUtf8, hb_fnameNameExt(::cFileName), ::nTopName ) ) )
+            DevOut( Iif( hb_hGetDef(::options,"pathinhead",.F.), ;
+               NameShortcut(::cFileName,::nTopName,'~'), cp_Left( ::lUtf8, ;
+               Iif( Left(::cFileName,1) == "$", ::cFileName, hb_fnameNameExt(::cFileName) ), ::nTopName ) ) )
             IF !Empty( cDopMode )
                DevPos( y, ::x1 )
                DevOut( Padr( cDopMode, 8 ) )
@@ -2091,10 +2092,12 @@ METHOD Save( cFileName ) CLASS TEdit
    IF Empty( cFileName )
       RETURN .F.
    ELSE
-      IF Empty( hb_fnameDir( cFileName ) )
+      IF Left(cFileName,1) == "$" .OR. Empty( hb_fnameDir( cFileName ) )
          cFileName := cPath + cFileName
       ENDIF
-      ::cFileName := cFileName
+      IF Left(::cFileName,1) != "$"
+         ::cFileName := cFileName
+      ENDIF
    ENDIF
 
    IF !Empty( ::dDateMod ) .AND. hb_fGetDateTime( ::cFileName, @dDateMod, @cTimeMod ) .AND. ;
@@ -3450,13 +3453,13 @@ FUNCTION mnu_Save( oEdit, lAs )
 
    IF !Empty( lAs )
       oEdit:lTextOut := .T.
-      IF Empty( cPath := hb_fnameDir(oEdit:cFileName) )
+      IF Left(oEdit:cFileName,1) == "$" .OR. Empty( cPath := hb_fnameDir(oEdit:cFileName) )
          cPath := edi_CurrPath()
       ENDIF
       IF Empty( cFileName := edi_SaveDlg( oEdit, cPath ) )
          RETURN Nil
       ENDIF
-      IF Empty( hb_fnameDir(cFileName) ) // .AND. !Empty( cPath) )
+      IF Left(oEdit:cFileName,1) == "$" .OR. Empty( hb_fnameDir(cFileName) )
          cFileName := cPath + cFileName
       ENDIF
    ENDIF
@@ -4651,7 +4654,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    LOCAL cName
    LOCAL oldc := SetColor( oEdit:cColorSel+","+oEdit:cColorSel+",,"+oEdit:cColorGet+","+oEdit:cColorSel )
-   LOCAL aGets := { {11,22,0,hb_fnameNameExt(oEdit:cFileName),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
+   LOCAL aGets := { {11,22,0,Iif(Left(oEdit:cFileName,1)=="$",oEdit:cFileName,hb_fnameNameExt(oEdit:cFileName)),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,22,0,cDir,46,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,69,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[2],.T.)}}, ;
       {15,29,3,.T.,1}, {15,47,3,.F.,1}, {15,63,3,.F.,1} }
