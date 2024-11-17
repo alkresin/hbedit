@@ -455,6 +455,10 @@ HB_FUNC( CEDI_CHGRP )
       hb_retc_null();
 }
 
+HB_FUNC( CEDI_SHELLEXECUTE )
+{
+}
+
 HB_FUNC( CEDI_RUNBACKGROUNDAPP )
 {
    //hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );

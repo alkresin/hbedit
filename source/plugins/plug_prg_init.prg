@@ -290,7 +290,7 @@ STATIC FUNCTION _prg_AddCode( oEdit )
    LOCAL aMenu := { "IF ... ENDIF", "IF ... ELSE ...", "DO ... ENDDO", ;
       "FOR ... NEXT", "FOR EACH ... NEXT", "SWITCH ... CASE ...", ;
       "FUNC ... RETURN", "STATIC FUNC ... RETURN", "CLASS ... ENDCLASS" }, i
-   LOCAL aCode := { e"IF\rENDIF\n", e"IF\rELSE\rENDIF\n", e"DO\rENDDO\n", ;
+   LOCAL aCode := { e"IF\rENDIF\n", e"IF\rELSE\rENDIF\n", e"DO WHILE\rENDDO\n", ;
       e"FOR i := 1 TO\rNEXT\n", e"FOR EACH x IN\rNEXT\n", e"SWITCH\rCASE\rENDCASE\n", ;
       e"FUNCTION\r   RETURN Nil\n", e"STATIC FUNCTION\r   RETURN Nil\n", e"CLASS\r   DATA\r   METHOD\rENDCLASS" }
 

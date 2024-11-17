@@ -16,6 +16,9 @@ FUNCTION plug_Selection( oEdit, aMenu )
          Aadd( aMenu, {"Compare",@_plug_sele_diff(),Nil} )
       ENDIF
    ENDIF
+   IF Left( edi_GetSelected(oEdit), 4 ) == "http"
+      Aadd( aMenu, {"Open url",@_plug_sele_url(),Nil} )
+   ENDIF
    RETURN Nil
 
 FUNCTION _plug_sele_summ( oEdit )
@@ -151,5 +154,27 @@ FUNCTION _plug_sele_diff( oEdit )
       o1:cFileName := cAddw1
       mnu_ToBuf( oEdit, o1 )
    ENDIF
+
+   RETURN Nil
+
+FUNCTION _plug_sele_url( oEdit )
+
+   LOCAL s := edi_GetSelected( oEdit ), nbx2, i, nl := oEdit:nby1, c, ct := e"\9", cf
+
+   IF s == "http"
+      IF oEdit:nbx1 > oEdit:nbx2
+         i := nbx2 := oEdit:nbx1 - 1
+      ELSE
+         i := nbx2 := oEdit:nbx2 - 1
+      ENDIF
+      DO WHILE ++i <= Len( oEdit:aText[nl] ) .AND. ;
+         !( (c := Substr(oEdit:aText[nl],i,1)) == " " .OR. c == ct )
+      ENDDO
+      s += Substr( oEdit:aText[nl], nbx2+1, i-nbx2-1 )
+      //edi_writelog(s)
+   ENDIF
+
+   cf := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', '"cedi_ShellExecute("' )
+   i := &( cf + s + '")' )
 
    RETURN Nil

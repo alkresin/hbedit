@@ -7,16 +7,19 @@ from extsrv import esrv_Init, esrv_Wait, gWritelog
 cv = None
 hExt = None
 lCv2 = True
+aExt = (".jpg",".png",".bmp",".tiff",".gif")
 
 def fu1( aparams ):
     fname, fext = os.path.splitext( aparams[1] )
-    if fext == ".jpg" or fext == ".png":
+    if fext in aExt:
         img = cv.imread(cv.samples.findFile(aparams[0]+aparams[1]))
         if img is None:
             return "Could not read the image"
 
         cv.imshow("Display window", img)
         k = cv.waitKey(0)
+    else:
+        return "Format is not supported"
 
     return ":end;"
 
