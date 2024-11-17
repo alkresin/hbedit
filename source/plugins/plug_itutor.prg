@@ -11,8 +11,8 @@ STATIC cIniPath
 STATIC oEd
 STATIC lShowHelp := .T.
 STATIC aTutor, cTutorCurr, cLang, aTrace
-STATIC aLangs := { "harbour", "python", "c", "go", "java" }
-STATIC aExt := { ".prg", ".py", ".c", ".go", ".java" }
+STATIC aLangs := { "harbour", "python", "c", "go", "java","other" }
+STATIC aExt := { ".prg", ".py", ".c", ".go", ".java", "" }
 STATIC cn := e"\n"
 
 FUNCTION plug_itutor( oEdit, cPath )
