@@ -6,6 +6,8 @@ STATIC cTextSurr := ""
 
 FUNCTION plug_Selection( oEdit, aMenu )
 
+   LOCAL s
+
    Aadd( aMenu, {"Surround",@_plug_sele_surround(),Nil} )
    IF oEdit:nSeleMode == 2
       Aadd( aMenu, {"Summ",@_plug_sele_summ(),Nil} )
@@ -16,8 +18,15 @@ FUNCTION plug_Selection( oEdit, aMenu )
          Aadd( aMenu, {"Compare",@_plug_sele_diff(),Nil} )
       ENDIF
    ENDIF
-   IF Left( edi_GetSelected(oEdit), 4 ) == "http"
+   s := edi_GetSelected( oEdit )
+   IF Left( s, 4 ) == "http"
       Aadd( aMenu, {"Open url",@_plug_sele_url(),Nil} )
+   ELSEIF Left( s,4 ) == "{XX|"
+      IF Right( s,2 ) == "}}" .AND. hb_At( "{",s,4 ) > 0
+         Aadd( aMenu, {"Decode",@_plug_sele_decode(),Nil} )
+      ENDIF
+   ELSE
+      Aadd( aMenu, {"Encode",@_plug_sele_encode(),Nil} )
    ENDIF
    RETURN Nil
 
@@ -176,5 +185,51 @@ FUNCTION _plug_sele_url( oEdit )
 
    cf := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', '"cedi_ShellExecute("' )
    i := &( cf + s + '")' )
+
+   RETURN Nil
+
+FUNCTION _plug_sele_decode( oEdit )
+
+   LOCAL s := edi_GetSelected( oEdit ), s2, nPos, nby2, nbx2
+   LOCAL cPass := edi_MsgGet( "Password", oEdit:y1+5, oEdit:x1+10, oEdit:x1+30, .T. )
+
+   IF Empty( cPass )
+      RETURN Nil
+   ENDIF
+
+   nPos := hb_At( "{", s, 4 )
+   s := Substr( s, nPos+1, Len(s)-nPos-2 )
+   s2 := hb_blowfishDecrypt( hb_blowfishKey( cPass ), hb_base64decode(s), .T. )
+   s2 := edi_MsgGet_ext( s2, oEdit:y1+2, oEdit:x1+8, oEdit:y1+18, oEdit:x2-8,, .T., .T. )
+   IF !Empty( s2 )
+      IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
+         nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+      ELSE
+         nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+      ENDIF
+      oEdit:InsText( nby2, nbx2, Chr(10) + s2 + Chr(10) )
+   ENDIF
+
+   RETURN Nil
+
+FUNCTION _plug_sele_encode( oEdit )
+
+   LOCAL s := edi_GetSelected( oEdit ), s2, nby2, nbx2
+   LOCAL cPass := edi_MsgGet( "Password", oEdit:y1+5, oEdit:x1+10, oEdit:x1+30, .T. )
+
+   IF Empty( cPass )
+      RETURN Nil
+   ENDIF
+
+   s2 := "{XX|bfr|64{" + hb_base64encode( hb_blowfishEncrypt( hb_blowfishKey( cPass ), s, .T. ) ) + "}}"
+   s2 := edi_MsgGet_ext( s2, oEdit:y1+2, oEdit:x1+8, oEdit:y1+18, oEdit:x2-8,, .T., .T. )
+   IF !Empty( s2 )
+      IF oEdit:nby1 < oEdit:nby2 .OR. ( oEdit:nby1 == oEdit:nby2 .AND. oEdit:nbx1 < oEdit:nbx2 )
+         nby2 := oEdit:nby2; nbx2 := oEdit:nbx2
+      ELSE
+         nby2 := oEdit:nby1; nbx2 := oEdit:nbx1
+      ENDIF
+      oEdit:InsText( nby2, nbx2, Chr(10) + s2 + Chr(10) )
+   ENDIF
 
    RETURN Nil

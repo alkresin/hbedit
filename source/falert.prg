@@ -12,6 +12,8 @@
    #include "hwpgt.ch"
 #endif
 
+#define G_FLAGS  8
+#define G2_PASS  4
 #define SHIFT_PRESSED 0x010000
 
 FUNCTION edi_Alert( cText, cAns1, cAns2, cAns3 )
@@ -76,13 +78,24 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, cpold
+   LOCAL bViewPass := {|aOpt|
+      aGets[2,G_FLAGS] := Iif( Empty(aGets[2,G_FLAGS]), "@P", "" )
+      aOpt[2,G2_PASS] := !aOpt[2,G2_PASS]
+      ShowGetItem( aGets[2], .T., hb_cdpisutf8(),, aOpt[2] )
+      __KeyBoard(Chr(K_UP))
+      RETURN Nil
+   }
 
    IF Empty( cInitValue ); cInitValue := ""; ENDIF
+   IF Empty( lPass ); lPass := .F.; ENDIF
    y1 := Iif( y1 == Nil, Int( MaxRow()/2 ) - 1, y1 )
    x1 := Iif( x1 == Nil, Int( MaxCol()/2 ) - 15, x1 )
    x2 := Iif( x2 == Nil, x1 + 30, x2 )
 
-   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, cInitValue, x2-x1-4,,,Iif(Empty(lPass),Nil,"@P") } }
+   aGets := { {y1,x1+4, 11, cTitle}, { y1+1,x1+2, 0, cInitValue, x2-x1-Iif(lPass,6,3),,,Iif(!lPass,Nil,"@P") } }
+   IF lPass .AND. Empty(cInitValue)
+      AAdd( aGets, {y1+1,x2-3,2,"[v]",3,,, bViewPass} )
+   ENDIF
 
    cBuf := Savescreen( y1, x1, y1 + 2, x2 )
    @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -102,7 +115,7 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    RETURN xRes
 
-FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10 )
+FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly )
 
    LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
    LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
@@ -153,6 +166,7 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10 )
    oNew:lCtrlTab := .F.
    oNew:lWrap := .T.
    oNew:nMode := 0
+   oNew:lReadOnly := !Empty( lReadOnly )
    oNew:bOnKey := bOnKey
    IF !Empty( cp )
       oNew:cp := cp

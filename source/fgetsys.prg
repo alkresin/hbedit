@@ -150,7 +150,7 @@ FUNCTION edi_READ( aGets, pKeys )
          ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
             IF nKey == K_SPACE
                IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
-                  Eval( aGets[nCurr,G_CB] )
+                  Eval( aGets[nCurr,G_CB], aOpt )
                   ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                ENDIF
             ENDIF
@@ -364,7 +364,7 @@ FUNCTION edi_READ( aGets, pKeys )
                   DevPos( nRow, aGets[nCurr,G_X] )
                ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON
                   IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
-                     Eval( aGets[nCurr,G_CB] )
+                     Eval( aGets[nCurr,G_CB], aOpt )
                      ShowGetItem( aGets[nCurr], .T., lUtf8,, aOpt[nCurr] )
                   ENDIF
                ENDIF

@@ -1643,7 +1643,13 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                         nRow := Len(::aText) - ::nyFirst + ::y1
                      ENDIF
                      edi_SetPos( Self, ::RowToLine(nRow), ::ColToPos(nRow,nCol) )
-                     IF nKey == K_LDBLCLK
+                     IF ::nLine >= ::nby1 .AND. ::nLine <= ::nby2 .AND. ::nPos >= ::nbx1 ;
+                        .AND. ::nPos < ::nbx2 .AND. Seconds()-nLastSec < 0.6
+                        edi_SelectW( Self, .T. )
+                        ::lF3 := .T.
+                        nKey := K_RIGHT
+                        lNoDeselect := .T.
+                     ELSEIF nKey == K_LDBLCLK
                         edi_SelectW( Self, .F. )
                         ::lF3 := .T.
                         nKey := K_RIGHT
@@ -1663,6 +1669,11 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      nLastKey := nKeyExt
                      RETURN Nil
                   ENDIF
+               ENDIF
+               EXIT
+            CASE K_RBUTTONDOWN
+               IF ::nby1 >= 0 .AND. ::nby2 >= 0
+                  mnu_Sele( Self )
                ENDIF
                EXIT
             CASE K_F1
@@ -4624,7 +4635,7 @@ FUNCTION edi_PrevWord( oEdit, lBigW, lChgPos, lIn, ny, nx )
    ENDIF
 
    lAlphaNum := edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx,1) ) )
-   IF lIn .AND. nx > 1 .AND. ;
+   IF lIn .AND. nx > 1 .AND. !lBigW .AND. ;
       edi_AlphaNum( cp_Asc( lUtf8, cp_Substr(lUtf8,oEdit:aText[ny],nx-1,1) ) ) != lAlphaNum
       IF lChgPos == Nil .OR. lChgPos
          edi_SetPos( oEdit, ny, nx )
