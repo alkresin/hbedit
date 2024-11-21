@@ -1,3 +1,10 @@
+/*
+ * HbEdit plugin - Operations on selected text
+ *
+ * Copyright 2020-2024 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define HB_GTI_CLIPBOARDDATA    15
 #define UNDO_OP_START   5
 #define UNDO_OP_END     6
@@ -27,6 +34,7 @@ FUNCTION plug_Selection( oEdit, aMenu )
       ENDIF
    ELSE
       Aadd( aMenu, {"Encode",@_plug_sele_encode(),Nil} )
+      Aadd( aMenu, {"Cyrillic<->Latin",@_plug_sele_chg_letters(),Nil} )
    ENDIF
    RETURN Nil
 
@@ -231,5 +239,52 @@ FUNCTION _plug_sele_encode( oEdit )
       ENDIF
       oEdit:InsText( nby2, nbx2, Chr(10) + s2 + Chr(10) )
    ENDIF
+
+   RETURN Nil
+
+FUNCTION _plug_sele_chg_letters( oEdit )
+
+   LOCAL s := edi_GetSelected( oEdit ), s2 := "", cp := hb_cdpSelect(), i, j, lCyr
+   STATIC sCyrillic := "©æãª¥­£èé§åêäë¢ ¯à®«¤¦íïçá¬¨âì¡î‰–“Š…ƒ˜™‡•š”›‚€Ž‹„†Ÿ—‘Œˆ’œž"
+   STATIC sLatin    := "qwertyuiop[]asdfghjkl;'zxcvbnm,.QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,."
+
+   IF cp != "RU866"
+      s := hb_Translate( s, cp, "RU866" )
+   ENDIF
+   FOR i := 1 TO Len(s)
+      IF Substr(s,i,1) $ sCyrillic
+         lCyr := .T.
+         EXIT
+      ELSEIF Substr(s,i,1) $ sLatin
+         lCyr := .F.
+         EXIT
+      ENDIF
+   NEXT
+   IF lCyr == Nil
+      RETURN Nil
+   ENDIF
+   IF !lCyr
+      FOR i := 1 TO Len(s)
+         IF ( j := At( Substr(s,i,1), sLatin ) ) > 0
+            s2 += Substr( sCyrillic, j, 1 )
+         ELSE
+            s2 += Substr( s, i, 1 )
+         ENDIF
+      NEXT
+      //edi_writelog( "1: " + s2 )
+   ELSE
+      FOR i := 1 TO Len(s)
+         IF ( j := At( Substr(s,i,1), sCyrillic ) ) > 0
+            s2 += Substr( sLatin, j, 1 )
+         ELSE
+            s2 += Substr( s, i, 1 )
+         ENDIF
+      NEXT
+      //edi_writelog( "2: " + s2 )
+   ENDIF
+   IF cp != "RU866"
+      s2 := hb_Translate( s2, "RU866", cp )
+   ENDIF
+   edi_ReplSelected( oEdit, s2 )
 
    RETURN Nil
