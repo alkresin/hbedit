@@ -1262,6 +1262,17 @@ METHOD onKey( nKeyExt ) CLASS TEdit
             mnu_SeaAndRepl( Self )
             ::lTextOut := .T.
             EXIT
+         CASE K_CTRL_BS
+            IF ::nUndo > 0 .AND. ::aUndo[::nUndo,UNDO_OPER] == UNDO_OP_INS
+               ::nby1 := ::aUndo[::nUndo,UNDO_LINE1]
+               ::nbx1 := ::aUndo[::nUndo,UNDO_POS1]
+               ::nby2 := ::aUndo[::nUndo,UNDO_LINE2]
+               ::nbx2 := ::aUndo[::nUndo,UNDO_POS2]+1
+               ::lF3 := .T.
+               lNoDeselect := .T.
+               ::lTextOut := .T.
+            ENDIF
+            EXIT
         END
       ELSE
          IF ( nKey >= K_SPACE .AND. nKey <= 255 ) .OR. ( ::lUtf8 .AND. nKey > 3000 )

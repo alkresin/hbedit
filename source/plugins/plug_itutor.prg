@@ -22,8 +22,8 @@ FUNCTION plug_itutor( oEdit, cPath )
    oEd := oEdit
    cIniPath := cPath
 
-   IF Empty( aTutor )
-      _itu_SeleBook()
+   IF Empty( aTutor ) .AND. !_itu_SeleBook()
+      RETURN Nil
    ENDIF
 
    IF Empty( aTutor )
@@ -58,7 +58,9 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
             lLoop := .T.
             RETURN .F.
          ELSEIF nKeyExt == 0x41000003  // F3
-            _itu_Comment( arr, nRow-nDop )
+            IF Valtype( arr[nRow-nDop,2] ) == "A"
+               _itu_Comment( arr, nRow-nDop )
+            ENDIF
             lLoop := .T.
             RETURN .F.
          ELSEIF nKeyExt == 0x41000004  // F4
@@ -284,7 +286,12 @@ STATIC FUNCTION _itu_WriteBook()
       cLang + '">' + cn )
 
    FOR i := 1 TO Len( aTutor )
-      _itu_WriteChapter( han, aTutor[i], 1 )
+      IF Valtype( aTutor[i,2] ) == "A"
+         _itu_WriteChapter( han, aTutor[i], 1 )
+      ELSE
+         FWrite( han, Space( 2 ) + '<module name="' + aTutor[i,1] + '"' + aTutor[i,3] + cn + ;
+         Space( 4 ) + '<![CDATA[' + aTutor[i,2] + ']]>' + cn + Space( 2 ) + '</module>' + cn )
+      ENDIF
    NEXT
    FWrite( han, '</init>' )
    FClose( han )
@@ -329,22 +336,22 @@ STATIC FUNCTION _itu_SeleBook()
    FOR i := 1 TO Len( aMenu )
       aMenu[i] := aMenu[i,1]
    NEXT
+   ASort( aMenu )
    hb_AIns( aMenu, 1, "---", .T. )
    hb_AIns( aMenu, 1, "Create new", .T. )
 
    IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
-      RETURN Nil
+      RETURN .F.
    ENDIF
 
    IF i == 1
       _itu_Create()
-      RETURN Nil
+      RETURN .T.
    ENDIF
    cTutorCurr := aMenu[i]
    _itu_Load()
-   //edi_Writelog( hb_Valtoexp(aTutor) )
 
-   RETURN Nil
+   RETURN .T.
 
 STATIC FUNCTION _itu_Create()
 
@@ -368,7 +375,7 @@ STATIC FUNCTION _itu_Create()
 STATIC FUNCTION _itu_Load()
 
    LOCAL cBuff := Memoread( cIniPath + "itutor" + hb_ps() + cTutorCurr )
-   LOCAL nPos := 0, c
+   LOCAL nPos := 0, nPos2, nPos3, c
 
    aTutor := {}
    IF ( nPos := At( "<init", cBuff ) ) == 0
@@ -380,12 +387,23 @@ STATIC FUNCTION _itu_Load()
       RETURN Nil
    ENDIF
 
-   DO WHILE ( nPos := hb_At( "<chapter", cBuff, nPos ) ) > 0
-      IF ( nPos := _itu_AddChapter( cBuff, nPos, aTutor ) ) == -1
+   DO WHILE .T.
+      nPos2 := hb_At( "<chapter", cBuff, nPos )
+      nPos3 := hb_At( "<module", cBuff, nPos )
+      IF nPos2 == 0 .AND. nPos3 == 0
+         EXIT
+      ENDIF
+      nPos := Iif( nPos3 < nPos2 .AND. nPos3 > 0 , nPos3, Iif(nPos2>0,nPos2,nPos3) )
+      //edi_writelog( "1: " + str(nPos) + " " + str(npos2) + " " + str(npos3) )
+      IF ( nPos == nPos2 .AND. ( nPos2 := _itu_AddChapter( cBuff, nPos, aTutor ) ) == -1 ) ;
+          .OR. ( nPos == nPos3 .AND. ( nPos2 := _itu_AddModule( cBuff, nPos, aTutor ) ) == -1 )
+         //edi_writelog( "2: " + str(nPos) + " " + str(npos2) + " " + str(npos3) )
          edi_Alert( "Wrong tutor file" )
          aTutor := {}
          RETURN Nil
       ENDIF
+      //edi_writelog( "3: " + str(nPos) + " " + str(npos2) + " " + str(npos3) )
+      nPos := nPos2
       nPos ++
    ENDDO
 
@@ -412,22 +430,9 @@ STATIC FUNCTION _itu_AddChapter( cBuff, nPos, arr )
          ENDIF
       ELSEIF c == "m"
          IF Substr( cBuff, nPos, 6 ) == "module"
-            lFirst := .F.
-            IF ( nPos2 := hb_At( "</module", cBuff, nPos ) ) == 0
-               edi_Writelog( "Error in tutor 3:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+            IF ( nPos := _itu_AddModule( cBuff, nPos, arr1 ) ) == -1
                RETURN -1
             ENDIF
-            IF ( c := _itu_GetAttr( cBuff, nPos, "name", @cTemp ) ) == Nil
-               RETURN -1
-            ENDIF
-            IF ( nPos := hb_At( "<![CDATA[", cBuff, nPos ) ) < nPos2 .AND. ;
-               ( nPos2 := hb_Rat( "]]>", cBuff, nPos, nPos2 ) ) > 0
-               nPos += 9
-               AAdd( arr1, { c,Substr( cBuff, nPos, nPos2-nPos ), cTemp } )
-            ELSE
-               AAdd( arr1, { c,"", cTemp } )
-            ENDIF
-            nPos := nPos2 + 7
          ENDIF
       ELSEIF c == "c"
          IF Substr( cBuff, nPos, 7 ) == "chapter"
@@ -454,6 +459,28 @@ STATIC FUNCTION _itu_AddChapter( cBuff, nPos, arr )
    ENDDO
 
    RETURN nPos
+
+STATIC FUNCTION _itu_AddModule( cBuff, nPos, arr )
+
+    LOCAL nPos2, cTemp, c
+
+    IF ( nPos2 := hb_At( "</module", cBuff, nPos ) ) == 0
+       edi_Writelog( "Error in tutor 3:" + Chr(10) + Substr( cBuff, nPos-10, 40 ) )
+       RETURN -1
+    ENDIF
+    IF ( c := _itu_GetAttr( cBuff, nPos, "name", @cTemp ) ) == Nil
+       RETURN -1
+    ENDIF
+    IF ( nPos := hb_At( "<![CDATA[", cBuff, nPos ) ) < nPos2 .AND. ;
+       ( nPos2 := hb_Rat( "]]>", cBuff, nPos, nPos2 ) ) > 0
+       nPos += 9
+       AAdd( arr, { c,Substr( cBuff, nPos, nPos2-nPos ), cTemp } )
+    ELSE
+       AAdd( arr, { c,"", cTemp } )
+    ENDIF
+    nPos := nPos2 + 7
+
+    RETURN nPos
 
 STATIC FUNCTION _itu_GetAttr( cBuff, nPos, cAttr, cRest )
 
