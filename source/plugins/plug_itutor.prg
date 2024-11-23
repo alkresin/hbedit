@@ -46,6 +46,10 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
          lShowHelp := .T.
          lLoop := .T.
          RETURN .F.
+      ELSEIF nKeyExt == 0x41000007  // F7
+         _itu_Zip()
+         lLoop := .T.
+         RETURN .F.
       ELSEIF nRow > nDop
          IF nKeyExt == 0x41000015   // Ins
             IF !_itu_Ins( arr, nRow-nDop )
@@ -86,7 +90,7 @@ STATIC FUNCTION _itu_Show( arr, nLevel )
          ENDIF
       NEXT
       IF lShowHelp
-         edi_Alert( "iTutor plugin hotkeys:;F1 - Show this screen;Ins - Insert chapter or module near current position;Del - Delete chapter or module;F3 - View/edit chapter's comments;F4 - Rename chapter or module;Esc - Level up;F10 - Exit" )
+         edi_Alert( "iTutor plugin hotkeys:;F1 - Show this screen;Ins - Insert chapter or module near current position;Del - Delete chapter or module;F3 - View/edit chapter's comments;F4 - Rename chapter or module;F7 - zip;Esc - Level up;F10 - Exit" )
          lShowHelp := .F.
       ENDIF
       lLoop := .F.
@@ -279,6 +283,9 @@ STATIC FUNCTION _itu_WriteBook()
    LOCAL cFileNew := cFile + ".new", han, i
    LOCAL cFileBack := cFile + ".bak"
 
+   IF Right( cTutorCurr,4 ) == ".zip"
+      cFile := hb_strShrink( cFile, 4 )
+   ENDIF
    IF (han := FCreate( cFileNew )) == -1
       edi_Alert( "Can't create " + cFileNew )
    ENDIF
@@ -330,11 +337,15 @@ STATIC FUNCTION _itu_WriteChapter( han, arr, nLevel )
 
 STATIC FUNCTION _itu_SeleBook()
 
-   LOCAL aMenu := Directory( cIniPath + "itutor" + hb_ps() + "*.xml" )
-   LOCAL i
+   LOCAL aDir1 := Directory( cIniPath + "itutor" + hb_ps() + "*.xml" )
+   LOCAL aDir2 := Directory( cIniPath + "itutor" + hb_ps() + "*.xml.zip" )
+   LOCAL i, aMenu := Array( Len(aDir1) + Len(aDir2) )
 
-   FOR i := 1 TO Len( aMenu )
-      aMenu[i] := aMenu[i,1]
+   FOR i := 1 TO Len( aDir1 )
+      aMenu[i] := aDir1[i,1]
+   NEXT
+   FOR i := 1 TO Len( aDir2 )
+      aMenu[i+Len(aDir1)] := aDir2[i,1]
    NEXT
    ASort( aMenu )
    hb_AIns( aMenu, 1, "---", .T. )
@@ -374,9 +385,25 @@ STATIC FUNCTION _itu_Create()
 
 STATIC FUNCTION _itu_Load()
 
-   LOCAL cBuff := Memoread( cIniPath + "itutor" + hb_ps() + cTutorCurr )
+   LOCAL cBuff, hUnzip, nSize := 64000
    LOCAL nPos := 0, nPos2, nPos3, c
 
+   IF Right( cTutorCurr,4 ) == ".zip"
+      IF !Empty( hUnzip := hb_unzipOpen( cIniPath + "itutor" + hb_ps() + cTutorCurr ) )
+         hb_unzipFileFirst( hUnzip )
+         IF hb_unzipFileOpen( hUnzip, Nil ) == 0
+            cBuff := Space( nSize )
+            hb_unzipFileRead( hUnzip, @cBuff )
+            hb_unzipFileClose( hUnzip )
+            //hb_memoWrit(cIniPath + "itutor" + hb_ps() + "aaa.aaa", cBuff)
+         ENDIF
+         hb_unzipClose( hUnzip )
+      ELSE
+         edi_Alert( "No " + cIniPath + "itutor" + hb_ps() + cTutorCurr )
+      ENDIF
+   ELSE
+      cBuff := Memoread( cIniPath + "itutor" + hb_ps() + cTutorCurr )
+   ENDIF
    aTutor := {}
    IF ( nPos := At( "<init", cBuff ) ) == 0
       edi_Writelog( "Error in tutor 1" )
@@ -510,3 +537,26 @@ STATIC FUNCTION _itu_GetAttr( cBuff, nPos, cAttr, cRest )
 
    cRest := Substr( cBuff, nPos2+1, nPos3-nPos2 )
    RETURN Substr(cBuff,nPos,nPos2-nPos)
+
+STATIC FUNCTION _itu_Zip()
+
+   LOCAL cZip, hZip
+
+   IF Right( cTutorCurr,4 ) == ".zip"
+      RETURN Nil
+   ENDIF
+
+   cZip := cIniPath + "itutor" + hb_ps() + cTutorCurr + ".zip"
+   IF File( cZip )
+      IF edi_Alert( cTutorCurr + ".zip file exists. Overwrite?", "Yes", "No" ) != 1
+         RETURN Nil
+      ENDIF
+      FErase( cZip )
+   ENDIF
+   hZip := hb_zipOpen( cZip )
+   cZip := cIniPath + "itutor" + hb_ps() + cTutorCurr
+   hb_zipStoreFile( hZip, cZip, cTutorCurr )
+   hb_zipClose( hZip )
+   edi_Alert( "Dome." )
+
+   RETURN Nil
