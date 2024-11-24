@@ -222,7 +222,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
            oPaneCurr:DrawHead( .T. )
         ENDIF
         oPaneCurr:nCurrent --
-     ELSEIF oPaneCurr:nCurrent > Len( oPaneCurr:aDir )
+     ELSEIF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
         oPaneCurr:nCurrent --
      ENDIF
      oPaneCurr:DrawCell( ,.T. )
