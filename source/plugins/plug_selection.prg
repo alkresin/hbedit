@@ -191,7 +191,7 @@ FUNCTION _plug_sele_url( oEdit )
       //edi_writelog(s)
    ENDIF
 
-   cf := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', '"cedi_ShellExecute("' )
+   cf := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', 'cedi_ShellExecute("' )
    i := &( cf + s + '")' )
 
    RETURN Nil
