@@ -2663,7 +2663,7 @@ STATIC FUNCTION hbc_Doclist( n )
    LOCAL bKeys := {|nKeyExt,nLine|
       LOCAL nKey := hb_keyStd( nKeyExt )
       IF nKey == K_F2
-         cNewDir := hb_fnameDir( Filepane():aDocHis[n,nLine,2] )
+         cNewDir := hb_fnameDir( hb_Utf8ToStr( Filepane():aDocHis[n,nLine,2], Filepane():aDocHis[n,nLine,1] ) )
          RETURN .F.
       ENDIF
       RETURN Nil
