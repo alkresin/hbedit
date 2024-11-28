@@ -4249,10 +4249,11 @@ FUNCTION hbc_Wndout( arr, cText, lOver )
 
    IF Empty( lOver )
       Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
-   ELSE
-      Scroll( arr[3]-1, arr[2]+1, arr[3]-1, arr[4]-1 )
    ENDIF
    @ arr[3]-1, arr[2]+2 SAY NameShortcut( cText, arr[4]-arr[2]-5, "~", oHbc:lUtf8 )
+   IF !Empty( lOver )
+      Scroll( arr[3]-1, Col(), arr[3]-1, arr[4]-1 )
+   ENDIF
    SetColor( clr )
 
    RETURN Nil
@@ -4265,10 +4266,11 @@ FUNCTION hbc_Wndclose( arr, cText, lOver )
       clr := SetColor( arr[5] )
       IF Empty( lOver )
          Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
-      ELSE
-         Scroll( arr[3]-1, arr[2]+1, arr[3]-1, arr[4]-1 )
       ENDIF
       @ arr[3]-1, arr[2]+2 SAY cText COLOR (arr[5])
+      IF !Empty( lOver )
+         Scroll( arr[3]-1, Col(), arr[3]-1, arr[4]-1 )
+      ENDIF
       Inkey( 0 )
       SetColor( clr )
    ENDIF
