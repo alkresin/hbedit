@@ -7,7 +7,7 @@
 
 #include "hb_ssh2.h"
 
-#define  BUFFSIZE   8192
+#define  BUFFSIZE   32768
 
 static short int iSsh2Init = 0;
 static int( *pCallback )( HB_SSH2_SESSION * ) = NULL;

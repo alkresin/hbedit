@@ -992,6 +992,10 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName, short i
    return 1;
 }
 
+/* This function reads data from a pipe created by the child process.
+   The data is stored in the given buffer 'chBuf' and the number of bytes read is returned
+   in the given integer 'iRead'. The function returns 1 when successful and 0 otherwise.
+*/
 static int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
 {
    DWORD dwRead = 0;
@@ -999,11 +1003,15 @@ static int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
    DWORD result;
    int iRes = 1;
 
+   // Continuously read data from the pipe until the end is reached
    while (1) {
       if (ReadFile(pHandles->g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, &(pHandles->overlapped))) {
           break;
-      } else if (GetLastError() == ERROR_IO_PENDING) {
+      }
+      // If the read operation is still in progress, wait for it to complete
+      else if (GetLastError() == ERROR_IO_PENDING) {
           result = WaitForSingleObject(pHandles->overlapped.hEvent, 3000);
+          // If the wait was successful, check the result of the read operation
           if (result == WAIT_OBJECT_0) {
               if (GetOverlappedResult(pHandles->g_hChildStd_OUT_Rd, &(pHandles->overlapped), &dwRead, FALSE)) {
                   break;

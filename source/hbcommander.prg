@@ -2043,7 +2043,7 @@ FUNCTION FTransl( cName, cpFrom, cpTo )
 /*
  *  FCopy() returns 0 if it is Ok, 1 - if !overwrite, 2 - if error
  */
-STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
+STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aCoors )
 
    LOCAL i, cTemp, cIOpref, handle, nRes := 0, hZip, cRes
 
@@ -2097,14 +2097,14 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst )
          edi_Alert( cNotPerm )
       ENDIF
    ELSEIF oPaneCurr:nPanelMod == 1
-      IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
+      IF ( nRes := edi_CopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
+            oPaneCurr:cCurrPath + aDir[1], cFileTo, aCoors ) ) != 0
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
    ELSE
       //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
-      IF ( nRes := hb_vfCopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo ) ) != 0
+      IF ( nRes := edi_CopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + aDir[1], cFileTo, aCoors ) ) != 0
          //edi_Writelog( "Err" )
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
@@ -2130,10 +2130,11 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          ENDIF
       ELSE
          nStart ++
+         hbc_Wndout( aWnd, FTransl( Substr( s,nLen ) ), .T. )
+         hbc_Wndout( aWnd, "" )
          IF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cFileTo + ;
-            FTransl( Substr(s,nLen),oPaneCurr:cpPane,oPaneTo:cpPane ), nStart ) ) == 0
+            FTransl( Substr(s,nLen),oPaneCurr:cpPane,oPaneTo:cpPane ), nStart, aWnd ) ) == 0
             nCopied ++
-            hbc_Wndout( aWnd, FTransl( Substr( s,nLen ) ) )
          ELSEIF nRes == 1
             l1 := .T.
          ENDIF
@@ -2192,14 +2193,14 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
             edi_Alert( _I("Error creating")+" " + cFileName )
             RETURN 2
          ENDIF
-         aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Copy") )
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Copy") )
          lRes := .T.
          DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
-         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nCopied)) + " "+_I("files copied") )
+         hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nCopied)) + " "+_I("files copied"), .T. )
          IF !lSilent
             oPaneTo:Refresh()
             oPaneCurr:Refresh()
@@ -2207,9 +2208,11 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
          ENDIF
       ELSE
          IF !lSilent .AND. nStart == 0
-            aWnd := hbc_Wndinit( 05, Int(MaxCol()/2-10), 06, Int(MaxCol()/2+10),, _I("Wait") )
+            aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, _I("Wait") )
+            hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( aDir[1] ) ) )
+            hbc_Wndout( aWnd, "" )
          ENDIF
-         IF ( nRes := FCopy( aDir, cFileTo, nStart ) ) < 2
+         IF ( nRes := FCopy( aDir, cFileTo, nStart, aWnd ) ) < 2
             lRes := .T.
             IF Left( cFileTo,4 ) == "zip:"
                // Refresh zip panel
@@ -2248,7 +2251,7 @@ STATIC FUNCTION hbc_FCopySele()
    cDirTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath
    IF !Empty( cDirTo := FAsk_Copy( ;
       _I("Copy seleted files to"), cDirTo ) )
-      aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Copy") )
+      aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Copy") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
@@ -2355,7 +2358,7 @@ STATIC FUNCTION hbc_FRenameSele()
 
    IF !Empty( cMoveTo := FAsk_Copy( ;
       _I("Move selected files to"), cMoveTo ) )
-      aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Move") )
+      aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Move") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
@@ -2432,7 +2435,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
       IF nRes == Nil
          IF lDir
             lRes := .T.
-            aWnd := hbc_Wndinit( 05, 20, 12, 60,, _I("Delete") )
+            aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Delete") )
             cInitDir := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + cFileName
             aDirs := { cInitDir }
             DirEval( cInitDir, "*", .T., bDel, .T. )
@@ -3107,7 +3110,7 @@ STATIC FUNCTION hbc_Zip()
 
       Restscreen( 05, 10, 10, 70, cScBuf )
       IF !Empty( oPaneCurr:aSelected )
-         aWnd := hbc_Wndinit( 05, 20, 16, 60,, "Zip" )
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 16, oPaneCurr:vx2-12,, "Zip" )
          FOR i := 1 TO Len( oPaneCurr:aSelected )
             cFile := oPaneCurr:aDir[oPaneCurr:aSelected[i],1]
             hbc_Wndout( aWnd, cFile )
@@ -3118,7 +3121,7 @@ STATIC FUNCTION hbc_Zip()
          hbc_Wndclose( aWnd, _I("Done")+", " + Ltrim(Str(nSch)) + " "+_I("files archived") )
          oPaneCurr:aSelected := {}
       ELSEIF 'D' $ aDir[5]
-         aWnd := hbc_Wndinit( 05, 20, 16, 60,, "Zip" )
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 16, oPaneCurr:vx2-12,, "Zip" )
          aDirToZip := ASort( hb_DirScan( aDir[1], "*", "HSD" ),,, {|a1,a2|a1[1]<a2[1]} )
          cFile := aDir[1] + hb_ps()
          hb_zipStoreFile( hZip, cFile, cFile )
@@ -3194,7 +3197,7 @@ STATIC FUNCTION hbc_Unzip()
       IF cExt == ".zip"
          hUnzip := hb_unzipOpen( cFileName )
          IF ! Empty( hUnzip )
-            aWnd := hbc_Wndinit( 05, 20, 16, 60,, "Unzip" )
+            aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 16, oPaneCurr:vx2-12,, "Unzip" )
             nErr := hb_unzipFileFirst( hUnzip )
             DO WHILE nErr == 0
                hb_unzipFileInfo( hUnzip, @cFile, @dDate, @cTime, , , , @nSize, @lCrypted )
@@ -3222,7 +3225,7 @@ STATIC FUNCTION hbc_Unzip()
             oPaneCurr:RedrawAll()
          ENDIF
       ELSE
-         aWnd := hbc_Wndinit( 05, 20, 8, 60,, "Restore from archive" )
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 8, oPaneCurr:vx2-12,, "Restore from archive" )
          cedi_RunConsoleApp( '7z x -o"' + cPath + '" '+ cFileName,, @cRes )
          hbc_Wndclose( aWnd, _I("Done") )
          oPaneCurr:Refresh()
@@ -4240,23 +4243,31 @@ FUNCTION hbc_Wndinit( y1, x1, y2, x2, clr, cTitle )
 
    RETURN { y1, x1, y2, x2, clr, cBuf }
 
-FUNCTION hbc_Wndout( arr, cText )
+FUNCTION hbc_Wndout( arr, cText, lOver )
 
    LOCAL clr := SetColor( arr[5] )
 
-   Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
-   @ arr[3]-1, arr[2]+2 SAY NameShortcut( cText, arr[4]-arr[2]-1, "~", oHbc:lUtf8 )
+   IF Empty( lOver )
+      Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
+   ELSE
+      Scroll( arr[3]-1, arr[2]+1, arr[3]-1, arr[4]-1 )
+   ENDIF
+   @ arr[3]-1, arr[2]+2 SAY NameShortcut( cText, arr[4]-arr[2]-5, "~", oHbc:lUtf8 )
    SetColor( clr )
 
    RETURN Nil
 
-FUNCTION hbc_Wndclose( arr, cText )
+FUNCTION hbc_Wndclose( arr, cText, lOver )
 
    LOCAL clr
 
    IF cText != Nil
       clr := SetColor( arr[5] )
-      Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
+      IF Empty( lOver )
+         Scroll( arr[1]+1, arr[2]+1, arr[3]-1, arr[4]-1, 1 )
+      ELSE
+         Scroll( arr[3]-1, arr[2]+1, arr[3]-1, arr[4]-1 )
+      ENDIF
       @ arr[3]-1, arr[2]+2 SAY cText COLOR (arr[5])
       Inkey( 0 )
       SetColor( clr )

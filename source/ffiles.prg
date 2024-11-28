@@ -5,6 +5,8 @@
  * www - http://www.kresin.ru
  */
 
+#include "fileio.ch"
+
 FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2, cMask )
 
    LOCAL aMenu := edi_Directory( cPath, cMask ), i, nPos, arr
@@ -185,6 +187,46 @@ FUNCTION edi_FindPath( cFile )
    ENDIF
 
    RETURN Nil
+
+#define  BUFFSIZE  32768
+
+FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
+
+   LOCAL phDst, phSrc, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0, nProgress := 0, ;
+      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
+
+   //IF '\' $ cFileName
+   //   cFileName := StrTran( cFileName, '\', '/' )
+   //ENDIF
+   IF !Empty( phDst := hb_vfOpen( cFileDst, FO_WRITE+FO_CREAT+FO_TRUNC ) )
+      IF !Empty( phSrc := hb_vfOpen( cFileSrc, FO_READ ) )
+         nSize := hb_vfSize( phSrc )
+         DO WHILE ( nBytes := hb_vfRead( phSrc, @cBuff, BUFFSIZE ) ) > 0
+            hb_vfWrite( phDst, cBuff, nBytes )
+            nCopied += nBytes
+            IF Inkey() == 27 .AND. !FAsk_Abort( cFileSrc, nSize, nCopied )
+               hb_vfClose( phSrc )
+               hb_vfClose( phDst )
+               hb_vfErase( cFileDst )
+               RETURN -3
+            ENDIF
+            IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
+               nProgress := Int( nMax * nCopied / nSize )
+               hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
+            ENDIF
+         ENDDO
+         hb_vfClose( phSrc )
+         hb_vfClose( phDst )
+      ELSE
+         hb_vfClose( phDst )
+         hb_vfErase( cFileDst )
+         edi_Alert( "Can't open " + cFileSrc )
+      ENDIF
+   ELSE
+      edi_Alert( "Can't open " + cFileDst )
+   ENDIF
+
+   RETURN 0
 
 FUNCTION edi_WriteLog( cText, fname )
 

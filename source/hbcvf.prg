@@ -92,19 +92,21 @@ FUNCTION hbc_vfTimeGet( cFileName, tsDateTime )
    ENDIF
    RETURN hb_vfTimeGet( cFileName, @tsDateTime )
 
-FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst )
+FUNCTION hbc_vfCopyFile( cFileSrc, cFileDst, aWnd )
 
    LOCAL pSess
    IF cFileSrc = "sftp:"
       IF cFileDst = "sftp:"
          RETURN -1
       ELSE
-         RETURN Iif( Empty( pSess := _GetpSess(cFileSrc) ), -1, hbc_ssh2_Download( pSess,_GetDir(cFileSrc),cFileDst ) )
+         RETURN Iif( Empty( pSess := _GetpSess(cFileSrc) ), -1, ;
+            hbc_ssh2_Download( pSess,_GetDir(cFileSrc),cFileDst, aWnd ) )
       ENDIF
    ELSEIF cFileDst = "sftp:"
-      RETURN Iif( Empty( pSess := _GetpSess(cFileDst) ), -1, hbc_ssh2_Upload( pSess,_GetDir(cFileDst),cFileSrc ) )
+      RETURN Iif( Empty( pSess := _GetpSess(cFileDst) ), -1, ;
+         hbc_ssh2_Upload( pSess,_GetDir(cFileDst),cFileSrc, aWnd ) )
    ENDIF
-   RETURN hb_vfCopyFile( cFileSrc, cFileDst )
+   RETURN edi_CopyFile( cFileSrc, cFileDst, aWnd )
 
 FUNCTION hbc_vfDirExists( cDirName )
 

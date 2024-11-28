@@ -3589,7 +3589,7 @@ FUNCTION mnu_F4( oEdit, aXY )
 
    FOR i := 1 TO Len( oEdit:aEditHis )
       IF lChecked .OR. File( oEdit:aEditHis[i,1] )
-         AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 36,'~'), ;
+         AAdd( aMenu, { NameShortcut(hb_Translate(oEdit:aEditHis[i,1],"UTF8"), 39,'~'), ;
             @mnu_OpenRecent(),i } )
       ELSE
          hb_ADel( oEdit:aEditHis, i, .T. )

@@ -8,7 +8,7 @@
 #include "fileio.ch"
 //#include "hbssh2.ch"
 
-#define  BUFFSIZE  16384
+#define  BUFFSIZE  32768
 #define  LIBSSH2_SFTP_S_IFDIR        0x04000     /* directory */
 
 FUNCTION hbc_ssh2_Connect( cAddr, nPort, cLogin, cPass, lSave )
@@ -78,9 +78,10 @@ FUNCTION hbc_ssh2_MemoRead( pSess, cFileName )
 
    RETURN cBuffer
 
-FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
+FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
 
-   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0
+   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0, nProgress := 0, ;
+      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
 
    CLEAR TYPEAHEAD
    IF '\' $ cFileName
@@ -98,6 +99,10 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
             fErase( cFileLocal )
             RETURN -3
          ENDIF
+         IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
+            nProgress := Int( nMax * nCopied / nSize )
+            hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
+         ENDIF
       ENDDO
       fClose( handle )
       ssh2_Sftp_Close( pHandle )
@@ -107,9 +112,10 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal )
 
    RETURN 0
 
-FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
+FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal, aWnd )
 
-   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0
+   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0, nProgress := 0, ;
+      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
 
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
@@ -126,6 +132,10 @@ FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal )
             ssh2_Sftp_Close( pHandle )
             ssh2_Sftp_FileDelete( pSess, cFileName )
             RETURN -3
+         ENDIF
+         IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
+            nProgress := Int( nMax * nCopied / nSize )
+            hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
          ENDIF
       ENDDO
       hb_vfClose( handle )

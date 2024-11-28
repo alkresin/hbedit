@@ -53,7 +53,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
                Iif(Len(aMenu[i])>3.AND.!Empty(aMenu[i,4]), cp_Len(lUtf8,aMenu[i,4])+1,0) )
          ENDIF
       NEXT
-      x2 := Min( MaxCol()-4, x1 + x2 + 6 )
+      x2 := Min( MaxCol()-4, x1 + x2 + Iif( lSearch, 3, 6 ) )
    ENDIF
    IF y2 == Nil
       y2 := Min( MaxRow()-2, nLen + y1 + 1 )
@@ -316,7 +316,7 @@ STATIC FUNCTION MakeArr( aMenu, nSize, lUtf8, cSearch, bSea )
             arr[nLenArr] := cPrefix := ""
          ELSE
             nMenuPos ++
-            IF cPrefix == ": "
+            IF cPrefix == ": " .OR. lSea
                cPrefix := ""
             ELSE
                cPrefix := Iif( nMenuPos>36.OR.lSea, "   ", Iif(nMenuPos>10, Chr(86+nMenuPos), Ltrim(Str(nMenuPos-1)) ) + ": " )
