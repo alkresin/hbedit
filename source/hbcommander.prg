@@ -2043,7 +2043,7 @@ FUNCTION FTransl( cName, cpFrom, cpTo )
 /*
  *  FCopy() returns 0 if it is Ok, 1 - if !overwrite, 2 - if error
  */
-STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aCoors )
+STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aWnd )
 
    LOCAL i, cTemp, cIOpref, handle, nRes := 0, hZip, cRes
 
@@ -2098,13 +2098,13 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aCoors )
       ENDIF
    ELSEIF oPaneCurr:nPanelMod == 1
       IF ( nRes := edi_CopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo, aCoors ) ) != 0
+            oPaneCurr:cCurrPath + aDir[1], cFileTo, aWnd ) ) != 0
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
    ELSE
       //edi_Writelog( "2: " + oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + aDir[1] )
       IF ( nRes := edi_CopyFile( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo, aCoors ) ) != 0
+            oPaneCurr:cCurrPath + aDir[1], cFileTo, aWnd ) ) != 0
          //edi_Writelog( "Err" )
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
@@ -2115,9 +2115,9 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aCoors )
 
    RETURN nRes
 
-STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
+STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
 
-   LOCAL lSilent, l1 := .F., cTemp, lDir, nCopied := 0, aWnd
+   LOCAL lSilent, l1 := .F., cTemp, lDir, nCopied := 0
    LOCAL cFileName := aDir[1], lRes := .F., nRes
    LOCAL bCopy := {|s,arr|
       LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
@@ -2193,7 +2193,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
             edi_Alert( _I("Error creating")+" " + cFileName )
             RETURN 2
          ENDIF
-         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Copy") )
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Wait") )
          lRes := .T.
          DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
             oPaneCurr:cCurrPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
@@ -2207,7 +2207,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart )
             oPaneCurr:RedrawAll()
          ENDIF
       ELSE
-         IF !lSilent .AND. nStart == 0
+         IF !lSilent .AND. nStart == 0 .AND. Empty( aWnd )
             aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, _I("Wait") )
             hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( aDir[1] ) ) )
             hbc_Wndout( aWnd, "" )
@@ -2251,15 +2251,16 @@ STATIC FUNCTION hbc_FCopySele()
    cDirTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath
    IF !Empty( cDirTo := FAsk_Copy( ;
       _I("Copy seleted files to"), cDirTo ) )
-      aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Copy") )
+      aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Wait") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
          aDir := oPaneCurr:aDir[oPaneCurr:aSelected[i]]
          cFileName := aDir[1]
          cFileTo := cDirTo + cFileName
 
-         hbc_Wndout( aWnd, FTransl( cFileName ) )
-         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i ) ) == 0
+         hbc_Wndout( aWnd, FTransl( cFileName ), .T. )
+         hbc_Wndout( aWnd, "" )
+         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i, aWnd ) ) == 0
             nSch ++
          ENDIF
          IF nRes == 3 .OR. Inkey() == 27
@@ -2267,7 +2268,7 @@ STATIC FUNCTION hbc_FCopySele()
          ENDIF
       NEXT
 
-      hbc_Wndclose( aWnd, Iif( nRes==3, _I("Aborted")+", ",_I("Done")+", " ) + Ltrim(Str(nSch)) + " " + _I("files copied") )
+      hbc_Wndclose( aWnd, Iif( nRes==3, _I("Aborted")+", ",_I("Done")+", " ) + Ltrim(Str(nSch)) + " " + _I("files copied"), .T. )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneTo:Refresh()
@@ -2281,7 +2282,7 @@ STATIC FUNCTION hbc_FRename( lRename )
 
    LOCAL aDir := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift]
    LOCAL cFileName := aDir[1], i
-   LOCAL cNewName, lDir, lCopyDel := .F., lRes := .F.
+   LOCAL cNewName, lDir, lCopyDel := .F., lRes := .F., aWnd
 
    lDir := ( 'D' $ aDir[5] )
    IF oPaneCurr:nPanelMod > 0
@@ -2321,15 +2322,30 @@ STATIC FUNCTION hbc_FRename( lRename )
                RETURN Nil
             ENDIF
          ENDIF
-         IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + cFileName, cNewName+Iif(lDir.AND.!lRename,cFileName,"") ) == 0
-            lRes := .T.
+#ifdef __PLATFORM__UNIX
+         IF Empty( oPaneCurr:cIOpref )
+#else
+         IF Empty( oPaneCurr:cIOpref ) .AND. ( Substr( cNewName,2,1 ) != ":" .OR. ;
+            Left( cNewName,1 ) == Left( oPaneCurr:cCurrPath, 1 ) )
+#endif
+            aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, _I("Wait") )
+            hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( cFileName ) ) )
+            hbc_Wndout( aWnd, "" )
+            IF hb_vfRename( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+               oPaneCurr:cCurrPath + cFileName, cNewName+Iif(lDir.AND.!lRename,cFileName,"") ) == 0
+               lRes := .T.
+            ENDIF
+            hbc_Wndclose( aWnd )
          ENDIF
       ENDIF
       IF !lRes .AND. ( lCopyDel .OR. !lRename )
-         IF hbc_FCopyFile( aDir, cNewName ) == 0
+         aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, _I("Wait") )
+         hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( cFileName ) ) )
+         hbc_Wndout( aWnd, "" )
+         IF hbc_FCopyFile( aDir, cNewName,, aWnd ) == 0
             lRes := hbc_FDelete( .T. )
          ENDIF
+         hbc_Wndclose( aWnd )
       ENDIF
       oPaneCurr:Refresh()
       IF !lRename
@@ -2365,9 +2381,10 @@ STATIC FUNCTION hbc_FRenameSele()
          cFileName := aDir[1]
          cFileTo := cMoveTo + cFileName
 
-         hbc_Wndout( aWnd, FTransl( cFileName ) )
+         hbc_Wndout( aWnd, FTransl( cFileName ), .T. )
+         hbc_Wndout( aWnd, "" )
 
-         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i ) ) == 0
+         IF ( nRes := hbc_FCopyFile( aDir, cFileTo, i, aWnd ) ) == 0
             IF hbc_FDelete( .T., cFileName, .F. )
                nSch ++
             ENDIF
@@ -2378,7 +2395,7 @@ STATIC FUNCTION hbc_FRenameSele()
       NEXT
 
       hbc_Wndclose( aWnd, Iif( nRes==3, _I("Aborted")+", ",_I("Done")+", " ) + ;
-         Ltrim(Str(nSch)) + " " +_I("files moved") )
+         Ltrim(Str(nSch)) + " " +_I("files moved"), .T. )
       oPaneCurr:aSelected := {}
       IF nSch > 0
          oPaneCurr:Refresh()
@@ -4255,6 +4272,21 @@ FUNCTION hbc_Wndout( arr, cText, lOver )
       Scroll( arr[3]-1, Col(), arr[3]-1, arr[4]-1 )
    ENDIF
    SetColor( clr )
+
+   RETURN Nil
+
+FUNCTION hbc_WndProgress( arr, nKoef )
+
+   LOCAL nMax
+   STATIC nProgress := 0
+
+   IF nKoef == 0
+      nProgress := -1
+   ENDIF
+   IF !Empty(arr) .AND. ( nMax := (arr[4]-arr[2]-8) ) > 0 .AND. Int( nMax * nKoef ) > nProgress
+      nProgress := Int( nMax * nKoef )
+      hbc_WndOut( arr, " [" + Replicate( '>', nProgress ) + Space(nMax-nProgress) + "]", .T. )
+   ENDIF
 
    RETURN Nil
 

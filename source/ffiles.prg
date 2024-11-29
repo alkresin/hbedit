@@ -192,8 +192,7 @@ FUNCTION edi_FindPath( cFile )
 
 FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
 
-   LOCAL phDst, phSrc, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0, nProgress := 0, ;
-      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
+   LOCAL phDst, phSrc, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0
 
    //IF '\' $ cFileName
    //   cFileName := StrTran( cFileName, '\', '/' )
@@ -201,6 +200,7 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
    IF !Empty( phDst := hb_vfOpen( cFileDst, FO_WRITE+FO_CREAT+FO_TRUNC ) )
       IF !Empty( phSrc := hb_vfOpen( cFileSrc, FO_READ ) )
          nSize := hb_vfSize( phSrc )
+         hbc_WndProgress( aWnd, 0 )
          DO WHILE ( nBytes := hb_vfRead( phSrc, @cBuff, BUFFSIZE ) ) > 0
             hb_vfWrite( phDst, cBuff, nBytes )
             nCopied += nBytes
@@ -210,10 +210,7 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
                hb_vfErase( cFileDst )
                RETURN -3
             ENDIF
-            IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
-               nProgress := Int( nMax * nCopied / nSize )
-               hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
-            ENDIF
+            hbc_WndProgress( aWnd, nCopied / nSize )
          ENDDO
          hb_vfClose( phSrc )
          hb_vfClose( phDst )

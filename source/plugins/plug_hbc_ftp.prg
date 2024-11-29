@@ -374,7 +374,7 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
 
    LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, lToFile := .F., nCopied := 0, lRes := .T.
-   LOCAL aWnd, nProgress := 0, nMax, oPaneCurr := FilePane():PaneCurr()
+   LOCAL aWnd, oPaneCurr := FilePane():PaneCurr()
 
    IF !Empty( cFileTo )
       IF Empty( handle := hb_vfOpen( cFileTo, FO_WRITE+FO_CREAT+FO_TRUNC ) )
@@ -387,7 +387,7 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
    aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, "Copy" )
    hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( cFileName ) ) )
    hbc_Wndout( aWnd, "" )
-   nMax := aWnd[4] - aWnd[2] - 4
+   hbc_WndProgress( aWnd, 0 )
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       hbc_Wndclose( aWnd )
       RETURN Iif( lToFile, .F., Nil )
@@ -410,10 +410,7 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
          lRes := .F.
          EXIT
       ENDIF
-      IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
-         nProgress := Int( nMax * nCopied / nSize )
-         hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
-      ENDIF
+      hbc_WndProgress( aWnd, nCopied / nSize )
    ENDDO
 
    IF lToFile
@@ -432,7 +429,7 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
 STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo, nSize )
 
    LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, nCopied := 0, lRes := .T.
-   LOCAL aWnd, nProgress := 0, nMax, oPaneCurr := FilePane():PaneCurr()
+   LOCAL oPaneCurr := FilePane():PaneCurr(), aWnd
 
    IF Empty( handle := hb_vfOpen( cFileName, FO_READ ) )
       edi_Alert( "Can't open " + cFileName )
@@ -442,7 +439,7 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo, nSize )
    aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 08, oPaneCurr:vx2-12,, "Copy" )
    hbc_Wndout( aWnd, FTransl( hb_fnameNameExt( cFileName ) ) )
    hbc_Wndout( aWnd, "" )
-   nMax := aWnd[4] - aWnd[2] - 4
+   hbc_WndProgress( aWnd, 0 )
    IF Empty( hSockNew := FtpPASV( hSocket ) )
       RETURN Nil
    ENDIF
@@ -457,10 +454,7 @@ STATIC FUNCTION FtpWriteFile( hSocket, cFileName, cFileTo, nSize )
             lRes := .F.
             EXIT
          ENDIF
-         IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
-            nProgress := Int( nMax * nCopied / nSize )
-            hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
-         ENDIF
+         hbc_WndProgress( aWnd, nCopied / nSize )
       ENDDO
       nRet := Iif( nRet<0, -1, 1 )
    ELSE

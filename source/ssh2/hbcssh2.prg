@@ -80,8 +80,7 @@ FUNCTION hbc_ssh2_MemoRead( pSess, cFileName )
 
 FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
 
-   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0, nProgress := 0, ;
-      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
+   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0
 
    CLEAR TYPEAHEAD
    IF '\' $ cFileName
@@ -90,6 +89,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
    IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName ) )
       ssh2_Sftp_FStat( pHandle, @nSize )
       handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
+      hbc_WndProgress( aWnd, 0 )
       DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pHandle ) )
          fWrite( handle, cBuff )
          nCopied += Len( cBuff )
@@ -99,10 +99,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
             fErase( cFileLocal )
             RETURN -3
          ENDIF
-         IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
-            nProgress := Int( nMax * nCopied / nSize )
-            hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
-         ENDIF
+         hbc_WndProgress( aWnd, nCopied / nSize )
       ENDDO
       fClose( handle )
       ssh2_Sftp_Close( pHandle )
@@ -114,8 +111,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
 
 FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal, aWnd )
 
-   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0, nProgress := 0, ;
-      nMax := Iif( Empty(aWnd), 0, aWnd[4]-aWnd[2]-4 )
+   LOCAL pHandle, handle, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0
 
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
@@ -124,6 +120,7 @@ FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal, aWnd )
       HB_FA_RUSR + HB_FA_WUSR + HB_FA_RGRP + HB_FA_ROTH ) )
       handle := hb_vfOpen( cFileLocal )
       nSize := hb_vfSize( handle )
+      hbc_WndProgress( aWnd, 0 )
       DO WHILE ( nBytes := hb_vfRead( handle, @cBuff, BUFFSIZE ) ) > 0
          ssh2_SFtp_Write( pHandle, cBuff, nBytes )
          nCopied += nBytes
@@ -133,10 +130,7 @@ FUNCTION hbc_ssh2_Upload( pSess, cFileName, cFileLocal, aWnd )
             ssh2_Sftp_FileDelete( pSess, cFileName )
             RETURN -3
          ENDIF
-         IF nMax > 0 .AND. Int( nMax * nCopied / nSize ) > nProgress
-            nProgress := Int( nMax * nCopied / nSize )
-            hbc_WndOut( aWnd, Replicate( '>', nProgress ), .T. )
-         ENDIF
+         hbc_WndProgress( aWnd, nCopied / nSize )
       ENDDO
       hb_vfClose( handle )
       ssh2_Sftp_Close( pHandle )
