@@ -6,6 +6,7 @@
  */
 
 #include "fileio.ch"
+#include "fedit.ch"
 
 FUNCTION edi_SeleFile( oEdit, cPath, y1, x1, y2, x2, cMask )
 
@@ -200,10 +201,13 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
    IF !Empty( phDst := hb_vfOpen( cFileDst, FO_WRITE+FO_CREAT+FO_TRUNC ) )
       IF !Empty( phSrc := hb_vfOpen( cFileSrc, FO_READ ) )
          nSize := hb_vfSize( phSrc )
+#ifndef _NO_HBC
          hbc_WndProgress( aWnd, 0 )
+#endif
          DO WHILE ( nBytes := hb_vfRead( phSrc, @cBuff, BUFFSIZE ) ) > 0
             hb_vfWrite( phDst, cBuff, nBytes )
             nCopied += nBytes
+#ifndef _NO_HBC
             IF Inkey() == 27 .AND. !FAsk_Abort( cFileSrc, nSize, nCopied )
                hb_vfClose( phSrc )
                hb_vfClose( phDst )
@@ -211,6 +215,7 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
                RETURN -3
             ENDIF
             hbc_WndProgress( aWnd, nCopied / nSize )
+#endif
          ENDDO
          hb_vfClose( phSrc )
          hb_vfClose( phDst )
