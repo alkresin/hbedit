@@ -3481,7 +3481,7 @@ FUNCTION mnu_Save( oEdit, lAs )
       IF Empty( cFileName := edi_SaveDlg( oEdit, cPath ) )
          RETURN Nil
       ENDIF
-      IF Left(oEdit:cFileName,1) == "$" .OR. Empty( hb_fnameDir(cFileName) )
+      IF Left(cFileName,1) == "$" .OR. Empty( hb_fnameDir(cFileName) )
          cFileName := cPath + cFileName
       ENDIF
    ENDIF

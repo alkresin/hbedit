@@ -1,3 +1,10 @@
+/*
+ * HbEdit plugin - samples of using webservives
+ *
+ * Copyright 2020 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
+
 #define K_ENTER    13
 #define K_ESC      27
 
@@ -5,12 +12,11 @@ STATIC lIsCurl := .F.
 
 FUNCTION Plug_WebServices( oEdit )
 
-   LOCAL cFileRes := hb_DirTemp() + "hbedit_curl.out", cFileOut := hb_DirTemp() + "hbedit.out", cBuff
+   LOCAL cBuff
    LOCAL aMenu := { "Get external IP", "Word definition", "Lorem ipsum" }, iChoic
    LOCAL nRow := Row(), nCol := Col(), cAddW := "$Result"
 
    IF !lIsCurl
-      FErase( cFileRes )
       cedi_RunConsoleApp( "curl --version",, @cBuff )
       IF !Empty( cBuff ) .AND. "libcurl" $ cBuff
          lIsCurl := .T.
@@ -22,7 +28,6 @@ FUNCTION Plug_WebServices( oEdit )
    ENDIF
 
    IF !Empty( iChoic := FMenu( oEdit, aMenu, 3, 10 ) )
-      FErase( cFileRes )
       IF iChoic  == 1
          cedi_RunConsoleApp( "curl ifconfig.me -s",, @cBuff )
          edi_writelog( cBuff )
