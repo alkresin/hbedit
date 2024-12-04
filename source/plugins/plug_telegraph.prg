@@ -12,13 +12,15 @@ STATIC cIniPath
 STATIC cIniName := "plug_telegraph.ini"
 STATIC _cAccessToken := "access_token"
 STATIC cUserKey
+STATIC cUrlFunc
 STATIC lIsCurl := .F.
+STATIC oEd
 
 FUNCTION Plug_Telegraph( oEdit, cPath )
 
-   LOCAL cBuff, arr, xTemp
+   LOCAL cBuff
    LOCAL nRow := Row(), nCol := Col()
-   LOCAL aMenu := { "Get account info", "Create page", "Get page", "Get page list" }, iChoic
+   LOCAL aMenu := { "Get account info", "Create page", "Get page list" }, iChoic
 
    IF !lIsCurl
       cedi_RunConsoleApp( "curl --version",, @cBuff )
@@ -33,7 +35,9 @@ FUNCTION Plug_Telegraph( oEdit, cPath )
    IF Empty( cIniPath )
       cIniPath := cPath
       _tlph_ReadIni()
+      cUrlFunc := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', 'cedi_ShellExecute("' )
    ENDIF
+   oEd := oEdit
 
    IF Empty( cUserKey )
       _tlph_CreateAccount()
@@ -45,20 +49,11 @@ FUNCTION Plug_Telegraph( oEdit, cPath )
    cBuff := Nil
    iChoic := FMenu( oEdit, aMenu, oEdit:y1+2, oEdit:x1+4 )
    IF iChoic == 1
-      cedi_RunConsoleApp( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
-         "=" + cUserKey + '&fields=["short_name","author_name","author_url","auth_url","page_count"]',, @cBuff )
-      IF !Empty( cBuff )
-         hb_Memowrit( cIniPath + "plug_telegraph_1.out", cBuff )
-         hb_jsonDecode( cBuff, @arr )
-         IF Valtype( arr ) == "H" .AND. hb_hHaskey( arr[xTemp := "result"] ) .AND. ;
-            !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H"
-            edi_Alert( "Short name: " + Iif( hb_hHaskey(xTemp,"short_name"), xTemp["short_name"], "" ) )
-            RETURN Nil
-         ENDIF
-      ENDIF
+      _tlph_GetAccountInfo()
    ELSEIF iChoic == 2
+      _tlph_CreatePage()
    ELSEIF iChoic == 3
-   ELSEIF iChoic == 4
+      _tlph_GetPageList()
    ENDIF
 
    RETURN Nil
@@ -67,7 +62,7 @@ STATIC FUNCTION _tlph_CreateAccount()
 
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-22, x2 := x1+44
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL cShortName, cName, cBuff, arr, xTemp
+   LOCAL cShortName, cName, cBuff, arr, xTemp, nPos
    LOCAL aGets := { ;
       {y1+1,x1+2, 11, "NickName:"},    ;
       { y1+1,x1+15, 0, "", x2-x1-16 }, ;
@@ -94,18 +89,112 @@ STATIC FUNCTION _tlph_CreateAccount()
       cedi_RunConsoleApp( "curl https://api.telegra.ph/createAccount?short_name=" + cShortName + ;
          "&author_name=" + cName,, @cBuff )
       IF !Empty( cBuff )
-         hb_Memowrit( cIniPath + "plug_telegraph.out", cBuff )
-         hb_jsonDecode( cBuff, @arr )
-         IF Valtype( arr ) == "H" .AND. hb_hHaskey( arr[xTemp := "result"] ) .AND. ;
-            !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H" .AND. ;
-            hb_hHaskey( xTemp, _cAccessToken ) .AND. !Empty( xTemp := xTemp[_cAccessToken] )
-            cUserKey := _cAccessToken
-            _tlph_WriteIni()
+         IF ( nPos := At( '{"ok"', cBuff ) ) > 0
+            hb_jsonDecode( Substr( cBuff, nPos ), @arr )
+            IF Valtype( arr ) == "H" .AND. arr["ok"] .AND. hb_hHaskey( arr, xTemp := "result" ) .AND. ;
+               !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H" .AND. ;
+               hb_hHaskey( xTemp, _cAccessToken ) .AND. !Empty( xTemp := xTemp[_cAccessToken] )
+               cUserKey := xTemp
+               _tlph_WriteIni()
+               RETURN Nil
+            ENDIF
+         ENDIF
+      ENDIF
+      hb_Memowrit( cIniPath + "plug_telegraph.out", cBuff )
+      edi_Alert( "Problems creating account" )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _tlph_GetAccountInfo()
+
+   LOCAL cBuff, nPos, arr, xTemp, cr := Chr(10)
+
+   cedi_RunConsoleApp( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"short_name\",\"author_name\",\"author_url\",\"auth_url\",\"page_count\"\]',, @cBuff )
+   IF !Empty( cBuff )
+      IF ( nPos := At( '{"ok"', cBuff ) ) > 0
+         hb_jsonDecode( Substr( cBuff, nPos ), @arr )
+         IF Valtype( arr ) == "H" .AND. arr["ok"] .AND. hb_hHaskey( arr, xTemp := "result" ) .AND. ;
+            !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H"
+            edi_MsgGet_ext( "Short name: " + Iif( hb_hHaskey(xTemp,"short_name"), xTemp["short_name"], "" ) ;
+               + cr + "Author name: " + Iif( hb_hHaskey(xTemp,"author_name"), xTemp["author_name"], "" ) ;
+               + cr + "Author url: " + Iif( hb_hHaskey(xTemp,"author_url"), xTemp["author_url"], "" ) ;
+               + cr + "Auth url: " + Iif( hb_hHaskey(xTemp,"auth_url"), xTemp["auth_url"], "" ) ;
+               + cr + "Page count: " + Iif( hb_hHaskey(xTemp,"page_count"), Str(xTemp["page_count"]), "" ) ;
+               , oEd:y1+2, oEd:x1+12, oEd:y1+8, oEd:x2-12, "UTF8", .T. )
             RETURN Nil
          ENDIF
       ENDIF
-      edi_Alert( "Problems creating account" )
    ENDIF
+   hb_Memowrit( cIniPath + "plug_telegraph_1.out", cBuff )
+   edi_Alert( "Something goes wrong" )
+
+   RETURN Nil
+
+STATIC FUNCTION _tlph_CreatePage()
+
+   LOCAL cBuff, nPos, arr, xTemp
+
+   cedi_RunConsoleApp( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"auth_url\"\]',, @cBuff )
+   IF !Empty( cBuff )
+      IF ( nPos := At( '{"ok"', cBuff ) ) > 0
+         hb_jsonDecode( Substr( cBuff, nPos ), @arr )
+         IF Valtype( arr ) == "H" .AND. arr["ok"] .AND. hb_hHaskey( arr, xTemp := "result" ) .AND. ;
+            !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H"
+            RETURN &( cUrlFunc + xTemp["auth_url"] + '")' )
+         ENDIF
+      ENDIF
+   ENDIF
+   hb_Memowrit( cIniPath + "plug_telegraph_1.out", cBuff )
+   edi_Alert( "Something goes wrong" )
+
+   RETURN Nil
+
+STATIC FUNCTION _tlph_GetPageList()
+
+   LOCAL cBuff, nPos, arr, xTemp, i, j, aMenu, cp := hb_cdpSelect(), oNew
+
+   cedi_RunConsoleApp( "curl https://api.telegra.ph/getPageList?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"auth_url\"\]',, @cBuff )
+   IF !Empty( cBuff )
+      hb_Memowrit( cIniPath + "plug_telegraph_1.out", cBuff )
+      IF ( nPos := At( '{"ok"', cBuff ) ) > 0
+         hb_jsonDecode( Substr( cBuff, nPos ), @arr )
+         IF Valtype( arr ) == "H" .AND. arr["ok"] .AND. hb_hHaskey( arr, xTemp := "result" ) .AND. ;
+            !Empty( xTemp := arr[xTemp] ) .AND. Valtype(xTemp) == "H"
+            xTemp := xTemp["pages"]
+            IF !Empty( xTemp )
+               aMenu := {}
+               FOR i := 1 TO Len( xTemp )
+                  AAdd( aMenu, "(" + Str(xTemp[i]["views"],8) + ") " + hb_Translate(xTemp[i]["title"],"UTF8",cp) )
+               NEXT
+               IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) > 0
+                  IF ( j := FMenu( oEd, { "Open in browser", "View in editor" }, oEd:y1+2, oEd:x1+4 ) ) == 1
+                     RETURN &( cUrlFunc + "https://telegra.ph/" + xTemp[i]["path"] + '")' )
+                  ELSEIF j == 2
+                     cBuff := arr := Nil
+                     cedi_RunConsoleApp( "curl https://api.telegra.ph/getPage/" + xTemp[i]["path"] + ;
+                        "?return_content=true",, @cBuff )
+                     IF !Empty( cBuff ) .AND. ( nPos := At( '{"ok"', cBuff ) ) > 0
+                        hb_jsonDecode( Substr( cBuff, nPos ), @arr )
+                        cBuff := hb_jsonEncode( arr, .T. )
+                        oNew := mnu_NewBuf( oEd, "$"+xTemp[i]["path"], cBuff )
+                        oNew:cp := "UTF8"
+                        hb_cdpSelect( oNew:cp )
+                        oNew:lUtf8 := .T.
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ELSE
+               edi_Alert( "No pages yet" )
+            ENDIF
+            RETURN Nil
+         ENDIF
+      ENDIF
+   ENDIF
+   edi_Alert( "Something goes wrong" )
 
    RETURN Nil
 
