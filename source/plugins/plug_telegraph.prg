@@ -278,7 +278,7 @@ STATIC FUNCTION _tlph_EditPage( oEdit )
       xTemp := "curl -X POST https://api.telegra.ph/" + Iif(lNew,"createPage/","editPage/") + ;
          Iif( lNew, "", Substr(oEdit:cFileName,2) ) + ;
          ' -H "Content-Type: application/json" -d @"' + cJsonFile + '"'
-      edi_Writelog( xTemp )
+      //edi_Writelog( xTemp )
       cedi_RunConsoleApp( xTemp,, @cBuff )
       IF !Empty( cBuff ) .AND. ( nPos := At( '{"ok"', cBuff ) ) > 0
          arr := Nil
@@ -292,7 +292,7 @@ STATIC FUNCTION _tlph_EditPage( oEdit )
       hb_Memowrit( cIniPath + "plug_telegraph_2.out", cBuff )
       edi_Alert( "Error sending page" )
    ELSE
-      edi_Alert( "Not sent" )
+      edi_Alert( "Wrong json structure" )
    ENDIF
 
    RETURN Nil
