@@ -35,13 +35,13 @@ STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG"
 STATIC lRussian := .T., lDrawUtf8 := .F.
 STATIC cOpenings, lOpenings
 
+// White - uppercace, black - lowercase
 STATIC cInitBoard := "rnbqkbnrpppppppp                                PPPPPPPPRNBQKBNR"
 STATIC aFigs := {' ','p','P','r','n','b','q','k','R','N','B','Q','K'}, ;
        aFigs1 :={' ','п','п','Л','К','С','Ф','Кр','Л','К','С','Ф','Кр'}, ;
        aFigs2 :={' ','p','p','R','N','B','Q','K','R','N','B','Q','K'}, ;
        aFigs3 :={' ','♟','♟','♜','♞','♝','♛','♚','♜','♞','♝','♛','♚'}
 
-//STATIC aFigValues := { 100, 479, 280, 320, 929, 60000 }
 STATIC aBoardValues := { { ;
     { 100, 100, 100, 100, 100, 100, 100, 100,  ; // P
       178, 183, 186, 173, 202, 182, 185, 190,  ;
@@ -480,8 +480,9 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
      ENDIF
 
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
-      _Game_Exit()
-
+      IF edi_Alert( "Really quit the game?", "Yes", "No" ) == 1
+         _Game_Exit()
+      ENDIF
    ENDIF
 
    RETURN -1
@@ -550,6 +551,7 @@ STATIC FUNCTION Check4Shah( aPos )
    NEXT
    RETURN .F.
 
+// Проверка возможности рокировки
 STATIC FUNCTION Set_lb_lw( aPos, lBlack )
 
    LOCAL i, nFig, arr
@@ -563,7 +565,7 @@ STATIC FUNCTION Set_lb_lw( aPos, lBlack )
          IF ( nFig := hb_bPeek( aPos[POS_BOARD], i ) ) >= 65 .AND. nFig <= 90
             arr := chess_GenMoves( aPos, i )
             IF ( Ascan( arr,5 ) > 0 .OR. Ascan( arr,6 ) > 0 .OR. ;
-               Ascan( arr,5 ) > 0 .OR. Ascan( arr,5 ) > 0 )
+               Ascan( arr,7 ) > 0 .OR. Ascan( arr,8 ) > 0 )
                aPos[POS_B_00] := .F.
             ENDIF
             IF ( Ascan( arr,1 ) > 0 .OR. Ascan( arr,2 ) > 0 .OR. ;
@@ -673,7 +675,6 @@ STATIC FUNCTION DrawMove( aMove )
    ENDIF
 
    nStart := aMove[2]; nEnd := Iif( Len(aMove)>2, aMove[3], Nil )
-   //c := Iif( Lower( cFig ) == 'p', "", Upper( Iif( lRussian, Iif( lDrawUtf8, aFigs4[i1], aFigs1[i1] ), aFigs2[i1] ) ) )
    c := Iif( Lower( cFig ) == 'p', "", Upper( Iif( lRussian, aFigs1[i1], aFigs2[i1] ) ) )
    IF Empty( nEnd )
       cMove := c + MoveN2C( nStart )
@@ -704,6 +705,9 @@ STATIC FUNCTION DrawMove( aMove )
 
    RETURN Nil
 
+/* The function returns an array of possible cells numbers (1...64) - moves
+ *  for the figure in a <nStart> cell of a <aPos> position
+ */
 STATIC FUNCTION chess_GenMoves( aPos, nStart )
 
    LOCAL cFig := Substr( aPos[POS_BOARD], nStart, 1 ), cFigU := Upper( cFig )
@@ -746,9 +750,6 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
             EXIT
          ENDIF
          cFig := Substr( aPos[POS_BOARD], nMove, 1 )
-         //IF cFigU == 'B'
-         //   edi_writelog( "    " + MoveN2C(nStart,nMove) + " " + cFig )
-         //ENDIF
          IF cFigU == "P"
             IF cFig == ' '
                IF i > 1
@@ -810,11 +811,8 @@ STATIC FUNCTION isMoveCorrect( nMove )
       RETURN .F.
    ENDIF
    arr := chess_GenMoves( aCurrPos, aMoveState[2] )
-   IF Ascan( arr, nMove ) == 0
-      RETURN .F.
-   ENDIF
 
-   RETURN .T.
+   RETURN ( Ascan( arr, nMove ) ) > 0
 
 STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig )
 
@@ -889,21 +887,17 @@ STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig )
 
 STATIC FUNCTION ii_Ocenka( cBoard )
 
-   LOCAL i, j, cFig, nSumm := 0
+   LOCAL cFig, j, nSumm := 0
 
-   FOR i := 1 TO 64
-      IF ( cFig := Substr( cBoard, i, 1 ) ) >= 'A'
+   FOR EACH cFig IN cBoard
+      IF cFig >= 'a'
+         j := Ascan( aFigs, cFig ) - 2
+         IF j == 0; j := 1; ENDIF
+         nSumm -= aBoardValues[2,j,cFig:__enumindex]
+      ELSEIF cFig >= 'A'
          j := Ascan( aFigs, Lower( cFig ) ) - 2
-         IF j == 0
-            j := 1
-         ENDIF
-         IF cFig >= 'a'
-            //nSumm -= aFigValues[j]
-            nSumm -= aBoardValues[2,j,i]
-         ELSE
-            //nSumm += aFigValues[j]
-            nSumm += aBoardValues[1,j,i]
-         ENDIF
+         IF j == 0; j := 1; ENDIF
+         nSumm += aBoardValues[1,j,cFig:__enumindex]
       ENDIF
    NEXT
 
@@ -915,8 +909,10 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
    LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
-   aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000]; aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]
-   aPosTemp[POS_4P] := aPos[POS_4P]
+   ACopy( aPos, aPosTemp, 2,, 2 )
+   //aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000];
+   //aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]; aPosTemp[POS_4P] := aPos[POS_4P]
+
    Set_lb_lw( aPos, lTurnBlack )
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
@@ -926,12 +922,10 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-            //IF !lReply
-            //   edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
-            //ENDIF
             IF nSumm >= 50000
                lExit := .T.
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+               // { Cell from, Cell to, Summ }
+               aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                EXIT
             ENDIF
             IF !lReply
@@ -945,9 +939,8 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
                ENDIF
             ENDIF
             IF nSumm >= nOcen
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+               aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
             ENDIF
-            //edi_writelog( Iif(lReply,"  ","") + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
          NEXT
          IF lExit
             EXIT
