@@ -115,8 +115,8 @@ STATIC FUNCTION _gm_Sudoku_Start()
       x1t := oGame:x1 + 2
       x2t := x1t + 30
 
-      __PaintBoa( , OP_SET )
-      __PaintBoa( , OP_COLORS )
+      __PaintBo_Sudo( , OP_SET )
+      __PaintBo_Sudo( , OP_COLORS )
 
       DispBegin()
       SetColor( clrText )
@@ -162,7 +162,7 @@ STATIC FUNCTION _gm_Sudoku_Start()
          ENDDO
       ENDIF
    ELSE
-      __PaintBoa( , OP_SET )
+      __PaintBo_Sudo( , OP_SET )
       RestScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2, cScreenBuff )
    ENDIF
 
@@ -233,7 +233,7 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
       ELSE
          IF nGameState == 1 .OR. nGameState == 2
             IF lGUI
-               __PaintBoa( , OP_MDOWN )
+               __PaintBo_Sudo( , OP_MDOWN )
             ELSEIF i >= y1t .AND. i <= y1t + 10 .AND. j >= x2t .AND. j <= x2t + 20
                coors2Index( i, j, @i, @j )
                IF i > 0 .AND. i < 10 .AND. j > 0 .AND. j < 10
@@ -268,7 +268,7 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
       IF lGUI
-         __PaintBoa( , OP_UNSET )
+         __PaintBo_Sudo( , OP_UNSET )
       ENDIF
       IF Len( oEdit:aWindows ) == 1
          RETURN 0x41010004   // Shift-F4
@@ -280,7 +280,7 @@ STATIC FUNCTION _gm_Sudoku_OnKey( oEdit, nKeyExt )
       cScreenBuff := Nil
       Write_Game_Ini()
       IF lGUI
-         __PaintBoa( , OP_UNSET )
+         __PaintBo_Sudo( , OP_UNSET )
       ENDIF
       mnu_Exit( oEdit )
 
@@ -328,7 +328,7 @@ STATIC FUNCTION _Game_Menu( oEdit )
       cScreenBuff := Nil
       Write_Game_Ini()
       IF lGUI
-         __PaintBoa( , OP_UNSET )
+         __PaintBo_Sudo( , OP_UNSET )
       ENDIF
       mnu_Exit( oEdit )
 
@@ -582,7 +582,7 @@ STATIC FUNCTION SetCurrentPos( lSet )
 
    IF lGUI
       IF lSet
-         __PaintBoa( , OP_INVALIDATE )
+         __PaintBo_Sudo( , OP_INVALIDATE )
       ENDIF
    ELSE
       index2Coors( nyPos, nxPos, @y1, @x1 )
@@ -1047,15 +1047,15 @@ STATIC FUNCTION Settings()
    IF i == 5
       IF ( i := FMenu( oGame, aMenu2, y1t+2, 4, y1t+6, 20 ) ) > 0 .AND. i+2 != guiBoaSize
          guiBoaSize := i + 2
-         __PaintBoa( , OP_SIZE )
-         __PaintBoa( , OP_INVALIDATE )
+         __PaintBo_Sudo( , OP_SIZE )
+         __PaintBo_Sudo( , OP_INVALIDATE )
       ENDIF
    ELSEIF i > 0
       guiClrBoard := aThemes[i,1]; guiClrRow := aThemes[i,2]; guiClrSel := aThemes[i,3]
       guiClrText := aThemes[i,4]; guiClrFix := aThemes[i,5]; guiClrSep := aThemes[i,6]
       nTheme := i
-      __PaintBoa( , OP_COLORS )
-      __PaintBoa( , OP_INVALIDATE )
+      __PaintBo_Sudo( , OP_COLORS )
+      __PaintBo_Sudo( , OP_INVALIDATE )
    ENDIF
 
    RETURN Nil
@@ -1259,7 +1259,7 @@ DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MS
 DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
 DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
 
-FUNCTION __PaintBoa( hDC, nOp )
+FUNCTION __PaintBo_Sudo( hDC, nOp )
 
    LOCAL x1, y1, x2, y2, nw, nTopMargin
    LOCAL i, j, arrm
@@ -1301,7 +1301,7 @@ FUNCTION __PaintBoa( hDC, nOp )
 
    IF Empty( hDC )
       IF nOp == OP_SET
-         gthwg_paint_SetCallback( "__PAINTBOA" )
+         gthwg_paint_SetCallback( "__PAINTBO_SUDO" )
       ELSEIF nOp == OP_UNSET
          gthwg_paint_SetCallback()
       ELSEIF nOp == OP_INVALIDATE
