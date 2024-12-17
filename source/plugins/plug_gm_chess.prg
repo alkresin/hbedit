@@ -925,6 +925,20 @@ STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig )
 
    RETURN Nil
 
+/* Returns .F., if there is no enemy king on the board
+ */
+STATIC FUNCTION ii_Check4King( cBoard )
+
+   LOCAL cFig, j
+
+   FOR EACH cFig IN cBoard
+      IF (lTurnBlack .AND. cFig == 'K') .OR. (!lTurnBlack .AND. cFig == 'k')
+         RETURN .T.
+      ENDIF
+   NEXT
+
+   RETURN .F.
+
 STATIC FUNCTION ii_Ocenka( cBoard )
 
    LOCAL cFig, j, nSumm := 0
@@ -946,12 +960,10 @@ STATIC FUNCTION ii_Ocenka( cBoard )
 STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
 
    LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nOcen := -1000000, nSumm
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
+   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
-   //aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000];
-   //aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]; aPosTemp[POS_4P] := aPos[POS_4P]
 
    Set_lb_lw( aPos, lTurnBlack )
    FOR i := 1 TO 64
@@ -961,30 +973,32 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
          nLen := Len( arr )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
-            nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-            IF nSumm >= 50000
-               lExit := .T.
-               // { Cell from, Cell to, Summ }
-               aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
-               EXIT
-            ENDIF
-            IF !lReply
+            IF lReply
+               nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
+               /*IF nSumm >= 50000
+                  // { Cell from, Cell to, Summ }
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+                  RETURN aMaxOcen
+               ENDIF */
+            ELSE
+            //IF !lReply
+               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := 100000
+                  RETURN aMaxOcen
+               ENDIF
                lTurnBlack := !lTurnBlack
                aReply := ii_ScanBoard_1( aPosTemp, .T. )
                lTurnBlack := !lTurnBlack
-               IF aReply[3] >= 50000
-                  nSumm := nOcen - 1
-               ELSE
+               //IF aReply[3] >= 50000
+               //   nSumm := nOcen - 1
+               //ELSE
                   nSumm := -aReply[3]
-               ENDIF
+               //ENDIF
             ENDIF
             IF nSumm >= nOcen
                aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
             ENDIF
          NEXT
-         IF lExit
-            EXIT
-         ENDIF
       ENDIF
    NEXT
    //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
@@ -1064,7 +1078,7 @@ STATIC FUNCTION ii_MakeMove()
       ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+12, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
+   @ y1t+13, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
