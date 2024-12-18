@@ -46,12 +46,14 @@
 #define OP_COLORS               5
 #define OP_SIZE                 6
 
+#define BEATKING  100000
+
 STATIC cIniPath
 STATIC oGame
 STATIC lRussian := .T., lDrawUtf8 := .F., lGui
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
-STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0 }
+STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0 }, lShah
 
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
@@ -60,6 +62,7 @@ STATIC cOpenings, lOpenings
 STATIC aCurrPos
 STATIC aHistory, aHisView
 STATIC lSetDiag := .F., lPlayGame, lViewGame, lDebug := .F.
+STATIC nDeep2 := 3
 
 // White - uppercace, black - lowercase
 STATIC cInitBoard := "rnbqkbnrpppppppp                                PPPPPPPPRNBQKBNR"
@@ -256,6 +259,7 @@ STATIC FUNCTION _Game_New( lFirst )
    aMoveState[2] := 0
    aCurrPos[POS_BOARD] := cInitBoard
    aCurrPos[POS_W00] := aCurrPos[POS_W000] := aCurrPos[POS_B00] := aCurrPos[POS_B000] := .T.
+   lShah := .F.
    aHistory := {}
    __PaintBo_Chess( , OP_SET )
    __PaintBo_Chess( , OP_COLORS )
@@ -328,13 +332,14 @@ STATIC FUNCTION _Game_SetDiag( nMove )
 
 STATIC FUNCTION _Game_Level( nTitle )
 
-   LOCAL aMenu := { "--- " + Iif( nTitle==1, Iif(lRussian,"Белые","White"),Iif(lRussian,"Черные","Black") ) + " ---", Iif(lRussian,"Уровень 0","Level 0"), Iif(lRussian,"Уровень 1","Level 1") }
+   LOCAL aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") }
 
-   RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,, 2 )
+   RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, ;
+      Iif( nTitle==1, Iif(lRussian,"Белые","White"),Iif(lRussian,"Черные","Black") ) )
 
 STATIC FUNCTION _Game_Players( lAsk )
 
-   LOCAL nc, nc2, nc3
+   LOCAL nc, nLevel
    STATIC aMenuR := { "Человек - Компьютер", "Компьютер - Человек", "Человек - Человек", "Компьютер - Компьютер" }
    STATIC aMenuE := { "Human - Computer", "Computer - Human", "Human - Human", "Computer - Computer" }
 
@@ -348,15 +353,16 @@ STATIC FUNCTION _Game_Players( lAsk )
          nLevelWhite := nLevelBlack := 0
 
       ELSEIF nc < 3
-         IF ( nc2 := _Game_Level( Iif( nc == 1, 2, 1 ) ) ) > 1
-            nLevelWhite := Iif( nc==1, 0, nc2-1 ); nLevelBlack := Iif( nc==1, nc2 - 1, 0 )
+         IF ( nLevel := _Game_Level( Iif( nc == 1, 2, 1 ) ) ) > 0
+            nLevelWhite := Iif( nc==1, 0, nLevel )
+            nLevelBlack := Iif( nc==1, nLevel, 0 )
          ENDIF
 
       ELSEIF nc == 4
-         IF ( nc2 := _Game_Level( 1 ) ) > 0
-            nLevelWhite := nc2 - 1
-            IF ( nc3 := _Game_Level( 2 ) ) > 0
-               nLevelBlack := nc3 - 1
+         IF ( nLevel := _Game_Level( 1 ) ) > 0
+            nLevelWhite := nLevel
+            IF ( nLevel := _Game_Level( 2 ) ) > 0
+               nLevelBlack := nLevel
             ENDIF
          ENDIF
 
@@ -364,11 +370,11 @@ STATIC FUNCTION _Game_Players( lAsk )
    ENDIF
 
    IF lRussian
-      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Человек  ", "Компьютер" )
-      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Человек  ", "Компьютер" )
+      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Человек  ", "Компьютер (" + Str(nLevelWhite,1) + ")" )
+      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Человек  ", "Компьютер (" + Str(nLevelBlack,1) + ")" )
    ELSE
-      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Human   ", "Computer" )
-      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human   ", "Computer" )
+      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Human   ", "Computer (" + Str(nLevelWhite,1) + ")" )
+      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human   ", "Computer (" + Str(nLevelBlack,1) + ")" )
    ENDIF
    IF lPlayGame .AND. ( (lTurnBlack .AND. nLevelBlack > 0) .OR. (!lTurnBlack .AND. nLevelWhite > 0) )
       ii_MakeMove()
@@ -543,22 +549,28 @@ STATIC FUNCTION DrawBoard()
 
    RETURN Nil
 
+/* Возвращает .T., если есть шах королю противоположной ( !lTurnBlack ) стороны
+ */
 STATIC FUNCTION Check4Shah( aPos )
 
-   LOCAL i, nFig, nKing, arr
+   LOCAL i, nFig, nKing, cKing , arr
    STATIC ak := { 1,7,8,9 }
 
    nFig := Iif( lTurnBlack, 75, 107 )
    FOR i := 1 TO 64
-      IF hb_bPeek( aCurrPos[POS_BOARD], i ) == nFig
+      IF hb_bPeek( aPos[POS_BOARD], i ) == nFig
          nKing := i
+         cKing := Substr( aPos[POS_BOARD],i,1 )
          EXIT
       ENDIF
    NEXT
+   IF Empty( nKing )
+      RETURN .F.
+   ENDIF
    FOR i := 1 TO 64
-      nFig := hb_bPeek( aCurrPos[POS_BOARD], i )
+      nFig := hb_bPeek( aPos[POS_BOARD], i )
       IF (!lTurnBlack .AND. nFig >= 65 .AND. nFig <= 90) .OR. (lTurnBlack .AND. nFig >= 97 .AND. nFig <= 122)
-         IF nFig == 80  // 'P'
+         /* IF nFig == 80  // 'P'
             IF i == nKing+7 .OR. i == nKing+9
                RETURN .T.
             ENDIF
@@ -570,15 +582,45 @@ STATIC FUNCTION Check4Shah( aPos )
             IF Ascan( ak, Abs( nKing - i ) ) > 0
                RETURN .T.
             ENDIF
-         ELSE
-            arr := chess_GenMoves( aPos, i )
-            IF Ascan( arr,nKing ) > 0
+         ELSE */
+            //arr := chess_GenMoves( aPos, i, .T., cKing )
+            //IF Ascan( arr,nKing ) > 0
+            IF !Empty( chess_GenMoves( aPos, i, .T., cKing ) )
                RETURN .T.
             ENDIF
-         ENDIF
+         //ENDIF
       ENDIF
    NEXT
    RETURN .F.
+
+STATIC FUNCTION Check4Mate( aPos )
+
+   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
+   LOCAL aPosTemp := Array(POS_LEN)
+
+   ACopy( aPos, aPosTemp, 2,, 2 )
+   lTurnBlack := !lTurnBlack
+   Set_lb_lw( aPos, lTurnBlack )
+   FOR i := 1 TO 64
+      IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
+         ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
+         arr := chess_GenMoves( aPos, i )
+         nLen := Len( arr )
+         //edi_Writelog( "Mate1 " + hb_valtoexp(lTurnBlack) + str(i,3) )
+         FOR j := 1 TO nLen
+            PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
+            lTurnBlack := !lTurnBlack
+            //edi_Writelog( "Mate2 " + hb_valtoexp(lTurnBlack) + str(j,3) )
+            IF !Check4Shah( aPosTemp )
+               RETURN .F.
+            ENDIF
+            lTurnBlack := !lTurnBlack
+         NEXT
+      ENDIF
+   NEXT
+   lTurnBlack := !lTurnBlack
+
+   RETURN .T.
 
 STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
 
@@ -598,7 +640,7 @@ STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
 STATIC FUNCTION DrawMove( aMove )
 
    LOCAL cFig := aMove[1], nStart, nEnd
-   LOCAL nMove := Len( aHistory ) + Iif( lTurnBlack, 0, 1 ), i, j, i1, c, cMove, cFigBeat, lShah
+   LOCAL nMove := Len( aHistory ) + Iif( lTurnBlack, 0, 1 ), i, j, i1, c, cMove, cFigBeat
 
    i := y1t + nMove - 1 - nScrolled
    j := x2t + Iif( lTurnBlack, 17, 2 )
@@ -711,12 +753,14 @@ STATIC FUNCTION MakeMove( nRow, nCol )
       Set_lb_lw( aCurrPos, lTurnBlack )
       IF isMoveCorrect( nMove )
          DrawMove( {aMoveState[1], aMoveState[2], nMove} )
-         nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
          IF !lTurnBlack
             cBoa16 := ATail(aHistory)[3]
             AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
          ENDIF
-         IF nSumm >= 50000
+         //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
+         //IF nSumm >= 50000
+         //IF !ii_Check4King( aCurrPos[POS_BOARD] )
+         IF lShah .AND. Check4Mate( aCurrPos )
             GameOver( 1 )  // Победа
          ELSEIF !lTurnBlack .AND. nCou >= 5
             GameOver( 3 )  // Ничья
@@ -736,11 +780,12 @@ STATIC FUNCTION MakeMove( nRow, nCol )
 
 /* The function returns an array of possible cells numbers (1...64) - moves
  *  for the figure in a <nStart> cell of a <aPos> position
+ * If lBeat == .T., only those moves, which beats opposite figure, are returned.
  */
-STATIC FUNCTION chess_GenMoves( aPos, nStart )
+STATIC FUNCTION chess_GenMoves( aPos, nStart, lBeat, cFigBeat )
 
    LOCAL cFig := Substr( aPos[POS_BOARD], nStart, 1 ), cFigU := Upper( cFig )
-   LOCAL aMoves := {}, i, j, arr, nMove, nCol1, nCol2
+   LOCAL aMoves := {}, i, j, arr, nLen, nMove, nCol1, nCol2
    LOCAl lBlack := (cFig >= 'a' .AND. cFig <= 'z')
    STATIC cFigures := "pnbrqk"
 #define N     -8
@@ -766,8 +811,10 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
 #undef S
 #undef W
 
+   IF lBeat == Nil; lBeat := .F.; ENDIF
    arr := aDirections[Iif(lBlack,2,1), At( Lower(cFig), cFigures ) ]
-   FOR i := 1 TO Len( arr )
+   nLen := Len( arr )
+   FOR i := 1 TO nLen
       nMove := nStart
       DO WHILE .T.
          nCol1 := nMove % 8
@@ -781,6 +828,9 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
          cFig := Substr( aPos[POS_BOARD], nMove, 1 )
          IF cFigU == "P"
             IF cFig == ' '
+               IF lBeat
+                  EXIT
+               ENDIF
                IF i > 1
                   IF i >= 2
                      IF nMove == aPos[POS_4P]
@@ -801,18 +851,24 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
             ELSE
                IF i <= 2
                   EXIT
-               ELSE
+               ELSEIF cFigBeat == Nil .OR. cFig == cFigBeat
                   Aadd( aMoves, nMove )
+                  EXIT
+               ELSE
                   EXIT
                ENDIF
             ENDIF
          ELSE
             IF cFig == ' '
-               Aadd( aMoves, nMove )
+               IF !lBeat
+                  Aadd( aMoves, nMove )
+               ENDIF
             ELSEIF (cFig >= 'a' .AND. cFig <= 'z') == lBlack
                EXIT
-            ELSE
+            ELSEIF cFigBeat == Nil .OR. cFig == cFigBeat
                Aadd( aMoves, nMove )
+               EXIT
+            ELSE
                EXIT
             ENDIF
          ENDIF
@@ -829,7 +885,6 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart )
          ENDIF
       ENDDO
    NEXT
-
    RETURN aMoves
 
 STATIC FUNCTION isMoveCorrect( nMove )
@@ -957,15 +1012,19 @@ STATIC FUNCTION ii_Ocenka( cBoard )
 
    RETURN nSumm
 
-STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
+STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
 
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nOcen := -1000000, nSumm
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply
+   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
+   LOCAL nOcen := -1000000, nSumm
+   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lNotShah := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
 
    Set_lb_lw( aPos, lTurnBlack )
+   IF lDebug
+      edi_writelog( "--- " + " ---" )
+   ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -974,33 +1033,120 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             IF lReply
+               IF lSh
+                  // Если мы делали шах, проверяем, отразил ли его ответ
+                  lTurnBlack := !lTurnBlack
+                  IF Check4Shah( aPosTemp )
+                     lTurnBlack := !lTurnBlack
+                     LOOP
+                  ELSE
+                     lNotShah := .T.
+                  ENDIF
+                  lTurnBlack := !lTurnBlack
+               ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-               /*IF nSumm >= 50000
-                  // { Cell from, Cell to, Summ }
+               IF nSumm > nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
-                  RETURN aMaxOcen
-               ENDIF */
+               ENDIF
+               IF lDebug
+                  edi_writelog( ">   " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
+               ENDIF
             ELSE
-            //IF !lReply
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := 100000
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
                   RETURN aMaxOcen
                ENDIF
+               IF lDebug
+                  edi_writelog( "> " + MoveN2C(i,arr[j]) + str(aMaxOcen[3],8) )
+               ENDIF
+               // Проверяем, делаем ли мы шах этим ходом
+               lSh := Check4Shah( aPosTemp )
                lTurnBlack := !lTurnBlack
-               aReply := ii_ScanBoard_1( aPosTemp, .T. )
+               IF lShah .AND. Check4Shah( aPosTemp )
+                  // Если был шах и он не отражен, пропускаем этот ход (который не отразил шах)
+                  lTurnBlack := !lTurnBlack
+                  LOOP
+               ENDIF
+               aReply := ii_ScanBoard_1( aPosTemp, .T., lSh )
                lTurnBlack := !lTurnBlack
-               //IF aReply[3] >= 50000
-               //   nSumm := nOcen - 1
-               //ELSE
-                  nSumm := -aReply[3]
-               //ENDIF
-            ENDIF
-            IF nSumm >= nOcen
-               aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               nSumm := -aReply[3]
+               IF nSumm >= nOcen
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               ENDIF
+               IF lDebug
+                  edi_writelog( "= " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
+               ENDIF
             ENDIF
          NEXT
       ENDIF
    NEXT
+   IF lReply .AND. lSh .AND. !lNotShah
+      aMaxOcen[3] := -100000
+   ENDIF
+   //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
+
+   RETURN aMaxOcen
+
+STATIC FUNCTION ii_ScanBoard_2a( aPos, lReply, nDeep, lSh )
+
+   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
+   LOCAL nOcen := -1000000, nSumm
+   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lNotShah := .F.
+   LOCAL aPosTemp := Array(POS_LEN)
+
+   ACopy( aPos, aPosTemp, 2,, 2 )
+
+   Set_lb_lw( aPos, lTurnBlack )
+   IF lDebug
+      edi_writelog( "--- " + " ---" )
+   ENDIF
+   FOR i := 1 TO 64
+      IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
+         ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
+         arr := chess_GenMoves( aPos, i )
+         nLen := Len( arr )
+         FOR j := 1 TO nLen
+            PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
+            IF nDeep == 1
+               nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
+               IF nSumm > nOcen
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               ENDIF
+               IF lDebug
+                  edi_writelog( ">   " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
+               ENDIF
+            ELSE
+               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  RETURN aMaxOcen
+               ENDIF
+               IF lDebug
+                  edi_writelog( "> " + MoveN2C(i,arr[j]) + str(aMaxOcen[3],8) )
+               ENDIF
+               // Проверяем, делаем ли мы шах этим ходом
+               lSh := Check4Shah( aPosTemp )
+               lTurnBlack := !lTurnBlack
+               IF lShah .AND. Check4Shah( aPosTemp )
+                  // Если был шах и он не отражен, пропускаем этот ход (который не отразил шах)
+                  lTurnBlack := !lTurnBlack
+                  LOOP
+               ENDIF
+               aReply := ii_ScanBoard_2a( aPosTemp, .T., nDeep-1, lSh )
+               lTurnBlack := !lTurnBlack
+               nSumm := -aReply[3]
+               IF nSumm >= nOcen
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               ENDIF
+               IF lDebug
+                  edi_writelog( "= " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
+               ENDIF
+            ENDIF
+         NEXT
+      ENDIF
+   NEXT
+   IF lReply .AND. lSh .AND. !lNotShah
+      aMaxOcen[3] := -100000
+   ENDIF
    //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
 
    RETURN aMaxOcen
@@ -1011,8 +1157,12 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
    LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lExit := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
-   aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000]; aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]
+   ACopy( aPos, aPosTemp, 2,, 2 )
+   //aPosTemp[POS_W00] := aPos[POS_W00]; aPosTemp[POS_W000] := aPos[POS_W000]; aPosTemp[POS_B00] := aPos[POS_B00]; aPosTemp[POS_B000] := aPos[POS_B000]
    Set_lb_lw( aPos, lTurnBlack )
+   IF lDebug
+      edi_writelog( "--- " + Str( nDeep,1 ) + " ---" )
+   ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -1020,29 +1170,41 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep )
          nLen := Len( arr )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
-            nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-            IF lDebug .AND. nDeep == 3
-               edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) )
-            ENDIF
-            IF nSumm >= 50000
-               lExit := .T.
-               aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
-               EXIT
-            ENDIF
-            IF nDeep > 1
+            IF nDeep == 1
+               nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
+               IF nSumm >= aMaxOcen[3]
+                  aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
+               ENDIF
+               IF lDebug
+                  edi_writelog( "> " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
+               ENDIF
+            ELSE
+               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  RETURN aMaxOcen
+               ENDIF
                lTurnBlack := !lTurnBlack
                aReply := ii_ScanBoard_2( aPosTemp, !lReply, nDeep-1 )
                lTurnBlack := !lTurnBlack
-               IF !lReply
+               /*
+               IF lReply
+                  nSumm := aReply[3]
+               ELSE
                   nSumm := -aReply[3]
                ENDIF
+               */
             ENDIF
-            IF nSumm >= nOcen
+            /*
+            IF aMaxOcen[3] == BEATKING
+               RETURN aMaxOcen
+            ENDIF
+            IF nSumm >= aMaxOcen[3]
                aMaxOcen[3] := nOcen := nSumm; aMaxOcen[1] := i; aMaxOcen[2] := arr[j]
             ENDIF
             IF lDebug
                edi_writelog( Space( (3-nDeep)*2 ) + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + " " + str(nOcen,8) + " " + Valtype(aMaxOcen[1]) )
             ENDIF
+            */
          NEXT
          IF lExit
             EXIT
@@ -1074,7 +1236,7 @@ STATIC FUNCTION ii_MakeMove()
       IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) == 1
          aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
       ELSE
-         aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., 3 )
+         aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., nDeep2 )
       ENDIF
    ENDIF
    lDebug := .F.
@@ -1088,7 +1250,10 @@ STATIC FUNCTION ii_MakeMove()
          cBoa := ATail(aHistory)[3]
          AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
       ENDIF
-      IF aMaxOcen[3] > 50000
+      //IF aMaxOcen[3] > 50000
+      IF lShah .AND. Check4Mate( aCurrPos )
+         GameOver( 1 )  // Победа
+      ELSEIF aMaxOcen[3] == BEATKING
          GameOver( 2 )  // Поражение
       ELSEIF !lTurnBlack .AND. nCou >= 5
          GameOver( 3 )  // Ничья
@@ -1119,9 +1284,9 @@ STATIC FUNCTION GameOver( nRes )
 
    RETURN Nil
 
-STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lShah )
+STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lSh )
 
-   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lShah, "" }
+   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lSh, "" }
 
    IF cFig != Substr( aCurrPos[POS_BOARD], nEnd, 1 )
       arr[6] := Substr( aCurrPos[POS_BOARD], nEnd, 1 )

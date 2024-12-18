@@ -80,6 +80,7 @@ CLASS TEdit
    CLASS VAR aHiliAttrs SHARED  INIT { "W+/B", "W+/B", "W+/B", "W+/B", "W+/B", "GR+/B", "W/B", "W/B", "W/B", "W/B" }
    CLASS VAR aPlugins   SHARED  INIT {}
    CLASS VAR nDefMode   SHARED  INIT 0           // A start mode ( -1 - Edit only, 0 - Edit, 1- Vim )
+   CLASS VAR lCmdMode   SHARED  INIT .F.
    CLASS VAR cDefPal    SHARED  INIT "default"
    CLASS VAR cCurrPal   SHARED
    CLASS VAR cColor     SHARED  INIT "BG+/B"
@@ -1475,14 +1476,16 @@ METHOD onKey( nKeyExt ) CLASS TEdit
                      EXIT
 #ifndef _NO_CMDLINE
                   CASE 47    // /
-                     ::nMode := 2
-                     ::WriteTopPane( 1 )
-                     __KeyBoard( "/" )
-                     mnu_CmdLine( Self )
+                     IF ::lCmdMode
+                        ::nMode := 2
+                        ::WriteTopPane( 1 )
+                        __KeyBoard( "/" )
+                        mnu_CmdLine( Self )
+                     ENDIF
                      EXIT
 #endif
                   CASE 58    // :
-                     IF ::nDefMode >= 0
+                     IF ::nDefMode >= 0 .AND. ::lCmdMode
                         edi_ChgMode( Self, 2 )
                      ENDIF
                      EXIT
@@ -2845,6 +2848,9 @@ FUNCTION edi_ReadIni( xIni )
                hb_hCaseMatch( aSect, .F. )
                IF hb_hHaskey( aSect, cTemp := "defmode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   TEdit():nDefMode := Iif( (n := Val(cTemp)) < 2 .AND. n >= -1, n, 0 )
+               ENDIF
+               IF hb_hHaskey( aSect, cTemp := "cmdmode" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  TEdit():lCmdMode := ( Lower(cTemp) == "on" )
                ENDIF
                IF hb_hHaskey( aSect, cTemp := "incsearch" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   lIncSea := ( Lower(cTemp) == "on" )
