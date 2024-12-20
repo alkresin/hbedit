@@ -7,6 +7,7 @@
  */
 
 #define CTRL_PRESSED  0x020000
+#define K_ENTER      13
 #define K_ESC        27
 #define K_BS          8
 #define K_SPACE      32
@@ -20,10 +21,14 @@
 #define K_F4         -3
 #define K_F5         -4
 #define K_F6         -5
+#define K_F7         -6
 #define K_F8         -7
+#define K_CTRL_F8   -27
 #define K_F9         -8
 #define K_F10        -9
 #define K_LBUTTONDOWN 1002
+#define HB_GTI_FONTNAME         24
+
 
 #define POS_LEN        10
 #define POS_BOARD       1
@@ -53,7 +58,7 @@ STATIC oGame
 STATIC lRussian := .T., lDrawUtf8 := .F., lGui
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
-STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0 }, lShah
+STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0,0 }, lShah
 
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
@@ -61,7 +66,7 @@ STATIC cOpenings, lOpenings
 
 STATIC aCurrPos
 STATIC aHistory, aHisView
-STATIC lSetDiag := .F., lPlayGame, lViewGame, lDebug := .F.
+STATIC lSetDiag := .F., lPlayGame, lViewGame, lDebug := .F., lReplayMode := .F., lShowPos := .T.
 STATIC nDeep2 := 3
 
 // White - uppercace, black - lowercase
@@ -171,11 +176,11 @@ STATIC aBoardValues := { { ;
       60004, 60054, 60047, 59901, 59901, 60060, 60083, 59938} } }
 
 STATIC guiBoaSize := 3, guiFontName
-STATIC guiClrWCell, guiClrBCell, guiClrSel, guiClrText, guiClrFix, guiClrSep
-STATIC aThemes := { { 0xffffff, 0xe2e2e2, 0xcccccc, 0x960000, 0, 0x222222 }, ;
-   { 0xc0f0c0, 0x99dd99, 0x80c080, 0x960000, 0, 0x222222 }, ;
-   { 0xffffff, 0xf3ebe2, 0xead7c3, 0xaf5a32, 0x614834, 0x614834 }, ;
-   { 0xffffff, 0xe2e2e2, 0xcccccc, 0x960000, 0, 0x222222 } }, cUserTheme, nTheme := 1
+STATIC guiClrWCell, guiClrBCell, guiClrSel, guiClrWText, guiClrBText
+STATIC aThemes := { { 0xf0f0f0, 0xc0c0c0, 0, 0x676767, 0 }, ;
+   { 0xc1dfee, 0x73beff, 0, 0x0059a6, 0 }, ;
+   { 0xc1dfee, 0x73b2ff, 0, 0x004ba6, 0 }, ;
+   { 0xffffff, 0xe2e2e2, 0, 255, 0 } }, cUserTheme, nTheme := 1
 
 FUNCTION plug_gm_Chess( oEdit, cPath )
 
@@ -256,7 +261,7 @@ STATIC FUNCTION _Game_New( lFirst )
    Scroll( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
    lPlayGame := .T.
    lViewGame := .F.
-   aMoveState[2] := 0
+   aMoveState[2] := aMoveState[3] := 0
    aCurrPos[POS_BOARD] := cInitBoard
    aCurrPos[POS_W00] := aCurrPos[POS_W000] := aCurrPos[POS_B00] := aCurrPos[POS_B000] := .T.
    lShah := .F.
@@ -281,7 +286,7 @@ STATIC FUNCTION _Game_DiagNew( cTurn )
    aCurrPos[POS_W00] := aCurrPos[POS_W000] := aCurrPos[POS_B00] := aCurrPos[POS_B000] := .T.
    lPlayGame := .T.
    lViewGame := .F.
-   aMoveState[2] := 0
+   aMoveState[2] := aMoveState[3] := 0
    nScrolled := 0
    nLevelWhite := nLevelBlack := 0
    IF Empty( cTurn )
@@ -386,8 +391,8 @@ STATIC FUNCTION _Game_Players( lAsk )
 STATIC FUNCTION _Game_MainMenu()
 
    LOCAL nc
-   STATIC aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Диаграмма",,,"F5"}, {"Игроки",,,"F6"}, {"Сохранить",,,"F2"}, {"Загрузить",,,"F4"}, {"Rus/Eng",,,"F8"} }
-   STATIC aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Set diagramm",,,"F5"}, {"Change players",,,"F6"}, {"Save",,,"F2"}, {"Load",,,"F4"}, {"Rus/Eng",,,"F8"} }
+   LOCAL aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Диаграмма",,,"F5"}, {"Игроки",,,"F6"}, {"Сохранить",,,"F2"}, {"Загрузить",,,"F4"}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Настройки","---"),,,"F8"} }
+   LOCAL aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Set diagramm",,,"F5"}, {"Change players",,,"F6"}, {"Save",,,"F2"}, {"Load",,,"F4"}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Options","---"),,,"F8"} }
 
    IF ( nc := FMenu( oGame, Iif( lRussian, aMenuR, aMenuE ), y1t, x2t+2 ) ) == 1
       __PaintBo_Chess( , OP_UNSET )
@@ -412,6 +417,8 @@ STATIC FUNCTION _Game_MainMenu()
       lRussian := !lRussian
       DrawBoard()
 
+   ELSEIF nc == 8
+      chess_Settings()
    ENDIF
 
    RETURN Nil
@@ -443,10 +450,12 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_BS
-      IF lPlayGame .AND. !Empty( aHistory )
+      IF (lPlayGame .OR. lViewGame) .AND. !Empty( aHistory )
          IF ATail( aHistory )[2] == Nil
             hb_ADel( aHistory, Len(aHistory), .T. )
-            ATail( aHistory )[2] := Nil
+            IF !Empty( aHistory )
+               ATail( aHistory )[2] := Nil
+            ENDIF
          ELSE
             hb_ADel( aHistory, Len(aHistory), .T. )
          ENDIF
@@ -477,9 +486,15 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_F6
       _Game_Players( .T. )
 
-   ELSEIF nKey == K_F8
+   ELSEIF nKey == K_F7
       lRussian := !lRussian
       DrawBoard()
+
+   ELSEIF nKey == K_F8
+      chess_Settings()
+
+   ELSEIF nKey == K_CTRL_F8
+      chess_Tune()
 
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       cScreenBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
@@ -523,6 +538,9 @@ STATIC FUNCTION DrawBoard()
 
    LOCAL i, j, i1, lBlack := .F., c, cBoard := aCurrPos[POS_BOARD]
 
+   IF lReplayMode
+      RETURN Nil
+   ENDIF
    IF lGui
       __PaintBo_Chess( , OP_INVALIDATE )
    ELSE
@@ -665,6 +683,7 @@ STATIC FUNCTION DrawMove( aMove )
             cMove := "O-O-O"
          ENDIF
       ENDIF
+      aMoveState[3] := nEnd
       DrawBoard()
       lShah := Check4Shah( aCurrPos )
       AddHis( aCurrPos[POS_BOARD], cFig, nStart, nEnd, cFigBeat, lShah )
@@ -741,18 +760,20 @@ STATIC FUNCTION Set_lb_lw( aPos, lBlack )
 
 STATIC FUNCTION MakeMove( nRow, nCol )
 
-   LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0
+   LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0, nStart
    LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 ), cBoa16
 
    IF aMoveState[2] == 0 .AND. ( (!lTurnBlack .AND. c >= 'A' .AND. c <= 'Z') .OR. ;
       (lTurnBlack .AND. c >= 'a' .AND. c <= 'z') )
       DrawMove( {c, nMove} )
       aMoveState[1] := c; aMoveState[2] := nMove
-
+      DrawBoard()
    ELSE
       Set_lb_lw( aCurrPos, lTurnBlack )
       IF isMoveCorrect( nMove )
-         DrawMove( {aMoveState[1], aMoveState[2], nMove} )
+         nStart := aMoveState[2]
+         aMoveState[2] := 0
+         DrawMove( {aMoveState[1], nStart, nMove} )
          IF !lTurnBlack
             cBoa16 := ATail(aHistory)[3]
             AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
@@ -889,14 +910,26 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart, lBeat, cFigBeat )
 
 STATIC FUNCTION isMoveCorrect( nMove )
 
-   LOCAL arr
+   LOCAL arr, l
+   LOCAL aPosTemp := Array(POS_LEN)
 
    IF nMove == aMoveState[2]
       RETURN .F.
    ENDIF
    arr := chess_GenMoves( aCurrPos, aMoveState[2] )
-
-   RETURN ( Ascan( arr, nMove ) ) > 0
+   l := ( Ascan( arr, nMove ) ) > 0
+   IF l
+      ACopy( aCurrPos, aPosTemp, 2,, 2 )
+      PostProcess( aPosTemp, aCurrPos[POS_BOARD], ;
+         hb_bPeek( aCurrPos[POS_BOARD],aMoveState[2] ), aMoveState[2], nMove )
+      lTurnBlack := !lTurnBlack
+      l := !Check4Shah( aPosTemp )
+      lTurnBlack := !lTurnBlack
+      IF !l
+         edi_Alert( Iif( lRussian, "Шах...", "Check..." ) )
+      ENDIF
+   ENDIF
+   RETURN l
 
 /* Функция осуществляет перемещение фигуры и обрабатывает следующие ситуации:
      - рокировка (добавляет перемещение ладьи)
@@ -1022,9 +1055,7 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
    ACopy( aPos, aPosTemp, 2,, 2 )
 
    Set_lb_lw( aPos, lTurnBlack )
-   IF lDebug
-      edi_writelog( "--- " + " ---" )
-   ENDIF
+   IF lDebug; DbgMsg( "---" ); ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -1045,20 +1076,16 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                   lTurnBlack := !lTurnBlack
                ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-               IF nSumm > nOcen
+               IF nSumm >= nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                ENDIF
-               IF lDebug
-                  edi_writelog( ">   " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ELSE
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
                   RETURN aMaxOcen
                ENDIF
-               IF lDebug
-                  edi_writelog( "> " + MoveN2C(i,arr[j]) + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, ">", 1, i, arr[j],, aMaxOcen[3] ); ENDIF
                // Проверяем, делаем ли мы шах этим ходом
                lSh := Check4Shah( aPosTemp )
                lTurnBlack := !lTurnBlack
@@ -1073,9 +1100,7 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                IF nSumm >= nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                ENDIF
-               IF lDebug
-                  edi_writelog( "= " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, "=", 1, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ENDIF
          NEXT
       ENDIF
@@ -1083,7 +1108,6 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
    IF lReply .AND. lSh .AND. !lNotShah
       aMaxOcen[3] := -BEATKING
    ENDIF
-   //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
 
    RETURN aMaxOcen
 
@@ -1097,9 +1121,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
    ACopy( aPos, aPosTemp, 2,, 2 )
 
    Set_lb_lw( aPos, lTurnBlack )
-   IF lDebug
-      edi_writelog( "--- " + " ---" )
-   ENDIF
+   IF lDebug; DbgMsg( "---" ); ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
          ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
@@ -1108,13 +1130,15 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             IF nDeep == 1
+               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  RETURN aMaxOcen
+               ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
                IF nSumm > nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                ENDIF
-               IF lDebug
-                  edi_writelog( ">   " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, ">", 3, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ELSEIF nDeep == 2
                lTurnBlack := !lTurnBlack
                IF lSh
@@ -1132,14 +1156,13 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                IF nSumm >= nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                ENDIF
+               IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j],, aMaxOcen[3] ); ENDIF
             ELSE
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
                   RETURN aMaxOcen
                ENDIF
-               IF lDebug
-                  edi_writelog( "> " + MoveN2C(i,arr[j]) + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, ">", 1, i, arr[j],, aMaxOcen[3] ); ENDIF
                // Проверяем, делаем ли мы шах этим ходом
                lSh := Check4Shah( aPosTemp )
                lTurnBlack := !lTurnBlack
@@ -1154,9 +1177,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                IF nSumm >= nOcen
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
                ENDIF
-               IF lDebug
-                  edi_writelog( "= " + MoveN2C(i,arr[j]) + "  " + str(nSumm,8) + "  " + str(aMaxOcen[3],8) )
-               ENDIF
+               IF lDebug; DbgMsg( aPosTemp, "=", 1, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ENDIF
          NEXT
       ENDIF
@@ -1164,7 +1185,6 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
    IF lReply .AND. lSh .AND. !lNotShah
       aMaxOcen[3] := -BEATKING
    ENDIF
-   //edi_writelog( Iif(lReply,"  = ","= ") + MoveN2C(aMaxOcen[1],aMaxOcen[2]) + " " + str(aMaxOcen[3]) )
 
    RETURN aMaxOcen
 
@@ -1191,7 +1211,7 @@ STATIC FUNCTION ii_MakeMove()
       ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+13, x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
+   @ y1t+Iif(guiBoaSize==3,13,16), x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
@@ -1250,6 +1270,16 @@ STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lSh )
 
    RETURN Nil
 
+STATIC FUNCTION DbgMsg( aPos, cPrefix, nDeep, n1, n2, ns1, ns2 )
+
+   IF Valtype( aPos ) == "C"
+      edi_Writelog( aPos )
+   ELSE
+      edi_Writelog( Space( nDeep*2 ) + cPrefix + " " + MoveN2C( n1,n2 ) + "  " + ;
+         Iif( ns1 == Nil, Space(8), str(ns1,8) ) + "  " + str( ns2,8 ) )
+   ENDIF
+
+   RETURN Nil
 
 STATIC FUNCTION board_64to32( cBoard )
 
@@ -1285,6 +1315,7 @@ STATIC FUNCTION pgn_ReadHead( cBuff, nPos, cTag, lCutoff )
       IF !Empty(lCutoff) .AND. (nPos1 := At( ',',cRes )) > 0
          cRes := Trim( Left( cRes, nPos1-1 ) )
       ENDIF
+      //edi_Writelog( str(nPos) + ctag + " " + str(nPos1) + " " + str(nPos2) + " " + cRes )
    ENDIF
 
    RETURN cRes
@@ -1437,6 +1468,7 @@ STATIC FUNCTION chess_ReplayGame( aHis )
 
    LOCAL i, aMove
 
+   lReplayMode := .T.
    aHistory  := {}
    FOR i := 1 TO Len( aHis )
       aMove := aHis[i,1]
@@ -1449,6 +1481,8 @@ STATIC FUNCTION chess_ReplayGame( aHis )
          lTurnBlack := .F.
       ENDIF
    NEXT
+   DrawBoard()
+   lReplayMode := .F.
 
    RETURN Nil
 
@@ -1467,14 +1501,14 @@ STATIC FUNCTION chess_Load()
    ENDIF
    cBuff := MemoRead( xFileName[1] )
    DO WHILE ( nPos := hb_At( "[Event ", cBuff, nPos ) ) > 0
-      cHea := pgn_ReadHead( cBuff, nPos, "Date" ) + " - " + pgn_ReadHead( cBuff, nPos, "White", .T. ) + ;
+      cHea := pgn_ReadHead( cBuff, nPos, "Date" ) + ", " + pgn_ReadHead( cBuff, nPos, "White", .T. ) + ;
          " - " + pgn_ReadHead( cBuff, nPos, "Black", .T. )
       IF !Empty( cHea )
          AAdd( aMenu, { cHea, Nil, nPos } )
       ENDIF
       nPos ++
    ENDDO
-   IF !Empty( aMenu ) .AND. ( nPos := FMenu( oGame, aMenu, y1t, x2t-12, y1t+10, x2t+40,,,, .T. ) ) > 0
+   IF !Empty( aMenu ) .AND. ( nPos := FMenu( oGame, aMenu, y1t, x2t-2, y1t+10, x2t+44,,,, .T. ) ) > 0
       cBuff := Substr( cBuff, aMenu[nPos,3], ;
          Iif( nPos==Len(aMenu), Len(cBuff), aMenu[nPos+1,3] ) - aMenu[nPos,3] )
       IF Empty( cFen := pgn_ReadHead( cBuff, 1, "FEN" ) )
@@ -1531,7 +1565,7 @@ STATIC FUNCTION chess_Load()
             SetColor( clrBoard )
             Scroll( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
             nLevelWhite := nLevelBlack := 0
-            aMoveState[2] := 0
+            aMoveState[2] := aMoveState[3] := 0
             aCurrPos[POS_BOARD] := cInitBoard
             aCurrPos[POS_W00] := aCurrPos[POS_W000] := aCurrPos[POS_B00] := aCurrPos[POS_B000] := .T.
             @ y1t-1, x2t+4 SAY Iif( nc == 2, "Computer", "Human" )
@@ -1593,7 +1627,7 @@ STATIC FUNCTION chess_Save()
    IF nc == 1
       cBuff += Chr(10)
       FOR i := 1 TO Len( aHistory )
-         edi_writelog( hb_valtoexp( aHistory[i] ) )
+         //edi_writelog( hb_valtoexp( aHistory[i] ) )
          cMove := Iif( i > 1, " ", "" ) + Ltrim(Str(i)) + "." + ;
             Iif( Lower(aHistory[i,1,1])=='p',"",Upper(aHistory[i,1,1]) ) + ;
             Iif(Empty(aHistory[i,1,4]),"","x") + ;
@@ -1647,7 +1681,7 @@ STATIC FUNCTION chess_Help()
 
 STATIC FUNCTION Read_Game_Ini( cIni )
 
-   LOCAL hIni, aIni, nSect, cTemp, aSect
+   LOCAL hIni, aIni, nSect, cTemp, aSect, arr, n
 
    IF !Empty( cIni ) .AND. !Empty( hIni := edi_iniRead( cIni ) )
       aIni := hb_hKeys( hIni )
@@ -1681,26 +1715,74 @@ STATIC FUNCTION Read_Game_Ini( cIni )
                ENDIF
             ENDIF
          ENDIF
+         IF Upper(aIni[nSect]) == "GUI"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               IF hb_hHaskey( aSect, cTemp := "size-medium" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  IF ( Lower( cTemp ) == "on" )
+                     guiBoaSize := 4
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "usertheme" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     cUserTheme := cTemp
+                     arr := hb_ATokens( cTemp, ',' )
+                     FOR n := 1 TO Max( 6, Len( arr ) )
+                        arr[n] := LTrim( arr[n] )
+                        aThemes[4,n] := Iif( Asc(arr[n]) == 35, edi_ColorC2N(arr[n]), Val(arr[n]) )
+                     NEXT
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "theme" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     nTheme := Val( cTemp )
+                     IF nTheme < 1 .OR. nTheme > 4
+                        nTheme := 1
+                     ENDIF
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "user-theme" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     aThemes[4] := hb_ATokens( cTemp,"," )
+                     FOR n := 1 TO Len(aThemes[4])
+                        aThemes[4,n] := hb_HexToNum( aThemes[4,n] )
+                     NEXT
+                  ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "fontname" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     guiFontName := cTemp
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDIF
       NEXT
    ENDIF
 
    guiClrWCell := aThemes[nTheme,1]; guiClrBCell := aThemes[nTheme,2]; guiClrSel := aThemes[nTheme,3]
-   guiClrText := aThemes[nTheme,4]; guiClrFix := aThemes[nTheme,5]; guiClrSep := aThemes[nTheme,6]
+   guiClrWText := aThemes[nTheme,4]; guiClrBText := aThemes[nTheme,5]
+   IF Empty( guiFontName )
+      guiFontName := hb_gtinfo( HB_GTI_FONTNAME )
+   ENDIF
 
    RETURN Nil
 
 STATIC FUNCTION Write_Game_Ini()
 
-   LOCAL s := "[GAME]" + Chr(13)+Chr(10)
+   LOCAL cr := Chr(13)+Chr(10)
+   LOCAL s := "[GAME]" + cr
 
-   s += "clrboard=" + clrBoard + Chr(13)+Chr(10)
-   s += "clrwhite=" + clrWhite + Chr(13)+Chr(10)
-   s += "clrblack=" + clrBlack + Chr(13)+Chr(10)
-   s += "clrbwhite=" + clrbWhite + Chr(13)+Chr(10)
-   s += "clrbblack=" + clrbBlack + Chr(13)+Chr(10)
-   s += "russian=" + Iif( lRussian, "On", "Off" ) + Chr(13)+Chr(10)
-   s += "drawutf8=" + Iif( lDrawUtf8, "On", "Off" ) + Chr(13)+Chr(10)
-   s += "copenings=" + cOpenings + Chr(13)+Chr(10)
+   s += "clrboard=" + clrBoard + cr
+   s += "clrwhite=" + clrWhite + cr
+   s += "clrblack=" + clrBlack + cr
+   s += "clrbwhite=" + clrbWhite + cr
+   s += "clrbblack=" + clrbBlack + cr
+   s += "russian=" + Iif( lRussian, "On", "Off" ) + cr
+   s += "drawutf8=" + Iif( lDrawUtf8, "On", "Off" ) + cr
+   s += "copenings=" + cOpenings + cr
+
+   s += cr + "[GUI]" + cr
+   s += "size-medium=" + Iif( guiBoaSize==4, "On", "Off" ) + cr
+   IF !Empty( cUserTheme )
+      s += "usertheme=" + cUserTheme + cr
+   ENDIF
+   s += "theme=" + Ltrim(Str( nTheme )) + cr
+   s += "user-theme=" + hb_NumToHex(aThemes[4,1],6) + "," + hb_NumToHex(aThemes[4,2],6) + ;
+      "," + hb_NumToHex(aThemes[4,3],6) + "," + hb_NumToHex(aThemes[4,4],6) + ;
+      "," + hb_NumToHex(aThemes[4,5],6) + cr
+   s += "fontname=" + guiFontName + cr
 
    hb_MemoWrit( cIniPath + "chess.ini", s )
 
@@ -1713,6 +1795,86 @@ STATIC FUNCTION Write_Game_Ini()
 
 #define DT_CENTER               1
 
+STATIC FUNCTION chess_Tune()
+
+   LOCAL y1 := y1t + 2, x1 := x2t+1, y2 := y1 + 7, x2 := x1 + 28
+   LOCAL cBuf, cp
+   LOCAL oldc := SetColor( oGame:cColorSel+","+oGame:cColorSel+",,"+oGame:cColorGet+","+oGame:cColorSel )
+   LOCAL aGets
+   LOCAL bSet := {||
+      guiClrWCell := Iif( Left(aGets[3,4],2) == "0x", hb_HexToNum(Substr(aGets[3,4],3)), Val(aGets[3,4]) )
+      guiClrBCell := Iif( Left(aGets[5,4],2) == "0x", hb_HexToNum(Substr(aGets[5,4],3)), Val(aGets[5,4]) )
+      guiClrWText := Iif( Left(aGets[7,4],2) == "0x", hb_HexToNum(Substr(aGets[7,4],3)), Val(aGets[7,4]) )
+      guiClrBText := Iif( Left(aGets[9,4],2) == "0x", hb_HexToNum(Substr(aGets[9,4],3)), Val(aGets[9,4]) )
+      __PaintBo_Chess( , OP_COLORS )
+      __PaintBo_Chess( , OP_INVALIDATE )
+      RETURN Nil
+   }
+
+   aGets := { {y1,x1+4, 11, "Настройка цветов"}, ;
+      { y1+1,x1+2, 11, "White cells" }, { y1+1,x1+16, 0, "0x" + hb_NumToHex(guiClrWCell,6), 10, oGame:cColorMenu,oGame:cColorMenu }, ;
+      { y1+2,x1+2, 11, "Black cells" }, { y1+2,x1+16, 0, "0x" + hb_NumToHex(guiClrBCell,6), 10, oGame:cColorMenu,oGame:cColorMenu }, ;
+      { y1+3,x1+2, 11, "White figures" }, { y1+3,x1+16, 0, "0x" + hb_NumToHex(guiClrWText,6), 10, oGame:cColorMenu,oGame:cColorMenu }, ;
+      { y1+4,x1+2, 11, "Black figures" }, { y1+4,x1+16, 0, "0x" + hb_NumToHex(guiClrBText,6), 10, oGame:cColorMenu,oGame:cColorMenu }, ;
+      {y1+6,x1+2,2,"[Save]",,,,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y1+6,x1+10,2,"[Cancel]",,,,{||__KeyBoard(Chr(K_ESC))}}, ;
+      {y1+6,x1+20,2,"[Set]",,,, bSet} }
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   cp := hb_cdpSelect( "RU866" )
+   @ y1, x1, y2, x2 BOX "�Ŀ����� "
+   @ y1+5, x1 SAY "�"
+   @ y1+5, x2 SAY "�"
+   @ y1+5, x1+1 TO y1+5, x2-1
+   hb_cdpSelect( cp )
+
+   edi_READ( aGets )
+   IF LastKey() == 13
+      nTheme := 4
+      aThemes[4,1] := guiClrWCell
+      aThemes[4,2] := guiClrBCell
+      aThemes[4,4] := guiClrWText
+      aThemes[4,5] := guiClrBText
+   ELSE
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y2, x2, cBuf )
+
+   RETURN Nil
+
+STATIC FUNCTION chess_Settings()
+
+   LOCAL i, aMenu, aMenu2 := { "Small", "Medium" }
+
+   IF !lGUI
+      RETURN Nil
+   ENDIF
+
+   aMenu := { "Theme: Gray", "Theme: Brown", "Theme: Blue", "Theme: User", ;
+      "Tune", "Size: " + aMenu2[guiBoaSize-2], "Show position " + Iif(lShowPos,"On","Off") }
+
+   i := FMenu( oGame, aMenu, y1t+2, x2t+2, y1t+10, x2t+26 )
+
+   IF i == 7
+      lShowPos := !lShowPos
+   ELSEIF i == 6
+      IF ( i := FMenu( oGame, aMenu2, y1t+2, x2t+4, y1t+5, x2t+20 ) ) > 0 .AND. i+2 != guiBoaSize
+         guiBoaSize := i + 2
+         __PaintBo_Chess( , OP_SIZE )
+         __PaintBo_Chess( , OP_INVALIDATE )
+      ENDIF
+   ELSEIF i == 5
+      chess_Tune()
+   ELSEIF i > 0
+      guiClrWCell := aThemes[i,1]; guiClrBCell := aThemes[i,2]; guiClrSel := aThemes[i,3]
+      guiClrWText := aThemes[i,4]; guiClrBText := aThemes[i,5]
+      nTheme := i
+      __PaintBo_Chess( , OP_COLORS )
+      __PaintBo_Chess( , OP_INVALIDATE )
+   ENDIF
+
+   RETURN Nil
+
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
 DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
 DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
@@ -1721,9 +1883,9 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
 
    LOCAL x1, y1, x2, y2, nw, nTopMargin
    LOCAL i, j, i1, arrm
-   LOCAL lWhiteCell, cBoard, c
+   LOCAL lWhiteCell, cBoard, c, nMove
    STATIC xKoef, yKoef
-   STATIC oBrushWhite, oBrushSel, oBrushBlack, oPen, oFont
+   STATIC oBrushWhite, oBrushBlack, oPen, oFont
 
    IF !lGUI
       RETURN Nil
@@ -1737,14 +1899,12 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
    IF Empty( oBrushWhite ) .OR. ( Empty( hDC ) .AND. nOp == OP_COLORS )
       IF !Empty( oBrushWhite )
          oBrushWhite:Release()
-         oBrushSel:Release()
          oBrushBlack:Release()
          oPen:Release()
       ENDIF
       oBrushWhite := HBrush():Add( guiClrWCell )
-      oBrushSel := HBrush():Add( guiClrSel )
       oBrushBlack := HBrush():Add( guiClrBCell )
-      oPen := HPen():Add( , 1, guiClrSep )
+      oPen := HPen():Add( , 2, guiClrSel )
       oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
    ELSEIF Empty( hDC ) .AND. nOp == OP_SIZE
       oFont:Release()
@@ -1780,18 +1940,22 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
    nTopMargin := Int( ( nw - oFont:height ) / 2 )
    hwg_SelectObject( hDC, oFont:handle )
    hwg_Settransparentmode( hDC, .T. )
-   hwg_Settextcolor( hDC, guiClrText )
    lWhiteCell := .T.
    FOR i := 0 TO 7
       FOR j := 0 TO 7
          hwg_SelectObject( hDC, Iif( lWhiteCell, oBrushWhite:handle, oBrushBlack:handle ) )
          hwg_Rectangle_Filled( hDC, x1+(j*nw), y1+(i*nw), x1+((j+1)*nw), y1+((i+1)*nw), .F. )
-         c := Substr( cBoard, i*8+j+1, 1 )
+         nMove := i*8 + j + 1
+         IF aMoveState[2] == nMove .OR. ;
+            ( aMoveState[2] == 0 .AND. lShowPos .AND. aMoveState[3] == nMove )
+            hwg_Rectangle( hDC, x1+(j*nw)+2, y1+(i*nw)+2, x1+((j+1)*nw)-2, y1+((i+1)*nw)-2, oPen:handle )
+         ENDIF
+         c := Substr( cBoard, nMove, 1 )
          IF c > 'A'
             IF c > 'a'
-               hwg_Settextcolor( hDC, 0 )
+               hwg_Settextcolor( hDC, guiClrBText )
             ELSEIF c > 'A'
-               hwg_Settextcolor( hDC, 255 )
+               hwg_Settextcolor( hDC, guiClrWText )
             ENDIF
             i1 := Ascan( aFigs,c )
             hwg_Drawtext( hDC, Iif( lDrawUtf8, aFigs3[i1], Iif( lRussian,aFigs1[i1],aFigs2[i1] ) ), ;

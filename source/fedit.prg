@@ -2068,8 +2068,8 @@ METHOD GoTo( ny, nx, nSele, lNoGo ) CLASS TEdit
          ENDIF
          ::LineOut( ny - ::nyFirst + 1 )
       ENDIF
-      ::WriteTopPane()
       edi_SetPos( Self, ny, nx )
+      ::WriteTopPane()
    ELSE
       ::nLine := ny
       ::nPos := nx
