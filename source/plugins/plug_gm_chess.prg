@@ -425,7 +425,7 @@ STATIC FUNCTION _Game_MainMenu()
 
 STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
 
-   LOCAL nKey := hb_keyStd(nKeyExt), nCol, nRow, arr, n
+   LOCAL nKey := hb_keyStd(nKeyExt), nCol, nRow, arr, n, l
 
    IF nKey == K_LBUTTONDOWN
       nCol := MCol()
@@ -461,8 +461,14 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
          ENDIF
          arr := aHistory
          nCol := nLevelWhite; nRow := nLevelBlack; nLevelWhite := nLevelBlack := 0
+         l := lViewGame
          _Game_New( .T. )
          chess_ReplayGame( arr )
+         DrawBoard()
+         IF l
+            lPlayGame := .F.
+            lViewGame := .T.
+         ENDIF
          nLevelWhite := nCol; nLevelBlack := nRow
       ENDIF
 
@@ -536,7 +542,7 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION DrawBoard()
 
-   LOCAL i, j, i1, lBlack := .F., c, cBoard := aCurrPos[POS_BOARD]
+   LOCAL i, j, i1, lBlack := .F., c, cBoard
 
    IF lReplayMode
       RETURN Nil
@@ -545,6 +551,7 @@ STATIC FUNCTION DrawBoard()
       __PaintBo_Chess( , OP_INVALIDATE )
    ELSE
       DispBegin()
+      cBoard := aCurrPos[POS_BOARD]
       SetColor( clrBoard )
       FOR i := 0 TO 7
          SetColor( clrBoard )
@@ -572,25 +579,11 @@ STATIC FUNCTION DrawBoard()
  */
 STATIC FUNCTION Check4Shah( aPos )
 
-   //LOCAL i, nFig, cKing , arr
-   LOCAL i, nFig, cKing := Iif( lTurnBlack, 'K', 'k' )
+   LOCAL cFig, cKing := Iif( lTurnBlack, 'K', 'k' )
 
-/*
-   nFig := Iif( lTurnBlack, 75, 107 )
-   FOR i := 1 TO 64
-      IF hb_bPeek( aPos[POS_BOARD], i ) == nFig
-         cKing := Substr( aPos[POS_BOARD],i,1 )
-         EXIT
-      ENDIF
-   NEXT
-   IF Empty( cKing )
-      RETURN .F.
-   ENDIF
-*/
-   FOR i := 1 TO 64
-      nFig := hb_bPeek( aPos[POS_BOARD], i )
-      IF (!lTurnBlack .AND. nFig >= 65 .AND. nFig <= 90) .OR. (lTurnBlack .AND. nFig >= 97 .AND. nFig <= 122)
-         IF !Empty( chess_GenMoves( aPos, i, .T., cKing ) )
+   FOR EACH cFig IN aPos[POS_BOARD]
+      IF (!lTurnBlack .AND. cFig >= 'A' .AND. cFig <= 'Z') .OR. (lTurnBlack .AND. cFig >= 'a' .AND. cFig <= 'z')
+         IF !Empty( chess_GenMoves( aPos, cFig:__enumindex, .T., cKing ) )
             RETURN .T.
          ENDIF
       ENDIF
@@ -599,15 +592,17 @@ STATIC FUNCTION Check4Shah( aPos )
 
 STATIC FUNCTION Check4Mate( aPos )
 
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
+   LOCAL i, j, cFig, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
    lTurnBlack := !lTurnBlack
    Set_lb_lw( aPos, lTurnBlack )
-   FOR i := 1 TO 64
-      IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
-         ( ( lTurnBlack .AND. nFig >= 97 ) .OR. ( !lTurnBlack .AND. nFig < 97 ) )
+   FOR EACH cFig IN cBoard
+      IF cFig >= 'A' .AND. ;
+         ( ( lTurnBlack .AND. cFig >= 'a' ) .OR. ( !lTurnBlack .AND. cFig < 'a' ) )
+         i := cFig:__enumindex
+         nFig := hb_bPeek( cBoard, i )
          arr := chess_GenMoves( aPos, i )
          nLen := Len( arr )
          //edi_Writelog( "Mate1 " + hb_valtoexp(lTurnBlack) + str(i,3) )
@@ -703,7 +698,7 @@ STATIC FUNCTION DrawMove( aMove )
 // Проверка возможности рокировки
 STATIC FUNCTION Set_lb_lw( aPos, lBlack )
 
-   LOCAL i, nFig, arr
+   LOCAL cFig, arr
 
    aPos[POS_B_00] := aPos[POS_B00] ; aPos[POS_B_000] := aPos[POS_B000] ; aPos[POS_W_00] := aPos[POS_W00] ; aPos[POS_W_000] := aPos[POS_W000]
    IF lBlack .AND. (aPos[POS_B00] .OR. aPos[POS_B000])
@@ -716,9 +711,9 @@ STATIC FUNCTION Set_lb_lw( aPos, lBlack )
          aPos[POS_B_00] := .F.
       ENDIF
       IF aPos[POS_B_00] .OR. aPos[POS_B_000]
-         FOR i := 1 TO 64
-            IF ( nFig := hb_bPeek( aPos[POS_BOARD], i ) ) >= 65 .AND. nFig <= 90
-               arr := chess_GenMoves( aPos, i )
+         FOR EACH cFig IN aPos[POS_BOARD]
+            IF cFig >= 'A' .AND. cFig <= 'Z'
+               arr := chess_GenMoves( aPos, cFig:__enumindex )
                IF ( Ascan( arr,5 ) > 0 .OR. Ascan( arr,6 ) > 0 .OR. ;
                   Ascan( arr,7 ) > 0 .OR. Ascan( arr,8 ) > 0 )
                   aPos[POS_B_00] := .F.
@@ -740,9 +735,9 @@ STATIC FUNCTION Set_lb_lw( aPos, lBlack )
          aPos[POS_W_00] := .F.
       ENDIF
       IF aPos[POS_W_00] .OR. aPos[POS_W_000]
-         FOR i := 1 TO 64
-            IF ( nFig := hb_bPeek( aPos[POS_BOARD], i ) ) >= 97 .AND. nFig <= 122
-               arr := chess_GenMoves( aPos, i )
+         FOR EACH cFig IN aPos[POS_BOARD]
+            IF cFig >= 'a' .AND. cFig <= 'z'
+               arr := chess_GenMoves( aPos, cFig:__enumindex )
                IF ( Ascan( arr,61 ) > 0 .OR. Ascan( arr,62 ) > 0 .OR. ;
                   Ascan( arr,63 ) > 0 .OR. Ascan( arr,64 ) > 0 )
                   aPos[POS_W_00] := .F.
@@ -1211,7 +1206,7 @@ STATIC FUNCTION ii_MakeMove()
       ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+Iif(guiBoaSize==3,13,16), x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
+   @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,16),11), x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
@@ -1579,8 +1574,9 @@ STATIC FUNCTION chess_Load()
                _Game_New( .T. )
                lPlayGame := .F.
                lViewGame := .T.
-               @ y1t+10, x1t SAY "White: " + cWhite
-               @ y1t+11, x1t SAY "Black: " + cBlack
+               i := y1t + Iif( lGui, Iif(guiBoaSize==3,13,16),11 )
+               @ i, x1t SAY "White: " + cWhite
+               @ i+1, x1t SAY "Black: " + cBlack
                IF !Empty( cResult )
                   @ y1t+12, x1t+7 SAY cResult
                ENDIF
@@ -1589,6 +1585,7 @@ STATIC FUNCTION chess_Load()
                lPlayGame := .T.
                lViewGame := .F.
                chess_ReplayGame( aHis )
+               DrawBoard()
                _Game_Players( .T. )
             ENDIF
          ENDIF

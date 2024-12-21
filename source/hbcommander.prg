@@ -2012,7 +2012,7 @@ FUNCTION FAsk_Copy( cTitle, cRes )
 
    LOCAL cScBuf, oldc, nRes
    LOCAL aGets := { ;
-      {06,12,11,cTitle}, ;
+      {06,12,11,NameShortcut( cTitle, 56,, oHbc:lUtf8 )}, ;
       {07,12,0,cRes,56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,_I("[Ok]"),4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
@@ -2164,7 +2164,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
       ENDIF
    ENDIF
    IF lSilent .OR. !Empty( cFileTo := FAsk_Copy( ;
-      _I("Copy") + " " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " " + _I("to"), cFileTo ) )
+      _I("Copy") + " " + FTransl(cFileName) + " " + _I("to"), cFileTo ) )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
          edi_Alert( _I(cNotPerm) )
          RETURN 2
@@ -2296,7 +2296,7 @@ STATIC FUNCTION hbc_FRename( lRename )
       oPaneTo:net_cPort + oPaneTo:cCurrPath + Iif(lDir,"",cFileName), cFileName )
 
    IF !Empty( cNewName := FAsk_Copy( ;
-      _I("Rename") + " " + NameShortcut( FTransl(cFileName), 48,, oHbc:lUtf8 ) + " " + _I("to"), FTransl(cNewName) ) )
+      _I("Rename") + " " + FTransl(cFileName) + " " + _I("to"), FTransl(cNewName) ) )
       cNewName := FTransl( cNewName, oPaneCurr:cp, oPaneCurr:cpPane )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
          lRename := .F.
