@@ -605,12 +605,13 @@ STATIC FUNCTION Check4Mate( aPos )
          nFig := hb_bPeek( cBoard, i )
          arr := chess_GenMoves( aPos, i )
          nLen := Len( arr )
-         //edi_Writelog( "Mate1 " + hb_valtoexp(lTurnBlack) + str(i,3) )
+         //IF lDebug; edi_Writelog( "Mate1 " + hb_valtoexp(lTurnBlack) + str(nFig,3) + str(i,3) + " " + hb_valtoexp(arr) ); ENDIF
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             lTurnBlack := !lTurnBlack
-            //edi_Writelog( "Mate2 " + hb_valtoexp(lTurnBlack) + str(j,3) )
+            //IF lDebug; edi_Writelog( "Mate2 " + hb_valtoexp(lTurnBlack) + str(j,3) ); ENDIF
             IF !Check4Shah( aPosTemp )
+               //IF lDebug; edi_Writelog( "Mate3" ); ENDIF
                RETURN .F.
             ENDIF
             lTurnBlack := !lTurnBlack
@@ -776,6 +777,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
          //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
          //IF nSumm >= 50000
          //IF !ii_Check4King( aCurrPos[POS_BOARD] )
+         //IF lDebug; edi_Writelog( hb_valtoexp(lShah) ); ENDIF
          IF lShah .AND. Check4Mate( aCurrPos )
             GameOver( 1 )  // Победа
          ELSEIF !lTurnBlack .AND. nCou >= 5
@@ -830,6 +832,7 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart, lBeat, cFigBeat )
    IF lBeat == Nil; lBeat := .F.; ENDIF
    arr := aDirections[Iif(lBlack,2,1), At( Lower(cFig), cFigures ) ]
    nLen := Len( arr )
+   //IF lDebug .AND. cFig == 'k'; edi_Writelog( "gen: " + hb_valtoexp(arr) ); ENDIF
    FOR i := 1 TO nLen
       nMove := nStart
       DO WHILE .T.
@@ -838,7 +841,7 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart, lBeat, cFigBeat )
          nMove += arr[i]
          nCol2 := nMove % 8
          IF nCol2 == 0; nCol2 := 8; ENDIF
-         IF nMove < 0 .OR. nMove > 64 .OR. Abs( nCol2-nCol1 ) > 2
+         IF nMove <= 0 .OR. nMove > 64 .OR. Abs( nCol2-nCol1 ) > 2
             EXIT
          ENDIF
          cFig := Substr( aPos[POS_BOARD], nMove, 1 )
