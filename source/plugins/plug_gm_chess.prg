@@ -590,13 +590,18 @@ STATIC FUNCTION Check4Shah( aPos )
    NEXT
    RETURN .F.
 
-STATIC FUNCTION Check4Mate( aPos )
+/* Возвращает .T., если есть мат королю противоположной ( lMateToOppo := .T. ) или
+   ( lMateToOppo := .F. ) себе стороны
+ */
+STATIC FUNCTION Check4Mate( aPos, lMateToOppo )
 
    LOCAL i, j, cFig, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
-   lTurnBlack := !lTurnBlack
+   IF lMateToOppo
+      lTurnBlack := !lTurnBlack
+   ENDIF
    Set_lb_lw( aPos, lTurnBlack )
    FOR EACH cFig IN cBoard
       IF cFig >= 'A' .AND. ;
@@ -612,13 +617,18 @@ STATIC FUNCTION Check4Mate( aPos )
             //IF lDebug; edi_Writelog( "Mate2 " + hb_valtoexp(lTurnBlack) + str(j,3) ); ENDIF
             IF !Check4Shah( aPosTemp )
                //IF lDebug; edi_Writelog( "Mate3" ); ENDIF
+               IF !lMateToOppo
+                  lTurnBlack := !lTurnBlack
+               ENDIF
                RETURN .F.
             ENDIF
             lTurnBlack := !lTurnBlack
          NEXT
       ENDIF
    NEXT
-   lTurnBlack := !lTurnBlack
+   IF lMateToOppo
+      lTurnBlack := !lTurnBlack
+   ENDIF
 
    RETURN .T.
 
@@ -759,11 +769,13 @@ STATIC FUNCTION MakeMove( nRow, nCol )
    LOCAL nMove := (nRow-1)*8 + nCol, nSumm, nCou := 0, nStart
    LOCAL c := Substr( aCurrPos[POS_BOARD], nMove, 1 ), cBoa16
 
-   IF aMoveState[2] == 0 .AND. ( (!lTurnBlack .AND. c >= 'A' .AND. c <= 'Z') .OR. ;
-      (lTurnBlack .AND. c >= 'a' .AND. c <= 'z') )
-      DrawMove( {c, nMove} )
-      aMoveState[1] := c; aMoveState[2] := nMove
-      DrawBoard()
+   IF aMoveState[2] == 0
+      IF ( (!lTurnBlack .AND. c >= 'A' .AND. c <= 'Z') .OR. ;
+         (lTurnBlack .AND. c >= 'a' .AND. c <= 'z') )
+         DrawMove( {c, nMove} )
+         aMoveState[1] := c; aMoveState[2] := nMove
+         DrawBoard()
+      ENDIF
    ELSE
       Set_lb_lw( aCurrPos, lTurnBlack )
       IF isMoveCorrect( nMove )
@@ -774,11 +786,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
             cBoa16 := ATail(aHistory)[3]
             AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa16,nCou+1,nCou)} )
          ENDIF
-         //nSumm := Iif( lTurnBlack, -ii_Ocenka( aCurrPos[POS_BOARD] ), ii_Ocenka( aCurrPos[POS_BOARD] ) )
-         //IF nSumm >= 50000
-         //IF !ii_Check4King( aCurrPos[POS_BOARD] )
-         //IF lDebug; edi_Writelog( hb_valtoexp(lShah) ); ENDIF
-         IF lShah .AND. Check4Mate( aCurrPos )
+         IF lShah .AND. Check4Mate( aCurrPos, .T. )
             GameOver( 1 )  // Победа
          ELSEIF !lTurnBlack .AND. nCou >= 5
             GameOver( 3 )  // Ничья
@@ -1072,6 +1080,9 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                      lNotShah := .T.
                   ENDIF
                   lTurnBlack := !lTurnBlack
+               ELSEIF Check4Mate( aPosTemp, .T. )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
+                  RETURN aMaxOcen
                ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
                IF nSumm >= nOcen
@@ -1147,6 +1158,9 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                   ELSE
                      lNotShah := .T.
                   ENDIF
+               ELSEIF Check4Mate( aPosTemp, .T. )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
+                  RETURN aMaxOcen
                ENDIF
                aReply := ii_ScanBoard_2( aPosTemp, .F., nDeep-1 )
                lTurnBlack := !lTurnBlack
@@ -1220,7 +1234,7 @@ STATIC FUNCTION ii_MakeMove()
          AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
       ENDIF
       //IF aMaxOcen[3] > 50000
-      IF lShah .AND. Check4Mate( aCurrPos )
+      IF lShah .AND. Check4Mate( aCurrPos, .T. )
          GameOver( 1 )  // Победа
       ELSEIF aMaxOcen[3] == BEATKING
          GameOver( 2 )  // Поражение
