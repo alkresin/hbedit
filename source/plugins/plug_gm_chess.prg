@@ -460,16 +460,16 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
             hb_ADel( aHistory, Len(aHistory), .T. )
          ENDIF
          arr := aHistory
-         nCol := nLevelWhite; nRow := nLevelBlack; nLevelWhite := nLevelBlack := 0
          l := lViewGame
          _Game_New( .T. )
+         nCol := nLevelWhite; nRow := nLevelBlack; nLevelWhite := nLevelBlack := 0
          chess_ReplayGame( arr )
+         nLevelWhite := nCol; nLevelBlack := nRow
          DrawBoard()
          IF l
             lPlayGame := .F.
             lViewGame := .T.
          ENDIF
-         nLevelWhite := nCol; nLevelBlack := nRow
       ENDIF
 
    ELSEIF nKey == K_SPACE
@@ -1061,9 +1061,8 @@ STATIC FUNCTION ii_Ocenka( cBoard )
 
 STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
 
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
-   LOCAL nOcen := -1000000, nSumm
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lNotShah := .F.
+   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nSumm
+   LOCAL aMaxOcen := { Nil, Nil, -1000000 }, aReply, lNotShah := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
@@ -1091,13 +1090,13 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                   RETURN aMaxOcen
                ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-               IF nSumm >= nOcen
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               IF nSumm > aMaxOcen[3] .OR. ( nSumm == aMaxOcen[3] .AND. hb_RandomInt(1,2) == 1 )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nSumm
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ELSE
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 1, i, arr[j],, aMaxOcen[3] ); ENDIF
@@ -1110,8 +1109,8 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                aReply := ii_ScanBoard_1( aPosTemp, .T., lSh )
                lTurnBlack := !lTurnBlack
                nSumm := -aReply[3]
-               IF nSumm >= nOcen
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               IF nSumm > aMaxOcen[3] .OR. ( nSumm == aMaxOcen[3] .AND. hb_RandomInt(1,2) == 1 )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nSumm
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, "=", 1, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ENDIF
@@ -1126,9 +1125,8 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
 
 STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
 
-   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD]
-   LOCAL nOcen := -1000000, nSumm
-   LOCAL aMaxOcen := { Nil, Nil, nOcen }, aReply, lNotShah := .F.
+   LOCAL i, j, nFig, arr, nLen, cBoard := aPos[POS_BOARD], nSumm
+   LOCAL aMaxOcen := { Nil, Nil, -1000000 }, aReply, lNotShah := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
    ACopy( aPos, aPosTemp, 2,, 2 )
@@ -1144,12 +1142,12 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             IF nDeep == 1
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
                nSumm := Iif( lTurnBlack, -ii_Ocenka( aPosTemp[POS_BOARD] ), ii_Ocenka( aPosTemp[POS_BOARD] ) )
-               IF nSumm > nOcen
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               IF nSumm > aMaxOcen[3] .OR. ( nSumm == aMaxOcen[3] .AND. hb_RandomInt(1,2) == 1 )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nSumm
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 3, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ELSEIF nDeep == 2
@@ -1169,13 +1167,13 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                aReply := ii_ScanBoard_2( aPosTemp, .F., nDeep-1 )
                lTurnBlack := !lTurnBlack
                nSumm := -aReply[3]
-               IF nSumm >= nOcen
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               IF nSumm > aMaxOcen[3] .OR. ( nSumm == aMaxOcen[3] .AND. hb_RandomInt(1,2) == 1 )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nSumm
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j],, aMaxOcen[3] ); ENDIF
             ELSE
                IF !ii_Check4King( aPosTemp[POS_BOARD] )
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := BEATKING
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 1, i, arr[j],, aMaxOcen[3] ); ENDIF
@@ -1189,8 +1187,8 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                aReply := ii_ScanBoard_2( aPosTemp, .T., nDeep-1, lSh )
                lTurnBlack := !lTurnBlack
                nSumm := -aReply[3]
-               IF nSumm >= nOcen
-                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nOcen := nSumm
+               IF nSumm > aMaxOcen[3] .OR. ( nSumm == aMaxOcen[3] .AND. hb_RandomInt(1,2) == 1 )
+                  aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := nSumm
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, "=", 1, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ENDIF
@@ -1206,7 +1204,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
 STATIC FUNCTION ii_MakeMove()
 
    LOCAL cFig, nSec, nCou := 0, nKey
-   LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lMate
+   LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lBuilt_in := .F., lMate
 
    DrawMove( {'@'} )
 
@@ -1217,6 +1215,8 @@ STATIC FUNCTION ii_MakeMove()
       n := hb_RandomInt( 1, Len(cMoves)/2 )
       aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
       lFromOpn := .T.
+   ELSEIF !Empty( aMaxOcen := ii_Openings() )
+      lBuilt_in := .T.
    ELSE
       //edi_Alert( Iif( lOpenings,"T","F" ) )
       IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) == 1
@@ -1226,7 +1226,8 @@ STATIC FUNCTION ii_MakeMove()
       ENDIF
    ENDIF
    lDebug := .F.
-   @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,16),11), x1t+2 SAY Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn," ß","  ")
+   @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
+      Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn,"bd", Iif(lBuilt_in, "in", "  "))
 
    IF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
@@ -1252,6 +1253,53 @@ STATIC FUNCTION ii_MakeMove()
        ELSE
           KEYBOARD Chr( K_CTRL_N )
        ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION ii_Openings()
+
+   LOCAL nLen := Iif( lTurnBlack, Len(aHistory)*2-1, Len(aHistory)*2 ), i, i1, i2, a, a1, l, s := ""
+   STATIC aFirst := { "e2e4", "d2d4" } // Первый ход белых
+   STATIC aOpenings := { ;
+      ; // 1-й ход черных
+      { { "e2e4/", "e7e5","e7e6","c7c5","e7e5","g8f6" }, ;
+        { "d2d4/", "d7d5","g8f6","d7d5" } ;
+      ; // Второй ход белых
+      }, ;
+      { { "e2e4/e7e5/", "g1f3"  }, ;
+        { "d2d4/g8f6/", "c2c4" } ;
+      }, ;
+      ; // Второй ход черных
+      { { "e2e4/e7e5/g1f3/", "b8c6" }, ;
+        { "d2d4/g8f6/c2c4/", "e7e6", "d7d6", "g7g6" } ;
+      }, ;
+      ; // Третий ход белых
+      { { "e2e4/e7e5/g1f3/b8c6/", "f1b5","f1c4","f1b5" }, ;
+        { "d2d4/g8f6/c2c4/e7e6/", "b1c3", "g1f3" } ;
+      } ;
+   }
+   LOCAL bC2N := {|s,n| (8-(hb_bPeek(s,2+n)-48))*8 + hb_bPeek(s,1+n)-96 }
+
+   IF nLen == 0
+      i := hb_RandomInt( 1, Len(aFirst) )
+      RETURN { Eval(bC2N,aFirst[i],0), Eval(bC2N,aFirst[i],2), 0 }
+   ELSEIF nLen <= Len( aOpenings )
+      FOR EACH a IN aHistory
+         s += MoVEN2C( a[1,2] ) + MoVEN2C( a[1,3] ) + "/"
+         IF a[2] != Nil
+            s += MoVEN2C( a[2,2] ) + MoVEN2C( a[2,3] ) + "/"
+         ELSE
+            EXIT
+         ENDIF
+      NEXT
+      //edi_writelog(s)
+      FOR EACH a IN aOpenings[nLen]
+         IF a[1] == s
+            i := hb_RandomInt( 2, Len(a) )
+            RETURN { Eval(bC2N,a[i],0), Eval(bC2N,a[i],2), 0 }
+         ENDIF
+      NEXT
    ENDIF
 
    RETURN Nil
@@ -1484,6 +1532,7 @@ STATIC FUNCTION chess_ReplayGame( aHis )
 
    lReplayMode := .T.
    aHistory  := {}
+   lTurnBlack := .F.
    FOR i := 1 TO Len( aHis )
       aMove := aHis[i,1]
       Set_lb_lw( aCurrPos, lTurnBlack )
@@ -1495,8 +1544,10 @@ STATIC FUNCTION chess_ReplayGame( aHis )
          lTurnBlack := .F.
       ENDIF
    NEXT
-   DrawBoard()
    lReplayMode := .F.
+   DrawBoard()
+   //edi_writelog( hb_valtoexp( lTurnBlack ) )
+   //edi_writelog( hb_valtoexp( aHis ) )
 
    RETURN Nil
 
@@ -1593,13 +1644,13 @@ STATIC FUNCTION chess_Load()
                _Game_New( .T. )
                lPlayGame := .F.
                lViewGame := .T.
-               i := y1t + Iif( lGui, Iif(guiBoaSize==3,13,16),11 )
+               i := y1t + Iif( lGui, Iif(guiBoaSize==3,13,18),11 )
                @ i, x1t SAY "White: " + cWhite
                @ i+1, x1t SAY "Black: " + cBlack
                IF !Empty( cResult )
-                  @ y1t+12, x1t+7 SAY cResult
+                  @ i+2, x1t+7 SAY cResult
                ENDIF
-               @ y1t+14, x1t SAY "Press SPACE for a next turn"
+               @ i+3, x1t SAY "Press SPACE for a next turn"
             ELSE
                lPlayGame := .T.
                lViewGame := .F.
