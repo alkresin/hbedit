@@ -177,9 +177,9 @@ STATIC aBoardValues := { { ;
 
 STATIC guiBoaSize := 3, guiFontName
 STATIC guiClrWCell, guiClrBCell, guiClrSel, guiClrWText, guiClrBText
-STATIC aThemes := { { 0xf0f0f0, 0xc0c0c0, 0, 0x676767, 0 }, ;
-   { 0xc1dfee, 0x73beff, 0, 0x0059a6, 0 }, ;
-   { 0xc1dfee, 0x73b2ff, 0, 0x004ba6, 0 }, ;
+STATIC aThemes := { { 0xb0b0b0, 0xb0b0b0, 0, 0xffffff, 0 }, ;
+   { 0x9fcfff, 0x458cd2, 0, 0xffffff, 0 }, ;
+   { 0xffcf9f, 0xd28c45, 0, 0xffffff, 0 }, ;
    { 0xffffff, 0xe2e2e2, 0, 255, 0 } }, cUserTheme, nTheme := 1
 
 FUNCTION plug_gm_Chess( oEdit, cPath )
@@ -1259,24 +1259,30 @@ STATIC FUNCTION ii_MakeMove()
 
 STATIC FUNCTION ii_Openings()
 
-   LOCAL nLen := Iif( lTurnBlack, Len(aHistory)*2-1, Len(aHistory)*2 ), i, i1, i2, a, a1, l, s := ""
+   LOCAL nLen := Iif( lTurnBlack, Len(aHistory)*2-1, Len(aHistory)*2 ), i, a, s := ""
    STATIC aFirst := { "e2e4", "d2d4" } // Первый ход белых
    STATIC aOpenings := { ;
       ; // 1-й ход черных
       { { "e2e4/", "e7e5","e7e6","c7c5","e7e5","g8f6" }, ;
         { "d2d4/", "d7d5","g8f6","d7d5" } ;
-      ; // Второй ход белых
       }, ;
-      { { "e2e4/e7e5/", "g1f3"  }, ;
+      ; // Второй ход белых
+      { { "e2e4/e7e5/", "g1f3" }, ;
+        { "e2e4/e7e6/", "d2d4" }, ;
         { "d2d4/g8f6/", "c2c4" } ;
       }, ;
       ; // Второй ход черных
       { { "e2e4/e7e5/g1f3/", "b8c6" }, ;
+        { "e2e4/e7e6/d2d4/", "d7d5" }, ;
         { "d2d4/g8f6/c2c4/", "e7e6", "d7d6", "g7g6" } ;
       }, ;
       ; // Третий ход белых
-      { { "e2e4/e7e5/g1f3/b8c6/", "f1b5","f1c4","f1b5" }, ;
+      { { "e2e4/e7e5/g1f3/b8c6/", "f1b5","f1c4","f1b5","d2d4","b1c3" }, ;
+        { "e2e4/e7e6/d2d4/d7d5/", "e4e5","b1d2" }, ;
         { "d2d4/g8f6/c2c4/e7e6/", "b1c3", "g1f3" } ;
+      }, ;
+      ; // Третий ход черных
+      { { "e2e4/e7e5/g1f3/b8c6/f1b5", "a7a6","g8f6","d7d6","g7g6" } ;
       } ;
    }
    LOCAL bC2N := {|s,n| (8-(hb_bPeek(s,2+n)-48))*8 + hb_bPeek(s,1+n)-96 }
