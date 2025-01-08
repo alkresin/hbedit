@@ -2008,11 +2008,11 @@ FUNCTION FAsk_Overwrite( n, cFile, nSouSize, dSouDate, nDestSize, dDestDate )
 
    RETURN lRes
 
-FUNCTION FAsk_Copy( cTitle, cRes )
+FUNCTION FAsk_Copy( cTitle1, cTitle2, cRes )
 
    LOCAL cScBuf, oldc, nRes
    LOCAL aGets := { ;
-      {06,12,11,NameShortcut( cTitle, 56,, oHbc:lUtf8 )}, ;
+      {06,12,11,cTitle1 + " " + NameShortcut( cTitle2, 56-cp_len(oHbc:lUtf8,cTitle1),, oHbc:lUtf8 )}, ;
       {07,12,0,cRes,56,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,25,2,_I("[Ok]"),4,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {09,50,2,_I("[Cancel]"),10,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
@@ -2164,7 +2164,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
       ENDIF
    ENDIF
    IF lSilent .OR. !Empty( cFileTo := FAsk_Copy( ;
-      _I("Copy") + " " + FTransl(cFileName) + " " + _I("to"), cFileTo ) )
+      _I("Copy"), FTransl(cFileName) + " " + _I("to"), cFileTo ) )
       IF ( cTemp := Left( cFileTo,4 ) ) == "sea:" .OR. ( cTemp == "zip:" .AND. lDir )
          edi_Alert( _I(cNotPerm) )
          RETURN 2
@@ -2250,7 +2250,7 @@ STATIC FUNCTION hbc_FCopySele()
 
    cDirTo := oPaneTo:cIOpref + oPaneTo:net_cAddress + oPaneTo:net_cPort + oPaneTo:cCurrPath
    IF !Empty( cDirTo := FAsk_Copy( ;
-      _I("Copy seleted files to"), cDirTo ) )
+      _I("Copy seleted files to"), " ", cDirTo ) )
       aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Wait") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
@@ -2296,7 +2296,7 @@ STATIC FUNCTION hbc_FRename( lRename )
       oPaneTo:net_cPort + oPaneTo:cCurrPath + Iif(lDir,"",cFileName), cFileName )
 
    IF !Empty( cNewName := FAsk_Copy( ;
-      _I("Rename") + " " + FTransl(cFileName) + " " + _I("to"), FTransl(cNewName) ) )
+      _I("Rename"), FTransl(cFileName) + " " + _I("to"), FTransl(cNewName) ) )
       cNewName := FTransl( cNewName, oPaneCurr:cp, oPaneCurr:cpPane )
       IF ':' $ cNewName .OR. '\' $ cNewName .OR. '/' $ cNewName
          lRename := .F.
@@ -2373,7 +2373,7 @@ STATIC FUNCTION hbc_FRenameSele()
    ENDIF
 
    IF !Empty( cMoveTo := FAsk_Copy( ;
-      _I("Move selected files to"), cMoveTo ) )
+      _I("Move selected files to"), " ", cMoveTo ) )
       aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Move") )
 
       FOR i := 1 TO Len( oPaneCurr:aSelected )
@@ -2685,6 +2685,9 @@ STATIC FUNCTION hbc_Doclist( n )
       IF nKey == K_F2
          cNewDir := hb_fnameDir( hb_Utf8ToStr( Filepane():aDocHis[n,nLine,2], Filepane():aDocHis[n,nLine,1] ) )
          RETURN .F.
+      ELSEIF nKey == K_DEL
+         Filepane():aDocHis[n,nLine,2] := aMenu[nLine] := "---"
+         RETURN .T.
       ENDIF
       RETURN Nil
    }
@@ -2728,6 +2731,11 @@ STATIC FUNCTION hbc_Doclist( n )
 #endif
          AddDocHis( n, Filepane():aDocHis[n,i,2], Filepane():aDocHis[n,i,1], .T. )
       ENDIF
+      FOR i := Len( Filepane():aDocHis[n] ) TO 1 STEP -1
+         IF Filepane():aDocHis[n,i,2] == "---"
+            hb_ADel( Filepane():aDocHis[n], i, .T. )
+         ENDIF
+      NEXT
    ENDIF
 
    RETURN Nil

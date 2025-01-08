@@ -273,6 +273,10 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
       ELSEIF !Empty( bKeys )
          IF Valtype( l := Eval( bKeys, nKeyExt, i + nFirst - 1 ) ) == "L"
+            IF l
+               arr := MakeArr( aMenu, x2-x1-3, lUtf8 )
+               MenuRefresh( arr, nFirst, y1, x1, y2, x2 )
+            ENDIF
             lDo := l
          ENDIF
       ENDIF
