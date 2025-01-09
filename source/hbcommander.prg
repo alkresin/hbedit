@@ -4207,6 +4207,11 @@ STATIC FUNCTION AddDocHis( n, cDocName, cp, lNoTrans )
 
    LOCAL i
 
+#ifdef __PLATFORM__UNIX
+   IF !Empty( i := cedi_RealPath( cDocName ) )
+      cDocName := i
+   ENDIF
+#endif
    IF !lNoTrans .AND. !( cp == "UTF8" )
       cDocName := hb_strToUtf8( cDocName, cp )
    ENDIF
