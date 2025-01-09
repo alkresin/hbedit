@@ -729,6 +729,17 @@ HB_FUNC( CEDI_WAITPID )
    hb_retni( waitpid( hb_parni(1), &status, WNOHANG ) );
 }
 
+HB_FUNC( CEDI_REALPATH )
+{
+   char buf[PATH_MAX], *pRes;
+
+   pRes = realpath( hb_parc(1), buf );
+   if( pRes )
+      hb_retclen( buf, strlen( buf ) );
+   else
+      hb_ret();
+}
+
 #else
 
 #include <windows.h>

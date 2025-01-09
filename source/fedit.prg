@@ -251,6 +251,9 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
          IF Empty( hb_fnameDir( cFileName ) )
 #ifdef __PLATFORM__UNIX
             cFileName := '/' + Curdir() + '/' + cFileName
+            IF !Empty( cExt := cedi_RealPath( cFileName ) )
+               cFileName := cExt
+            ENDIF
 #else
             cFileName := hb_curDrive() + ":\" + Curdir() + '\' + cFileName
 #endif
