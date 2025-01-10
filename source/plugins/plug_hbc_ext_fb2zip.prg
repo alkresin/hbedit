@@ -1,3 +1,9 @@
+/*
+ * HbCommander plugin to view fb2 books
+ *
+ * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
 #define ALT_PRESSED   0x040000
 #define CTRL_PRESSED  0x020000
@@ -600,6 +606,7 @@ STATIC FUNCTION ShowImage( oEdit, cId )
          oEdit:cargo[4,n,2] := hb_base64Decode( oEdit:cargo[4,n,2] )
          oEdit:cargo[4,n,3] := 1
       ENDIF
+      /*
       IF !hb_hHaskey( FilePane():hMisc,"gthwg_plug" )
          FilePane():hMisc["gthwg_plug"] := Iif( File( cIniPath + cGthwgHrb ), ;
             hb_hrbLoad( cIniPath + cGthwgHrb ), Nil )
@@ -607,6 +614,8 @@ STATIC FUNCTION ShowImage( oEdit, cId )
       IF !Empty( FilePane():hMisc["gthwg_plug"] )
          hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cId, "dlg", oEdit:cargo[4,n,2] )
       ENDIF
+      */
+      hbc_RunPlugin( "gthwg_plug", cIniPath + cGthwgHrb,, cId, "dlg", oEdit:cargo[4,n,2] )
    ENDIF
 
    RETURN Nil

@@ -4227,17 +4227,6 @@ STATIC FUNCTION AddDocHis( n, cDocName, cp, lNoTrans )
 
    RETURN Nil
 
-STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
-
-   LOCAL cFunc := "PLUG_HBC_" + ;
-      Iif( Right(cIOpref,1)==':',hb_strShrink(cIOpref,1),cIOpref ) + "_" + cName
-
-   //edi_Alert( cFunc )
-   IF hb_isFunction( cFunc )
-      RETURN Eval( &( "{|o,a|" + cFunc + "(o,a)}" ), oPane, aParams )
-   ENDIF
-   RETURN Nil
-
 #ifdef __PLATFORM__UNIX
 STATIC FUNCTION IsFileExec( arr )
 
@@ -4258,6 +4247,29 @@ STATIC FUNCTION IsFileExec( arr )
 
    RETURN ( 'X' $ arr[5] )
 #endif
+
+STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
+
+   LOCAL cFunc := "PLUG_HBC_" + ;
+      Iif( Right(cIOpref,1)==':',hb_strShrink(cIOpref,1),cIOpref ) + "_" + cName
+
+   //edi_Alert( cFunc )
+   IF hb_isFunction( cFunc )
+      RETURN Eval( &( "{|o,a|" + cFunc + "(o,a)}" ), oPane, aParams )
+   ENDIF
+   RETURN Nil
+
+FUNCTION hbc_RunPlugin( cSection, cHrb, p1, p2, p3, p4 )
+
+   IF !hb_hHaskey( FilePane():hMisc, cSection )
+      FilePane():hMisc[cSection] := Iif( File( cHrb ), ;
+         hb_hrbLoad( cHrb ), Nil )
+   ENDIF
+   IF !Empty( FilePane():hMisc[cSection] )
+      RETURN hb_hrbDo( FilePane():hMisc[cSection], p1, p2, p3, p4 )
+   ENDIF
+
+   RETURN Nil
 
 FUNCTION hbc_Wndinit( y1, x1, y2, x2, clr, cTitle )
 

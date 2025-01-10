@@ -1,4 +1,9 @@
 /*
+ * HbEdit plugin to show an image on a pane or in a separate dialog window,
+ *    it may be called from other plugins
+ *
+ * Copyright 2024 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
  */
 
 #define HB_GTI_SCREENWIDTH      1

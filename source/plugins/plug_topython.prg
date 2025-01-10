@@ -13,31 +13,36 @@ STATIC nLogLevel := 0
 STATIC hExt
 STATIC lEscPressed := .F.
 
-FUNCTION plug_toPython( oEdit, cPath )
+FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
 
    LOCAL aMenu := {}, i, cExe, xRes
 
    oEd := oEdit
-   IF Empty( cIniPath )
-      _topy_ReadIni( (cIniPath := cPath) + "python" + hb_ps() + "plugins.ini" )
-   ENDIF
+   cIniPath := cPath
 
-   IF Empty( aPyPlugins )
-      edi_Alert( "python/plugins.ini is absent or empty"  )
-      RETURN Nil
-   ENDIF
    IF !_topy_CheckPython()
       RETURN Nil
    ENDIF
-
-   FOR i := 1 TO Len( aPyPlugins )
-      AAdd( aMenu, aPyPlugins[i,2] )
-   NEXT
-   IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
-      RETURN Nil
+   IF Empty( cIniPath )
+      _topy_ReadIni( cPath + "python" + hb_ps() + "plugins.ini" )
    ENDIF
 
-   cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + aPyPlugins[i,1]
+   IF Empty( cPyPlugin )
+      IF Empty( aPyPlugins )
+         edi_Alert( "python/plugins.ini is absent or empty"  )
+         RETURN Nil
+      ENDIF
+
+      FOR i := 1 TO Len( aPyPlugins )
+         AAdd( aMenu, aPyPlugins[i,2] )
+      NEXT
+      IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
+         RETURN Nil
+      ENDIF
+      cPyPlugin := aPyPlugins[i,1]
+   ENDIF
+
+   cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + cPyPlugin
    IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_py" ) )
       ecli_RunFunc( hExt, "initinfo",{}, .T. )
       IF Empty( xRes :=_topy_CheckAnswer() )
