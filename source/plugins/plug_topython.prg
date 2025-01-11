@@ -23,24 +23,6 @@ FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
    IF !_topy_CheckPython()
       RETURN Nil
    ENDIF
-   IF Empty( cIniPath )
-      _topy_ReadIni( cPath + "python" + hb_ps() + "plugins.ini" )
-   ENDIF
-
-   IF Empty( cPyPlugin )
-      IF Empty( aPyPlugins )
-         edi_Alert( "python/plugins.ini is absent or empty"  )
-         RETURN Nil
-      ENDIF
-
-      FOR i := 1 TO Len( aPyPlugins )
-         AAdd( aMenu, aPyPlugins[i,2] )
-      NEXT
-      IF ( i := FMenu( oEd, aMenu, oEd:y1+2, oEd:x1+4 ) ) == 0
-         RETURN Nil
-      ENDIF
-      cPyPlugin := aPyPlugins[i,1]
-   ENDIF
 
    cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + cPyPlugin
    IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_py" ) )
@@ -155,34 +137,3 @@ STATIC FUNCTION _topy_Parse( xMsg )
    ENDIF
 
    RETURN .T.
-
-STATIC FUNCTION _topy_ReadIni( cIni )
-
-   LOCAL hIni, aIni, nSect, aSect, i, arr, cTemp
-   LOCAL cdpCurr := hb_CdpSelect()
-
-   IF !Empty( cIni ) .AND. !Empty( hIni := edi_iniRead( cIni ) )
-      aIni := hb_hKeys( hIni )
-      FOR nSect := 1 TO Len( aIni )
-         IF Upper(aIni[nSect]) == "MAIN"
-            IF !Empty( aSect := hIni[ aIni[nSect] ] )
-               hb_hCaseMatch( aSect, .F. )
-               arr := ASort( hb_hKeys( aSect ) )
-               FOR i := 1 TO Len( arr )
-                  Aadd( aPyPlugins,  hb_ATokens( aSect[ arr[i] ], ";" ) )
-                  IF !( cdpCurr == "UTF8" )
-                     aPyPlugins[i,2] := hb_Utf8ToStr( aPyPlugins[i,2], cdpCurr )
-                  ENDIF
-               NEXT
-            ENDIF
-         ELSEIF Upper(aIni[nSect]) == "OPTIONS"
-            IF !Empty( aSect := hIni[ aIni[nSect] ] )
-               IF hb_hHaskey( aSect, cTemp := "log" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
-                  nLogLevel := Val( cTemp )
-               ENDIF
-            ENDIF
-         ENDIF
-      NEXT
-   ENDIF
-
-   RETURN Nil
