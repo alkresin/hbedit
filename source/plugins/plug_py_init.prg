@@ -183,38 +183,22 @@ STATIC FUNCTION _py_FuncStru( oEdit )
 
 STATIC FUNCTION _py_Run( oEdit )
 
-   LOCAL cComp := "python", cComp2, i, aEnv, cCmd, cTempFile, cSep := hb_ps()
+   LOCAL i, aEnv, cCmd, cTempFile, cSep := hb_ps()
    LOCAL bufsc, nScreenH, nScreenW
 
-   IF Empty( cCompiler )
-      IF !lUnix
-         cComp += ".exe"
-      ELSE
-         cComp2 := "python3"
-      ENDIF
-      aEnv := hb_ATokens( GetEnv( "PATH" ), hb_osPathListSeparator() )
-      FOR i := 1 TO Len( aEnv )
-         IF File( aEnv[i] + cSep + cComp )
-            cCompiler := cComp
-            EXIT
-         ELSEIF !Empty(cComp2) .AND. File( aEnv[i] + cSep + cComp2 )
-            cCompiler := cComp2
-            EXIT
-         ENDIF
-      NEXT
+   IF Empty( cCompiler := edi_CheckPython() )
+      RETURN Nil
    ENDIF
 
-   IF !Empty( cCompiler )
-      hb_setenv( "PYTHONIOENCODING", "utf-8" )
-      cTempFile := hb_DirTemp() + "hb_py_tmp.py"
-      hb_MemoWrit( cTempFile, oEdit:ToString() )
-      cCmd := cCompiler + " " + cTempFile
-      nScreenH := FilePane():vy2 + 1
-      nScreenW := FilePane():vx2 + 1
-      bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-      hbc_Console( cCmd,, .F. )
-      Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
-   ENDIF
+   hb_setenv( "PYTHONIOENCODING", "utf-8" )
+   cTempFile := hb_DirTemp() + "hb_py_tmp.py"
+   hb_MemoWrit( cTempFile, oEdit:ToString() )
+   cCmd := cCompiler + " " + cTempFile
+   nScreenH := FilePane():vy2 + 1
+   nScreenW := FilePane():vx2 + 1
+   bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
+   hbc_Console( cCmd,, .F. )
+   Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
 
    RETURN Nil
 

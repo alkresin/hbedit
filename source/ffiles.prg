@@ -230,6 +230,23 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
 
    RETURN 0
 
+FUNCTION edi_CheckPython()
+
+   LOCAL cRes
+
+   cedi_RunConsoleApp( 'python --version',, @cRes )
+   IF !Empty( cRes )
+      RETURN "python"
+   ELSE
+      cedi_RunConsoleApp( 'python3 --version',, @cRes )
+      IF !Empty( cRes )
+         RETURN "python3"
+      ENDIF
+   ENDIF
+
+   edi_Alert( "You need to install Python to use this" )
+   RETURN ""
+
 FUNCTION edi_WriteLog( cText, fname )
 
    LOCAL nHand

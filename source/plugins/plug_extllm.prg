@@ -343,7 +343,8 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
    ELSEIF nKey == K_F3
 
       IF !Empty( cLastImage ) .AND. !( Left( cLastImage,1 ) == Chr(1) )
-         _ShowImage( cLastImage )
+         //_ShowImage( cLastImage )
+         hbc_RunPlugin( "gthwg_plug", cIniPath + "hbc_gthwg_q.hrb",, cLastImage, "dlg" )
       ENDIF
 
    ELSEIF nKey == K_F5
@@ -492,6 +493,7 @@ STATIC FUNCTION _clillm_Wait4ImgReady()
 
    RETURN Nil
 
+/*
 STATIC FUNCTION _ShowImage( cFileName )
 
    LOCAL cGthwgHrb := "hbc_gthwg_q.hrb"
@@ -505,7 +507,7 @@ STATIC FUNCTION _ShowImage( cFileName )
    ENDIF
 
    RETURN Nil
-
+*/
 STATIC FUNCTION _Textout( cLine, lSameLine, lFromStart )
 
    LOCAL n := Len( oClient:aText ), nf

@@ -63,17 +63,8 @@ FUNCTION plug_HugClient( oEdit, cPath )
       RETURN Nil
    }
 
-   cedi_RunConsoleApp( 'python --version',, @cRes )
-   IF !Empty( cRes )
-      cCompiler := "python"
-   ELSE
-      cedi_RunConsoleApp( 'python3 --version',, @cRes )
-      IF !Empty( cRes )
-         cCompiler := "python3"
-      ELSE
-         edi_Alert( "You need to install Python to use this plugun" )
-         RETURN Nil
-      ENDIF
+   IF Empty( cCompiler := edi_CheckPython() )
+      RETURN Nil
    ENDIF
    cRes := Nil
    cedi_RunConsoleApp( cCompiler + ' -c "import hugchat"',, @cRes )

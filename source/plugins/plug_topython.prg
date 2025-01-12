@@ -11,7 +11,6 @@ STATIC aPyPlugins := {}
 STATIC cCompiler
 STATIC nLogLevel := 0
 STATIC hExt
-STATIC lEscPressed := .F.
 
 FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
 
@@ -20,14 +19,14 @@ FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
    oEd := oEdit
    cIniPath := cPath
 
-   IF !_topy_CheckPython()
+   IF Empty( cCompiler := edi_CheckPython() )
       RETURN Nil
    ENDIF
 
    cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + cPyPlugin
    IF !Empty( hExt := ecli_Run( cExe, nLogLevel,, "hbedit_py" ) )
       ecli_RunFunc( hExt, "initinfo",{}, .T. )
-      IF Empty( xRes :=_topy_CheckAnswer() )
+      IF Empty( xRes :=_topy_CheckAnswer( "Wait for init info" ) )
          edi_Alert( "No initial info" )
          ecli_Close( hExt )
          hExt := Nil
@@ -37,12 +36,8 @@ FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
          xRes := _topy_Parse( xRes )
          IF Valtype( xRes ) == "A"
             ecli_RunFunc( hExt, xRes[1], xRes[2], .T. )
-            IF Empty( xRes :=_topy_CheckAnswer() )
-               IF lEscPressed
-                  EXIT
-               ELSE
-                  edi_Alert( "Bad answer..." )
-               ENDIF
+            IF ( xRes :=_topy_CheckAnswer() ) == Nil
+               EXIT
             ENDIF
          ELSE
             EXIT
@@ -57,19 +52,25 @@ FUNCTION plug_toPython( oEdit, cPath, cPyPlugin )
 
    RETURN Nil
 
-STATIC FUNCTION _topy_CheckAnswer()
+STATIC FUNCTION _topy_CheckAnswer( cTitle, cText )
 
    LOCAL sAns, nSec := Seconds(), arr
 
-   lEscPressed := .F.
+   IF cTitle == Nil; cTitle := "Wait"; ENDIF
+   IF cText == Nil; cText := "Press ESC to exit"; ELSEIF cText == "clock"; cText := ""; ENDIF
+
    DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
       IF Inkey( 0.02 ) == 27
-         lEscPressed := .T.
          EXIT
       ENDIF
-      IF Empty(arr) .AND. Seconds() - nSec > 1
-         arr := hbc_Wndinit( 8, 30, 10, 50,, "Wait" )
-         hbc_Wndout( arr, "Press ESC to exit" )
+      IF Seconds() - nSec > 1
+         IF Empty(arr)
+            arr := hbc_Wndinit( 8, 28, 10, 52,, cTitle )
+            hbc_Wndout( arr, cText )
+         ENDIF
+         IF Empty( cText )
+            hbc_Wndout( arr, Time(), .T. )
+         ENDIF
       ENDIF
    ENDDO
    IF !Empty(arr)
@@ -78,24 +79,8 @@ STATIC FUNCTION _topy_CheckAnswer()
 
    RETURN sAns
 
-STATIC FUNCTION _topy_CheckPython()
-
-   LOCAL cRes
-
-   cedi_RunConsoleApp( 'python --version',, @cRes )
-   IF !Empty( cRes )
-      cCompiler := "python"
-   ELSE
-      cedi_RunConsoleApp( 'python3 --version',, @cRes )
-      IF !Empty( cRes )
-         cCompiler := "python3"
-      ELSE
-         edi_Alert( "You need to install Python to use this plugun" )
-         RETURN .F.
-      ENDIF
-   ENDIF
-   RETURN .T.
-
+/*
+ */
 STATIC FUNCTION _topy_Parse( xMsg )
 
    LOCAL cCmd, nPos, arr, cFunc, cMetka, i, oPane
