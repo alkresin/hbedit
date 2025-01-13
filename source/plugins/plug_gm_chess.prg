@@ -59,6 +59,7 @@ STATIC lRussian := .T., lDrawUtf8 := .F., lGui
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
 STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0,0 }, lShah
+STATIC cCompiler, hExt, nLogLevel := 1
 
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
@@ -250,6 +251,10 @@ STATIC FUNCTION _Game_Exit()
       dbCloseArea()
       lOpenings := .F.
    ENDIF
+   IF !Empty( hExt )
+      ecli_Close( hExt )
+      hExt := Nil
+   ENDIF
    Write_Game_Ini()
    mnu_Exit( oGame )
 
@@ -337,14 +342,24 @@ STATIC FUNCTION _Game_SetDiag( nMove )
 
 STATIC FUNCTION _Game_Level( nTitle )
 
-   LOCAL aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") }
+   LOCAL aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") }, i
 
-   RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, ;
-      Iif( nTitle==1, Iif(lRussian,"Белые","White"),Iif(lRussian,"Черные","Black") ) )
+   IF nTitle == 1
+      RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Белые","White") )
+   ENDIF
+   AAdd( aMenu, "Sunfish" )
+   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Черные","Black") )
+   IF i == Len( aMenu )
+      i := Iif( !Empty( cCompiler ) .OR. !Empty( cCompiler := edi_CheckPython() ), 10, 1 )
+      IF i == 10 .AND. !ii_SunfishStart()
+         i := 1
+      ENDIF
+   ENDIF
+   RETURN i
 
 STATIC FUNCTION _Game_Players( lAsk )
 
-   LOCAL nc, nLevel
+   LOCAL nc, nLevel, cLevelB
    STATIC aMenuR := { "Человек - Компьютер", "Компьютер - Человек", "Человек - Человек", "Компьютер - Компьютер" }
    STATIC aMenuE := { "Human - Computer", "Computer - Human", "Human - Human", "Computer - Computer" }
 
@@ -370,17 +385,17 @@ STATIC FUNCTION _Game_Players( lAsk )
                nLevelBlack := nLevel
             ENDIF
          ENDIF
-
       ENDIF
    ENDIF
 
    Scroll( y1t-1, x2t+10, y1t-1, x2t+32 )
+   cLevelB := Iif( nLevelBlack == 10, "S", Str(nLevelBlack,1) )
    IF lRussian
       @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Человек", "Компьютер (" + Str(nLevelWhite,1) + ")" )
-      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Человек", "Компьютер (" + Str(nLevelBlack,1) + ")" )
+      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Человек", "Компьютер (" + cLevelB + ")" )
    ELSE
       @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Human", "Computer (" + Str(nLevelWhite,1) + ")" )
-      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human", "Computer (" + Str(nLevelBlack,1) + ")" )
+      @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human", "Computer (" + cLevelB + ")" )
    ENDIF
    IF lPlayGame .AND. ( (lTurnBlack .AND. nLevelBlack > 0) .OR. (!lTurnBlack .AND. nLevelWhite > 0) )
       ii_MakeMove()
@@ -644,6 +659,9 @@ STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
    ENDIF
 
    RETURN cMove
+
+STATIC FUNCTION MoveC2N( s, n )
+   RETURN (8-(hb_bPeek(s,2+n)-48))*8 + hb_bPeek(s,1+n)-96
 
 STATIC FUNCTION DrawMove( aMove )
 
@@ -1209,7 +1227,9 @@ STATIC FUNCTION ii_MakeMove()
    DrawMove( {'@'} )
 
    nSec := Seconds()
-   IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
+   IF ( n := Iif( lTurnBlack, nLevelBlack, nLevelWhite ) ) == 10
+      aMaxOcen := ii_SunfishMove()
+   ELSEIF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
       cMoves := hb_strReplace( openings->MOVES, "z" )
       //hb_memoWrit( "a1.move", ltrim(str(openings->(recno())))+" "+cMoves )
       n := hb_RandomInt( 1, Len(cMoves)/2 )
@@ -1217,13 +1237,10 @@ STATIC FUNCTION ii_MakeMove()
       lFromOpn := .T.
    ELSEIF !Empty( aMaxOcen := ii_Openings() )
       lBuilt_in := .T.
+   ELSEIF n == 1
+      aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
    ELSE
-      //edi_Alert( Iif( lOpenings,"T","F" ) )
-      IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) == 1
-         aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
-      ELSE
-         aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., nDeep2 )
-      ENDIF
+      aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., nDeep2 )
    ENDIF
    lDebug := .F.
    @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
@@ -1285,11 +1302,10 @@ STATIC FUNCTION ii_Openings()
       { { "e2e4/e7e5/g1f3/b8c6/f1b5", "a7a6","g8f6","d7d6","g7g6" } ;
       } ;
    }
-   LOCAL bC2N := {|s,n| (8-(hb_bPeek(s,2+n)-48))*8 + hb_bPeek(s,1+n)-96 }
 
    IF nLen == 0
       i := hb_RandomInt( 1, Len(aFirst) )
-      RETURN { Eval(bC2N,aFirst[i],0), Eval(bC2N,aFirst[i],2), 0 }
+      RETURN { MoveC2N( aFirst[i],0 ), MoveC2N( aFirst[i],2 ), 0 }
    ELSEIF nLen <= Len( aOpenings )
       FOR EACH a IN aHistory
          s += MoVEN2C( a[1,2] ) + MoVEN2C( a[1,3] ) + "/"
@@ -1303,7 +1319,7 @@ STATIC FUNCTION ii_Openings()
       FOR EACH a IN aOpenings[nLen]
          IF a[1] == s
             i := hb_RandomInt( 2, Len(a) )
-            RETURN { Eval(bC2N,a[i],0), Eval(bC2N,a[i],2), 0 }
+            RETURN { MoveC2N( a[i],0 ), MoveC2N( a[i],2 ), 0 }
          ENDIF
       NEXT
    ENDIF
@@ -1947,6 +1963,46 @@ STATIC FUNCTION chess_Settings()
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION ii_SunfishStart()
+
+   LOCAL cExe, xRes
+
+   IF Empty( hExt )
+      cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + "plug_sunfish.py"
+      IF Empty( hExt := ecli_Run( cExe, nLogLevel,, "sunf_py" ) )
+         edi_Alert( "Can't execute python module" )
+         RETURN .F.
+      ENDIF
+   ENDIF
+   IF !( (xRes := ecli_RunFunc( hExt, "start",{} )) == "+" )
+      edi_Alert( "Wrong answer of start procedure: " + hb_valtoexp(xRes) )
+      RETURN .F.
+   ENDIF
+
+   RETURN .T.
+
+STATIC FUNCTION ii_SunfishMove()
+
+   LOCAL arr := ATail( aHistory )[1], cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
+   LOCAL sAns
+
+   ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
+   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+24,, "" )
+   hbc_Wndout( arr, "Wait for answer..." )
+   DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
+      IF Inkey( 0.02 ) == 27
+         EXIT
+      ENDIF
+   ENDDO
+   hbc_Wndclose( arr )
+   IF Len( sAns ) == 4
+      RETURN { MoveC2N( sAns,0 ), MoveC2N( sAns,2 ), 100 }
+   ELSE
+      edi_Alert( hb_ValtoExp(sAns) )
+   ENDIF
+
+   RETURN { Nil, Nil, Nil }
 
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
 DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
