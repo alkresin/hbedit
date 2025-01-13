@@ -1975,7 +1975,7 @@ STATIC FUNCTION ii_SunfishStart()
          RETURN .F.
       ENDIF
    ENDIF
-   IF !( (xRes := ecli_RunFunc( hExt, "start",{} )) == "+" )
+   IF !( (xRes := ecli_RunFunc( hExt, "start",{aCurrPos[POS_BOARD]} )) == "+" )
       edi_Alert( "Wrong answer of start procedure: " + hb_valtoexp(xRes) )
       RETURN .F.
    ENDIF
@@ -1988,7 +1988,7 @@ STATIC FUNCTION ii_SunfishMove()
    LOCAL sAns
 
    ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
-   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+24,, "" )
+   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+25,, "" )
    hbc_Wndout( arr, "Wait for answer..." )
    DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
       IF Inkey( 0.02 ) == 27
