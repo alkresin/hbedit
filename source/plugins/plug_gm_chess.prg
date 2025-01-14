@@ -1087,9 +1087,9 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
    LOCAL aMaxOcen := { Nil, Nil, -1000000 }, aReply, lNotShah := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
+   Set_lb_lw( aPos, lTurnBlack )
    ACopy( aPos, aPosTemp, 2,, 2 )
 
-   Set_lb_lw( aPos, lTurnBlack )
    IF lDebug; DbgMsg( "---" ); ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
@@ -1151,9 +1151,9 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
    LOCAL aMaxOcen := { Nil, Nil, -1000000 }, aReply, lNotShah := .F.
    LOCAL aPosTemp := Array(POS_LEN)
 
+   Set_lb_lw( aPos, lTurnBlack )
    ACopy( aPos, aPosTemp, 2,, 2 )
 
-   Set_lb_lw( aPos, lTurnBlack )
    IF lDebug; DbgMsg( "---" ); ENDIF
    FOR i := 1 TO 64
       IF ( nFig := hb_bPeek( cBoard, i ) ) >= 65 .AND. ;
@@ -1271,6 +1271,8 @@ STATIC FUNCTION ii_MakeMove( lSrazu )
    IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) > 0
        IF ( nKey := Inkey( 1 ) ) == K_F6
          _Game_Players( .T. )
+       ELSEIF nKey == K_ESC .OR. nKey == K_F10
+          KEYBOARD Chr( K_ESC )
        ELSE
           KEYBOARD Chr( K_CTRL_N )
        ENDIF
