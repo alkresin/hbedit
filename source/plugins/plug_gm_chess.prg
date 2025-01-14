@@ -342,16 +342,18 @@ STATIC FUNCTION _Game_SetDiag( nMove )
 
 STATIC FUNCTION _Game_Level( nTitle )
 
-   LOCAL aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") }, i
+   LOCAL i, aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") } //, "Sunfish" }
 
    IF nTitle == 1
       RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Белые","White") )
    ENDIF
    AAdd( aMenu, "Sunfish" )
-   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Черные","Black") )
+
+   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, ;
+      Iif( nTitle==1, Iif(lRussian,"Белые","White"), Iif(lRussian,"Черные","Black") ) )
    IF i == Len( aMenu )
       i := Iif( !Empty( cCompiler ) .OR. !Empty( cCompiler := edi_CheckPython() ), 10, 1 )
-      IF i == 10 .AND. !ii_SunfishStart()
+      IF i == 10 .AND. !ii_SunfishStart( nTitle )
          i := 1
       ENDIF
    ENDIF
@@ -359,7 +361,7 @@ STATIC FUNCTION _Game_Level( nTitle )
 
 STATIC FUNCTION _Game_Players( lAsk )
 
-   LOCAL nc, nLevel, cLevelB
+   LOCAL nc, nLevel, cLevelW, cLevelB
    STATIC aMenuR := { "Человек - Компьютер", "Компьютер - Человек", "Человек - Человек", "Компьютер - Компьютер" }
    STATIC aMenuE := { "Human - Computer", "Computer - Human", "Human - Human", "Computer - Computer" }
 
@@ -389,16 +391,17 @@ STATIC FUNCTION _Game_Players( lAsk )
    ENDIF
 
    Scroll( y1t-1, x2t+10, y1t-1, x2t+32 )
+   cLevelW := Iif( nLevelWhite == 10, "S", Str(nLevelWhite,1) )
    cLevelB := Iif( nLevelBlack == 10, "S", Str(nLevelBlack,1) )
    IF lRussian
-      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Человек", "Компьютер (" + Str(nLevelWhite,1) + ")" )
+      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Человек", "Компьютер (" + cLevelW + ")" )
       @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Человек", "Компьютер (" + cLevelB + ")" )
    ELSE
-      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Human", "Computer (" + Str(nLevelWhite,1) + ")" )
+      @ y1t-1, x2t+4 SAY Iif( nLevelWhite == 0, "Human", "Computer (" + cLevelW + ")" )
       @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human", "Computer (" + cLevelB + ")" )
    ENDIF
    IF lPlayGame .AND. ( (lTurnBlack .AND. nLevelBlack > 0) .OR. (!lTurnBlack .AND. nLevelWhite > 0) )
-      ii_MakeMove()
+      ii_MakeMove( .T. )
    ENDIF
 
    RETURN Nil
@@ -924,6 +927,7 @@ STATIC FUNCTION chess_GenMoves( aPos, nStart, lBeat, cFigBeat )
          IF cFigu == "N"
             EXIT
          ELSEIF cFigu == "K"
+            //edi_writelog( valtype(aPos[POS_W_00])+valtype(aPos[POS_W_000]) )
             IF ( nStart == 61 .AND. !lBlack .AND. ;
                ( (nMove-nStart == 1 .AND. aPos[POS_W_00]) .OR. (nMove-nStart == -1 .AND. aPos[POS_W_000]) ) ) .OR. ;
                ( nStart == 5 .AND. lBlack .AND. ;
@@ -1219,7 +1223,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
 
    RETURN aMaxOcen
 
-STATIC FUNCTION ii_MakeMove()
+STATIC FUNCTION ii_MakeMove( lSrazu )
 
    LOCAL cFig, nSec, nCou := 0, nKey
    LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lBuilt_in := .F., lMate
@@ -1228,7 +1232,7 @@ STATIC FUNCTION ii_MakeMove()
 
    nSec := Seconds()
    IF ( n := Iif( lTurnBlack, nLevelBlack, nLevelWhite ) ) == 10
-      aMaxOcen := ii_SunfishMove()
+      aMaxOcen := ii_SunfishMove( lSrazu )
    ELSEIF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
       cMoves := hb_strReplace( openings->MOVES, "z" )
       //hb_memoWrit( "a1.move", ltrim(str(openings->(recno())))+" "+cMoves )
@@ -1964,7 +1968,7 @@ STATIC FUNCTION chess_Settings()
 
    RETURN Nil
 
-STATIC FUNCTION ii_SunfishStart()
+STATIC FUNCTION ii_SunfishStart( nWorB )
 
    LOCAL cExe, xRes
 
@@ -1975,20 +1979,26 @@ STATIC FUNCTION ii_SunfishStart()
          RETURN .F.
       ENDIF
    ENDIF
-   IF !( (xRes := ecli_RunFunc( hExt, "start",{aCurrPos[POS_BOARD]} )) == "+" )
+   IF !( (xRes := ecli_RunFunc( hExt, "start",{aCurrPos[POS_BOARD],nWorB} )) == "+" )
       edi_Alert( "Wrong answer of start procedure: " + hb_valtoexp(xRes) )
       RETURN .F.
    ENDIF
 
    RETURN .T.
 
-STATIC FUNCTION ii_SunfishMove()
+STATIC FUNCTION ii_SunfishMove( lSrazu )
 
-   LOCAL arr := ATail( aHistory )[1], cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
+   LOCAL arr, cLastMove
    LOCAL sAns
 
+   IF Empty( aHistory ) .OR. !Empty(lSrazu)
+      cLastMove := "-"
+   ELSE
+      arr := ATail( aHistory )[Iif(lTurnBlack,1,2)]
+      cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
+   ENDIF
    ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
-   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+25,, "" )
+   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
    hbc_Wndout( arr, "Wait for answer..." )
    DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
       IF Inkey( 0.02 ) == 27
