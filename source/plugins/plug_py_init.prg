@@ -5,6 +5,9 @@
 #define K_ALT_V    303
 #define K_ENTER     13
 #define K_ESC       27
+#define K_F1        28
+#define K_F4        -3
+#define K_F9        -8
 
 STATIC cIniPath
 STATIC cCompiler
@@ -185,19 +188,38 @@ STATIC FUNCTION _py_Run( oEdit )
 
    LOCAL i, aEnv, cCmd, cTempFile, cSep := hb_ps()
    LOCAL bufsc, nScreenH, nScreenW
+   LOCAL bKeys := {|n|
+      LOCAL nKey := hb_keyStd( n ), nc
+      IF nKey == K_F1
+         edi_Alert( "F4 - View code;h, h pdb - pdb help")
+      ELSEIF nKey == K_F4
+         edi_MsgGet_ext( oEdit:ToString(Chr(10)), FilePane():vy1+1, FilePane():vx1+1, ;
+            FilePane():vy2-5, FilePane():vx2-1, oEdit:cp, .T., .T., .T., .T. )
+      /*
+      ELSEIF nKey == K_F9
+         IF ( nc := FMenu( oEdit, { "View code" } ) ) == 1
+            edi_MsgGet_ext( oEdit:ToString(Chr(10)), FilePane():vy1+1, FilePane():vx1+1, ;
+               FilePane():vy2-5, FilePane():vx2-1, oEdit:cp, .T., .T., .T., .T. )
+         ENDIF */
+      ENDIF
+      RETURN Nil
+   }
 
    IF Empty( cCompiler := edi_CheckPython() )
       RETURN Nil
    ENDIF
 
+   IF( i := FMenu( oEdit, { "Run", "Run with debugger" } ) ) == 0
+      RETURN Nil
+   ENDIF
    hb_setenv( "PYTHONIOENCODING", "utf-8" )
    cTempFile := hb_DirTemp() + "hb_py_tmp.py"
    hb_MemoWrit( cTempFile, oEdit:ToString() )
-   cCmd := cCompiler + " " + cTempFile
+   cCmd := cCompiler + Iif( i==1, " ", " -m pdb " ) + cTempFile
    nScreenH := FilePane():vy2 + 1
    nScreenW := FilePane():vx2 + 1
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-   hbc_Console( cCmd,, .F. )
+   hbc_Console( cCmd,, .F., Iif( i==2, bKeys, Nil ) )
    Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
 
    RETURN Nil

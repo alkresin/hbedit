@@ -488,6 +488,9 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
             lPlayGame := .F.
             lViewGame := .T.
          ENDIF
+         IF lPlayGame .AND. nLevelBlack == 10
+            ii_SunfishStart( 2 )
+         ENDIF
       ENDIF
 
    ELSEIF nKey == K_SPACE
@@ -1250,7 +1253,10 @@ STATIC FUNCTION ii_MakeMove( lSrazu )
    @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
       Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn,"bd", Iif(lBuilt_in, "in", "  "))
 
-   IF aMaxOcen[1] == Nil
+   IF aMaxOcen == Nil
+      KEYBOARD Chr( K_ESC )
+      RETURN Nil
+   ELSEIF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
    ELSE
       lMate := DrawMove( {cFig := Substr( aCurrPos[POS_BOARD], aMaxOcen[1], 1 ), aMaxOcen[1], amaxOcen[2]} )
@@ -2008,12 +2014,13 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
       ENDIF
    ENDDO
    hbc_Wndclose( arr )
-   IF Len( sAns ) == 4
-      RETURN { MoveC2N( sAns,0 ), MoveC2N( sAns,2 ), 100 }
-   ELSE
-      edi_Alert( hb_ValtoExp(sAns) )
+   IF sAns != Nil
+      IF Len( sAns ) == 4
+         RETURN { MoveC2N( sAns,0 ), MoveC2N( sAns,2 ), 100 }
+      ELSE
+         edi_Alert( hb_ValtoExp(sAns) )
+      ENDIF
    ENDIF
-
    RETURN { Nil, Nil, Nil }
 
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO

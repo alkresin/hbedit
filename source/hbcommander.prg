@@ -3536,8 +3536,9 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
   lShowWin = .F. - don't show window
   lShowWin = .T. - show window
   lShowWin = Nil - ask, show window or not
+  bKeys4cmd - Keys handler for Cons_My(), may be used for specific command
  */
-FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
+FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
 
    LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
@@ -3710,7 +3711,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin )
          /* ELSEIF Valtype( lShowWin ) == "L" .AND. lShowWin
             cedi_RunApp( cCommand, .T. ) */
          ELSE
-            Cons_My( cCommand, lShowWin )
+            Cons_My( cCommand, lShowWin, bKeys4cmd )
          ENDIF
          cCommand := ""
       ELSEIF Lastkey() == K_ESC
@@ -3908,7 +3909,7 @@ STATIC FUNCTION Add2Consout( cText )
 
    RETURN Nil
 
-STATIC FUNCTION Cons_My( cCommand, lShowWin )
+STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
@@ -3984,6 +3985,8 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin )
             ENDIF
          ENDIF
 #endif
+         LOOP
+      ELSEIF !Empty( bKeys ) .AND. Valtype( nKey := Eval( bKeys,nKeyExt ) ) == "L" .AND. nKey
          LOOP
       ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
             ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )

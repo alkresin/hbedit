@@ -115,10 +115,10 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    RETURN xRes
 
-FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly )
+FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly, lTopPane, lNoWrap )
 
    LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
-   LOCAL oNew, oldc := SetColor( TEdit():cColorSel )
+   LOCAL oNew, oldc := SetColor( TEdit():cColorSel ), nRow := Row(), nCol := Col(), oldCurs := SetCursor()
    LOCAL lHwg := ( hb_gtversion() == "HWGUI" )
    LOCAL bOnKey := {|o,n|
       LOCAL nKey := hb_keyStd(n), lShift := ( hb_BitAnd( n, SHIFT_PRESSED ) != 0 )
@@ -132,15 +132,21 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly )
          RETURN -1
       ELSEIF nKey == K_F10
          IF !Empty(lF10)
-            cRes := Trim( oNew:ToString( Chr(10) ) )
+            IF Empty( lReadOnly )
+               cRes := Trim( oNew:ToString( Chr(10) ) )
+            ENDIF
             oNew:lClose := .T.
             RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+            DevPos( nRow, nCol )
+            SetCursor( oldCurs )
          ENDIF
          RETURN -1
       ELSEIF nKey == K_ESC
          //cRes := ""
          oNew:lClose := .T.
          RestScreen( y1-1, x1-1, y2+3, x2+1, cBuff )
+         DevPos( nRow, nCol )
+         SetCursor( oldCurs )
          RETURN -1
       ENDIF
       RETURN 0
@@ -156,15 +162,17 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly )
    IF Empty(lF10)
       @ y2+2, x1+2 SAY "Enter - Save and Exit  " + ;
          Iif( lHwg, "Shift-Enter","Shift-Down" ) + " - New Line  ESC - Quit"
-   ELSE
+   ELSEIF Empty( lReadOnly )
       @ y2+2, x1+2 SAY "F10 - Save and Exit  ESC - Quit"
+   ELSE
+      @ y2+2, x1+2 SAY "F10, ESC - Close"
    ENDIF
    SetColor( oldc )
 
-   oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, .F. )
+   oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, !Empty(lTopPane) )
    oNew:lBuiltIn := .T.
    oNew:lCtrlTab := .F.
-   oNew:lWrap := .T.
+   oNew:lWrap := Empty( lNoWrap )
    oNew:nMode := 0
    oNew:lReadOnly := !Empty( lReadOnly )
    oNew:bOnKey := bOnKey
