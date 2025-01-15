@@ -323,6 +323,7 @@ import traceback
 hExt = None
 hist = None
 searcher = None
+bBlack = None
 
 def parse(c):
     fil, rank = ord(c[0]) - ord('a'), int(c[1]) - 1
@@ -336,7 +337,10 @@ def makemove( aparams ):
 
     try:
         if len(aparams[0]) == 4:
-            move = parse( aparams[0][:2] ), parse( aparams[0][2:4] )
+            if bBlack:
+                move = parse( aparams[0][:2] ), parse( aparams[0][2:4] )
+            else:
+                move = 119-parse( aparams[0][:2] ), 119-parse( aparams[0][2:4] )
             hist.append(hist[-1].move(move))
 
             #hist[-1].rotate()
@@ -354,14 +358,17 @@ def makemove( aparams ):
             return "-"
 
         hist.append(hist[-1].move(move))
-        return render(119-move[0]) + render(119-move[1])
+        if bBlack:
+            return render(119-move[0]) + render(119-move[1])
+        else:
+            return render(move[0]) + render(move[1])
     except:
         gWritelog(hExt,  traceback.format_exc())
         return "Python Error"
 
 def start( aparams ):
 
-    global hist, searcher
+    global hist, searcher, bBlack
 
     board = aparams[0]
     s = '         \n         \n'
@@ -379,7 +386,10 @@ def start( aparams ):
         if aparams[1] == 1:
             # Rotate board if white
             gWritelog(hExt,  'I am white')
+            bBlack = False
             hist[-1] = hist[-1].rotate()
+        else:
+            bBlack = True
 
         searcher = Searcher()
     except:

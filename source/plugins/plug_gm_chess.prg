@@ -59,7 +59,7 @@ STATIC lRussian := .T., lDrawUtf8 := .F., lGui
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
 STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0,0 }, lShah
-STATIC cCompiler, hExt, nLogLevel := 1
+STATIC cCompiler, hExt, nLogLevel := 1, lSunfishStart := .F.
 
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
@@ -342,19 +342,20 @@ STATIC FUNCTION _Game_SetDiag( nMove )
 
 STATIC FUNCTION _Game_Level( nTitle )
 
-   LOCAL i, aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2") } //, "Sunfish" }
-
+   LOCAL i, aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2"), "Sunfish" }
+   /*
    IF nTitle == 1
       RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Белые","White") )
    ENDIF
    AAdd( aMenu, "Sunfish" )
-
+   */
    i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, ;
       Iif( nTitle==1, Iif(lRussian,"Белые","White"), Iif(lRussian,"Черные","Black") ) )
    IF i == Len( aMenu )
       i := Iif( !Empty( cCompiler ) .OR. !Empty( cCompiler := edi_CheckPython() ), 10, 1 )
-      IF i == 10 .AND. !ii_SunfishStart( nTitle )
-         i := 1
+      IF i == 10 //.AND. !ii_SunfishStart( nTitle )
+         //i := 1
+         lSunfishStart := .T.
       ENDIF
    ENDIF
    RETURN i
@@ -489,7 +490,8 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
             lViewGame := .T.
          ENDIF
          IF lPlayGame .AND. nLevelBlack == 10
-            ii_SunfishStart( 2 )
+            lSunfishStart := .T.
+            //ii_SunfishStart( 2 )
          ENDIF
       ENDIF
 
@@ -1234,16 +1236,18 @@ STATIC FUNCTION ii_MakeMove( lSrazu )
    DrawMove( {'@'} )
 
    nSec := Seconds()
-   IF ( n := Iif( lTurnBlack, nLevelBlack, nLevelWhite ) ) == 10
-      aMaxOcen := ii_SunfishMove( lSrazu )
-   ELSEIF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
+   IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
       cMoves := hb_strReplace( openings->MOVES, "z" )
       //hb_memoWrit( "a1.move", ltrim(str(openings->(recno())))+" "+cMoves )
       n := hb_RandomInt( 1, Len(cMoves)/2 )
       aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
       lFromOpn := .T.
+      lSunfishStart := .T.
    ELSEIF !Empty( aMaxOcen := ii_Openings() )
       lBuilt_in := .T.
+      lSunfishStart := .T.
+   ELSEIF ( n := Iif( lTurnBlack, nLevelBlack, nLevelWhite ) ) == 10
+      aMaxOcen := ii_SunfishMove( lSrazu )
    ELSEIF n == 1
       aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
    ELSE
@@ -1999,7 +2003,13 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
    LOCAL arr, cLastMove
    LOCAL sAns
 
-   IF Empty( aHistory ) .OR. !Empty(lSrazu)
+   IF lSunfishStart
+      lSunfishStart := .F.
+      IF !ii_SunfishStart( Iif( lTurnBlack,2,1 ) )
+         RETURN Nil
+      ENDIF
+      cLastMove := "-"
+   ELSEIF Empty( aHistory ) .OR. !Empty(lSrazu)
       cLastMove := "-"
    ELSE
       arr := ATail( aHistory )[Iif(lTurnBlack,1,2)]
