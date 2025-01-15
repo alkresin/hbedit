@@ -186,7 +186,7 @@ STATIC FUNCTION _py_FuncStru( oEdit )
 
 STATIC FUNCTION _py_Run( oEdit )
 
-   LOCAL i, aEnv, cCmd, cTempFile, cSep := hb_ps()
+   LOCAL i, aEnv, cCmd, cTempFile, cSep := hb_ps(), nPos
    LOCAL bufsc, nScreenH, nScreenW
    LOCAL bKeys := {|n|
       LOCAL nKey := hb_keyStd( n ), nc
@@ -214,8 +214,22 @@ STATIC FUNCTION _py_Run( oEdit )
    ENDIF
    hb_setenv( "PYTHONIOENCODING", "utf-8" )
    cTempFile := hb_DirTemp() + "hb_py_tmp.py"
-   hb_MemoWrit( cTempFile, oEdit:ToString() )
-   cCmd := cCompiler + Iif( i==1, " ", " -m pdb " ) + cTempFile
+   IF hb_Version(20)
+      hb_MemoWrit( cTempFile, oEdit:ToString() )
+      cCmd := cCompiler + Iif( i==1, " ", " -m pdb " ) + cTempFile
+   ELSEIF i == 2
+      cCmd := oEdit:ToString()
+      IF ( nPos := Rat( "from __future__", cCmd ) ) > 0
+         nPos := hb_At( Chr(10), cCmd, nPos )
+         hb_MemoWrit( cTempFile, Left( cCmd,nPos-1 ) + "; import pdb; pdb.set_trace()" + Substr( cCmd,nPos ) )
+      ELSE
+         hb_MemoWrit( cTempFile, "import pdb; pdb.set_trace(); " + oEdit:ToString() )
+      ENDIF
+      cCmd := cCompiler + " " + cTempFile
+   ELSE
+      hb_MemoWrit( cTempFile, oEdit:ToString() )
+      cCmd := cCompiler + " " + cTempFile
+   ENDIF
    nScreenH := FilePane():vy2 + 1
    nScreenW := FilePane():vx2 + 1
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )

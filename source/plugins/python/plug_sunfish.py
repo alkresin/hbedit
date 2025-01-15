@@ -1,5 +1,6 @@
 # Based on Sunfish chess engine by Thomas Dybdahl Ahle
 # https://github.com/thomasahle/sunfish
+# https://www.chessprogramming.org/Sunfish
 # License https://www.gnu.org/licenses/gpl-3.0.en.html
 
 import os, sys
