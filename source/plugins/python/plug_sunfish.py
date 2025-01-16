@@ -371,6 +371,7 @@ def start( aparams ):
     global hist, searcher, bBlack
 
     board = aparams[0]
+    bBlack = True if aparams[1] == 2 else False
     s = '         \n         \n'
     if len(board) == 64:
         i = 0
@@ -382,19 +383,66 @@ def start( aparams ):
         return "--"
 
     try:
-        hist = [Position(s, 0, (True,True), (True,True), 0, 0)]
+        #if bBlack:
+        #    hist = [Position(s, 0, (aparams[5],aparams[4]), (aparams[2],aparams[3]), 0, 0)]
+        #else:
+        hist = [Position(s, 0, (aparams[3],aparams[2]), (aparams[4],aparams[5]), 0, 0)]
         if aparams[1] == 1:
             # Rotate board if white
             gWritelog(hExt,  'I am white')
-            bBlack = False
             hist[-1] = hist[-1].rotate()
-        else:
-            bBlack = True
 
         searcher = Searcher()
     except:
         gWritelog(hExt,  traceback.format_exc())
         return "-"
+    return "+"
+
+def newmove( aparams ):
+    global hist, searcher, bBlack
+
+    board = aparams[0]
+    bBlack = True if aparams[1] == 2 else False
+    s = '         \n         \n'
+    if len(board) == 64:
+        i = 0
+        while i < 8:
+            s = s + ' ' + board[i*8:(i+1)*8].replace(' ','.') + '\n'
+            i = i + 1
+        s = s + '         \n         \n'
+    else:
+        return "--"
+
+    try:
+        hist = [Position(s, 0, (aparams[3],aparams[2]), (aparams[4],aparams[5]), 0, 0)]
+        if aparams[1] == 1:
+            # Rotate board if white
+            gWritelog(hExt,  'I am white')
+            hist[-1] = hist[-1].rotate()
+
+        searcher = Searcher()
+    except:
+        gWritelog(hExt, traceback.format_exc())
+        return "-"
+
+    try:
+        hist[-1] = hist[-1].rotate()
+
+        start = time.time()
+        for _depth, move, score in searcher.search(hist[-1], hist):
+            if time.time() - start > 2:
+                break
+
+        #hist.append(hist[-1].move(move))
+        hist[-1].move(move)
+        if bBlack:
+            return render(119-move[0]) + render(119-move[1])
+        else:
+            return render(move[0]) + render(move[1])
+    except:
+        gWritelog(hExt,  traceback.format_exc())
+        return "Python Error"
+
     return "+"
 
 def main( aparams ):

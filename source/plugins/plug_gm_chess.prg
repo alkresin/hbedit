@@ -58,8 +58,8 @@ STATIC oGame
 STATIC lRussian := .T., lDrawUtf8 := .F., lGui
 STATIC x1t, y1t, x2t, nyPos, nxPos
 STATIC nScrolled
-STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0,0 }, lShah
-STATIC cCompiler, hExt, nLogLevel := 1, lSunfishStart := .F.
+STATIC lTurnBlack, nLevelWhite, nLevelBlack, aMoveState := { Nil,0,0 }, lShah, lCtrlN := .F.
+STATIC cCompiler, hExt, nLogLevel := 1 //, lSunfishStart := .F.
 
 STATIC cScreenBuff
 STATIC clrBoard := "GR+/N", clrWhite := "W+", clrBlack := "N", clrbWhite := "BG", clrbBlack := "GR"
@@ -353,10 +353,9 @@ STATIC FUNCTION _Game_Level( nTitle )
       Iif( nTitle==1, Iif(lRussian,"Белые","White"), Iif(lRussian,"Черные","Black") ) )
    IF i == Len( aMenu )
       i := Iif( !Empty( cCompiler ) .OR. !Empty( cCompiler := edi_CheckPython() ), 10, 1 )
-      IF i == 10 //.AND. !ii_SunfishStart( nTitle )
-         //i := 1
-         lSunfishStart := .T.
-      ENDIF
+      //IF i == 10
+      //   lSunfishStart := .T.
+      //ENDIF
    ENDIF
    RETURN i
 
@@ -402,7 +401,7 @@ STATIC FUNCTION _Game_Players( lAsk )
       @ y1t-1, x2t+19 SAY Iif( nLevelBlack == 0, "Human", "Computer (" + cLevelB + ")" )
    ENDIF
    IF lPlayGame .AND. ( (lTurnBlack .AND. nLevelBlack > 0) .OR. (!lTurnBlack .AND. nLevelWhite > 0) )
-      ii_MakeMove( .T. )
+      ii_MakeMove()
    ENDIF
 
    RETURN Nil
@@ -489,10 +488,9 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
             lPlayGame := .F.
             lViewGame := .T.
          ENDIF
-         IF lPlayGame .AND. nLevelBlack == 10
-            lSunfishStart := .T.
-            //ii_SunfishStart( 2 )
-         ENDIF
+         //IF lPlayGame .AND. nLevelBlack == 10
+         //   lSunfishStart := .T.
+         //ENDIF
       ENDIF
 
    ELSEIF nKey == K_SPACE
@@ -551,7 +549,12 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
 
    ELSEIF nKey == K_CTRL_N
      IF lPlayGame
-        ii_MakeMove()
+        IF lCtrlN
+           lCtrlN := .F.
+           ii_MakeMove()
+        ELSEIF ( n := _Game_Level( Iif( lTurnBlack, 2,1 ) ) ) > 0
+           ii_MakeMove( n )
+        ENDIF
      ENDIF
 
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
@@ -1228,12 +1231,13 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
 
    RETURN aMaxOcen
 
-STATIC FUNCTION ii_MakeMove( lSrazu )
+STATIC FUNCTION ii_MakeMove( nLevel )
 
    LOCAL cFig, nSec, nCou := 0, nKey
    LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lBuilt_in := .F., lMate
 
    DrawMove( {'@'} )
+   nLevel := Iif( !Empty(nLevel), nLevel, Iif( lTurnBlack, nLevelBlack, nLevelWhite ) )
 
    nSec := Seconds()
    IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
@@ -1242,13 +1246,14 @@ STATIC FUNCTION ii_MakeMove( lSrazu )
       n := hb_RandomInt( 1, Len(cMoves)/2 )
       aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
       lFromOpn := .T.
-      lSunfishStart := .T.
+      //lSunfishStart := .T.
    ELSEIF !Empty( aMaxOcen := ii_Openings() )
       lBuilt_in := .T.
-      lSunfishStart := .T.
-   ELSEIF ( n := Iif( lTurnBlack, nLevelBlack, nLevelWhite ) ) == 10
-      aMaxOcen := ii_SunfishMove( lSrazu )
-   ELSEIF n == 1
+      //lSunfishStart := .T.
+   ELSEIF nLevel == 10
+      //aMaxOcen := ii_SunfishMove( lSrazu )
+      aMaxOcen := ii_SunfishNewMove()
+   ELSEIF nLevel == 1
       aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
    ELSE
       aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., nDeep2 )
@@ -1278,12 +1283,14 @@ STATIC FUNCTION ii_MakeMove( lSrazu )
    ENDIF
 
    lTurnBlack := !lTurnBlack
-   IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) > 0
-       IF ( nKey := Inkey( 1 ) ) == K_F6
+   nLevel := Iif( lTurnBlack, nLevelBlack, nLevelWhite )
+   IF nLevel > 0
+       IF ( nKey := Inkey( Iif( nLevel==10, 0.1, 1 ) ) ) == K_F6
          _Game_Players( .T. )
        ELSEIF nKey == K_ESC .OR. nKey == K_F10
           KEYBOARD Chr( K_ESC )
        ELSE
+          lCtrlN := .T.
           KEYBOARD Chr( K_CTRL_N )
        ENDIF
    ENDIF
@@ -1979,10 +1986,10 @@ STATIC FUNCTION chess_Settings()
    ENDIF
 
    RETURN Nil
+/*
+STATIC FUNCTION ii_SunfishStart()
 
-STATIC FUNCTION ii_SunfishStart( nWorB )
-
-   LOCAL cExe, xRes
+   LOCAL cExe, xRes, nWorB := Iif( lTurnBlack,2,1 )
 
    IF Empty( hExt )
       cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + "plug_sunfish.py"
@@ -1991,21 +1998,26 @@ STATIC FUNCTION ii_SunfishStart( nWorB )
          RETURN .F.
       ENDIF
    ENDIF
-   IF !( (xRes := ecli_RunFunc( hExt, "start",{aCurrPos[POS_BOARD],nWorB} )) == "+" )
+   IF !( (xRes := ecli_RunFunc( hExt, "start", {aCurrPos[POS_BOARD], nWorB, ;
+      aCurrPos[POS_W00], aCurrPos[POS_W000], aCurrPos[POS_B00], aCurrPos[POS_B000]} )) == "+" )
       edi_Alert( "Wrong answer of start procedure: " + hb_valtoexp(xRes) )
       RETURN .F.
    ENDIF
 
    RETURN .T.
-
+*/
 STATIC FUNCTION ii_SunfishMove( lSrazu )
 
-   LOCAL arr, cLastMove
+   LOCAL arr, cLastMove := "-"
    LOCAL sAns
 
+   //IF !ii_SunfishStart()
+   //   RETURN Nil
+   //ENDIF
+/*
    IF lSunfishStart
       lSunfishStart := .F.
-      IF !ii_SunfishStart( Iif( lTurnBlack,2,1 ) )
+      IF !ii_SunfishStart()
          RETURN Nil
       ENDIF
       cLastMove := "-"
@@ -2015,6 +2027,7 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
       arr := ATail( aHistory )[Iif(lTurnBlack,1,2)]
       cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
    ENDIF
+*/
    ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
    arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
    hbc_Wndout( arr, "Wait for answer..." )
@@ -2033,6 +2046,39 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
    ENDIF
    RETURN { Nil, Nil, Nil }
 
+STATIC FUNCTION ii_SunfishNewMove()
+
+   LOCAL cExe, xRes, nWorB := Iif( lTurnBlack,2,1 )
+   LOCAL arr, sAns
+
+   IF Empty( hExt )
+      cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + "plug_sunfish.py"
+      IF Empty( hExt := ecli_Run( cExe, nLogLevel,, "sunf_py" ) )
+         edi_Alert( "Can't execute python module" )
+         RETURN .F.
+      ENDIF
+   ENDIF
+
+   ecli_RunFunc( hExt, "newmove", {aCurrPos[POS_BOARD], nWorB, ;
+      aCurrPos[POS_W00], aCurrPos[POS_W000], aCurrPos[POS_B00], aCurrPos[POS_B000]}, .T. )
+   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
+   hbc_Wndout( arr, "Wait for answer..." )
+   DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
+      IF Inkey( 0.02 ) == 27
+         EXIT
+      ENDIF
+   ENDDO
+   hbc_Wndclose( arr )
+   IF sAns != Nil
+      IF Len( sAns ) == 4
+         RETURN { MoveC2N( sAns,0 ), MoveC2N( sAns,2 ), 100 }
+      ELSE
+         edi_Alert( hb_ValtoExp(sAns) )
+      ENDIF
+   ENDIF
+
+   RETURN { Nil, Nil, Nil }
+
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
 DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
 DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
@@ -2044,6 +2090,7 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
    LOCAL lWhiteCell, cBoard, c, nMove
    STATIC xKoef, yKoef
    STATIC oBrushWhite, oBrushBlack, oPen, oFont
+   STATIC aResources, aImgHandles
 
    IF !lGUI
       RETURN Nil
@@ -2064,6 +2111,17 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
       oBrushBlack := HBrush():Add( guiClrBCell )
       oPen := HPen():Add( , 2, guiClrSel )
       oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
+      IF Empty(aImgHandles) .AND. File( cIniPath + "plug_gm_chess_res.hrb" )
+         IF Valtype( aResources := hb_hrbRun( cIniPath + "plug_gm_chess_res.hrb" ) ) == "A"
+            aImgHandles := hb_hash()
+            FOR i := 1 TO Len( aResources )
+               aImgHandles[aResources[i,1]] := hwg_OpenImage( aResources[i,3], .T. )
+               edi_writelog( hb_valtoexp(aResources[i,1]) + " " + ;
+                  hb_valtoexp(aImgHandles[aResources[i,1]]) + " " + ;
+                  hb_valtoexp(hwg_Getbitmapsize(aImgHandles[aResources[i,1]])) )
+            NEXT
+         ENDIF
+      ENDIF
    ELSEIF Empty( hDC ) .AND. nOp == OP_SIZE
       oFont:Release()
       oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
@@ -2125,5 +2183,10 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
    NEXT
 
    hwg_Settransparentmode( hDC, .F. )
+   IF !Empty( aImgHandles )
+      edi_Writelog( "draw " + hb_valtoexp( aImgHandles["bb2"] ) )
+      hwg_Drawtransparentbitmap( hDC, aImgHandles["bb2"], x1+80, y1+80, 0xffffff ) //,50,50 )
+      //hwg_Drawbitmap( hDC, aImgHandles["bb2"],, 10, 10, 50, 50 )
+   ENDIF
 
    RETURN Nil
