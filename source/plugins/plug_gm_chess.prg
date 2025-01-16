@@ -2085,12 +2085,12 @@ DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
 
 FUNCTION __PaintBo_Chess( hDC, nOp )
 
-   LOCAL x1, y1, x2, y2, nw, nTopMargin
+   LOCAL x1, y1, x2, y2, nw, nTopMargin, aResources, nImgW, nImgH
    LOCAL i, j, i1, arrm
    LOCAL lWhiteCell, cBoard, c, nMove
    STATIC xKoef, yKoef
    STATIC oBrushWhite, oBrushBlack, oPen, oFont
-   STATIC aResources, aImgHandles
+   STATIC aImgHandles
 
    IF !lGUI
       RETURN Nil
@@ -2184,8 +2184,10 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
 
    hwg_Settransparentmode( hDC, .F. )
    IF !Empty( aImgHandles )
-      edi_Writelog( "draw " + hb_valtoexp( aImgHandles["bb2"] ) )
-      hwg_Drawtransparentbitmap( hDC, aImgHandles["bb2"], x1+80, y1+80, 0xffffff ) //,50,50 )
+      arrm := hwg_Getbitmapsize( aImgHandles["bb"] )
+      nImgW := arrm[1]; nImgH := arrm[2]
+      //edi_Writelog( "draw " + hb_valtoexp( aImgHandles["bb2"] ) )
+      hwg_Drawtransparentbitmap( hDC, aImgHandles["bb"], x1+1*nw+Int((nw-nImgW)/2), y1+2*nw+Int((nw-nImgH)/2), 0xffffff ) //,50,50 )
       //hwg_Drawbitmap( hDC, aImgHandles["bb2"],, 10, 10, 50, 50 )
    ENDIF
 
