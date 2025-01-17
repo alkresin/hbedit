@@ -178,7 +178,7 @@ STATIC aBoardValues := { { ;
 
 STATIC guiBoaSize := 3, guiFontName, lDrawImg := .F.
 STATIC guiClrWCell, guiClrBCell, guiClrSel, guiClrWText, guiClrBText
-STATIC aThemes := { { 0xb0b0b0, 0xb0b0b0, 0, 0xffffff, 0 }, ;
+STATIC aThemes := { { 0xB0B0B0, 0x707070, 0, 0xFFFFFF, 0 }, ;
    { 0x9fcfff, 0x458cd2, 0, 0xffffff, 0 }, ;
    { 0xffcf9f, 0xd28c45, 0, 0xffffff, 0 }, ;
    { 0xffffff, 0xe2e2e2, 0, 255, 0 } }, cUserTheme, nTheme := 1
@@ -1260,7 +1260,7 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    ENDIF
    lDebug := .F.
    @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
-      Ltrim(Str( Seconds()-nSec,6,2 )) + Iif(lFromOpn,"bd", Iif(lBuilt_in, "in", "  "))
+      Ltrim(Str( Seconds()-nSec,6,2 )) + " " + Iif(lFromOpn,"(bd)", Iif(lBuilt_in, "(in)", "    "))
 
    IF aMaxOcen == Nil
       KEYBOARD Chr( K_ESC )
