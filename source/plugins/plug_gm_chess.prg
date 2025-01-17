@@ -176,7 +176,7 @@ STATIC aBoardValues := { { ;
       59968, 60010, 60055, 60056, 60056, 60055, 60010, 60003, ;
       60004, 60054, 60047, 59901, 59901, 60060, 60083, 59938} } }
 
-STATIC guiBoaSize := 3, guiFontName
+STATIC guiBoaSize := 3, guiFontName, lDrawImg := .F.
 STATIC guiClrWCell, guiClrBCell, guiClrSel, guiClrWText, guiClrBText
 STATIC aThemes := { { 0xb0b0b0, 0xb0b0b0, 0, 0xffffff, 0 }, ;
    { 0x9fcfff, 0x458cd2, 0, 0xffffff, 0 }, ;
@@ -1857,6 +1857,9 @@ STATIC FUNCTION Read_Game_Ini( cIni )
                   IF hb_hHaskey( aSect, cTemp := "fontname" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                      guiFontName := cTemp
                   ENDIF
+                  IF hb_hHaskey( aSect, cTemp := "drawimg" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                     lDrawImg := ( Lower( cTemp ) == "on" )
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF
@@ -1895,6 +1898,7 @@ STATIC FUNCTION Write_Game_Ini()
       "," + hb_NumToHex(aThemes[4,3],6) + "," + hb_NumToHex(aThemes[4,4],6) + ;
       "," + hb_NumToHex(aThemes[4,5],6) + cr
    s += "fontname=" + guiFontName + cr
+   s += "drawimg=" + Iif( lDrawImg, "On", "Off" ) + cr
 
    hb_MemoWrit( cIniPath + "chess.ini", s )
 
@@ -2085,12 +2089,13 @@ DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
 
 FUNCTION __PaintBo_Chess( hDC, nOp )
 
-   LOCAL x1, y1, x2, y2, nw, nTopMargin, aResources, nImgW, nImgH
-   LOCAL i, j, i1, arrm
+   LOCAL x1, y1, x2, y2, nw, nTopMargin, aResources, h
+   LOCAL i, j, i1, arrm, lFuncGdi, cTemp
    LOCAL lWhiteCell, cBoard, c, nMove
    STATIC xKoef, yKoef
    STATIC oBrushWhite, oBrushBlack, oPen, oFont
    STATIC aImgHandles
+   STATIC cFuncGdi := "HWG_GDIPLUSOPENIMAGE"
 
    IF !lGUI
       RETURN Nil
@@ -2111,14 +2116,22 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
       oBrushBlack := HBrush():Add( guiClrBCell )
       oPen := HPen():Add( , 2, guiClrSel )
       oFont := HFont():Add( guiFontName, 0, Int( nw*Iif(hb_Version(20),0.62,0.75) ) )
-      IF Empty(aImgHandles) .AND. File( cIniPath + "plug_gm_chess_res.hrb" )
+      IF lDrawImg .AND. Empty(aImgHandles) .AND. File( cIniPath + "plug_gm_chess_res.hrb" )
          IF Valtype( aResources := hb_hrbRun( cIniPath + "plug_gm_chess_res.hrb" ) ) == "A"
+            lFuncGdi := hb_isFunction( cFuncGdi )
+            cTemp := hb_DirTemp() + "hb_gm_chess.img"
             aImgHandles := hb_hash()
             FOR i := 1 TO Len( aResources )
-               aImgHandles[aResources[i,1]] := hwg_OpenImage( aResources[i,3], .T. )
-               edi_writelog( hb_valtoexp(aResources[i,1]) + " " + ;
+               h := hwg_OpenImage( aResources[i,3], .T. )
+               IF Empty( h ) .AND. lFuncGdi
+                  hb_Memowrit( cTemp, aResources[i,3] )
+                  h := Eval( &( "{|s|" + cFuncGdi + "(s)}" ), cTemp )
+               ENDIF
+               arrm := hwg_Getbitmapsize( h )
+               aImgHandles[aResources[i,1]] := { h, arrm[1], arrm[2] }
+               /* edi_writelog( hb_valtoexp(aResources[i,1]) + " " + ;
                   hb_valtoexp(aImgHandles[aResources[i,1]]) + " " + ;
-                  hb_valtoexp(hwg_Getbitmapsize(aImgHandles[aResources[i,1]])) )
+                  hb_valtoexp(hwg_Getbitmapsize(aImgHandles[aResources[i,1]])) + hb_valtoexp(!Empty(aImgHandles[aResources[i,1]])) ) */
             NEXT
          ENDIF
       ENDIF
@@ -2168,14 +2181,20 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
          ENDIF
          c := Substr( cBoard, nMove, 1 )
          IF c > 'A'
-            IF c > 'a'
-               hwg_Settextcolor( hDC, guiClrBText )
-            ELSEIF c > 'A'
-               hwg_Settextcolor( hDC, guiClrWText )
+            IF !Empty( aImgHandles ) .AND. hb_hHasKey( aImgHandles, cTemp := Iif(c>'a','b','w')+Lower(c) )
+               h := aImgHandles[cTemp]
+               hwg_Drawtransparentbitmap( hDC, h[1], x1+j*nw+Int((nw-h[2])/2), ;
+                  y1+i*nw+Int((nw-h[3])/2), 0xffffff ) //,50,50 )
+            ELSE
+               IF c > 'a'
+                  hwg_Settextcolor( hDC, guiClrBText )
+               ELSEIF c > 'A'
+                  hwg_Settextcolor( hDC, guiClrWText )
+               ENDIF
+               i1 := Ascan( aFigs,c )
+               hwg_Drawtext( hDC, Iif( lDrawUtf8, aFigs3[i1], Iif( lRussian,aFigs1[i1],aFigs2[i1] ) ), ;
+                  x1+j*nw+2, y1+i*nw+nTopMargin, x1+(j+1)*nw-2, y1+(i+1)*nw-2, DT_CENTER )
             ENDIF
-            i1 := Ascan( aFigs,c )
-            hwg_Drawtext( hDC, Iif( lDrawUtf8, aFigs3[i1], Iif( lRussian,aFigs1[i1],aFigs2[i1] ) ), ;
-               x1+j*nw+2, y1+i*nw+nTopMargin, x1+(j+1)*nw-2, y1+(i+1)*nw-2, DT_CENTER )
          ENDIF
          lWhiteCell := !lWhiteCell
       NEXT
@@ -2183,12 +2202,5 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
    NEXT
 
    hwg_Settransparentmode( hDC, .F. )
-   IF !Empty( aImgHandles )
-      arrm := hwg_Getbitmapsize( aImgHandles["bb"] )
-      nImgW := arrm[1]; nImgH := arrm[2]
-      //edi_Writelog( "draw " + hb_valtoexp( aImgHandles["bb2"] ) )
-      hwg_Drawtransparentbitmap( hDC, aImgHandles["bb"], x1+1*nw+Int((nw-nImgW)/2), y1+2*nw+Int((nw-nImgH)/2), 0xffffff ) //,50,50 )
-      //hwg_Drawbitmap( hDC, aImgHandles["bb2"],, 10, 10, 50, 50 )
-   ENDIF
 
    RETURN Nil

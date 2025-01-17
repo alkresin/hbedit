@@ -29,6 +29,7 @@ $HB_INS/bin/linux/gcc/harbour plug_gm_strek.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_sudoku.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_life.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour plug_gm_chess_res.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_webservices.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh -q
