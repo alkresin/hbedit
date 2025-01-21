@@ -23,6 +23,7 @@ A fullscreen console multiplatform text editor with built-in file manager
   + bld_plugins.sh      - shell script to build plugins.
   + hbedit.hbp          - project file to build hbedit with hbmk2.
   + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
+  + hbedit.hwprj        - project file to build hbedit with HwBuilder.
   + hbc.help            - HbCommander (built-in file manager) help file.
   + hbedit.help         - Hbedit help file (Russian).
   + hbedit_en.help      - Hbedit help file (English).

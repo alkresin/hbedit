@@ -22,8 +22,7 @@ libs=hbzlib hbmzip minizip hbnetio hbwin
 {nohwg}{nossh}outname=hbedit
 {nohwg}{!nossh}outname=hbedit_ssh
 
-{win}srcpath=\papps\gitapps\hbedit\source
-{unix}srcpath=/home/alkresin/apps/gitapps/hbedit/source
+srcpath=source
 hbedit.prg
 fedit.prg
 fmenu.prg
@@ -42,12 +41,10 @@ fview.prg
 hbextcli.prg
 cfuncs.c
 
-{win}srcpath=\papps\gitapps\hbedit\source\trie
-{unix}srcpath=/home/alkresin/apps/gitapps/hbedit/source/trie
+srcpath=source\trie
 trie.c
 hbtrie.c
 
-{win}{!nossh}srcpath=\papps\gitapps\hbedit\source\ssh2
-{unix}{!nossh}srcpath=/home/alkresin/apps/gitapps/hbedit/source/ssh2
+{!nossh}srcpath=source\ssh2
 {!nossh}hbcssh2.prg
 {!nossh}hb_ssh2.c

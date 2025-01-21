@@ -915,6 +915,7 @@ CLASS HwProject
    DATA lMake      INIT .F.
    DATA lHarbour   INIT .F.
    DATA lGuiLib    INIT .T.
+   DATA lBuildRes  INIT .T.
    DATA lGuiLinkFlag  INIT .F.
 
    DATA cDefFlagsC INIT Nil
@@ -1193,8 +1194,12 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
       ENDIF
    NEXT
 
+   ::lBuildRes := ::lGuiLib
    IF !Empty( ::cGtLib )
-      ::lGuiLib := .F.
+      ::lBuildRes := .F.
+      IF !( ::cGtLib == "gthwg" )
+         ::lGuiLib := .F.
+      ENDIF
       ::cFlagsPrg += " -d__" + Upper( ::cGtLib ) + "__"
       IF ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg"
          ::lGuiLinkFlag := .T.
@@ -1310,7 +1315,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
    _ShowProgress( "Harbour: "+Iif(::lHarbour,"Yes","No") + ;
-      " Guilib: "+Iif(::lGuiLib,"Yes","No") + ;
+      " Guilib: "+Iif(::lGuiLib,"Yes","No") + " BuildRes: "+Iif(::lBuildRes,"Yes","No") + ;
       " GuiFlags: "+Iif(::lGuiLinkFlag,"Yes","No"), 1,, @cFullOut )
    // Compile prg sources with Harbour
    cCmd := _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour " + cHrbDefFlags + ;
@@ -1391,7 +1396,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
 #ifndef __PLATFORM__UNIX
-   IF ::lGuiLib .AND. !::lLib .AND. !lErr .AND. !Empty( ::oComp:cCmdRes )
+   IF ::lBuildRes .AND. !::lLib .AND. !lErr .AND. !Empty( ::oComp:cCmdRes )
       // Compile resource files
       cOut := Nil
       IF File( cPathHwgui + "\image\WindowsXP.Manifest" )
