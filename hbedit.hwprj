@@ -8,6 +8,8 @@
 {win}c_compiler=mingw
 {win}guilib=uni
 {!nohwg}gtlib=gthwg
+{win}{nohwg}gtlib=gtwvt
+{unix}{nohwg}gtlib=gttrm
 
 {!nossh}cflags=-D_USE_HB
 prgflags=-d_FULL
@@ -16,6 +18,7 @@ prgflags=-d_FULL
 
 libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
+{unix}libs=rt
 {!nossh}libs=ssh2
 
 {!nohwg}{!nossh}outname=hbeditw
