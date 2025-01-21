@@ -1,0 +1,53 @@
+# HbEdit project file
+# hwbc hbedit.hwprj -{nossh} - build without ssh
+# hwbc hbedit.hwprj -{nohwg} - build without gthwg
+
+#makemode=on
+#objpath=obj
+
+{win}c_compiler=mingw
+{win}guilib=uni
+{!nohwg}gtlib=gthwg
+
+{!nossh}cflags=-D_USE_HB
+prgflags=-d_FULL
+{!nossh}prgflags=-d_USE_SSH2
+{!nohwg}prgflags=-dGTHWG
+
+libs=hbzlib hbmzip minizip hbnetio hbwin
+{win}libs=hbwin
+{!nossh}libs=ssh2
+
+{!nohwg}{!nossh}outname=hbeditw
+{nohwg}{nossh}outname=hbedit
+{nohwg}{!nossh}outname=hbedit_ssh
+
+{win}srcpath=\papps\gitapps\hbedit\source
+{unix}srcpath=/home/alkresin/apps/gitapps/hbedit/source
+hbedit.prg
+fedit.prg
+fmenu.prg
+fcmd.prg
+fgetsys.prg
+falert.prg
+ffiles.prg
+fkeymaps.prg
+fdiff.prg
+hilight.prg
+fautoc.prg
+errorsys.prg
+hbcommander.prg
+fview.prg
+{!nossh}hbcvf.prg
+hbextcli.prg
+cfuncs.c
+
+{win}srcpath=\papps\gitapps\hbedit\source\trie
+{unix}srcpath=/home/alkresin/apps/gitapps/hbedit/source/trie
+trie.c
+hbtrie.c
+
+{win}{!nossh}srcpath=\papps\gitapps\hbedit\source\ssh2
+{unix}{!nossh}srcpath=/home/alkresin/apps/gitapps/hbedit/source/ssh2
+{!nossh}hbcssh2.prg
+{!nossh}hb_ssh2.c
