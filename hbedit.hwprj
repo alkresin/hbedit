@@ -14,7 +14,7 @@ prgflags=-d_FULL
 {!nossh}prgflags=-d_USE_SSH2
 {!nohwg}prgflags=-dGTHWG
 
-libs=hbzlib hbmzip minizip hbnetio hbwin
+libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
 {!nossh}libs=ssh2
 
