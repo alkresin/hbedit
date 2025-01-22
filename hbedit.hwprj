@@ -1,6 +1,7 @@
 # HbEdit project file
 # hwbc hbedit.hwprj -{nossh} - build without ssh
 # hwbc hbedit.hwprj -{nohwg} - build without gthwg
+# libssh2-devel must be installed in Linux system to build hbedit with ssh support
 
 #makemode=on
 #objpath=obj

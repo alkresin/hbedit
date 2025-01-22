@@ -108,7 +108,7 @@ FUNCTION hwbc_Run( cFile, lFromEdit )
             cGTlib := Substr( aDop[i], 2 )
          ELSEIF Left( aDop[i],2 ) == '-{'
             IF ( j := At( "}", aDop[i] ) ) > 3
-               AAdd( aUserPar, Substr( cDop, 3, j-3 ) )
+               AAdd( aUserPar, Substr( aDop[i], 3, j-3 ) )
             ENDIF
          ELSEIF Left( aDop[i],2 ) == "-l"
             cLibsDop += _DropQuotes( Substr( aDop[1],3 ) )
@@ -995,6 +995,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
       arr := hb_Atokens( Memoread( xSource ), Chr(10) )
    ENDIF
 
+   _MsgInfo( "User params: " + hb_ValToExp( aUserPar )  + hb_eol() )
    IF !Empty( aFiles )
       FOR i := 1 TO Len( aFiles )
          IF !( Lower( hb_fnameExt( aFiles[i,1] ) ) == ".hwprj" )

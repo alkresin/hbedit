@@ -16,9 +16,12 @@
 #include "hbapicdp.h"
 
 static HB_SIZE nLastX, nLastPos;
+#if defined(__linux__) || defined(__unix__)
 static char* shm_file_name = "hbedit_cb";
+#endif
 
 #include "hbapifs.h"
+/*
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
 
@@ -52,7 +55,7 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
       }
    }
 }
-
+*/
 
 static int cedi_Utf8CharLen( unsigned char ucChar )
 {
@@ -901,11 +904,12 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
    if( iOutExist == 1 )
       CloseHandle( hOut );
    else if( iOutExist == 2 )
+   {
       if( read_all > 0 )
          hb_storclen_buffer( pOut, read_all, 3 );
       else
          hb_storc( "", 3 );
-
+   }
    CloseHandle( g_hChildStd_OUT_Rd );
 
    hb_retni( ( int ) dwExitCode );
@@ -1010,7 +1014,6 @@ static int CreateChildProcess( PROCESS_HANDLES * pHandles, char * pName, short i
 static int ReadFromPipe( PROCESS_HANDLES * pHandles, CHAR *chBuf, int *iRead )
 {
    DWORD dwRead = 0;
-   BOOL bSuccess;
    DWORD result;
    int iRes = 1;
 
@@ -1456,7 +1459,7 @@ HB_FUNC( CEDI_CHECKMULTICOMM )
                pLine += iLenM1-1;
             }
             else
-               pLine == ptr + iLenM1-1;
+               pLine = ptr + iLenM1-1;
          }
          pLine ++;
       }
