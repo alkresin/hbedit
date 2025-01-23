@@ -96,13 +96,13 @@ FUNCTION Main( ... )
       ENDIF
    ENDIF
 
-#ifdef GTWVT
+#ifdef __GTWVT__
    ANNOUNCE HB_GTSYS
    REQUEST HB_GT_WVT
    REQUEST HB_GT_WVT_DEFAULT
 #endif
 
-#ifdef GTHWG
+#ifdef __GTHWG__
    //ANNOUNCE HB_GTSYS
    REQUEST HB_GT_HWGUI
    REQUEST HB_GT_HWGUI_DEFAULT
@@ -110,7 +110,7 @@ FUNCTION Main( ... )
    gthwg_CreateMainWindow( "HbEdit" )
 #endif
 
-#ifdef GTXWC
+#ifdef __GTXWC__
    ANNOUNCE HB_GTSYS
    REQUEST HB_GT_XWC
    REQUEST HB_GT_XWC_DEFAULT
@@ -196,7 +196,7 @@ FUNCTION Main( ... )
    FilePane():onExit()
 #endif
 
-#ifdef GTHWG
+#ifdef __GTHWG__
    gthwg_CloseWindow()
 #endif
 

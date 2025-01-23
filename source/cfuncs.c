@@ -532,7 +532,7 @@ HB_FUNC( CEDI_RUNCONSOLEAPP )
 
 HB_FUNC( CEDI_RUNAPP )
 {
-#ifdef GTHWG
+#ifdef __GTHWG__
    hb_retl( g_spawn_command_line_async( hb_parc(1), NULL ) );
 #else
    hb_retl( 0 );

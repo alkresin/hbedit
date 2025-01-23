@@ -12,8 +12,8 @@ A fullscreen console multiplatform text editor with built-in file manager
 
 ### Project files
 
-  + bld_edit.bat        - command file to build Hbedit for Windows (Borland C compiler).
-  + bld_edit.sh         - shell script to build Hbedit for Linux.
+  + bld_edit.bat        - command file to build Hbedit for Windows (Borland C compiler) without GTHWG and ssh2
+  + bld_edit.sh         - shell script to build Hbedit for Linux without GTHWG and ssh2
   + bld_edit_hwg.sh     - shell script to build Hbedit for Linux with GTHWG driver
   + bld_edit_hwg_ssh.sh - shell script to build Hbedit for Linux with GTHWG driver and ssh2 support
   + bld_gcc_ssh.bat     - command file to build full Hbedit for Windows (Mingw C compiler) with ssh2 support
@@ -21,8 +21,6 @@ A fullscreen console multiplatform text editor with built-in file manager
                           and GTHWG driver (HwGUI support)
   + bld_plugins.bat     - command file to build plugins.
   + bld_plugins.sh      - shell script to build plugins.
-  + hbedit.hbp          - project file to build hbedit with hbmk2.
-  + hbedit_full.hbp     - project file to build full hbedit with hbmk2.
   + hbedit.hwprj        - project file to build hbedit with HwBuilder.
   + hbc.help            - HbCommander (built-in file manager) help file.
   + hbedit.help         - Hbedit help file (Russian).

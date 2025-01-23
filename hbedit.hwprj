@@ -15,14 +15,13 @@
 {!nossh}cflags=-D_USE_HB
 prgflags=-d_FULL
 {!nossh}prgflags=-d_USE_SSH2
-{!nohwg}prgflags=-dGTHWG
 
 libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
 {unix}libs=rt
 {!nossh}libs=ssh2
 
-{!nohwg}{!nossh}outname=hbeditw
+{!nohwg}{!nossh}outname=hbedit_hwg
 {nohwg}{nossh}outname=hbedit
 {nohwg}{!nossh}outname=hbedit_ssh
 

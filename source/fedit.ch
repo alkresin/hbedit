@@ -9,7 +9,7 @@
    #define _NO_HBC
 #else
    #include "hbfuncsfull.ch"
-   #ifdef GTHWG
+   #ifdef __GTHWG__
       #ifdef __PLATFORM__UNIX
          #define __GTK__
       #endif

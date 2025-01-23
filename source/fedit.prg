@@ -100,7 +100,7 @@ CLASS TEdit
    CLASS VAR cLangCP    SHARED
    CLASS VAR hMisc      SHARED
 #ifdef __PLATFORM__UNIX
-#ifndef GTHWG
+#ifndef __GTHWG__
    CLASS VAR cClipCmd   SHARED
 #endif
 #endif
@@ -2607,7 +2607,7 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
    IF nLen == 1
       IF nReg == 1
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
          s := s_cb2t( oEdit )
 #else
          s := TEdit():aCBoards[1,1]
@@ -2745,7 +2745,7 @@ FUNCTION edi_2cb( oEdit, nReg, s )
       TEdit():aCBoards[nReg,1] := s
       IF nReg == 1
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
          s_t2cb( oEdit, s )
 #endif
 #else
@@ -2761,7 +2761,7 @@ FUNCTION edi_2cb( oEdit, nReg, s )
 FUNCTION s_t2cb( oEdit, s )
 
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
    IF !oEdit:lUtf8
       s := hb_Translate( s, oEdit:cp, "UTF8" )
       hb_cdpSelect( "UTF8" )
@@ -2786,7 +2786,7 @@ FUNCTION s_cb2t( oEdit )
 
    LOCAL s
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
    IF !Empty(oEdit) .AND. !oEdit:lUtf8
       hb_cdpSelect( "UTF8" )
    ENDIF
@@ -3031,7 +3031,7 @@ FUNCTION edi_ReadIni( xIni )
          TEdit():cDefPal := "default"
       ENDIF
 
-#if defined ( __PLATFORM__WINDOWS ) || defined ( GTHWG )
+#if defined ( __PLATFORM__WINDOWS ) || defined ( __GTHWG__ )
       FOR nSect := 1 TO Len( aIni )
          IF Left( Upper(aIni[nSect]),8 ) == "PALETTE_"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
@@ -3147,7 +3147,7 @@ FUNCTION edi_ReadIni( xIni )
       TEdit():aCBoards[i,1] := TEdit():aCBoards[i,2] := ""
    NEXT
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
    TEdit():aCBoards[1,1] := s_cb2t()
    TEdit():aCBoards[1,2] := TEdit():cpInit
    TEdit():aCBoards[1,3] := Nil
@@ -3239,7 +3239,7 @@ FUNCTION edi_ReadIni( xIni )
    ENDIF
 
 #ifdef __PLATFORM__UNIX
-#ifndef GTHWG
+#ifndef __GTHWG__
    IF File( cTemp := hb_DirBase() + "gtkclip" )
       cedi_RunConsoleApp( cTemp + ' -tm 2>/dev/null', "/dev/null" )
       IF !Empty( s := cedi_ShmRead() ) .AND. Left( s,1 ) == 'y'
@@ -3291,7 +3291,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
    cDop += _I(" without HbCommander")
   #endif
 #endif
-#ifdef GTHWG
+#ifdef __GTHWG__
    cDop += " (gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2))) + ")"
 #endif
    IF Empty( cFullPath )
@@ -3580,7 +3580,7 @@ FUNCTION mnu_F3( oEdit, nSeleMode )
          edi_2cb( oEdit, i )
          IF i == 1
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
             s_t2cb( oEdit, TEdit():aCBoards[1,1] )
 #endif
 #else

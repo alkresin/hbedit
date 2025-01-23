@@ -25,7 +25,7 @@ REQUEST HB_CODEPAGE_FRISO
 REQUEST HB_CODEPAGE_UTF8
 
 REQUEST NETIO_PROCEXISTS, NETIO_PROCEXEC, NETIO_FUNCEXEC
-#ifdef GTHWG
+#ifdef __GTHWG__
 REQUEST GTHWG_PAINT_SETCALLBACK
 #endif
 
@@ -72,7 +72,7 @@ FUNCTION Hbc( oEdit )
    ENDIF
 
    IF Empty( FilePane():cp )
-#if defined (GTHWG) || defined (GTWVT)
+#if defined (__GTHWG__) || defined (__GTWVT__)
       lGuiVer := .T.
 #endif
 
@@ -473,7 +473,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ELSEIF Ascan( aExtZip, {|s| s==cExt} ) > 0 .AND. hbc_FReadArh()
             ELSE
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
                hwg_shellExecute( "file://" + cTemp )
 #endif
 #else
@@ -2721,7 +2721,7 @@ STATIC FUNCTION hbc_Doclist( n )
          oPaneCurr:ChangeDir( cNewDir )
       ELSEIF i > 0
 #ifdef __PLATFORM__UNIX
-#ifdef GTHWG
+#ifdef __GTHWG__
          hwg_shellExecute( "file://" + Filepane():aDocHis[n,i,2] )
 #endif
 #else
