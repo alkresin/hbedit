@@ -994,8 +994,11 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
       ::cFile := xSource
       arr := hb_Atokens( Memoread( xSource ), Chr(10) )
    ENDIF
+   IF Empty( aPrjVars )
+      _MsgInfo( "User params: " + hb_ValToExp( aUserPar )  + hb_eol() )
+      AAdd( aPrjVars, {"COMPILER",oComp:id} )
+   ENDIF
 
-   _MsgInfo( "User params: " + hb_ValToExp( aUserPar )  + hb_eol() )
    IF !Empty( aFiles )
       FOR i := 1 TO Len( aFiles )
          IF !( Lower( hb_fnameExt( aFiles[i,1] ) ) == ".hwprj" )
@@ -1086,6 +1089,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
                IF ( j := Ascan( HCompiler():aList, {|o|o:id == cTmp} ) ) > 0
                   IF lCompDefault
                      oComp := HCompiler():aList[j]
+                     aPrjVars[1,2] := oComp:id
                   ENDIF
                ELSE
                   _MsgStop( cLine, "Wrong compiler id" )
@@ -1241,7 +1245,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath
    LOCAL aLibs, cLibs := "", a4Delete := {}, tStart := hb_DtoT( Date(), Seconds()-1 )
    LOCAL aEnv, cResFile := "", cResList := ""
-   LOCAL cCompPath, cCompHrbLib
+   LOCAL cCompPath, cCompHrbLib, cCompGuiLib
 
    IF Empty( lSub ) .AND. Empty( lClean ) .AND. !Empty( i := CheckOptions( Self, @cLine ) )
       IF !( i == 2 .AND. !::lGuiLib )
@@ -1481,11 +1485,13 @@ METHOD Build( lClean, lSub ) CLASS HwProject
             "{path}", cCompPath ), "{f}", Iif( ::cDefFlagsLib == Nil, ::oComp:cLinkFlagsLib, ::cDefFlagsLib ) )
       ELSE
          cBinary := Iif( Empty(::cOutPath), "", ::cOutPath+hb_ps() ) + hb_fnameExtSet( cBinary, cExeExt )
+         cCompGuiLib := cPathHwguiLib + hb_ps() + ::oComp:id
+         cCompGuiLib := Iif( hb_direxists(cCompGuiLib), cCompGuiLib, cPathHwguiLib )
          cLine := StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( StrTran( ;
              ::oComp:cCmdLinkExe, "{out}", cBinary ), "{objs}", cObjs ), "{path}", cCompPath ), ;
              "{f}", Iif( ::cDefFlagsL == Nil, Iif( ::lGuiLinkFlag, ::oComp:cLinkFlagsGui, ;
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
-             "{hL}", cCompHrbLib ), "{gL}", Iif( ::lGuiLib.AND.::lHarbour, cPathHwguiLib,"." ) ), ;
+             "{hL}", cCompHrbLib ), "{gL}", Iif( ::lGuiLib.AND.::lHarbour, cCompGuiLib,"." ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
              "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"

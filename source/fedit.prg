@@ -3279,21 +3279,22 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
       RETURN Nil
    ENDIF
 #ifdef _USE_SSH2
-   cDop += _I(" (with libssh2 support)")
+   cDop += _I(", libssh2 support")
 #endif
 #ifdef __BUILT_IN
-   cDop += _I(" built-in version")
+   cDop += _I(", built-in version")
 #else
   #ifndef _FULL
-   cDop += _I(" basic version")
+   cDop += _I(", basic version")
   #endif
   #ifdef _NO_HBC
-   cDop += _I(" without HbCommander")
+   cDop += _I(", without HbCommander")
   #endif
 #endif
 #ifdef __GTHWG__
-   cDop += " (gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2))) + ")"
+   cDop += ", gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2)))
 #endif
+   cDop += ", " + hb_Version(1)
    IF Empty( cFullPath )
       cFullPath := edi_FindPath( "hbedit.help" )
    ENDIF
@@ -3303,7 +3304,7 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
       cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
-         "Copyright (C) 2019-2024  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
+         "Copyright (C) 2019-2025  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, cName, ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 
