@@ -2206,7 +2206,7 @@ static int changeutf8case( const char *szSrc, int iSrcLen, char **szDst,
 
          /* Reallocate buffer to 1.5 sizes of original */
          iAllocated = iAllocated + iAllocated / 2;
-         szReallocated = realloc( szTMPDst, iAllocated * sizeof( char ) );
+         szReallocated = (char*) realloc( szTMPDst, iAllocated * sizeof( char ) );
          /* Cannot reallocate memory */
          if( szReallocated == NULL )
          {
