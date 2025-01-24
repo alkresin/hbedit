@@ -15,15 +15,6 @@ FUNCTION plug_hbc_ext_all( oEdit, cPath, aParams )
       cFile := aParams[2]
       cExt := Lower( hb_fnameExt( cFile ) )
       IF cExt $ cExtImg
-         /*
-         IF !hb_hHaskey( FilePane():hMisc,"gthwg_plug" )
-            FilePane():hMisc["gthwg_plug"] := Iif( File( cPath + cGthwgHrb ), ;
-               hb_hrbLoad( cPath + cGthwgHrb ), Nil )
-         ENDIF
-         IF !Empty( FilePane():hMisc["gthwg_plug"] )
-            hb_hrbDo( FilePane():hMisc["gthwg_plug"],, cFile, "dlg", .T. )
-         ENDIF
-         */
          hbc_RunPlugin( "gthwg_plug", cPath + cGthwgHrb,, cFile, "dlg", .T. )
       ELSEIF cExt == ".fb2"
          IF ( i := Ascan2( FilePane():aPlugins, "plug_hbc_ext_fb2zip.hrb" ) ) > 0

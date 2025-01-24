@@ -236,7 +236,8 @@ STATIC FUNCTION CheckOptions( oProject, cLine )
 
    IF ( nDef := Ascan( HCompiler():aDef, {|a|a[COMP_ID] == oComp:id} ) ) > 0
       IF !oProject:lLib .AND. cGuiId == "hwgui" .AND. ( Empty( cPathHwguiLib ) .OR. ;
-         !File( cPathHwguiLib + hb_ps() + HCompiler():aDef[nDef,COMP_HWG] ) )
+         ( !File( cPathHwguiLib + hb_ps() + HCompiler():aDef[nDef,COMP_HWG] ) .AND. ;
+         !File( cPathHwguiLib + hb_ps() + oComp:id + hb_ps() + HCompiler():aDef[nDef,COMP_HWG] ) ) )
          cLine := "Empty or wrong hwgui libraries path"
          RETURN 2
       ENDIF

@@ -751,6 +751,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          aDir := oHbc:hBookMarks[nKey]
          oPaneCurr:ChangeDir( aDir[1]+aDir[2]+aDir[3]+aDir[4] )
       ENDIF
+   ELSEIF nKey == 111    // o
+      hbc_Console()
    ELSE
       nKey := edi_MapKey( oHbc, nKey )
       IF nKey == 68 .OR. nKey == 100  // D d
@@ -1784,7 +1786,7 @@ METHOD PaneMenu() CLASS FilePane
    LOCAL aMenu := { {_I("Pane mode"),,,"Ctrl-P"}, {_I("Change dir"),,,"D"}, ;
       {_I("History"),,,"H"}, {_I("Find file"),,,"Ctrl-F7"}, ;
       {_I("Plugins"),,,"F11"}, {"Hbedit "+_I("Plugins"),,,"Z"}, {_I("Apps"),,,"A"}, {_I("Buffers"),,,"F12"}, {_I("Refresh"),,,"Ctrl-R"}, ;
-      {_I("Console"),,,"Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {_I("Edit")+ " hbedit.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
+      {_I("Console"),,,"O|Ctrl-O"}, {cSep,,}, {_I("Edit")+ " hbc.ini",,}, {_I("Edit")+ " hbedit.ini",,}, {cSep,,}, {_I("Exit"),,,"F10"} }
 
    IF !Empty( FilePane():cConsOut )
       aMenu := hb_AIns( aMenu, Len(aMenu)-3, {_I("Stdout window"),,,"Ctrl-W"}, .T. )
