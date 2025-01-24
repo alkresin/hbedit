@@ -12,7 +12,9 @@
 {win}{nohwg}gtlib=gtwvt
 {unix}{nohwg}gtlib=gttrm
 
-{!nossh}cflags=-D_USE_HB
+cflags=-D_USE_HB
+{!nohwg}cflags=-D__GTHWG__
+
 prgflags=-d_FULL
 {!nossh}prgflags=-d_USE_SSH2
 
