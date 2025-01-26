@@ -218,23 +218,22 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    LOCAL cPathPlug := edi_FindPath( "plugins" + hb_ps() + "hwbuilder.hrb" )
 
    edi_CloseWindow( cAddW )
+   oEdit:Save()
+   DirChange( cPathBase )
 
-   IF !hb_isFunction( "HWBUILDER" ) .AND. File( cPathPlug )
-      x := hb_hrbLoad( cPathPlug )
-      IF hb_isFunction( "FILEPANE" )
-         FilePane():hMisc["hwbc_plug"] := x
-      ELSE
-         hPlugHwbc := x
+   IF hb_isFunction( "FILEPANE" )
+      cBuff := hbc_RunPlugin( "hwbc_plug", cPathPlug, oEdit:cFileName, .T. )
+   ELSE
+      IF Empty( hPlugHwbc )
+         hPlugHwbc := hb_hrbLoad( cPathPlug )
+      ENDIF
+      IF !Empty( hPlugHwbc )
+         cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '",.T.)}' ) )
       ENDIF
    ENDIF
    lPlug := hb_isFunction( "HWBUILDER" )
 
-   oEdit:Save()
-
-   DirChange( cPathBase )
-   IF lPlug
-      cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '",.T.)}' ) )
-   ELSE
+   IF !lPlug
       IF ( cDop := _GetParams() ) == Nil
          RETURN Nil
       ENDIF
@@ -244,8 +243,7 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
    DirChange( cCurrDir )
 
    IF Empty( cBuff )
-      IF lPlug
-      ELSE
+      IF !lPlug
          edi_Alert( "hwbc" + Iif( lUnix, "", ".exe" ) + " isn't found" )
       ENDIF
    ELSE
@@ -267,7 +265,7 @@ STATIC FUNCTION _GetParams()
    x1 := Int( MaxCol()/2 ) - 20
    x2 := x1 + 40
 
-   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+   aGets := { {y1,x1+4, 11, "Hwbc parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, 1, .F., 2 }, ;
       { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;

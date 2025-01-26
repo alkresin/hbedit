@@ -71,10 +71,7 @@ STATIC cLibsHwGUI := ""
 STATIC cFontMain := "", lProgressOn := .T., cExtView := ""
 STATIC sResult
 
-FUNCTION HwBuilder()
-   RETURN Nil
-
-FUNCTION hwbc_Run( cFile, lFromEdit )
+FUNCTION HwBuilder( cFile, lFromEdit )
 
    LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., oComp, cComp, aUserPar := {}, aFiles := {}
    LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := ""
@@ -163,7 +160,7 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
    x1 := Int( MaxCol()/2 ) - 16
    x2 := x1 + 32
 
-   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+   aGets := { {y1,x1+4, 11, "Plugin parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
       { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, Iif(lHwprj,-1,1), .T., 2 }, ;

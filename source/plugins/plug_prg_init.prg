@@ -17,6 +17,7 @@ STATIC lIsCurl := .F., cServAddr
 STATIC lDescri := .T., lSources := .F., lChglog := .F., lSamples := .F., lRu := .F.
 STATIC aHwgFuncs, aHbFuncs
 STATIC aHbShort
+STATIC hPlugHwbc
 
 FUNCTION Plug_prg_Init( oEdit, cPath )
 
@@ -305,25 +306,43 @@ STATIC FUNCTION _prg_AddCode( oEdit )
 
 STATIC FUNCTION _prg_Init_Build( oEdit )
 
-   LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err"
+   LOCAL cBuff, oNew, i, cDop, cAddW := "$hb_compile_err", lPlug
    LOCAL cPathBase := hb_fnameDir( oEdit:cFileName ), cCurrDir := Curdir()
+   LOCAL cPathPlug := edi_FindPath( "plugins" + hb_ps() + "hwbuilder.hrb" )
 
    edi_CloseWindow( cAddW )
-
    oEdit:Save()
-   IF ( cDop := _GetParams() ) == Nil
-      RETURN Nil
-   ENDIF
-
-   SetColor( oEdit:cColorSel )
-   @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
    DirChange( cPathBase )
-   cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+
+   IF hb_isFunction( "FILEPANE" )
+      cBuff := hbc_RunPlugin( "hwbc_plug", cPathPlug, oEdit:cFileName, .T. )
+   ELSE
+      IF Empty( hPlugHwbc )
+         hPlugHwbc := hb_hrbLoad( cPathPlug )
+      ENDIF
+      IF !Empty( hPlugHwbc )
+         cBuff := Eval( &( '{||HWBC_RUN("' + oEdit:cFileName + '",.T.)}' ) )
+      ENDIF
+   ENDIF
+   lPlug := hb_isFunction( "HWBUILDER" )
+
+   IF !lPlug
+      IF ( cDop := _GetParams() ) == Nil
+         RETURN Nil
+      ENDIF
+
+      SetColor( oEdit:cColorSel )
+      @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
+
+      cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+   ENDIF
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
 
    IF Empty( cBuff )
-      edi_Alert( "hwbc" + Iif( hb_version(20), "", ".exe" ) + " isn't found" )
+      IF !lPlug
+         edi_Alert( "hwbc" + Iif( hb_version(20), "", ".exe" ) + " isn't found" )
+      ENDIF
    ELSE
       oNew := edi_AddWindow( oEdit, cBuff, cAddW, 2, Int( (oEdit:y2-oEdit:y1)/3 ) )
       oNew:lReadOnly := .T.
@@ -343,7 +362,7 @@ STATIC FUNCTION _GetParams()
    x1 := Int( MaxCol()/2 ) - 20
    x2 := x1 + 40
 
-   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+   aGets := { {y1,x1+4, 11, "Hwbc parameters"}, ;
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+2,x1+2, 11, "-bcc -mingw -msvc -comp=... -{...}" }, ;
       { y1+3,x1+2, 0, "", x2-x1-4 } }
