@@ -958,9 +958,6 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
       IF lNoGui
          ::lGuiLib := .F.
       ENDIF
-      IF ::lGuiLib
-         ::lGuiLinkFlag := .T.
-      ENDIF
       FOR i := 1 TO Len( ::aFiles )
          IF Lower( hb_fnameExt( ::aFiles[i,1] ) ) == ".prg"
            ::lHarbour := .T.
@@ -1197,21 +1194,6 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
       ENDIF
    NEXT
 
-   ::lBuildRes := ::lGuiLib
-   IF !Empty( ::cGtLib )
-      ::lBuildRes := .F.
-      IF !( ::cGtLib == "gthwg" )
-         ::lGuiLib := .F.
-      ENDIF
-      ::cFlagsPrg += " -d__" + Upper( ::cGtLib ) + "__"
-      IF ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg"
-         ::lGuiLinkFlag := .T.
-      ENDIF
-   ENDIF
-   IF ::lGuiLib
-      ::lGuiLinkFlag := .T.
-   ENDIF
-
    IF !Empty( ::aProjects ) .AND. Empty( ::aFiles ) .AND. !::lLib
       lLib := .T.
       FOR i := 1 TO Len( ::aProjects )
@@ -1244,6 +1226,21 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    LOCAL aLibs, cLibs := "", a4Delete := {}, tStart := hb_DtoT( Date(), Seconds()-1 )
    LOCAL aEnv, cResFile := "", cResList := ""
    LOCAL cCompPath, cCompHrbLib, cCompGuiLib
+
+   ::lBuildRes := ::lGuiLib
+   IF !Empty( ::cGtLib )
+      ::lBuildRes := .F.
+      IF !( ::cGtLib == "gthwg" )
+         ::lGuiLib := .F.
+      ENDIF
+      ::cFlagsPrg += " -d__" + Upper( ::cGtLib ) + "__"
+      IF ::cGtLib $ "gttrm;gtwvt;gtxwc;gtwvg;gtwvw;gthwg"
+         ::lGuiLinkFlag := .T.
+      ENDIF
+   ENDIF
+   IF ::lGuiLib
+      ::lGuiLinkFlag := .T.
+   ENDIF
 
    IF Empty( lSub ) .AND. Empty( lClean ) .AND. !Empty( i := CheckOptions( Self, @cLine ) )
       IF !( i == 2 .AND. !::lGuiLib )
