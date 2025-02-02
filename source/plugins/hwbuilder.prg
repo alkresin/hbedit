@@ -74,7 +74,7 @@ STATIC sResult
 FUNCTION HwBuilder( cFile, lFromEdit )
 
    LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., oComp, cComp, aUserPar := {}, aFiles := {}
-   LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := ""
+   LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := "", cFlagsPrg := ""
    LOCAL cAddW := "$hb_compile_err", oOld, oPane
 
    IF Empty( lFromEdit ); lFromEdit := .F.; ENDIF
@@ -103,6 +103,8 @@ FUNCTION HwBuilder( cFile, lFromEdit )
       FOR i := 1 TO Len( aDop )
          IF Left( aDop[i],3 ) == "-gt"
             cGTlib := Substr( aDop[i], 2 )
+         ELSEIF Left( aDop[i],3 ) == "-pf"
+            cFlagsPrg := _DropQuotes( Substr( aDop[1],4 ) )
          ELSEIF Left( aDop[i],2 ) == '-{'
             IF ( j := At( "}", aDop[i] ) ) > 3
                AAdd( aUserPar, Substr( aDop[i], 3, j-3 ) )
@@ -124,7 +126,7 @@ FUNCTION HwBuilder( cFile, lFromEdit )
          ENDIF
       ELSE
          oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
-            "", "", "", "", "", .F., .F., lNoGui )
+            "", cFlagsPrg, "", "", "", .F., .F., lNoGui )
          oPrg:Build()
       ENDIF
       cFile := hb_fnameNameExt( cFile )
@@ -1451,6 +1453,12 @@ METHOD Build( lClean, lSub ) CLASS HwProject
       // Link the app
       cBinary := Iif( Empty( ::cOutName ), hb_fnameNameExt( ::aFiles[1,1] ), ::cOutName )
       cOut := Nil
+      IF hb_Ascan( hb_ATokens( ::cFlagsPrg ), "-b",,, .T. ) > 0
+         aLibs := { "hwgdebug", "hbdebug" }
+         FOR i := 1 TO Len( aLibs )
+            cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
+         NEXT
+      ENDIF
       IF ::lGuiLib .AND. ::lHarbour
          aLibs := hb_ATokens( cLibsHwGUI, " " )
          FOR i := 1 TO Len( aLibs )
