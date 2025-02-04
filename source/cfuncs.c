@@ -160,6 +160,33 @@ HB_FUNC( CEDI_PEEK )
    }
 }
 
+HB_FUNC( CEDI_BPOKE )
+{
+   PHB_ITEM pText = hb_param( 1, HB_IT_STRING );
+   char * pszText;
+
+   if( pText && HB_ISNUM( 2 ) && HB_ISNUM( 3 ) )
+   {
+      HB_SIZE nPos = hb_parns( 2 ), nLen;
+
+      if( HB_ISLOG(4) && hb_parl( 4 ) )
+      {
+         if( nPos > 0 && hb_itemGetWriteCL( pText, &pszText, &nLen ) &&
+             nPos <= nLen )
+         {
+            pszText[ nPos - 1 ] = ( char ) ( hb_parni( 3 ) & 0xff );
+            //pszText[ nPos ] = ( char ) ( 68 & 0xff );
+         }
+         hb_itemReturn( pText );
+      } else
+      {
+         pszText = (char*) hb_itemGetCPtr( pText );
+         pszText[ nPos - 1 ] = ( char ) ( hb_parni( 3 ) & 0xff );
+         hb_retc( pszText );
+      }
+   }
+}
+
 HB_FUNC( CEDI_GETLASTPOS )
 {
    hb_retnl( nLastX + 1 );
