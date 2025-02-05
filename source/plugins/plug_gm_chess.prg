@@ -2101,7 +2101,7 @@ STATIC FUNCTION ii_SunfishNewMove()
 STATIC FUNCTION ii_SunfPrgNewMove()
 
    LOCAL aHist, aSea, cBoard := aCurrPos[POS_BOARD], cBoardNew := "", i
-   LOCAL aMove, nMove
+   LOCAL nMove, nFrom, nTo
 
    pos_Init()
 
@@ -2109,17 +2109,25 @@ STATIC FUNCTION ii_SunfPrgNewMove()
       cBoardNew += ' ' + Strtran( Substr(cBoard,i*8+1,8), ' ', '.' ) + Chr(13)
    NEXT
    aHist := { { cBoardNew, 0, {.T.,.T.}, { .T.,.T.}, 0, 0 } }
-   //AAdd( aHist, pos_Rotate( ATail(aHist) ) )
+   IF lTurnBlack
+      AAdd( aHist, pos_Rotate( ATail(aHist) ) )
+   ENDIF
    aSea := sea_Init()
 
    Scroll( Y1T, X2T+26, oGame:y2-1, X2T+50 )
-   hb_MemoWrit( "a1.txt", ATail(aHist)[POS_BOARD] )
+   //hb_MemoWrit( "a1.txt", ATail(aHist)[POS_BOARD] )
    nMove := sea_Search( aSea, ATail(aHist), aHist )
- //  aMove := { PLAST - hb_BitAnd(nMove,0xff), PLAST - hb_BitAnd(hb_BitShift(nMove,-8),0xff) }
-   aMove := { hb_BitAnd(nMove,0xff), hb_BitAnd(hb_BitShift(nMove,-8),0xff) }
-   edi_Alert( hb_valtoexp( aMove ) )
+   IF lTurnBlack
+      nFrom := PLAST - hb_BitAnd( nMove,0xff )
+      nTo := PLAST - hb_BitAnd( hb_BitShift(nMove,-8),0xff )
+   ELSE
+      nFrom := hb_BitAnd( nMove,0xff )
+      nTo := hb_BitAnd( hb_BitShift(nMove,-8),0xff )
+   ENDIF
+   nFrom -= ( Int( nFrom / 10 ) * 2 + 1 )
+   nTo -= ( Int( nTo / 10 ) * 2 + 1 )
 
-   RETURN { aMove[1], aMove[2], 100 }
+   RETURN { nFrom, nTo, 100 }
 
 STATIC FUNCTION pos_Init()
 
@@ -2297,7 +2305,6 @@ STATIC FUNCTION pos_Move( aPos, aMove )
 
 STATIC FUNCTION pos_Value( aPos, aMove )
 
-   //LOCAL i := aMove[1], j := aMove[2]
    LOCAL i := hb_BitAnd(aMove,0xff), j := hb_BitAnd(hb_BitShift(aMove,-8),0xff)
    LOCAL p := Substr( aPos[POS_BOARD],i,1 ), q := Substr( aPos[POS_BOARD],j,1 )
    LOCAL score := pst[p][j] - pst[p][i]
@@ -2339,7 +2346,7 @@ STATIC FUNCTION sea_Init()
 
 STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
 
-   LOCAL entry, aMoves, move, best, a, am, m, lAll
+   LOCAL entry, aMoves, move, best, a, am, m, lAll, l, b
    LOCAL killer, score
    LOCAL bServ := {||
       best := Max( best, score )
@@ -2412,7 +2419,15 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
       hb_AIns( aMoves, 1, killer, .T. )
    ENDIF
    FOR EACH move IN aMoves
-      IF depth > 0 .OR. pos_Value( aPos, move ) >= QS_LIMIT
+      b := ErrorBlock( { |e|break( e ) } )
+      BEGIN SEQUENCE
+         l := (depth > 0 .OR. ( m := pos_Value( aPos, move ) ) >= QS_LIMIT)
+      RECOVER
+         edi_alert( valtype(depth)+valtype(QS_LIMIT)+valtype(m) )
+      END SEQUENCE
+      Errorblock( b )
+
+      IF l
          score := -sea_Bound( aSea, pos_Move( aPos,move ), 1-gamma, depth-1, .F. )
          IF ( best := Eval( bServ ) ) >= gamma
             EXIT
@@ -2485,9 +2500,15 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       sea_Bound( aSea, aPos, lower, depth )
       move = hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
       score := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,.T.), {Nil, Nil} )[1]
-      @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
-         hb_valtoexp( {hb_BitAnd(move,0xff), hb_BitAnd(hb_BitShift(move,-8),0xff)} ) + ' ' + ;
-         hb_valtoexp( score )
+      IF lTurnBlack
+         @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+            _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
+            hb_valtoexp( score )
+      ELSE
+         @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+            _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
+            hb_valtoexp( score )
+      ENDIF
       IF Seconds() - nSec > SEC_LIMIT
          IF score == MATE_UPPER
             nGameResult := 1
@@ -2497,6 +2518,14 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
    NEXT
 
    RETURN move
+
+STATIC FUNCTION _render( i )
+   LOCAL rank := Int( (i - A1)/10 ), fil := Int( (i - A1)%10 )
+   IF i - A1 < 0 .AND. fil != 0
+      rank -= 1; fil := 10 - Abs(fil)
+   ENDIF
+   RETURN Chr(fil + Asc('a')) + Ltrim(str(-rank + 1))
+
 // ---------
 
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
