@@ -182,7 +182,8 @@ HB_FUNC( CEDI_BPOKE )
       {
          pszText = (char*) hb_itemGetCPtr( pText );
          pszText[ nPos - 1 ] = ( char ) ( hb_parni( 3 ) & 0xff );
-         hb_retc( pszText );
+         //hb_retc( pszText );
+         hb_itemReturnForward( pText );
       }
    }
 }
@@ -419,6 +420,19 @@ HB_FUNC( CEDI_REDIROFF )
       close( fd );
       clearerr( ( istd == 1 ) ? stdout : stderr );
    }
+}
+
+HB_FUNC( CEDI_FLIP )
+{
+   PHB_ITEM pText = hb_param( 1, HB_IT_STRING );
+   int nLen = hb_itemGetCLen( pText ), i;
+   char * szBuff1 = (char *) hb_itemGetCPtr( pText );
+   char * szBuff2 = ( char * ) hb_xgrab( nLen + 1 );
+
+   for( i=0; i<nLen; i++ )
+      szBuff2[nLen-i-1] = ( szBuff1[i] >= 'A' )? ( ( szBuff1[i] < 'a' )? szBuff1[i]+32 : szBuff1[i]-32 ) : szBuff1[i];
+   szBuff2[nLen] = '\0';
+   hb_retclen_buffer( szBuff2, nLen );
 }
 
 #define BUFSIZE  16384

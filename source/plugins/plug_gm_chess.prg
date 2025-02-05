@@ -183,6 +183,11 @@ STATIC aThemes := { { 0xB0B0B0, 0x707070, 0, 0xFFFFFF, 0 }, ;
    { 0xffcf9f, 0xd28c45, 0, 0xffffff, 0 }, ;
    { 0xffffff, 0xe2e2e2, 0, 255, 0 } }, cUserTheme, nTheme := 1
 
+// Sunfush.prg
+STATIC lSunfPrgInit := .F.
+STATIC piece, pst, directions
+STATIC MATE_LOWER, MATE_UPPER, nGameResult
+
 FUNCTION plug_gm_Chess( oEdit, cPath )
 
    LOCAL i, cName := "$Chess"
@@ -342,14 +347,14 @@ STATIC FUNCTION _Game_SetDiag( nMove )
 
 STATIC FUNCTION _Game_Level( nTitle )
 
-   LOCAL i, aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2"), "Sunfish" }
+   LOCAL i, aMenu := { Iif(lRussian,"Уровень 1","Level 1"), Iif(lRussian,"Уровень 2","Level 2"), "Sunfish.prg", "Sunfish" }
    /*
    IF nTitle == 1
       RETURN FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, Iif(lRussian,"Белые","White") )
    ENDIF
    AAdd( aMenu, "Sunfish" )
    */
-   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+4, x2t+40,,,,,,,, ;
+   i := FMenu( oGame, aMenu, y1t, x2t+2, y1t+5, x2t+40,,,,,,,, ;
       Iif( nTitle==1, Iif(lRussian,"Белые","White"), Iif(lRussian,"Черные","Black") ) )
    IF i == Len( aMenu )
       i := Iif( !Empty( cCompiler ) .OR. !Empty( cCompiler := edi_CheckPython() ), 10, 1 )
@@ -1255,8 +1260,10 @@ STATIC FUNCTION ii_MakeMove( nLevel )
       aMaxOcen := ii_SunfishNewMove()
    ELSEIF nLevel == 1
       aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
-   ELSE
+   ELSEIF nLevel == 2
       aMaxOcen := ii_ScanBoard_2( aCurrPos, .F., nDeep2 )
+   ELSE
+      aMaxOcen := ii_SunfPrgNewMove()
    ENDIF
    lDebug := .F.
    @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
@@ -1991,34 +1998,11 @@ STATIC FUNCTION chess_Settings()
 
    RETURN Nil
 /*
-STATIC FUNCTION ii_SunfishStart()
-
-   LOCAL cExe, xRes, nWorB := Iif( lTurnBlack,2,1 )
-
-   IF Empty( hExt )
-      cExe := cCompiler + " " + cIniPath + "python" + hb_ps() + "plug_sunfish.py"
-      IF Empty( hExt := ecli_Run( cExe, nLogLevel,, "sunf_py" ) )
-         edi_Alert( "Can't execute python module" )
-         RETURN .F.
-      ENDIF
-   ENDIF
-   IF !( (xRes := ecli_RunFunc( hExt, "start", {aCurrPos[POS_BOARD], nWorB, ;
-      aCurrPos[POS_W00], aCurrPos[POS_W000], aCurrPos[POS_B00], aCurrPos[POS_B000]} )) == "+" )
-      edi_Alert( "Wrong answer of start procedure: " + hb_valtoexp(xRes) )
-      RETURN .F.
-   ENDIF
-
-   RETURN .T.
-*/
 STATIC FUNCTION ii_SunfishMove( lSrazu )
 
    LOCAL arr, cLastMove := "-"
    LOCAL sAns
 
-   //IF !ii_SunfishStart()
-   //   RETURN Nil
-   //ENDIF
-/*
    IF lSunfishStart
       lSunfishStart := .F.
       IF !ii_SunfishStart()
@@ -2031,7 +2015,7 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
       arr := ATail( aHistory )[Iif(lTurnBlack,1,2)]
       cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
    ENDIF
-*/
+
    ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
    arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
    hbc_Wndout( arr, "Wait for answer..." )
@@ -2049,7 +2033,7 @@ STATIC FUNCTION ii_SunfishMove( lSrazu )
       ENDIF
    ENDIF
    RETURN { Nil, Nil, Nil }
-
+*/
 STATIC FUNCTION ii_SunfishNewMove()
 
    LOCAL cExe, xRes, nWorB := Iif( lTurnBlack,2,1 )
@@ -2083,9 +2067,441 @@ STATIC FUNCTION ii_SunfishNewMove()
 
    RETURN { Nil, Nil, Nil }
 
+// --- Sunfish.prg ---
+#define SEC_LIMIT    2
+#define DEPTH_LIMIT  500
+
+//#define POS_BOARD    1
+#define POS_SCORE    2
+#define POS_WC       3
+#define POS_BC       4
+#define POS_EP       5
+#define POS_KP       6
+
+#define SEA_SCORE    1
+#define SEA_MOVE     2
+#define SEA_HIST     3
+#define SEA_NODES    4
+#define SEA_SCORES   5
+#define SEA_MOVES    6
+
+#define TABLE_SIZE   1000000
+#define QS_LIMIT         219
+#define EVAL_ROUGHNESS    13
+#define DRAW_TEST        .T.
+#define A1          72
+#define H1          79
+#define A8           2
+#define H8           9
+#define PLAST       81
+
+#xtranslate _POS2STR( <p>,<d>,<r> ) => (<p>\[1\] + str(<d>,4) + Iif(<r>,"T","F"))
+#xtranslate _MOVE2STR( <p> ) => (<p>\[1\])
+
+STATIC FUNCTION ii_SunfPrgNewMove()
+
+   LOCAL aHist, aSea, cBoard := aCurrPos[POS_BOARD], cBoardNew := "", i
+   LOCAL aMove, nMove
+
+   pos_Init()
+
+   FOR i := 0 TO 7
+      cBoardNew += ' ' + Strtran( Substr(cBoard,i*8+1,8), ' ', '.' ) + Chr(13)
+   NEXT
+   aHist := { { cBoardNew, 0, {.T.,.T.}, { .T.,.T.}, 0, 0 } }
+   //AAdd( aHist, pos_Rotate( ATail(aHist) ) )
+   aSea := sea_Init()
+
+   Scroll( Y1T, X2T+26, oGame:y2-1, X2T+50 )
+   hb_MemoWrit( "a1.txt", ATail(aHist)[POS_BOARD] )
+   nMove := sea_Search( aSea, ATail(aHist), aHist )
+ //  aMove := { PLAST - hb_BitAnd(nMove,0xff), PLAST - hb_BitAnd(hb_BitShift(nMove,-8),0xff) }
+   aMove := { hb_BitAnd(nMove,0xff), hb_BitAnd(hb_BitShift(nMove,-8),0xff) }
+   edi_Alert( hb_valtoexp( aMove ) )
+
+   RETURN { aMove[1], aMove[2], 100 }
+
+STATIC FUNCTION pos_Init()
+
+   LOCAL arr, i, j, row1, col1, arr1, arr2
+
+   IF !lSunfPrgInit
+      piece := hb_hash( 'P', 100, 'N', 280, 'B', 320, 'R', 479, 'Q', 929, 'K', 60000 )
+      pst := hb_hash( ;
+       'P', {  0,   0,   0,   0,   0,   0,   0,   0,    ;
+               78,  83,  86,  73, 102,  82,  85,  90,   ;
+                7,  29,  21,  44,  40,  31,  44,   7,   ;
+              -17,  16,  -2,  15,  14,   0,  15, -13,   ;
+              -26,   3,  10,   9,   6,   1,   0, -23,   ;
+              -22,   9,   5, -11, -10,  -2,   3, -19,   ;
+              -31,   8,  -7, -37, -36, -14,   3, -31,   ;
+                0,   0,   0,   0,   0,   0,   0,   0 }, ;
+       'N', { -66, -53, -75, -75, -10, -55, -58, -70,   ;
+               -3,  -6, 100, -36,   4,  62,  -4, -14,   ;
+               10,  67,   1,  74,  73,  27,  62,  -2,   ;
+               24,  24,  45,  37,  33,  41,  25,  17,   ;
+               -1,   5,  31,  21,  22,  35,   2,   0,   ;
+              -18,  10,  13,  22,  18,  15,  11, -14,   ;
+              -23, -15,   2,   0,   2,   0, -23, -20,   ;
+              -74, -23, -26, -24, -19, -35, -22, -69 }, ;
+       'B', { -59, -78, -82, -76, -23,-107, -37, -50,   ;
+              -11,  20,  35, -42, -39,  31,   2, -22,   ;
+               -9,  39, -32,  41,  52, -10,  28, -14,   ;
+               25,  17,  20,  34,  26,  25,  15,  10,   ;
+               13,  10,  17,  23,  17,  16,   0,   7,   ;
+               14,  25,  24,  15,   8,  25,  20,  15,   ;
+               19,  20,  11,   6,   7,   6,  20,  16,   ;
+               -7,   2, -15, -12, -14, -15, -10, -10 }, ;
+       'R', {  35,  29,  33,   4,  37,  33,  56,  50,   ;
+               55,  29,  56,  67,  55,  62,  34,  60,   ;
+               19,  35,  28,  33,  45,  27,  25,  15,   ;
+                0,   5,  16,  13,  18,  -4,  -9,  -6,   ;
+              -28, -35, -16, -21, -13, -29, -46, -30,   ;
+              -42, -28, -42, -25, -25, -35, -26, -46,   ;
+              -53, -38, -31, -26, -29, -43, -44, -53,   ;
+              -30, -24, -18,   5,  -2, -18, -31, -32 }, ;
+       'Q', {   6,   1,  -8,-104,  69,  24,  88,  26,   ;
+               14,  32,  60, -10,  20,  76,  57,  24,   ;
+               -2,  43,  32,  60,  72,  63,  43,   2,   ;
+                1, -16,  22,  17,  25,  20, -13,  -6,   ;
+              -14, -15,  -2,  -5,  -1, -10, -20, -22,   ;
+              -30,  -6, -13, -11, -16, -11, -16, -27,   ;
+              -36, -18,   0, -19, -15, -15, -21, -38,   ;
+              -39, -30, -31, -13, -31, -36, -34, -42 }, ;
+       'K', {   4,  54,  47, -99, -99,  60,  83, -62,   ;
+              -32,  10,  55,  56,  56,  55,  10,   3,   ;
+              -62,  12, -57,  44, -67,  28,  37, -31,   ;
+              -55,  50,  11,  -4, -19,  13,   0, -49,   ;
+              -55, -43, -52, -28, -51, -47,  -8, -50,   ;
+              -47, -42, -43, -79, -64, -32, -29, -32,   ;
+               -4,   3, -14, -50, -57, -18,  13,   4,   ;
+               17,  30,  -3, -14,   6,  -1,  40,  18 } )
+#define N     -10
+#define E      1
+#define S      10
+#define W     -1
+      directions := hb_hash( ;
+         'P', {N, N+N, N+W, N+E}, ;
+         'N', {N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W}, ;
+         'B', {N+E, S+E, S+W, N+W}, ;
+         'R', {N, E, S, W}, ;
+         'Q', {N, E, S, W, N+E, S+E, S+W, N+W}, ;
+         'K', {N, E, S, W, N+E, S+E, S+W, N+W} )
+
+      MATE_LOWER := piece['K'] - 10*piece['Q']
+      MATE_UPPER := piece['K'] + 10*piece['Q']
+
+      arr := hb_hKeys( pst )
+      FOR i := 1 TO Len( arr )
+         arr1 := pst[arr[i]]
+         arr2 := Array( 80 )
+         AFill( arr2, 0 )
+         FOR j := 1 TO 64
+            row1 := Int( (j-1)/8 )
+            col1 := Int( (j-1)%8 )
+            arr2[(row1*10) + 2 + col1 ] := arr1[j] + piece[arr[i]]
+         NEXT
+         pst[arr[i]] := arr2
+      NEXT
+      lSunfPrgInit := .T.
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION pos_GenMoves( aPos )
+
+   LOCAL board := aPos[POS_BOARD], i, p, d, q, j, aMoves := {}
+
+   FOR EACH p IN board
+      IF p < 'A' .OR. p > 'Z'; LOOP; ENDIF
+      i := p:__enumindex
+
+      FOR EACH d in directions[p]
+         j := i
+         DO WHILE .T.
+            j += d
+            // Stay inside the board, and off friendly pieces
+            IF j < 1 .OR. j > 79; EXIT; ENDIF
+            IF Empty( q := Substr( board, j, 1 ) ) .OR. (q >= 'A' .AND. q <= 'Z'); EXIT; ENDIF
+            // Pawn move, double move and capture
+            IF p == 'P'
+               IF (d == N .OR. d == N+N) .AND. q != '.'; EXIT; ENDIF
+               IF d == N+N .AND. (i < A1+N .OR. Substr(board,i+N,1) != '.'); EXIT; ENDIF
+               IF (d == N+W .OR. d == N+E) .AND. q == '.' ;
+                    .AND. j != aPos[POS_EP] .AND. j != aPos[POS_KP] ;
+                    .AND. j != aPos[POS_KP]-1 .AND. j != aPos[POS_KP]+1; EXIT; ENDIF
+            ENDIF
+            // Move it
+            AAdd( aMoves, i+j*256 )
+            // Stop crawlers from sliding, and sliding after captures
+            IF p $ 'PNK' .OR. q >= 'a'; EXIT; ENDIF
+            // Castling, by sliding the rook next to the king
+            IF i == A1 .AND. Substr(board,j+E,1) == 'K' .AND. aPos[POS_WC][1]
+               AAdd( aMoves, j+E+(j+W)*256 )
+            ENDIF
+            IF i == H1 .AND. Substr(board,j+W,1) == 'K' .AND. aPos[POS_WC][2]
+               AAdd( aMoves, j+W+(j+E)*256 )
+            ENDIF
+         ENDDO
+      NEXT
+   NEXT
+
+   RETURN aMoves
+
+STATIC FUNCTION pos_Rotate( aPos )
+   RETURN { cedi_Flip(aPos[POS_BOARD]), -aPos[POS_SCORE], aPos[POS_WC], aPos[POS_BC], ;
+      Iif( aPos[POS_EP]==0,0,PLAST-aPos[POS_EP] ), Iif( aPos[POS_KP]==0,0,PLAST-aPos[POS_KP] ) }
+
+STATIC FUNCTION pos_NullMove( aPos )
+   RETURN { cedi_Flip(aPos[POS_BOARD]), -aPos[POS_SCORE], aPos[POS_WC], aPos[POS_BC], 0, 0 }
+
+STATIC FUNCTION pos_Move( aPos, aMove )
+
+   LOCAL i := hb_BitAnd(aMove,0xff), j := hb_BitAnd(hb_BitShift(aMove,-8),0xff)
+   LOCAL board := aPos[POS_BOARD], p := hb_bPeek( board, i )
+   LOCAL wc := aPos[POS_WC], bc := aPos[POS_BC], ep := 0, kp := 0
+   LOCAL score := aPos[POS_SCORE] + pos_Value( aPos, aMove )
+
+   board := cedi_bPoke( cedi_bPoke( board, j, p, .T. ), i, 46 )
+
+   // Castling rights, we move the rook or capture the opponent's
+   IF i == A1; wc := { .F., wc[2] }; ENDIF
+   IF i == H1; wc := { wc[1], .F. }; ENDIF
+   IF j == A8; bc := { bc[1], .F. }; ENDIF
+   IF j == H8; bc := { .F., bc[2] }; ENDIF
+   // Castling
+   IF p == 75 //'K'
+      wc := { .F., .F. }
+      IF abs(j-i) == 2
+         kp := Int( (i+j)/2 )
+         cedi_bPoke( board, Iif( j < i, A1, H1 ), 46 )  // '.'
+         cedi_bPoke( board, kp, 82 ) // 'R'
+      ENDIF
+   ENDIF
+
+   // Pawn promotion, double move and en passant capture
+   IF p == 80 //'P'
+      IF A8 <= j .AND. j <= H8
+         cedi_bPoke( board, j, 81 ) // 'Q'
+      ENDIF
+      IF j - i == 2*N
+         ep := i + N
+      ENDIF
+      IF j == aPos[POS_EP]
+         cedi_bPoke( board, j+S, 46 ) // '.'
+      ENDIF
+   ENDIF
+
+   // We rotate the returned position, so it's ready for the next player
+   RETURN pos_Rotate( { board, score, wc, bc, ep, kp } )
+
+STATIC FUNCTION pos_Value( aPos, aMove )
+
+   //LOCAL i := aMove[1], j := aMove[2]
+   LOCAL i := hb_BitAnd(aMove,0xff), j := hb_BitAnd(hb_BitShift(aMove,-8),0xff)
+   LOCAL p := Substr( aPos[POS_BOARD],i,1 ), q := Substr( aPos[POS_BOARD],j,1 )
+   LOCAL score := pst[p][j] - pst[p][i]
+
+   // Capture
+   IF q >= 'a'
+       score += pst[Upper(q)][PLAST-j]
+   ENDIF
+   // Castling check detection
+   IF Abs( j-aPos[POS_KP] ) < 2
+      score += pst['K'][PLAST-j]
+   ENDIF
+   // Castling
+   IF p == 'K' .AND. Abs(i-j) == 2
+      score += pst['R'][Int((i+j)/2)]
+      score -= pst['R'][Iif( j < i, A1, H1)]
+   ENDIF
+   // Special pawn stuff
+   IF p == 'P'
+       if A8 <= j .AND. j <= H8
+           score += pst['Q'][j] - pst['P'][j]
+       ENDIF
+       IF j == aPos[POS_EP]
+           score += pst['P'][PLAST-(j+S)]
+       ENDIF
+   ENDIF
+   RETURN score
+
+#undef N
+#undef E
+#undef S
+#undef W
+
+STATIC FUNCTION sea_Init()
+
+   LOCAL aSea := { hb_hash(), hb_hash(), {}, 0, 0, 0 }
+
+   RETURN aSea
+
+STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
+
+   LOCAL entry, aMoves, move, best, a, am, m, lAll
+   LOCAL killer, score
+   LOCAL bServ := {||
+      best := Max( best, score )
+      IF best >= gamma
+         // Clear before setting, so we always have a value
+         IF aSea[SEA_MOVES] > TABLE_SIZE
+            hb_hClear( aSea[SEA_MOVE] )
+            aSea[SEA_MOVES] := 0
+         ENDIF
+         // Save the move for pv construction and killer heuristic
+         aSea[SEA_MOVE][_MOVE2STR(aPos)] := move
+         aSea[SEA_MOVES] ++
+      ENDIF
+      RETURN best
+   }
+   LOCAL b_is_dead := {|pos|
+      LOCAL am1 := pos_GenMoves( pos ), m1
+      FOR EACH m1 IN am1
+         IF pos_Value( pos, m1 ) >= MATE_LOWER
+            RETURN .T.
+         ENDIF
+      NEXT
+      RETURN .F.
+   }
+
+   IF root == Nil; root := .T.; ENDIF
+
+   aSea[SEA_NODES] += 1
+   depth := Max( depth, 0 )
+
+   IF aPos[POS_SCORE] <= -MATE_LOWER
+      RETURN -MATE_UPPER
+   ENDIF
+
+   IF DRAW_TEST .AND. !root .AND. Ascan( aSea[SEA_HIST], ;
+      {|a|a[POS_BOARD]==aPos[POS_BOARD] .AND. a[POS_SCORE]==aPos[POS_SCORE] .AND. ;
+      a[POS_WC,1]==aPos[POS_WC,1] .AND. a[POS_WC,2]==aPos[POS_WC,2] .AND. ;
+      a[POS_BC,1]==aPos[POS_BC,1] .AND. a[POS_BC,2]==aPos[POS_BC,2] .AND. ;
+      a[POS_EP]==aPos[POS_EP] .AND. a[POS_KP]==aPos[POS_KP] } ) > 0
+      RETURN 0
+   ENDIF
+
+   entry := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,root), {-MATE_UPPER, MATE_UPPER} )
+   IF entry[1] >= gamma .AND. ( !root .OR. !( hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil ) == Nil ) )
+      RETURN entry[1]
+   ENDIF
+   IF entry[2] < gamma
+      RETURN entry[2]
+   ENDIF
+
+   // Run through the moves, shortcutting when possible
+   best := -MATE_UPPER
+
+   IF depth > 0 .AND. !root .AND. cedi_Strpbrk( 'RBNQ', aPos[ POS_BOARD] ) > -1
+      move := Nil
+      score := -sea_Bound( aSea, pos_NullMove(aPos), 1-gamma, depth-3, .F. )
+      best := Eval( bServ )
+   ENDIF
+   IF depth == 0
+      move := Nil
+      score := aPos[POS_SCORE]
+      best := Eval( bServ )
+   ENDIF
+
+   killer := hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
+
+   // Then all the other moves
+   aMoves := pos_GenMoves( aPos )
+   IF !( killer==Nil )
+      hb_AIns( aMoves, 1, killer, .T. )
+   ENDIF
+   FOR EACH move IN aMoves
+      IF depth > 0 .OR. pos_Value( aPos, move ) >= QS_LIMIT
+         score := -sea_Bound( aSea, pos_Move( aPos,move ), 1-gamma, depth-1, .F. )
+         IF ( best := Eval( bServ ) ) >= gamma
+            EXIT
+         ENDIF
+      ENDIF
+   NEXT
+
+   IF best < gamma .AND. best < 0 .AND. depth > 0
+      am := pos_GenMoves( aPos )
+      lAll := .T.
+      FOR EACH m IN am
+         IF !Eval( b_is_dead, pos_Move( aPos, m ) )
+            lAll := .F.
+            EXIT
+         ENDIF
+      NEXT
+      IF lAll
+         best := Iif( Eval( b_is_dead, pos_NullMove( aPos ) ), -MATE_UPPER, 0 )
+      ENDIF
+   ENDIF
+
+   // Clear before setting, so we always have a value
+   IF aSea[SEA_SCORES] > TABLE_SIZE
+      hb_hClear( aSea[SEA_SCORE] )
+      aSea[SEA_SCORES] := 0
+   ENDIF
+   // Table part 2
+   IF best >= gamma
+      aSea[SEA_SCORE][_POS2STR(aPos,depth,root)] := { best, entry[2] }
+      aSea[SEA_SCORES] ++
+   ENDIF
+   IF best < gamma
+      aSea[SEA_SCORE][_POS2STR(aPos,depth,root)] := { entry[1], best }
+      aSea[SEA_SCORES] ++
+   ENDIF
+
+   RETURN best
+
+// Iterative deepening MTD-bi search
+STATIC FUNCTION sea_Search( aSea, aPos, history )
+
+   LOCAL depth, gamma, lower, upper, score
+   LOCAL nSec, move
+
+   IF history == Nil; history := {}; ENDIF
+   aSea[SEA_NODES] := 0
+   IF DRAW_TEST
+      aSea[SEA_HIST] := AClone( history )
+      // print('# Clearing table due to new history')
+      hb_hClear( aSea[SEA_SCORE] )
+      aSea[SEA_SCORES] := 0
+   ENDIF
+   // In finished games, we could potentially go far enough to cause a recursion
+   // limit exception. Hence we bound the ply.
+   nSec := Seconds()
+   FOR depth := 1 TO DEPTH_LIMIT
+      lower :=-MATE_UPPER; upper := MATE_UPPER
+      DO WHILE lower < upper - EVAL_ROUGHNESS
+         gamma := Int( (lower+upper+1)/2 )
+         score := sea_Bound( aSea, aPos, gamma, depth )
+         IF score >= gamma
+            lower := score
+         ENDIF
+         IF score < gamma
+            upper := score
+         ENDIF
+      ENDDO
+      // We want to make sure the move to play hasn't been kicked out of the table,
+      // So we make another call that must always fail high and thus produce a move.
+      sea_Bound( aSea, aPos, lower, depth )
+      move = hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
+      score := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,.T.), {Nil, Nil} )[1]
+      @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+         hb_valtoexp( {hb_BitAnd(move,0xff), hb_BitAnd(hb_BitShift(move,-8),0xff)} ) + ' ' + ;
+         hb_valtoexp( score )
+      IF Seconds() - nSec > SEC_LIMIT
+         IF score == MATE_UPPER
+            nGameResult := 1
+         ENDIF
+         RETURN move
+      ENDIF
+   NEXT
+
+   RETURN move
+// ---------
+
 DYNAMIC GTHWG_PAINT_SETCALLBACK, HWG_INVALIDATERECT, HBRUSH, HPEN, HFONT, HWG_MSGINFO, HWG_MSGYESNO
-DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_DRAWLINE, HWG_DRAWTEXT
-DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR
+DYNAMIC HWG_SELECTOBJECT, HWG_RECTANGLE_FILLED, HWG_RECTANGLE, HWG_DRAWLINE, HWG_DRAWTEXT
+DYNAMIC HWG_SETTRANSPARENTMODE, HWG_SETTEXTCOLOR, HWG_OPENIMAGE, HWG_GETBITMAPSIZE, HWG_DRAWTRANSPARENTBITMAP
 
 FUNCTION __PaintBo_Chess( hDC, nOp )
 
