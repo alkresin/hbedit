@@ -2503,11 +2503,11 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       IF lTurnBlack
          @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
             _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-            hb_valtoexp( score )
+            hb_valtoexp( score ) + "/" + hb_valtoexp( aPos[POS_SCORE] )
       ELSE
          @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
             _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-            hb_valtoexp( score )
+            hb_valtoexp( score ) + "/" + hb_valtoexp( aPos[POS_SCORE] )
       ENDIF
       IF Seconds() - nSec > SEC_LIMIT
          IF score == MATE_UPPER
