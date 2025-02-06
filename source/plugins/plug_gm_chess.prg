@@ -2047,6 +2047,7 @@ STATIC FUNCTION ii_SunfishNewMove()
       ENDIF
    ENDIF
 
+   Set_lb_lw( aCurrPos, lTurnBlack )
    ecli_RunFunc( hExt, "newmove", {aCurrPos[POS_BOARD], nWorB, ;
       aCurrPos[POS_W00], aCurrPos[POS_W000], aCurrPos[POS_B00], aCurrPos[POS_B000]}, .T. )
    arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
@@ -2116,7 +2117,11 @@ STATIC FUNCTION ii_SunfPrgNewMove()
 
    Scroll( Y1T, X2T+26, oGame:y2-1, X2T+50 )
    //hb_MemoWrit( "a1.txt", ATail(aHist)[POS_BOARD] )
+   Set_lb_lw( aCurrPos, lTurnBlack )
    nMove := sea_Search( aSea, ATail(aHist), aHist )
+   IF nMove == Nil
+      RETURN { Nil, Nil, Nil }
+   ENDIF
    IF lTurnBlack
       nFrom := PLAST - hb_BitAnd( nMove,0xff )
       nTo := PLAST - hb_BitAnd( hb_BitShift(nMove,-8),0xff )
@@ -2380,7 +2385,7 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
    IF aPos[POS_SCORE] <= -MATE_LOWER
       RETURN -MATE_UPPER
    ENDIF
-
+/*
    IF DRAW_TEST .AND. !root .AND. Ascan( aSea[SEA_HIST], ;
       {|a|a[POS_BOARD]==aPos[POS_BOARD] .AND. a[POS_SCORE]==aPos[POS_SCORE] .AND. ;
       a[POS_WC,1]==aPos[POS_WC,1] .AND. a[POS_WC,2]==aPos[POS_WC,2] .AND. ;
@@ -2388,7 +2393,7 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
       a[POS_EP]==aPos[POS_EP] .AND. a[POS_KP]==aPos[POS_KP] } ) > 0
       RETURN 0
    ENDIF
-
+*/
    entry := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,root), {-MATE_UPPER, MATE_UPPER} )
    IF entry[1] >= gamma .AND. ( !root .OR. !( hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil ) == Nil ) )
       RETURN entry[1]
@@ -2415,6 +2420,11 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
 
    // Then all the other moves
    aMoves := pos_GenMoves( aPos )
+   FOR m := 1 TO Len( aMoves )
+      aMoves[m] += hb_BitShift( pos_Value( aPos,aMoves[m] ), 16 )
+   NEXT
+   ASort( aMoves,,, {|n1,n2| n1>n2} )
+
    IF !( killer==Nil )
       hb_AIns( aMoves, 1, killer, .T. )
    ENDIF
@@ -2469,14 +2479,13 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
 // Iterative deepening MTD-bi search
 STATIC FUNCTION sea_Search( aSea, aPos, history )
 
-   LOCAL depth, gamma, lower, upper, score
+   LOCAL depth, gamma, lower, upper, score := 0
    LOCAL nSec, move
 
-   IF history == Nil; history := {}; ENDIF
+   //IF history == Nil; history := {}; ENDIF
    aSea[SEA_NODES] := 0
    IF DRAW_TEST
-      aSea[SEA_HIST] := AClone( history )
-      // print('# Clearing table due to new history')
+      //aSea[SEA_HIST] := AClone( history )
       hb_hClear( aSea[SEA_SCORE] )
       aSea[SEA_SCORES] := 0
    ENDIF
@@ -2499,15 +2508,19 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       // So we make another call that must always fail high and thus produce a move.
       sea_Bound( aSea, aPos, lower, depth )
       move = hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
-      score := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,.T.), {Nil, Nil} )[1]
-      IF lTurnBlack
-         @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
-            _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-            hb_valtoexp( score ) + "/" + hb_valtoexp( aPos[POS_SCORE] )
+      IF move == Nil
+         @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' Null'
       ELSE
-         @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
-            _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-            hb_valtoexp( score ) + "/" + hb_valtoexp( aPos[POS_SCORE] )
+         score := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,.T.), {Nil, Nil} )[1]
+         IF lTurnBlack
+            @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+               _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
+               hb_valtoexp( score )
+         ELSE
+            @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+               _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
+               hb_valtoexp( score )
+         ENDIF
       ENDIF
       IF Seconds() - nSec > SEC_LIMIT
          IF score == MATE_UPPER
