@@ -424,9 +424,8 @@ HB_FUNC( CEDI_REDIROFF )
 
 HB_FUNC( CEDI_FLIP )
 {
-   PHB_ITEM pText = hb_param( 1, HB_IT_STRING );
-   int nLen = hb_itemGetCLen( pText ), i;
-   char * szBuff1 = (char *) hb_itemGetCPtr( pText );
+   int nLen = hb_parclen( 1 ), i;
+   const char * szBuff1 = hb_parc( 1 );
    char * szBuff2 = ( char * ) hb_xgrab( nLen + 1 );
 
    for( i=0; i<nLen; i++ )

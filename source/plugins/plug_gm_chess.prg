@@ -2433,7 +2433,8 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
       BEGIN SEQUENCE
          l := (depth > 0 .OR. ( m := pos_Value( aPos, move ) ) >= QS_LIMIT)
       RECOVER
-         edi_alert( valtype(depth)+valtype(QS_LIMIT)+valtype(m) )
+         //edi_alert( valtype(depth)+valtype(QS_LIMIT)+valtype(m) )
+         l := .F.
       END SEQUENCE
       Errorblock( b )
 
