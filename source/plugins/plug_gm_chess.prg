@@ -2378,7 +2378,7 @@ STATIC FUNCTION sea_Init()
 
 STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
 
-   LOCAL entry, aMoves, move, best, a, am, m, lAll, l, b
+   LOCAL entry, aMoves, move, best, a, am, m, lAll
    LOCAL killer, score
    LOCAL bServ := {||
       best := Max( best, score )
@@ -2432,18 +2432,14 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
    // Run through the moves, shortcutting when possible
    best := -MATE_UPPER
 
+   move := Nil
    IF depth > 0 .AND. !root .AND. cedi_Strpbrk( 'RBNQ', aPos[ POS_BOARD] ) > -1
-      move := Nil
       score := -sea_Bound( aSea, pos_NullMove(aPos), 1-gamma, depth-3, .F. )
       best := Eval( bServ )
-   ENDIF
-   IF depth == 0
-      move := Nil
+   ELSEIF depth == 0
       score := aPos[POS_SCORE]
       best := Eval( bServ )
    ENDIF
-
-   killer := hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
 
    // Then all the other moves
    aMoves := pos_GenMoves( aPos )
@@ -2452,20 +2448,13 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
    NEXT
    ASort( aMoves,,, {|n1,n2| n1>n2} )
 
+   killer := hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
    IF !( killer==Nil )
       hb_AIns( aMoves, 1, killer, .T. )
    ENDIF
-   FOR EACH move IN aMoves
-      b := ErrorBlock( { |e|break( e ) } )
-      BEGIN SEQUENCE
-         l := (depth > 0 .OR. ( m := pos_Value( aPos, move ) ) >= QS_LIMIT)
-      RECOVER
-         //edi_alert( valtype(depth)+valtype(QS_LIMIT)+valtype(m) )
-         l := .F.
-      END SEQUENCE
-      Errorblock( b )
 
-      IF l
+   FOR EACH move IN aMoves
+      IF (depth > 0 .OR. ( m := pos_Value( aPos, move ) ) >= QS_LIMIT)
          score := -sea_Bound( aSea, pos_Move( aPos,move ), 1-gamma, depth-1, .F. )
          IF ( best := Eval( bServ ) ) >= gamma
             EXIT
