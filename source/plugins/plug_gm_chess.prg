@@ -414,8 +414,8 @@ STATIC FUNCTION _Game_Players( lAsk )
 STATIC FUNCTION _Game_MainMenu()
 
    LOCAL nc
-   LOCAL aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Диаграмма",,,"F5"}, {"Игроки",,,"F6"}, {"Сохранить",,,"F2"}, {"Загрузить",,,"F4"}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Настройки","---"),,,"F8"} }
-   LOCAL aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Set diagramm",,,"F5"}, {"Change players",,,"F6"}, {"Save",,,"F2"}, {"Load",,,"F4"}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Options","---"),,,"F8"} }
+   LOCAL aMenuR := { {"Выход",,,"Esc,F10"}, {"Новая партия",,,"F3"}, {"Диаграмма",,,"F5"}, {"Игроки",,,"F6"}, {"Сохранить",,,"F2"}, {"Загрузить",,,"F4"}, {"Просмотр",,,}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Настройки","---"),,,"F8"} }
+   LOCAL aMenuE := { {"Exit",,,"Esc,F10"}, {"New Game",,,"F3"}, {"Set diagramm",,,"F5"}, {"Change players",,,"F6"}, {"Save",,,"F2"}, {"Load",,,"F4"}, {"View",,,}, {"Rus/Eng",,,"F7"}, {Iif(lGui,"Options","---"),,,"F8"} }
 
    IF ( nc := FMenu( oGame, Iif( lRussian, aMenuR, aMenuE ), y1t, x2t+2 ) ) == 1
       __PaintBo_Chess( , OP_UNSET )
@@ -437,10 +437,15 @@ STATIC FUNCTION _Game_MainMenu()
       chess_Load()
 
    ELSEIF nc == 7
+      cScreenBuff := SaveScreen( oGame:y1, oGame:x1, oGame:y2, oGame:x2 )
+      __PaintBo_Chess( , OP_UNSET )
+      mnu_NewBuf( oGame, "$ViewGame", chess_MovesToBuff( .F. ) )
+
+   ELSEIF nc == 8
       lRussian := !lRussian
       DrawBoard()
 
-   ELSEIF nc == 8
+   ELSEIF nc == 9
       chess_Settings()
    ENDIF
 
@@ -563,7 +568,7 @@ STATIC FUNCTION _gm_Chess_OnKey( oEdit, nKeyExt )
      ENDIF
 
    ELSEIF nKey == K_ESC .OR. nKey == K_F10
-      IF edi_Alert( "Really quit the game?", "Yes", "No" ) == 1
+      IF edi_Alert( "Close the window?", "Yes", "No" ) == 1
          __PaintBo_Chess( , OP_UNSET )
          _Game_Exit()
       ENDIF
@@ -679,7 +684,7 @@ STATIC FUNCTION MoveN2C( nStart, nEnd, cFigBeat )
 STATIC FUNCTION MoveC2N( s, n )
    RETURN (8-(hb_bPeek(s,2+n)-48))*8 + hb_bPeek(s,1+n)-96
 
-STATIC FUNCTION DrawMove( aMove )
+STATIC FUNCTION DrawMove( aMove, nThink )
 
    LOCAL cFig := aMove[1], nStart, nEnd
    LOCAL nMove := Len( aHistory ) + Iif( lTurnBlack, 0, 1 ), i, j, i1, c, cMove, cFigBeat
@@ -728,7 +733,7 @@ STATIC FUNCTION DrawMove( aMove )
       IF lPlayGame .AND. lShah
          lMate := Check4Mate( aCurrPos, .T. )
       ENDIF
-      AddHis( aCurrPos[POS_BOARD], cFig, nStart, nEnd, cFigBeat, lShah )
+      AddHis( aCurrPos[POS_BOARD], cFig, nStart, nEnd, cFigBeat, lShah, nThink )
       IF !Empty( c := ATail( aHistory)[Iif(lTurnBlack,2,1),6] )
          cMove += c
       ENDIF
@@ -826,7 +831,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
          ENDIF
          IF lMate // lShah .AND. Check4Mate( aCurrPos, .T. )
             GameOver( 1 )  // Победа
-         ELSEIF !lTurnBlack .AND. nCou >= 5
+         ELSEIF !lTurnBlack .AND. nCou >= 3
             GameOver( 3 )  // Ничья
          ELSE
             lTurnBlack := !lTurnBlack
@@ -1238,25 +1243,23 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
 
 STATIC FUNCTION ii_MakeMove( nLevel )
 
-   LOCAL cFig, nSec, nCou := 0, nKey
+   LOCAL cFig, nSec, nThink, nCou := 0, nKey
    LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lBuilt_in := .F., lMate
 
    DrawMove( {'@'} )
    nLevel := Iif( !Empty(nLevel), nLevel, Iif( lTurnBlack, nLevelBlack, nLevelWhite ) )
 
+   aCurrPos[POS_B_00] := aCurrPos[POS_B00] ; aCurrPos[POS_B_000] := aCurrPos[POS_B000]
+   aCurrPos[POS_W_00] := aCurrPos[POS_W00] ; aCurrPos[POS_W_000] := aCurrPos[POS_W000]
    nSec := Seconds()
    IF lOpenings .AND. Len(aHistory) <= 10 .AND. openings->(dbSeek( board_64to32( aCurrPos[POS_BOARD] ) ))
       cMoves := hb_strReplace( openings->MOVES, "z" )
-      //hb_memoWrit( "a1.move", ltrim(str(openings->(recno())))+" "+cMoves )
       n := hb_RandomInt( 1, Len(cMoves)/2 )
       aMaxOcen := { hb_BPeek( cMoves,(n-1)*2+1 ), hb_BPeek( cMoves,(n-1)*2+2 ), 0 }
       lFromOpn := .T.
-      //lSunfishStart := .T.
    ELSEIF !Empty( aMaxOcen := ii_Openings() )
       lBuilt_in := .T.
-      //lSunfishStart := .T.
    ELSEIF nLevel == 10
-      //aMaxOcen := ii_SunfishMove( lSrazu )
       aMaxOcen := ii_SunfishNewMove()
    ELSEIF nLevel == 1
       aMaxOcen := ii_ScanBoard_1( aCurrPos, .F. )
@@ -1267,7 +1270,8 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    ENDIF
    lDebug := .F.
    @ y1t+Iif(lGui,Iif(guiBoaSize==3,13,18),11), x1t+2 SAY ;
-      Ltrim(Str( Seconds()-nSec,6,2 )) + " " + Iif(lFromOpn,"(bd)", Iif(lBuilt_in, "(in)", "    "))
+      Ltrim(Str( nThink := (Seconds()-nSec),6,2 )) + " " + ;
+      Iif(lFromOpn,"(bd)", Iif(lBuilt_in, "(in)", "    "))
 
    IF aMaxOcen == Nil
       KEYBOARD Chr( K_ESC )
@@ -1275,7 +1279,7 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    ELSEIF aMaxOcen[1] == Nil
       GameOver( 1 )  // Победа
    ELSE
-      lMate := DrawMove( {cFig := Substr( aCurrPos[POS_BOARD], aMaxOcen[1], 1 ), aMaxOcen[1], amaxOcen[2]} )
+      lMate := DrawMove( {cFig := Substr( aCurrPos[POS_BOARD], aMaxOcen[1], 1 ), aMaxOcen[1], amaxOcen[2]}, nThink )
       IF !lTurnBlack
          cBoa := ATail(aHistory)[3]
          AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
@@ -1284,7 +1288,7 @@ STATIC FUNCTION ii_MakeMove( nLevel )
          GameOver( 1 )  // Победа
       ELSEIF aMaxOcen[3] == BEATKING
          GameOver( 2 )  // Поражение
-      ELSEIF !lTurnBlack .AND. nCou >= 5
+      ELSEIF !lTurnBlack .AND. nCou >= 3
          GameOver( 3 )  // Ничья
       ENDIF
    ENDIF
@@ -1292,14 +1296,20 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    lTurnBlack := !lTurnBlack
    nLevel := Iif( lTurnBlack, nLevelBlack, nLevelWhite )
    IF nLevel > 0
-       IF ( nKey := Inkey( Iif( nLevel==10, 0.1, 1 ) ) ) == K_F6
-         _Game_Players( .T. )
-       ELSEIF nKey == K_ESC .OR. nKey == K_F10
-          KEYBOARD Chr( K_ESC )
-       ELSE
-          lCtrlN := .T.
-          KEYBOARD Chr( K_CTRL_N )
-       ENDIF
+      hb_gcAll()
+      IF ( nKey := Inkey( Iif( nLevel==10, 0.1, 1 ) ) ) == K_F6
+        _Game_Players( .T. )
+      ELSEIF nKey == K_ESC .OR. nKey == K_F10
+         KEYBOARD Chr( K_ESC )
+      ELSE
+         IF nKey == K_SPACE .AND. nLevelBlack >0 .AND. nLevelWhite > 0
+            @ y1t+Iif(lGui,Iif(guiBoaSize==3,14,19),12), x1t+2 SAY "PAUSE"
+            Inkey(0)
+            @ y1t+Iif(lGui,Iif(guiBoaSize==3,14,19),12), x1t+2 SAY "     "
+         ENDIF
+         lCtrlN := .T.
+         KEYBOARD Chr( K_CTRL_N )
+      ENDIF
    ENDIF
 
    RETURN Nil
@@ -1358,10 +1368,13 @@ STATIC FUNCTION ii_Openings()
 
 STATIC FUNCTION GameOver( nRes )
 
+   IF nRes < 3
+      nRes := Iif( (nRes==1 .AND. !lTurnBlack) .OR. (nRes==2 .AND. lTurnBlack), 1, 2 )
+   ENDIF
    IF nRes == 1
-      edi_Alert( Iif( lRussian, "Поздравляем! Вы выиграли", "Congratulations! You are won!" ) )
+      edi_Alert( Iif( lRussian, "Белые выиграли!", "White are won!" ) )
    ELSEIF nRes == 2
-      edi_Alert( Iif( lRussian, "Увы, вы проиграли...", "You lost the game..." ) )
+      edi_Alert( Iif( lRussian, "Черные выиграли!", "Black are won!" ) )
    ELSE
       edi_Alert( Iif( lRussian, "Ничья. Партия окончена!", "The draw. Game over!" ) )
    ENDIF
@@ -1369,13 +1382,14 @@ STATIC FUNCTION GameOver( nRes )
 
    RETURN Nil
 
-STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lSh )
+STATIC FUNCTION AddHis( cBoard, cFig, nStart, nEnd, cFigBeat, lSh, nThink )
 
-   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lSh, "" }
+   LOCAL arr := { cFig, nStart, nEnd, cFigBeat, lSh, "", 0 }
 
    IF cFig != Substr( aCurrPos[POS_BOARD], nEnd, 1 )
       arr[6] := Substr( aCurrPos[POS_BOARD], nEnd, 1 )
    ENDIF
+   arr[7] := Iif( Empty(nThink), 0, nThink )
    IF lTurnBlack
       ATail( aHistory )[2] := arr
    ELSE
@@ -1727,9 +1741,37 @@ STATIC FUNCTION chess_Load()
 
    RETURN Nil
 
+STATIC FUNCTION chess_MovesToBuff( l4pgn )
+
+   LOCAL cBuff := "", i, cMove, cLine := ""
+
+   FOR i := 1 TO Len( aHistory )
+      cMove := Iif( i > 1 .OR. !l4pgn, " ", "" ) + Ltrim(Str(i)) + "." + ;
+         Iif( Lower(aHistory[i,1,1])=='p',"",Upper(aHistory[i,1,1]) ) + ;
+         Iif(Empty(aHistory[i,1,4]),"","x") + ;
+         MoveN2C( , aHistory[i,1,3] ) + Iif(Empty(aHistory[i,1,5]),"","+") + " " + ;
+         Iif( !Empty(aHistory[i,2]), Iif( Lower(aHistory[i,2,1])=='p',"",Upper(aHistory[i,2,1]) ) + ;
+         Iif(Empty(aHistory[i,2,4]),"","x") + ;
+         MoveN2C( , aHistory[i,2,3] ) + Iif(Empty(aHistory[i,2,5]),"","+"), "" )
+      IF l4pgn
+         IF Len( cLine ) + Len( cMove ) < 76
+            cLine += cMove
+         ELSE
+            cBuff += cLine + Chr(10)
+            cLine := cMove
+         ENDIF
+      ELSE
+         cMove := PAdr( cMove,14 ) + Iif( Empty(aHistory[i,1,7]), Space(6), Str(aHistory[i,1,7],6,2) ) + " " + ;
+            Iif( Empty(aHistory[i,2]).OR.Empty(aHistory[i,2,7]), Space(6), Str(aHistory[i,2,7],6,2) )
+         cBuff += cMove + Chr(10)
+      ENDIF
+   NEXT
+
+   RETURN cBuff + cLine
+
 STATIC FUNCTION chess_Save()
 
-   LOCAL cBuff, df := Set( 4, "yyyy.mm.dd" ), i, cMove, cLine, cTurn
+   LOCAL cBuff, df := Set( 4, "yyyy.mm.dd" ), cLine, cTurn
    LOCAL aMenu := { "As a game", "As a diagramm" }, nc
 
    IF ( nc := FMenu( oGame, aMenu, y1t, x2t+2, y1t+3, x2t+26 ) ) == 0
@@ -1742,26 +1784,8 @@ STATIC FUNCTION chess_Save()
 
    Set( 4, df )
 
-   cLine := ""
    IF nc == 1
-      cBuff += Chr(10)
-      FOR i := 1 TO Len( aHistory )
-         //edi_writelog( hb_valtoexp( aHistory[i] ) )
-         cMove := Iif( i > 1, " ", "" ) + Ltrim(Str(i)) + "." + ;
-            Iif( Lower(aHistory[i,1,1])=='p',"",Upper(aHistory[i,1,1]) ) + ;
-            Iif(Empty(aHistory[i,1,4]),"","x") + ;
-            MoveN2C( , aHistory[i,1,3] ) + Iif(Empty(aHistory[i,1,5]),"","+") + " " + ;
-            Iif( !Empty(aHistory[i,2]), Iif( Lower(aHistory[i,2,1])=='p',"",Upper(aHistory[i,2,1]) ) + ;
-            Iif(Empty(aHistory[i,2,4]),"","x") + ;
-            MoveN2C( , aHistory[i,2,3] ) + Iif(Empty(aHistory[i,2,5]),"","+"), "" )
-         IF Len( cLine ) + Len( cMove ) < 76
-            cLine += cMove
-         ELSE
-            cBuff += cLine + Chr(10)
-            cLine := cMove
-         ENDIF
-      NEXT
-      cBuff += cLine + Chr(10) + Chr(10)
+      cBuff += Chr(10) + chess_MovesToBuff( .T. ) + Chr(10) + Chr(10)
    ELSE
       cTurn := Iif( Empty(aHistory) .OR. Atail(aHistory)[2] != Nil, 'w', 'b' )
       cLine := '[FEN "' + chess_board2FEN( aCurrPos[POS_BOARD], cTurn, 1 ) + '"]' + Chr(10) + ;
@@ -2047,7 +2071,7 @@ STATIC FUNCTION ii_SunfishNewMove()
       ENDIF
    ENDIF
 
-   Set_lb_lw( aCurrPos, lTurnBlack )
+   //Set_lb_lw( aCurrPos, lTurnBlack )
    ecli_RunFunc( hExt, "newmove", {aCurrPos[POS_BOARD], nWorB, ;
       aCurrPos[POS_W00], aCurrPos[POS_W000], aCurrPos[POS_B00], aCurrPos[POS_B000]}, .T. )
    arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
@@ -2106,18 +2130,20 @@ STATIC FUNCTION ii_SunfPrgNewMove()
 
    pos_Init()
 
+   Set_lb_lw( aCurrPos, lTurnBlack )
+
    FOR i := 0 TO 7
       cBoardNew += ' ' + Strtran( Substr(cBoard,i*8+1,8), ' ', '.' ) + Chr(13)
    NEXT
-   aHist := { { cBoardNew, 0, {.T.,.T.}, { .T.,.T.}, 0, 0 } }
+
+   aHist := { { cBoardNew, 0, {aCurrPos[POS_W000],aCurrPos[POS_W00]}, {aCurrPos[POS_B00],aCurrPos[POS_B000]}, 0, 0 } }
    IF lTurnBlack
       AAdd( aHist, pos_Rotate( ATail(aHist) ) )
    ENDIF
    aSea := sea_Init()
 
-   Scroll( Y1T, X2T+26, oGame:y2-1, X2T+50 )
+   Scroll( Y1T, X2T+28, oGame:y2-1, Min(X2T+70,oGame:x2) )
    //hb_MemoWrit( "a1.txt", ATail(aHist)[POS_BOARD] )
-   Set_lb_lw( aCurrPos, lTurnBlack )
    nMove := sea_Search( aSea, ATail(aHist), aHist )
    IF nMove == Nil
       RETURN { Nil, Nil, Nil }
@@ -2275,7 +2301,8 @@ STATIC FUNCTION pos_Move( aPos, aMove )
    LOCAL wc := aPos[POS_WC], bc := aPos[POS_BC], ep := 0, kp := 0
    LOCAL score := aPos[POS_SCORE] + pos_Value( aPos, aMove )
 
-   board := cedi_bPoke( cedi_bPoke( board, j, p, .T. ), i, 46 )
+   //board := cedi_bPoke( cedi_bPoke( board, j, p, .T. ), i, 46 )
+   cedi_bPoke( board := cedi_bPoke( board, j, p, .T. ), i, 46 )
 
    // Castling rights, we move the rook or capture the opponent's
    IF i == A1; wc := { .F., wc[2] }; ENDIF
@@ -2507,22 +2534,23 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       ENDDO
       // We want to make sure the move to play hasn't been kicked out of the table,
       // So we make another call that must always fail high and thus produce a move.
-      sea_Bound( aSea, aPos, lower, depth )
+      //sea_Bound( aSea, aPos, lower, depth )
       move = hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
       IF move == Nil
          @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' Null'
       ELSE
          score := hb_hGetDef( aSea[SEA_SCORE], _POS2STR(aPos,depth,.T.), {Nil, Nil} )[1]
          IF lTurnBlack
-            @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
-               _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-               hb_valtoexp( score )
+            @ Y1T+depth-1, X2T+28  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+               _render(PLAST-hb_BitAnd(move,0xff)) + _render(PLAST-hb_BitAnd(hb_BitShift(move,-8),0xff)) + ;
+               Str(score,7) + ' ' + hb_valtoexp( aSea[SEA_SCORES] ) + ' ' + hb_valtoexp( aSea[SEA_MOVES] )
          ELSE
-            @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
-               _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ' ' + ;
-               hb_valtoexp( score )
+            @ Y1T+depth-1, X2T+28  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' ' + ;
+               _render(hb_BitAnd(move,0xff)) + _render(hb_BitAnd(hb_BitShift(move,-8),0xff)) + ;
+               Str(score,7) + ' ' + hb_valtoexp( aSea[SEA_SCORES] ) + ' ' + hb_valtoexp( aSea[SEA_MOVES] )
          ENDIF
       ENDIF
+      hb_gcAll()
       IF Seconds() - nSec > SEC_LIMIT
          IF score == MATE_UPPER
             nGameResult := 1
