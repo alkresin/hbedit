@@ -52,6 +52,9 @@
 #define OP_SIZE                 6
 
 #define BEATKING  100000
+/* Returns .F., if there is no enemy king on the board
+ */
+#translate CHECK4KING(<b>) => (Iif( lTurnBlack, 'K', 'k' ) $ <b>)
 
 STATIC cIniPath
 STATIC oGame
@@ -617,11 +620,12 @@ STATIC FUNCTION DrawBoard()
 STATIC FUNCTION Check4Shah( aPos, lToOppo )
 
    LOCAL cFig, cKing, ltb := Iif( lToOppo, lTurnBlack, !lTurnBlack )
+   LOCAL cFig1 := Iif( ltb, 'a', 'A' ), cFig2 := Iif( ltb, 'z', 'Z' )
 
    cKing := Iif( ltb, 'K', 'k' )
 
    FOR EACH cFig IN aPos[POS_BOARD]
-      IF (!ltb .AND. cFig >= 'A' .AND. cFig <= 'Z') .OR. (ltb .AND. cFig >= 'a' .AND. cFig <= 'z')
+      IF cFig >= cFig1 .AND. cFig <= cFig2
          IF !Empty( chess_GenMoves( aPos, cFig:__enumindex, .T., cKing ) )
             RETURN .T.
          ENDIF
@@ -1067,20 +1071,6 @@ STATIC FUNCTION PostProcess( aPos, cBoard, nFig, nStart, nEnd, nNewFig, lAskNewF
 
    RETURN Nil
 
-/* Returns .F., if there is no enemy king on the board
- */
-STATIC FUNCTION ii_Check4King( cBoard )
-
-   LOCAL cFig, j, cFigK := Iif( lTurnBlack, 'K', 'k' )
-
-   FOR EACH cFig IN cBoard
-      IF cFig == cFigK
-         RETURN .T.
-      ENDIF
-   NEXT
-
-   RETURN .F.
-
 STATIC FUNCTION ii_Ocenka( cBoard )
 
    LOCAL cFig, j, nSumm := 0
@@ -1135,7 +1125,7 @@ STATIC FUNCTION ii_ScanBoard_1( aPos, lReply, lSh )
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j], nSumm, aMaxOcen[3] ); ENDIF
             ELSE
-               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+               IF !CHECK4KING( aPosTemp[POS_BOARD] )
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
@@ -1181,7 +1171,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
          FOR j := 1 TO nLen
             PostProcess( aPosTemp, cBoard, nFig, i, arr[j] )
             IF nDeep == 1
-               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+               IF !CHECK4KING( aPosTemp[POS_BOARD] )
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
@@ -1212,7 +1202,7 @@ STATIC FUNCTION ii_ScanBoard_2( aPos, lReply, nDeep, lSh )
                ENDIF
                IF lDebug; DbgMsg( aPosTemp, ">", 2, i, arr[j],, aMaxOcen[3] ); ENDIF
             ELSE
-               IF !ii_Check4King( aPosTemp[POS_BOARD] )
+               IF !CHECK4KING( aPosTemp[POS_BOARD] )
                   aMaxOcen[1] := i; aMaxOcen[2] := arr[j]; aMaxOcen[3] := BEATKING
                   RETURN aMaxOcen
                ENDIF
@@ -2021,43 +2011,7 @@ STATIC FUNCTION chess_Settings()
    ENDIF
 
    RETURN Nil
-/*
-STATIC FUNCTION ii_SunfishMove( lSrazu )
 
-   LOCAL arr, cLastMove := "-"
-   LOCAL sAns
-
-   IF lSunfishStart
-      lSunfishStart := .F.
-      IF !ii_SunfishStart()
-         RETURN Nil
-      ENDIF
-      cLastMove := "-"
-   ELSEIF Empty( aHistory ) .OR. !Empty(lSrazu)
-      cLastMove := "-"
-   ELSE
-      arr := ATail( aHistory )[Iif(lTurnBlack,1,2)]
-      cLastMove := MoveN2C( arr[2] ) + MoveN2C( arr[3] )
-   ENDIF
-
-   ecli_RunFunc( hExt, "makemove", { cLastMove }, .T. )
-   arr := hbc_Wndinit( 8, x2t+2, 10, x2t+26,, "" )
-   hbc_Wndout( arr, "Wait for answer..." )
-   DO WHILE ( sAns := ecli_CheckAnswer( hExt ) ) == Nil
-      IF Inkey( 0.02 ) == 27
-         EXIT
-      ENDIF
-   ENDDO
-   hbc_Wndclose( arr )
-   IF sAns != Nil
-      IF Len( sAns ) == 4
-         RETURN { MoveC2N( sAns,0 ), MoveC2N( sAns,2 ), 100 }
-      ELSE
-         edi_Alert( hb_ValtoExp(sAns) )
-      ENDIF
-   ENDIF
-   RETURN { Nil, Nil, Nil }
-*/
 STATIC FUNCTION ii_SunfishNewMove()
 
    LOCAL cExe, xRes, nWorB := Iif( lTurnBlack,2,1 )
