@@ -2292,7 +2292,8 @@ STATIC FUNCTION pos_Move( aPos, aMove )
 STATIC FUNCTION pos_Value( aPos, aMove )
 
    LOCAL i := hb_BitAnd(aMove,0xff), j := hb_BitAnd(hb_BitShift(aMove,-8),0xff)
-   LOCAL p := Substr( aPos[POS_BOARD],i,1 ), q := Substr( aPos[POS_BOARD],j,1 )
+   LOCAL board := aPos[POS_BOARD]
+   LOCAL p := cedi_Peek( .F.,board,i ), q := cedi_Peek( .F.,board,j )
    LOCAL score := pst[p][j] - pst[p][i]
 
    // Capture
@@ -2328,6 +2329,9 @@ STATIC FUNCTION sea_Init()
 
    LOCAL aSea := { hb_hash(), hb_hash(), {}, 0, 0, 0 }
 
+   hb_hAllocate( aSea[SEA_SCORE], 200000 )
+   hb_hAllocate( aSea[SEA_MOVE], 200000 )
+
    RETURN aSea
 
 STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
@@ -2357,8 +2361,6 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
       NEXT
       RETURN .F.
    }
-
-   IF root == Nil; root := .T.; ENDIF
 
    aSea[SEA_NODES] += 1
    depth := Max( depth, 0 )
@@ -2467,7 +2469,7 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       lower :=-MATE_UPPER; upper := MATE_UPPER
       DO WHILE lower < upper - EVAL_ROUGHNESS
          gamma := Int( (lower+upper+1)/2 )
-         score := sea_Bound( aSea, aPos, gamma, depth )
+         score := sea_Bound( aSea, aPos, gamma, depth, .T. )
          IF score >= gamma
             lower := score
          ENDIF
@@ -2477,7 +2479,7 @@ STATIC FUNCTION sea_Search( aSea, aPos, history )
       ENDDO
       // We want to make sure the move to play hasn't been kicked out of the table,
       // So we make another call that must always fail high and thus produce a move.
-      //sea_Bound( aSea, aPos, lower, depth )
+      //sea_Bound( aSea, aPos, lower, depth, .T. )
       move = hb_hGetDef( aSea[SEA_MOVE], _MOVE2STR(aPos), Nil )
       IF move == Nil
          @ Y1T+depth-1, X2T+26  SAY Str( Seconds() - nSec,6,2 ) + ' ' + str(depth,4) + ' Null'
