@@ -55,6 +55,7 @@
 /* Returns .F., if there is no enemy king on the board
  */
 #translate CHECK4KING(<b>) => (Iif( lTurnBlack, 'K', 'k' ) $ <b>)
+#translate CURRLEVEL() => Iif( lTurnBlack, nLevelBlack, nLevelWhite )
 
 STATIC cIniPath
 STATIC oGame
@@ -723,7 +724,7 @@ STATIC FUNCTION DrawMove( aMove, nThink )
       cFigBeat := Iif( nEnd == aCurrPos[POS_4P], 'p', Substr( aCurrPos[POS_BOARD], nEnd, 1 ) )
       cMove := c + MoveN2C( nStart, nEnd, cFigBeat )
       PostProcess( aCurrPos, aCurrPos[POS_BOARD], Asc(cFig), nStart, nEnd, ;
-         Iif( Len(aMove)>5.AND.!Empty(aMove[6]),Asc(aMove[6]),Nil ), lPlayGame )
+         Iif( Len(aMove)>5.AND.!Empty(aMove[6]),Asc(aMove[6]),Nil ), lPlayGame .AND. CURRLEVEL() > 0 )
       IF cFig == 'K' .OR. cFig == 'k'
          IF nEnd - nStart == 2
             cMove := "O-O"
@@ -839,7 +840,7 @@ STATIC FUNCTION MakeMove( nRow, nCol )
             GameOver( 3 )  // Ничья
          ELSE
             lTurnBlack := !lTurnBlack
-            IF Iif( lTurnBlack, nLevelBlack, nLevelWhite ) > 0
+            IF CURRLEVEL() > 0
                ii_MakeMove()
             ENDIF
          ENDIF
@@ -1237,7 +1238,7 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    LOCAL aMaxOcen, cBoa, cMoves, n, lFromOpn := .F., lBuilt_in := .F., lMate
 
    DrawMove( {'@'} )
-   nLevel := Iif( !Empty(nLevel), nLevel, Iif( lTurnBlack, nLevelBlack, nLevelWhite ) )
+   nLevel := Iif( !Empty(nLevel), nLevel, CURRLEVEL() )
 
    aCurrPos[POS_B_00] := aCurrPos[POS_B00] ; aCurrPos[POS_B_000] := aCurrPos[POS_B000]
    aCurrPos[POS_W_00] := aCurrPos[POS_W00] ; aCurrPos[POS_W_000] := aCurrPos[POS_W000]
@@ -1284,7 +1285,7 @@ STATIC FUNCTION ii_MakeMove( nLevel )
    ENDIF
 
    lTurnBlack := !lTurnBlack
-   nLevel := Iif( lTurnBlack, nLevelBlack, nLevelWhite )
+   nLevel := CURRLEVEL()
    IF nLevel > 0
       hb_gcAll()
       IF ( nKey := Inkey( Iif( nLevel==10, 0.1, 1 ) ) ) == K_F6
