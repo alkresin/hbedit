@@ -724,7 +724,7 @@ STATIC FUNCTION DrawMove( aMove, nThink )
       cFigBeat := Iif( nEnd == aCurrPos[POS_4P], 'p', Substr( aCurrPos[POS_BOARD], nEnd, 1 ) )
       cMove := c + MoveN2C( nStart, nEnd, cFigBeat )
       PostProcess( aCurrPos, aCurrPos[POS_BOARD], Asc(cFig), nStart, nEnd, ;
-         Iif( Len(aMove)>5.AND.!Empty(aMove[6]),Asc(aMove[6]),Nil ), lPlayGame .AND. CURRLEVEL() > 0 )
+         Iif( Len(aMove)>5.AND.!Empty(aMove[6]),Asc(aMove[6]),Nil ), lPlayGame .AND. CURRLEVEL() == 0 )
       IF cFig == 'K' .OR. cFig == 'k'
          IF nEnd - nStart == 2
             cMove := "O-O"
