@@ -21,7 +21,7 @@ static char* shm_file_name = "hbedit_cb";
 #endif
 
 #include "hbapifs.h"
-/*
+
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
 
@@ -55,7 +55,7 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
       }
    }
 }
-*/
+
 
 static int cedi_Utf8CharLen( unsigned char ucChar )
 {
@@ -1113,7 +1113,8 @@ HB_FUNC( CEDI_STARTCONSOLEAPP )
    }
 
    if( !CreateChildProcess( pHandles, (char*) hb_parc(1), uiShow ) ) {
-      pHandles->iRes = GetLastError(); hb_retptr( (void*) pHandles ); return;
+      pHandles->iRes = GetLastError();
+      hb_retptr( (void*) pHandles ); return;
    }
 
    pHandles->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);

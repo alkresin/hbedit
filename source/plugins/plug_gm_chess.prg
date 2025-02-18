@@ -1275,7 +1275,9 @@ STATIC FUNCTION ii_MakeMove( nLevel )
          cBoa := ATail(aHistory)[3]
          AEval( aHistory, {|a|nCou := Iif(Len(a)>2.AND.a[3]==cBoa,nCou+1,nCou)} )
       ENDIF
-      IF lMate // lShah .AND. Check4Mate( aCurrPos, .T. )
+      IF Check4Shah( aCurrPos, .F. )
+         GameOver( 2 )  // Поражение
+      ELSEIF lMate
          GameOver( 1 )  // Победа
       ELSEIF aMaxOcen[3] == BEATKING
          GameOver( 2 )  // Поражение
@@ -1549,7 +1551,6 @@ STATIC FUNCTION pgnrec2Move( aPos, cRec, lBlack )
          nFig := hb_bPeek( aPos[POS_BOARD], i )
          IF nFig == Asc( aMove[1] )
             arr := chess_GenMoves( aPos, i )
-            //IF Ascan( arr,aMove[3] ) > 0 .AND. ( Empty(cFrom) .OR. Chr(96 + Iif(i%8==0,8,i%8)) == cFrom )
             IF Ascan( arr,aMove[3] ) > 0 .AND. ( Empty(cFrom) .OR. Chr(96 + Iif(i%8==0,8,i%8)) == cFrom ) ;
                .AND. ( Empty(nFrom) .OR. Int(9-i/8) == nFrom )
                aMove[2] := i
@@ -1603,8 +1604,6 @@ STATIC FUNCTION chess_ReplayGame( aHis )
    NEXT
    lReplayMode := .F.
    DrawBoard()
-   //edi_writelog( hb_valtoexp( lTurnBlack ) )
-   //edi_writelog( hb_valtoexp( aHis ) )
 
    RETURN Nil
 
@@ -2411,7 +2410,7 @@ STATIC FUNCTION sea_Bound( aSea, aPos, gamma, depth, root )
    ENDIF
 
    FOR EACH move IN aMoves
-      IF (depth > 0 .OR. ( m := pos_Value( aPos, move ) ) >= QS_LIMIT)
+      IF (depth > 0 .OR. pos_Value( aPos, move ) >= QS_LIMIT)
          score := -sea_Bound( aSea, pos_Move( aPos,move ), 1-gamma, depth-1, .F. )
          IF ( best := Eval( bServ ) ) >= gamma
             EXIT
