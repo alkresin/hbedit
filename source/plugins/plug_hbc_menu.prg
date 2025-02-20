@@ -38,7 +38,8 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       Aadd( aMenu, { "git status",,12, } )
       Aadd( aMenu, { "git remote",,13, } )
       Aadd( aMenu, { "git describe",,14, } )
-      Aadd( aMenu, { "git commit",,15, } )
+      Aadd( aMenu, { "git log",,15, } )
+      Aadd( aMenu, { "git commit",,16, } )
       IF !Empty( aMenuGit )
          FOR i := 1 TO Len( aMenuGit )
             Aadd( aMenu, { aMenuGit[i,1],,100+i, } )
@@ -136,6 +137,8 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
    ELSEIF n == 14
       hbc_Console( "git describe --tags" )
    ELSEIF n == 15
+      hbc_Console( 'git log --after=@{%m.days.ago} --pretty=format:"%ad%x09%s"' )
+   ELSEIF n == 16
       hbc_Console( 'git commit -a -m "%m"' )
    ELSEIF n == 18
       hbc_Console( "fossil changes" )
