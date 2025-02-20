@@ -91,7 +91,16 @@ STATIC FUNCTION _c_Compiler_Init()
 STATIC FUNCTION _c_Run( oEdit )
 
    LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew
-   LOCAL cTmpC := hb_dirTemp() + cSrcName + ".c", cTmpExe, cRes
+   LOCAL cTmpC, cTmpExe, cRes, i, cComp
+
+   IF Empty( oEdit:cFileName )
+      IF ( i := edi_Alert( "Compile as", "c", "c++" ) ) == 0
+         RETURN Nil
+      ENDIF
+      cTmpC := hb_dirTemp() + cSrcName + Iif( i == 1, ".c", ".cpp" )
+   ELSE
+      cTmpC := hb_dirTemp() + cSrcName + hb_fnameExt( oEdit:cFileName )
+   ENDIF
 
    edi_CloseWindow( cFileOut )
 #ifdef __PLATFORM__WINDOWS
@@ -118,7 +127,8 @@ STATIC FUNCTION _c_Run( oEdit )
       cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
    ENDIF
 #else
-   cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe + " 2>&1",, @cRes )
+   cComp := Iif( hb_fnameExt(cTmpC) == ".cpp", "g++ ", "gcc " )
+   cedi_RunConsoleApp( cComp + cTmpC + " -o" + cTmpExe + " 2>&1",, @cRes )
 #endif
 
    IF File( cTmpExe )
