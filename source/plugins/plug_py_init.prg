@@ -191,13 +191,12 @@ STATIC FUNCTION _py_Run( oEdit )
    LOCAL bKeys := {|n|
       LOCAL nKey := hb_keyStd( n ), nc
       IF nKey == K_F1
-         edi_Alert( "F4 - View code;h, h pdb - pdb help")
+         edi_Alert( "F4 - View code;h(help), h pdb;b(reak) nLine - set breakpoint on nLine;b(reak) cFunc - set breakpoint on a func;b(reak) - breakpoints list;c(ontinue) - run until a breakpoint;r(eturn) - run until an end of a function;s(tep) - step into;n(ext) - step over;p(rint) expr;l(ist) - print 11 lines of code around a current;l(ist) first,last;w(here) - current position including stack;a(rgs) - print aguments of a current function")
       ELSEIF nKey == K_F4
          edi_MsgGet_ext( oEdit:ToString(Chr(10)), FilePane():vy1+1, FilePane():vx1+1, ;
             FilePane():vy2-5, FilePane():vx2-1, oEdit:cp, .T., .T., .T., .T. )
-      /*
-      ELSEIF nKey == K_F9
-         IF ( nc := FMenu( oEdit, { "View code" } ) ) == 1
+      /*ELSEIF nKey == K_F9
+         IF ( nc := FMenu( oEdit, { "View code", "h(elp)", "b(reak) nLine", "b(reak) cFunc" } ) ) == 1
             edi_MsgGet_ext( oEdit:ToString(Chr(10)), FilePane():vy1+1, FilePane():vx1+1, ;
                FilePane():vy2-5, FilePane():vx2-1, oEdit:cp, .T., .T., .T., .T. )
          ENDIF */

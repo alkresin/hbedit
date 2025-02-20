@@ -289,9 +289,9 @@ STATIC FUNCTION _Game_New( lFirst )
 
    RETURN Nil
 
-STATIC FUNCTION _Game_DiagNew( cTurn )
+STATIC FUNCTION _Game_DiagNew( aDop )
 
-   LOCAL nc
+   LOCAL nc, cTurn
 
    SetColor( clrBoard )
    Scroll( y1t-1, x2t, oGame:y2, x2t+30 )
@@ -303,7 +303,7 @@ STATIC FUNCTION _Game_DiagNew( cTurn )
    aMoveState[2] := aMoveState[3] := 0
    nScrolled := 0
    nLevelWhite := nLevelBlack := 0
-   IF Empty( cTurn )
+   IF Empty( aDop ) .OR. !( ( aDop[1] := Lower(aDop[1]) ) $ "bw" )
       cTurn := Iif( ( nc := Iif( lRussian, edi_Alert( "Кто начинает?", "Белые", "Черные" ), ;
          edi_Alert( "Who's turn?", "White", "Black" ) ) ) == 2, 'b', 'w' )
    ENDIF
@@ -1466,7 +1466,7 @@ STATIC FUNCTION chess_board2FEN( cBoard, cTurn, nTurn )
 
    RETURN cFen + cTurn + ' - 0 ' + Ltrim(Str(nTurn))
 
-STATIC FUNCTION chess_FEN2board( cFen, cTurn )
+STATIC FUNCTION chess_FEN2board( cFen, aDop )
 
    LOCAL cBoard := "", i, c
 
@@ -1484,8 +1484,7 @@ STATIC FUNCTION chess_FEN2board( cFen, cTurn )
       ENDIF
    NEXT
    IF i <= Len( cFen )
-      cFen := Ltrim(cFen)
-      cTurn := Left( cFen,1 )
+      aDop := hb_ATokens( Ltrim(cFen), " " )
    ENDIF
 
    //edi_writelog( cBoard )
@@ -1609,7 +1608,7 @@ STATIC FUNCTION chess_ReplayGame( aHis )
 
 STATIC FUNCTION chess_Load()
 
-   LOCAL xFileName, nPos := 1, nPos2, cHea, cFen, cBoard, cTurn
+   LOCAL xFileName, nPos := 1, nPos2, cHea, cFen, cBoard, aDop
    LOCAL cScBuf := Savescreen( y1t, x2t+2, y1t+10, x2t+40 ), cBuff, aMenu := {}, nc
    LOCAL nTurn, cRec, aPos, aMove, aHis, i
    LOCAL cWhite, cBlack, cResult
@@ -1717,13 +1716,13 @@ STATIC FUNCTION chess_Load()
          ENDIF
       ELSE
          // Loading a diagram
-         cBoard := chess_FEN2board( cFen, @cTurn )
+         cBoard := chess_FEN2board( cFen, @aDop )
          IF cBoard == Nil
             edi_Alert( "FEN corrupted" )
          ELSE
             aCurrPos[POS_BOARD] := cBoard
             DrawBoard()
-            _Game_DiagNew( cTurn )
+            _Game_DiagNew( aDop )
             @ y1t+10, x1t SAY pgn_ReadHead( cBuff, 1, "Event" )
          ENDIF
       ENDIF
@@ -1761,7 +1760,7 @@ STATIC FUNCTION chess_MovesToBuff( l4pgn )
 
 STATIC FUNCTION chess_Save()
 
-   LOCAL cBuff, df := Set( 4, "yyyy.mm.dd" ), cLine, cTurn
+   LOCAL cBuff, df := Set( 4, "yyyy.mm.dd" ), cLine, cTurn, nTurn
    LOCAL aMenu := { "As a game", "As a diagramm" }, nc
 
    IF ( nc := FMenu( oGame, aMenu, y1t, x2t+2, y1t+3, x2t+26 ) ) == 0
@@ -1778,7 +1777,11 @@ STATIC FUNCTION chess_Save()
       cBuff += Chr(10) + chess_MovesToBuff( .T. ) + Chr(10) + Chr(10)
    ELSE
       cTurn := Iif( Empty(aHistory) .OR. Atail(aHistory)[2] != Nil, 'w', 'b' )
-      cLine := '[FEN "' + chess_board2FEN( aCurrPos[POS_BOARD], cTurn, 1 ) + '"]' + Chr(10) + ;
+      nTurn := Iif( Empty(aHistory), 1, Iif( cTurn == 'w', Len(aHistory), Len(aHistory)+1 ) )
+      cTurn += " " + Iif( aCurrPos[POS_W_00], "K", "" ) + Iif( aCurrPos[POS_W_000], "Q", "" ) + ;
+         Iif( aCurrPos[POS_B_00], "k", "" ) + Iif( aCurrPos[POS_B_000], "q", "" ) + ;
+         Iif( !aCurrPos[POS_W_00] .AND. !aCurrPos[POS_W_000] .AND. !aCurrPos[POS_B_00] .AND. !aCurrPos[POS_B_000], "-", "" )
+      cLine := '[FEN "' + chess_board2FEN( aCurrPos[POS_BOARD], cTurn, nTurn ) + '"]' + Chr(10) + ;
       '[Setup "1"]' + Chr(10) + '*'
       cBuff += cLine + Chr(10) + Chr(10)
    ENDIF

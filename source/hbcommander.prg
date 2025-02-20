@@ -3917,6 +3917,7 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
    LOCAL nRow, nCol, clr, s, arr
    //LOCAL pApp := cedi_StartConsoleApp( cCommand, !Empty(lShowWin) ), nSecInit, hWnd
    LOCAL pApp, nSecInit, hWnd, hSelf
+   LOCAL nHis := 0, aCmdHis := {}
 
 #ifndef __PLATFORM__UNIX
    hSelf := cedi_GetActiveWindow()
@@ -3993,8 +3994,27 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
       ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
             ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
          EXIT
-      ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
+      ELSEIF nKey == K_UP
+         IF nHis > 1
+            nHis --
+            cmd := aCmdHis[nHis]
+            @ Maxrow(), nColInit CLEAR TO Maxrow(), Maxcol()
+            DevPos( Maxrow(), nColInit ); DevOut( cmd )
+         ENDIF
+      ELSEIF nKey == K_DOWN
+         IF nHis <= Len( aCmdHis )
+            nHis ++
+            cmd := Iif( nHis <= Len( aCmdHis ), aCmdHis[nHis], "" )
+            @ Maxrow(), nColInit CLEAR TO Maxrow(), Maxcol()
+            DevPos( Maxrow(), nColInit ); DevOut( cmd )
+         ENDIF
+      ELSEIF nKey == K_ENTER
          Add2Consout( cmd+hb_eol() )
+         IF ( nHis := hb_AScan( aCmdHis, cmd,,, .T. ) ) > 0
+            hb_ADel( aCmdHis, nHis, .T. )
+         ENDIF
+         AAdd( aCmdHis, cmd )
+         nHis := Len( aCmdHis ) + 1
          ?
          IF !cedi_WriteToConsoleApp( pApp, cmd+hb_eol() )
             ?? "Pipe write error"
