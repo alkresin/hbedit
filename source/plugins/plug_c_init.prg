@@ -118,7 +118,7 @@ STATIC FUNCTION _c_Run( oEdit )
       cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
    ENDIF
 #else
-   cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
+   cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe + " 2>&1",, @cRes )
 #endif
 
    IF File( cTmpExe )
