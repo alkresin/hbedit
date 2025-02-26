@@ -397,8 +397,8 @@ STATIC FUNCTION _c_GetParams( oEdit )
 
    IF Len( aCompilers ) > 1
       FOR i := 1 TO Len( aCompilers )
-         AAdd( aGets, { y1+3+i, x1+3, 3, (i==1), 2,,,, "g2" } )
          AAdd( aGets, { y1+3+i,x1+2, 11, "( ) " + aCompilers[i,COMP_ID] } )
+         AAdd( aGets, { y1+3+i, x1+3, 3, (i==1), 2,,,, "g2" } )
       NEXT
    ELSEIF Len( aCompilers ) == 1
       aOpt[3] := 1
@@ -421,9 +421,11 @@ STATIC FUNCTION _c_GetParams( oEdit )
       aOpt[1] := Iif( aGets[3,4], 1, 2 )
       aOpt[2] := AllTrim( aGets[7,4] )
       IF Len( aCompilers ) > 1
+         j := 0
          FOR i := 8 TO Len( aGets ) STEP 2
-            IF aGets[i,4]
-               aOpt[3] := i - 7
+            j ++
+            IF aGets[i+1,4]
+               aOpt[3] := j
                EXIT
             ENDIF
          NEXT
