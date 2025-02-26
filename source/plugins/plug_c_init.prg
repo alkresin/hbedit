@@ -124,7 +124,7 @@ STATIC FUNCTION _c_Run( oEdit )
 
    IF !Empty( aOpt[4] )
       FOR i := 1 TO Len( aOpt[4] )
-         sDopOpt += " " + aDopOpt[ aOpt[4,i,2] ]
+         sDopOpt += " " + aDopOpt[ aOpt[4,i],2 ]
       NEXT
    ENDIF
    FErase( cTmpExe )
@@ -382,7 +382,7 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
 STATIC FUNCTION _c_GetParams( oEdit )
 
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets, y1, x1, x2, y2, i := 0, j, aOpt := { 1, "", 0, {} }
+   LOCAL aGets, y1, x1, x2, y2, i := 0, j, aOpt := { 1, "", 0, {} }, nGetOpt := 0
    LOCAL lc := ( Empty( oEdit:cFileName ) .OR. hb_fnameExt( oEdit:cFileName ) == ".c" )
 
    y1 := Int( MaxRow()/2 ) - 6
@@ -405,6 +405,7 @@ STATIC FUNCTION _c_GetParams( oEdit )
    ENDIF
    y2 := y1 + 3 + i
    IF Len( aDopOpt ) > 0
+      nGetOpt := Len( aGets ) + 1
       FOR i := 1 TO Len( aDopOpt )
          AAdd( aGets, { y2+i, x1+3, 1, .F., 1 } )
          AAdd( aGets, { y2+i,x1+2, 11, "[ ] " + aDopOpt[i,1] } )
@@ -431,9 +432,11 @@ STATIC FUNCTION _c_GetParams( oEdit )
          NEXT
       ENDIF
       IF Len( aDopOpt ) > 0
-         FOR i := 1 TO Len( aDopOpt )
-            IF aGets[7+Len(aCompilers)+i,4]
-               AAdd( aDopOpt[4], i )
+         j := 0
+         FOR i := nGetOpt TO Len( aGets ) STEP 2
+            j ++
+            IF aGets[i,4]
+               AAdd( aOpt[4], j )
             ENDIF
          NEXT
       ENDIF
