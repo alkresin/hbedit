@@ -2,9 +2,15 @@
 #define K_ALT_L            294
 #define K_ALT_R            275
 
+#define COMP_ID              1
+#define COMP_FAM             2
+#define COMP_PATH            3
+#define COMP_LIBS            4
+#define COMP_ENV             5
+
 STATIC cIniPath
 STATIC lClass
-STATIC nCompiler
+STATIC aCompilers := {}, aDopOpt := {}
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
@@ -39,7 +45,11 @@ FUNCTION Plug_c_Init( oEdit, cPath )
       RETURN nRes
    }
 
-   cIniPath := cPath
+   IF Empty( cIniPath )
+      cIniPath := cPath
+      _c_ReadIni_hwb()
+      _c_ReadIni_lc()
+   ENDIF
    oEdit:bStartEdit := bStartEdit
    IF !Empty( oEdit:bOnKey )
       bOnKeyOrig := oEdit:bOnKey
@@ -65,42 +75,17 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION _c_Compiler_Init()
-
-   LOCAL i, aEnv := hb_ATokens( GetEnv( "PATH" ), hb_osPathListSeparator() )
-
-   FOR i := 1 TO Len( aEnv )
-#ifdef __PLATFORM__WINDOWS
-      IF File( aEnv[i] + '\' + "bcc32.exe" )
-         nCompiler := 2
-         EXIT
-      ELSEIF File( aEnv[i] + '\' + "gcc.exe" )
-         nCompiler := 1
-         EXIT
-      ENDIF
-#else
-      IF File( aEnv[i] + '/' + "gcc" )
-         nCompiler := 1
-         EXIT
-      ENDIF
-#endif
-   NEXT
-
-   RETURN Nil
-
 STATIC FUNCTION _c_Run( oEdit )
 
    LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew
-   LOCAL cTmpC, cTmpExe, cRes, i, cComp
+   LOCAL cTmpC, cTmpExe, cRes, aOpt, cComp, nCompiler := 0, sDopOpt := "", i, aEnv
 
-   IF Empty( oEdit:cFileName )
-      IF ( i := edi_Alert( "Compile as", "c", "c++" ) ) == 0
-         RETURN Nil
-      ENDIF
-      cTmpC := hb_dirTemp() + cSrcName + Iif( i == 1, ".c", ".cpp" )
-   ELSE
-      cTmpC := hb_dirTemp() + cSrcName + hb_fnameExt( oEdit:cFileName )
+   IF Empty( aOpt := _c_GetParams( oEdit ) )
+      RETURN Nil
    ENDIF
+
+   cTmpC := hb_dirTemp() + cSrcName + Iif( aOpt[1] == 1, ".c", ".cpp" )
+   nCompiler := aOpt[3]
 
    edi_CloseWindow( cFileOut )
 #ifdef __PLATFORM__WINDOWS
@@ -111,24 +96,52 @@ STATIC FUNCTION _c_Run( oEdit )
    hb_MemoWrit( cTmpC, oEdit:ToString() )
 
    IF Empty( nCompiler )
-      _c_Compiler_Init()
+      aEnv := hb_ATokens( GetEnv( "PATH" ), hb_osPathListSeparator() )
+      FOR i := 1 TO Len( aEnv )
+#ifdef __PLATFORM__WINDOWS
+         IF File( aEnv[i] + '\' + "bcc32.exe" )
+            AAdd( aCompilers, { "bcc", "bcc", aEnv[i], "", {} } )
+            nCompiler := Len( aCompilers )
+         ELSEIF File( aEnv[i] + '\' + "gcc.exe" )
+            AAdd( aCompilers, { "mingw", "mingw", aEnv[i], "", {} } )
+            nCompiler := Len( aCompilers )
+         ELSEIF File( aEnv[i] + '\' + "cl.exe" )
+            AAdd( aCompilers, { "msvc", "msvc", aEnv[i], "", {} } )
+            nCompiler := Len( aCompilers )
+         ENDIF
+#else
+         IF File( aEnv[i] + '/' + "gcc" )
+            AAdd( aCompilers, { "gcc", "gcc", aEnv[i], "", {} } )
+            nCompiler := Len( aCompilers )
+         ENDIF
+#endif
+      NEXT
    ENDIF
    IF Empty( nCompiler )
       edi_Alert( "No one C compiler found" )
       RETURN Nil
    ENDIF
 
+   IF !Empty( aOpt[4] )
+      FOR i := 1 TO Len( aOpt[4] )
+         sDopOpt += " " + aDopOpt[ aOpt[4,i,2] ]
+      NEXT
+   ENDIF
    FErase( cTmpExe )
    // Compiling
+   edi_Writelog( hb_valtoexp( acompilers ) )
+   edi_Writelog( str( nCompiler ) + " " + aCompilers[nCompiler,COMP_FAM] + " /" + sDopOpt + "/" )
 #ifdef __PLATFORM__WINDOWS
-   IF nCompiler == 2
-      cedi_RunConsoleApp( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC, "c:\temp\aaa",, @cRes )
-   ELSE
-      cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe,, @cRes )
+   IF aCompilers[nCompiler,COMP_FAM] == "bcc"
+      edi_Writelog( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
+      cedi_RunConsoleApp( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt,, @cRes )
+   ELSEIF aCompilers[nCompiler,COMP_FAM] == "mingw"
+      cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe+ sDopOpt,, @cRes )
+   ELSEIF aCompilers[nCompiler,COMP_FAM] == "msvc"
    ENDIF
 #else
    cComp := Iif( hb_fnameExt(cTmpC) == ".cpp", "g++ ", "gcc " )
-   cedi_RunConsoleApp( cComp + cTmpC + " -o" + cTmpExe + " 2>&1",, @cRes )
+   cedi_RunConsoleApp( cComp + cTmpC + " -o" + cTmpExe + sDopOpt + " 2>&1",, @cRes )
 #endif
 
    IF File( cTmpExe )
@@ -365,3 +378,134 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
    ENDIF
 
    RETURN aWords
+
+STATIC FUNCTION _c_GetParams( oEdit )
+
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL aGets, y1, x1, x2, y2, i := 0, j, aOpt := { 1, "", 0, {} }
+   LOCAL lc := ( Empty( oEdit:cFileName ) .OR. hb_fnameExt( oEdit:cFileName ) == ".c" )
+
+   y1 := Int( MaxRow()/2 ) - 6
+   x1 := Int( MaxCol()/2 ) - 16
+   x2 := x1 + 32
+
+   aGets := { {y1,x1+4, 11, "Parameters"}, ;
+      { y1+1,x1+2, 11, "( ) C" }, { y1+1,x1+3,3,lc,2,,,,"g1" }, ;
+      { y1+1,x1+21, 11, "( ) Cpp" }, { y1+1,x1+22,3,!lc,2,,,,"g1" }, ;
+      { y1+2,x1+2, 11, "Options" }, ;
+      { y1+3,x1+2, 0, "", x2-x1-4 } }
+
+   IF Len( aCompilers ) > 1
+      FOR i := 1 TO Len( aCompilers )
+         AAdd( aGets, { y1+3+i, x1+3, 3, (i==1), 2,,,, "g2" } )
+         AAdd( aGets, { y1+3+i,x1+2, 11, "( ) " + aCompilers[i,COMP_ID] } )
+      NEXT
+   ELSEIF Len( aCompilers ) == 1
+      aOpt[3] := 1
+   ENDIF
+   y2 := y1 + 3 + i
+   IF Len( aDopOpt ) > 0
+      FOR i := 1 TO Len( aDopOpt )
+         AAdd( aGets, { y2+i, x1+3, 1, .F., 1 } )
+         AAdd( aGets, { y2+i,x1+2, 11, "[ ] " + aDopOpt[i,1] } )
+      NEXT
+      y2 += i
+   ENDIF
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+
+   //KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN )
+   edi_READ( aGets )
+   IF LastKey() == 13
+      aOpt[1] := Iif( aGets[3,4], 1, 2 )
+      aOpt[2] := AllTrim( aGets[7,4] )
+      IF Len( aCompilers ) > 1
+         FOR i := 8 TO Len( aGets ) STEP 2
+            IF aGets[i,4]
+               aOpt[3] := i - 7
+               EXIT
+            ENDIF
+         NEXT
+      ENDIF
+      IF Len( aDopOpt ) > 0
+         FOR i := 1 TO Len( aDopOpt )
+            IF aGets[7+Len(aCompilers)+i,4]
+               AAdd( aDopOpt[4], i )
+            ENDIF
+         NEXT
+      ENDIF
+   ELSE
+      aOpt := Nil
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y2, x2, cBuf )
+
+   RETURN aOpt
+
+STATIC FUNCTION _c_ReadIni_hwb()
+
+   LOCAL cPath, hIni, aIni, nSect, aSect, arr, key, cTmp, nPos
+
+   IF File( cPath := ( cIniPath + "hwbuild.ini" ) )
+      hIni := edi_IniRead( cPath )
+   ENDIF
+   IF !Empty( hIni )
+      hb_hCaseMatch( hIni, .F. )
+      aIni := hb_hKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Left( aIni[nSect], 10 ) == "C_COMPILER" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
+            hb_hCaseMatch( aSect, .F. )
+            arr := hb_hKeys( aSect )
+            AAdd( aCompilers, { "", "", "", "", {} } )
+            FOR EACH key IN arr
+               IF key == "id" .AND. !Empty( cTmp := aSect[ key ] )
+                  ATail(aCompilers)[COMP_ID] := cTmp
+               ELSEIF key == "family" .AND. !Empty( cTmp := aSect[ key ] )
+                  ATail(aCompilers)[COMP_FAM] := cTmp
+               ELSEIF key == "bin_path" .AND. !Empty( cTmp := aSect[ key ] )
+                  ATail(aCompilers)[COMP_PATH] := cTmp
+               ELSEIF key == "def_syslibs" .AND. !Empty( cTmp := aSect[ key ] )
+                  ATail(aCompilers)[COMP_LIBS] := cTmp
+               ELSEIF Left(key,4) == "env_" .AND. !Empty( cTmp := aSect[ key ] )
+                  IF ( nPos := At( '=', cTmp ) ) > 0
+                     AAdd( ATail(aCompilers)[COMP_ENV], {Left( cTmp,nPos-1 ), Substr( cTmp,nPos+1 )} )
+                  ENDIF
+               ENDIF
+            NEXT
+            IF Empty( ATail(aCompilers)[COMP_FAM] )
+               ATail(aCompilers)[COMP_FAM] := ATail(aCompilers)[COMP_ID]
+            ENDIF
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION _c_ReadIni_lc()
+
+   LOCAL cPath, hIni, aIni, nSect, aSect, arr, key, cTmp, nPos
+
+   IF File( cPath := ( cIniPath + "lang_c.ini" ) )
+      hIni := edi_IniRead( cPath )
+   ENDIF
+   IF !Empty( hIni )
+      hb_hCaseMatch( hIni, .F. )
+      aIni := hb_hKeys( hIni )
+      FOR nSect := 1 TO Len( aIni )
+         IF Upper(aIni[nSect]) == "MAIN"
+            IF !Empty( aSect := hIni[ aIni[nSect] ] )
+               hb_hCaseMatch( aSect, .F. )
+               arr := hb_hKeys( aSect )
+               FOR EACH key IN arr
+                  IF Left(key,4) == "opt_" .AND. !Empty( cTmp := aSect[ key ] )
+                     IF ( nPos := At( '=', cTmp ) ) > 0
+                        AAdd( aDopOpt, {Left( cTmp,nPos-1 ), Substr( cTmp,nPos+1 )} )
+                     ENDIF
+                  ENDIF
+               NEXT
+            ENDIF
+         ENDIF
+      NEXT
+   ENDIF
+   RETURN Nil

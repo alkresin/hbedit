@@ -3725,20 +3725,22 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
    cOutBuff := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
-   SET CURSOR OFF
-   IF Empty( oPaneCurr:cIOpref )
-      s := hb_ps() + Curdir() + hb_ps()
-      IF !( s == oPaneCurr:cCurrPath )
-         oPaneCurr:Setdir( s )
-      ELSE
-         oPaneCurr:Refresh()
-         IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
-            oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
-            oPaneCurr:nShift := 0
+   IF Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander"
+      SET CURSOR OFF
+      IF Empty( oPaneCurr:cIOpref )
+         s := hb_ps() + Curdir() + hb_ps()
+         IF !( s == oPaneCurr:cCurrPath )
+            oPaneCurr:Setdir( s )
+         ELSE
+            oPaneCurr:Refresh()
+            IF oPaneCurr:nCurrent + oPaneCurr:nShift > Len( oPaneCurr:aDir )
+               oPaneCurr:nCurrent := Iif( Empty(oPaneCurr:aDir), 0, 1 )
+               oPaneCurr:nShift := 0
+            ENDIF
          ENDIF
       ENDIF
+      FilePane():RedrawAll()
    ENDIF
-   FilePane():RedrawAll()
 
    RETURN Nil
 
