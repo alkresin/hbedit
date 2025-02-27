@@ -3542,8 +3542,9 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
  */
 FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
 
-   LOCAL bufsc, clr, i, nHis := 0, cCommand := "", nCommand := 0, s
+   LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s
    LOCAL xRes, bOldError
+   LOCAL lHbc := ( Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander" )
    LOCAL bKeys := {|nKeyExt,cmd,nColInit|
       LOCAL nKey := hb_keyStd( nKeyExt ), cTmp, n
       IF nKey == K_DOWN
@@ -3604,6 +3605,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
    ENDIF
    FilePane():lConsMode := .T.
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
+   nRow := Row(); nCol := Col()
    clr := SetColor( "+W/N" )
 
    SET CURSOR ON
@@ -3725,7 +3727,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
    cOutBuff := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
-   IF Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander"
+   IF lHbc
       SET CURSOR OFF
       IF Empty( oPaneCurr:cIOpref )
          s := hb_ps() + Curdir() + hb_ps()
@@ -3740,6 +3742,8 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
          ENDIF
       ENDIF
       FilePane():RedrawAll()
+   ELSE
+      DevPos( nRow, nCol )
    ENDIF
 
    RETURN Nil

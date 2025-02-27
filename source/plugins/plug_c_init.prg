@@ -78,7 +78,7 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION _c_Run( oEdit )
 
    LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew
-   LOCAL cTmpC, cTmpExe, cRes, aOpt, cComp, nCompiler := 0, sDopOpt := "", i, aEnv
+   LOCAL cTmpC, cTmpExe, cRes, aOpt, cComp, nCompiler := 0, sDopOpt := "", i, aEnv, aCompEnv
 
    IF Empty( aOpt := _c_GetParams( oEdit ) )
       RETURN Nil
@@ -129,15 +129,31 @@ STATIC FUNCTION _c_Run( oEdit )
    ENDIF
    FErase( cTmpExe )
    // Compiling
-   edi_Writelog( hb_valtoexp( acompilers ) )
-   edi_Writelog( str( nCompiler ) + " " + aCompilers[nCompiler,COMP_FAM] + " /" + sDopOpt + "/" )
+   //edi_Writelog( hb_valtoexp( acompilers ) )
+   //edi_Writelog( str( nCompiler ) + " " + aCompilers[nCompiler,COMP_FAM] + " /" + sDopOpt + "/" )
 #ifdef __PLATFORM__WINDOWS
+   aCompEnv := aCompilers[nCompiler,COMP_ENV]
+   IF !Empty( aCompEnv )
+      aEnv := Array( Len(aCompEnv),2 )
+      FOR i := 1 TO Len( aCompEnv )
+         aEnv[i,1] := aCompEnv[i,1]
+         aEnv[i,2] := getenv( aEnv[i,1] )
+         hb_setenv( aCompEnv[i,1], aCompEnv[i,2] )
+      NEXT
+   ENDIF
    IF aCompilers[nCompiler,COMP_FAM] == "bcc"
-      edi_Writelog( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
-      cedi_RunConsoleApp( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt,, @cRes )
+      //edi_Writelog( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
+      cedi_RunConsoleApp( "bcc32.exe -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt,, @cRes )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "mingw"
-      cedi_RunConsoleApp( "gcc " + cTmpC + " -o" + cTmpExe+ sDopOpt,, @cRes )
+      sDopOpt += " -lstdc++"
+      cedi_RunConsoleApp( "gcc.exe " + cTmpC + " -o" + cTmpExe + sDopOpt,, @cRes )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "msvc"
+      cedi_RunConsoleApp( "cl.exe " + cTmpC + " -o" + cTmpExe + sDopOpt,, @cRes )
+   ENDIF
+   IF !Empty( aCompEnv )
+      FOR i := 1 TO Len( aEnv )
+         hb_setenv( aEnv[i,1], aEnv[i,2] )
+      NEXT
    ENDIF
 #else
    cComp := Iif( hb_fnameExt(cTmpC) == ".cpp", "g++ ", "gcc " )
