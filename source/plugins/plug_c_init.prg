@@ -77,10 +77,12 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _c_Run( oEdit )
 
-   LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew
+   LOCAL cSrcName := "hb_c_tmp", cFileOut := "$hb_compile_err", oNew, nRow := Row(), nCol := Col()
    LOCAL cTmpC, cTmpExe, cRes, aOpt, cComp, nCompiler := 0, sDopOpt := "", i, aEnv, aCompEnv
 
-   IF Empty( aOpt := _c_GetParams( oEdit ) )
+   aOpt := _c_GetParams( oEdit )
+   DevPos( nRow, nCol )
+   IF Empty( aOpt )
       RETURN Nil
    ENDIF
 
