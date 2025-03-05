@@ -1,4 +1,5 @@
 #define ALT_PRESSED   0x040000
+#define K_ALT_A            286
 #define K_ALT_L            294
 #define K_ALT_R            275
 
@@ -31,6 +32,7 @@ FUNCTION Plug_c_Init( oEdit, cPath )
          oEdit:hCargo["help"] := "C/C++ plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;
+            "  Alt-A  - Add to code a standard construction" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
       o:bStartEdit := Nil
@@ -70,10 +72,30 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
       ELSEIF nKey == K_ALT_R
          _c_Run( oEdit )
          RETURN -1
+      ELSEIF nKey == K_ALT_A
+         _c_AddCode( oEdit )
+         RETURN -1
       ENDIF
    ENDIF
 
    RETURN 0
+
+STATIC FUNCTION _c_AddCode( oEdit )
+
+   LOCAL aMenu := { "if() {}", "if() {} else {}", "while() {}", "for() {}", ;
+      "switch ()", "class {}", "int main(void) {}" }
+   LOCAL aCode := { e"if( ) {\r}\n", e"if( ) {\r} else {\r}\n", e"while( ) {\r}\n", e"for( int i=1; i<x; i++ ) {\r}\n", ;
+      e"switch( ) {\r   case :\r      break;\r}\n", e"class  {\rpublic:\r}\n", e"#include <stdio.h>\r\rint main( void ) {\r}\n" }
+   LOCAL i
+
+   IF ( i := FMenu( oEdit, aMenu, oEdit:y1+2, oEdit:x1+4 ) ) == 0
+      RETURN Nil
+   ENDIF
+
+   oEdit:InsText( oEdit:nLine, oEdit:nPos, StrTran( aCode[i], Chr(13), Chr(10)+Space(oEdit:nPos-1) ) )
+   oEdit:TextOut()
+
+   RETURN Nil
 
 STATIC FUNCTION _c_Run( oEdit )
 

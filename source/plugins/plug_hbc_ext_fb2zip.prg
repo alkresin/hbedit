@@ -325,9 +325,14 @@ STATIC FUNCTION fb2_strip( cBuff )
    IF Chr(10) $ cBuff .OR. Chr(13) $ cBuff
       cBuff := hb_strReplace( cBuff, {Chr(10),Chr(13)} )
    ENDIF
-   IF "&#160;" $ cBuff
-      cBuff := strTran( cBuff, "&#160;", Chr(160) )
+   IF ( nPos1 := At( "&#", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( ";", cBuff, nPos1 ) ) > 0 .AND. ;
+      nPos2 - nPos1 < 7
+      n := Val( Substr( cBuff, nPos1 + 2, nPos2 - nPos1 - 2 ) )
+      cBuff := strTran( cBuff, Substr( cBuff,nPos1,nPos2-nPos1+1 ), Iif( n <= 255, Chr(n), hb_utf8Chr(n) ) )
    ENDIF
+   //IF "&#160;" $ cBuff
+   //   cBuff := strTran( cBuff, "&#160;", Chr(160) )
+   //ENDIF
    IF "</p>" $ cBuff .OR. "</v>" $ cBuff
       cBuff := hb_strReplace( cBuff, {"</p>","</v>","</text-author>","<stanza>","<v>"}, {Chr(10),Chr(10),Chr(10),Chr(10),"    "} )
    ENDIF
@@ -358,6 +363,12 @@ STATIC FUNCTION fb2_strip( cBuff )
          EXIT
       ENDIF
    ENDDO
+   IF "&lt;" $ cBuff .OR. "&gt;" $ cBuff
+      cBuff := hb_strReplace( cBuff, {"&lt;","&gt;",}, {"<",">"} )
+   ENDIF
+   IF "&amp;" $ cBuff
+      cBuff := strTran( cBuff, "&amp;", "&" )
+   ENDIF
 
    RETURN cBuff
 
