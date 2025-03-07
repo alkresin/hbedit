@@ -1205,8 +1205,6 @@ METHOD onKey( nKeyExt ) CLASS TEdit
 #ifndef _NO_HBC
          CASE K_CTRL_O
             hbc_Console()
-            //FilePane():lConsMode := .T.
-            //Hbc( Self )
             EXIT
 #endif
          CASE K_CTRL_PGUP

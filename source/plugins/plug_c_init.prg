@@ -17,19 +17,19 @@ FUNCTION Plug_c_Init( oEdit, cPath )
 
    LOCAL bOnKeyOrig
    LOCAL bStartEdit := {|o|
-      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col()
+      LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), lCpp := ( o:cSyntaxType == "cpp" )
       IF o:lTopPane
          SetColor( o:cColorPane )
          Scroll( y, o:x1 + 8, y, o:x2 )
          DevPos( y, o:x1 + 8 )
-         DevOut( "C/C++ plugin:  Alt-L Functions list  Alt-R Run" + ;
+         DevOut( Iif( lCpp,"C++","C" ) + " plugin:  Alt-L Functions list  Alt-R Run" + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab Autocompetion","" ) )
          SetColor( o:cColor )
          DevPos( nRow, nCol )
          IF oEdit:hCargo == Nil
             oEdit:hCargo := hb_hash()
          ENDIF
-         oEdit:hCargo["help"] := "C/C++ plugin hotkeys:" + Chr(10) + ;
+         oEdit:hCargo["help"] := Iif( lCpp,"C++","C" ) + " plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;
             "  Alt-A  - Add to code a standard construction" + Chr(10) + ;
@@ -82,17 +82,25 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _c_AddCode( oEdit )
 
-   LOCAL aMenu := { "if() {}", "if() {} else {}", "while() {}", "for() {}", ;
-      "switch ()", "class {}", "int main(void) {}" }
-   LOCAL aCode := { e"if( ) {\r}\n", e"if( ) {\r} else {\r}\n", e"while( ) {\r}\n", e"for( int i=1; i<x; i++ ) {\r}\n", ;
-      e"switch( ) {\r   case :\r      break;\r}\n", e"class  {\rpublic:\r}\n", e"#include <stdio.h>\r\rint main( void ) {\r}\n" }
-   LOCAL i
+   LOCAL aMenu := { "if() {}", "if() {} else {}", "while() {}", "do {} while()", ;
+      "for() {}", "switch ()", "int main(void) {}" }
+   LOCAL aCode := { e"if( ) {\r}\n", e"if( ) {\r} else {\r}\n", e"while( ) {\r}\n", e"do {\r} while( );\n", ;
+      e"for( int i=1; i<x; i++ ) {\r}\n", e"switch( ) {\r   case :\r      break;\r}\n", "1" }
+   LOCAL i, cCode, lCpp := ( oEdit:cSyntaxType == "cpp" )
 
+   IF lCpp
+      AAdd( aMenu, "class {}" )
+      AAdd( aCode, e"class  {\rpublic:\r}\n" )
+   ENDIF
    IF ( i := FMenu( oEdit, aMenu, oEdit:y1+2, oEdit:x1+4 ) ) == 0
       RETURN Nil
    ENDIF
+   IF ( cCode := aCode[i] ) == "1"
+      cCode := Iif( lCpp, e"#include <bits/stdc++.h>\r#include <iostream>\r", ;
+         e"#include <stdio.h>\r" ) + e"\rint main( void ) {\r}\n"
+   ENDIF
 
-   oEdit:InsText( oEdit:nLine, oEdit:nPos, StrTran( aCode[i], Chr(13), Chr(10)+Space(oEdit:nPos-1) ) )
+   oEdit:InsText( oEdit:nLine, oEdit:nPos, StrTran( cCode, Chr(13), Chr(10)+Space(oEdit:nPos-1) ) )
    oEdit:TextOut()
 
    RETURN Nil
@@ -423,15 +431,16 @@ STATIC FUNCTION _c_GetParams( oEdit )
 
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
    LOCAL aGets, y1, x1, x2, y2, i := 0, j, aOpt := { 1, "", 0, {} }, nGetOpt := 0
-   LOCAL lc := ( Empty( oEdit:cFileName ) .OR. hb_fnameExt( oEdit:cFileName ) == ".c" )
+   LOCAL lCpp := ( oEdit:cSyntaxType == "cpp" )
+   //LOCAL lc := ( Empty( oEdit:cFileName ) .OR. hb_fnameExt( oEdit:cFileName ) == ".c" )
 
    y1 := Int( MaxRow()/2 ) - 6
    x1 := Int( MaxCol()/2 ) - 16
    x2 := x1 + 32
 
    aGets := { {y1,x1+4, 11, "Parameters"}, ;
-      { y1+1,x1+2, 11, "( ) C" }, { y1+1,x1+3,3,lc,2,,,,"g1" }, ;
-      { y1+1,x1+21, 11, "( ) Cpp" }, { y1+1,x1+22,3,!lc,2,,,,"g1" }, ;
+      { y1+1,x1+2, 11, "( ) C" }, { y1+1,x1+3,3,!lCpp,2,,,,"g1" }, ;
+      { y1+1,x1+21, 11, "( ) Cpp" }, { y1+1,x1+22,3,lCpp,2,,,,"g1" }, ;
       { y1+2,x1+2, 11, "Options" }, ;
       { y1+3,x1+2, 0, "", x2-x1-4 } }
 
