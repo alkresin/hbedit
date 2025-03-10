@@ -1358,8 +1358,9 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    IF !lErr
       // Compile C sources with C compiler
       cOut := Nil
-      cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", _EnvVarsTran(cPathHrbInc) ), ;
-         "{gi}", Iif( ::lGuiLib.AND.::lHarbour, cPathHwguiInc, "." ) ), "{path}", cCompPath )
+      cCmd := StrTran( StrTran( StrTran( ::oComp:cCmdComp, "{hi}", ;
+         Iif( ::lLib.OR.::lHarbour,_EnvVarsTran(cPathHrbInc),"." ) ), ;
+         "{gi}", Iif( ::lGuiLib.AND.::lHarbour,cPathHwguiInc,"." ) ), "{path}", cCompPath )
 
       FOR i := 1 TO Len( ::aFiles )
          cFile := _PS( ::aFiles[i,1] )
