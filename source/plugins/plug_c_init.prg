@@ -97,7 +97,7 @@ STATIC FUNCTION _c_AddCode( oEdit )
    ENDIF
    IF ( cCode := aCode[i] ) == "1"
       cCode := Iif( lCpp, e"#include <bits/stdc++.h>\r#include <iostream>\r", ;
-         e"#include <stdio.h>\r" ) + e"\rint main( void ) {\r}\n"
+         e"#include <stdio.h>\r" ) + e"\rint main( void ) {\r\r   return 0;\r}\n"
    ENDIF
 
    oEdit:InsText( oEdit:nLine, oEdit:nPos, StrTran( cCode, Chr(13), Chr(10)+Space(oEdit:nPos-1) ) )
