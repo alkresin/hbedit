@@ -412,10 +412,10 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
             nSkip --
          ENDDO
          IF nSkip < nPos
-            cSecond := Substr( cLine, nSkip, nPos-nSkip+1 )
+            cSecond := Substr( cLine, nSkip, nPos-nSkip )
             IF Left(cSecond,nPrefLen) == cPrefix .AND. hb_Ascan(aWords,cSecond,,,.T.) == 0 ;
                .AND. !trie_Exist( hTrieLang, cSecond )
-               Aadd( aWords, cSecond )
+               Aadd( aWords, cSecond + "(" )
             ENDIF
          ENDIF
          nPos ++
