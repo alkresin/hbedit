@@ -9,9 +9,7 @@ harbour plug_bat_init.prg -n -gh -q
 harbour plug_go_init.prg -n -gh -q
 harbour plug_go_build.prg -n -gh -q
 harbour plug_php_init.prg -n -gh -q
-harbour plug_prg_compile.prg -n -gh -q
 harbour plug_prg_init.prg -n -gh -q
-harbour plug_prg_run.prg -n -gh -q
 harbour plug_py_init.prg -n -gh -q
 harbour plug_hbp_init.prg -n -gh -q
 harbour plug_hwprj_init.prg -n -gh -q
