@@ -6,22 +6,20 @@ FUNCTION Plug_Vcs( oEdit )
 
    LOCAL aMenu := { "Git: History", "Fossil: History" }, iChoic, ic
    LOCAL aMenu1 := { "Show file", "Diff with next", "Diff with last", "Diff with current" }, i1, o, o0
-   LOCAL cCurrDir, cFileRes := hb_DirTemp() + "pluggit.out"
+   LOCAL cCurrDir
    LOCAL cAddW0 := "$NextVer", cAddW1 := "$Vcs", cAddW2 := "$Diff", cBuff, cBuff0, arrh
    LOCAL cFileName := hb_FNameNameExt( oEdit:cFileName ), cv1, cv2
    LOCAL nRow := Row(), nCol := Col()
 
-   FErase( cFileRes )
    cCurrDir := hb_FNameDir( oEdit:cFileName )
    IF ( ic := FMenu( oEdit, aMenu, 3, 10 ) ) == 1 .OR. ic == 2 .OR. ic == 3
       edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
       IF ic == 1
          DirChange( cCurrDir )
-         cedi_RunConsoleApp( 'git log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short ' + ;
-            cFileName, cFileRes )
+         cBuff := cRun( 'git log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short ' + cFileName )
       ELSEIF ic == 2
          DirChange( cCurrDir )
-         cedi_RunConsoleApp( 'fossil finfo -b ' + cFileName, cFileRes )
+         cBuff := cRun( 'fossil finfo -b ' + cFileName )
       ELSEIF ic == 3
          IF Empty( cSvnName )
             _vcs_ReadIni()
@@ -31,8 +29,8 @@ FUNCTION Plug_Vcs( oEdit )
          ENDIF
          IF !Empty( cSvnName ) .AND. !Empty( cSvnPass )
             DirChange( cCurrDir )
-            cedi_RunConsoleApp( 'svn log -q --username ' + cSvnName + ' --password ' + ;
-               cSvnPass + " " + cFileName, cFileRes )
+            cBuff := cRun( 'svn log -q --username ' + cSvnName + ' --password ' + ;
+               cSvnPass + " " + cFileName )
          ELSE
             DevPos( nRow, nCol )
             RETURN Nil
@@ -40,7 +38,7 @@ FUNCTION Plug_Vcs( oEdit )
       ENDIF
       edi_Wait()
 
-      IF Empty( cBuff := MemoRead(cFileRes) )
+      IF Empty( cBuff )
          edi_Alert( "No result" )
          DevPos( nRow, nCol )
          DirChange( edi_CurrPath() )
@@ -61,9 +59,8 @@ FUNCTION Plug_Vcs( oEdit )
          i1 := FMenu( oEdit, aMenu1, Int(MaxRow()/2)-3, Int(MaxCol()/2)-9 )
          cv1 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
          edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
-         FErase( cFileRes )
          IF i1 == 1
-            _vcs_GetFile( ic, cv1, cFileName, cFileRes )
+            cBuff0 := _vcs_GetFile( ic, cv1, cFileName )
          ELSEIF i1 == 2
             iChoic --
          ELSEIF i1 == 3
@@ -75,24 +72,23 @@ FUNCTION Plug_Vcs( oEdit )
          IF i1 > 1
             IF iChoic == 0
                IF ic == 1
-                  cedi_RunConsoleApp( 'git diff ' + cv1 + " " + cFileName, cFileRes )
+                  cBuff := cRun( 'git diff ' + cv1 + " " + cFileName )
                ELSEIF ic == 2
-                  cedi_RunConsoleApp( 'fossil diff --from ' + cv1 + " " + cFileName, cFileRes )
+                  cBuff := cRun( 'fossil diff --from ' + cv1 + " " + cFileName )
                ENDIF
             ELSE
                cv2 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
-               _vcs_GetFile( ic, cv2, cFileName, cFileRes )
-               IF !Empty( cBuff0 := MemoRead(cFileRes) )
+               IF !Empty( cBuff0 := _vcs_GetFile( ic, cv2, cFileName ) )
                   IF ic == 1
-                     cedi_RunConsoleApp( 'git diff ' + cv2 + " " + cv1 + " " + cFileName, cFileRes )
+                     cBuff := cRun( 'git diff ' + cv2 + " " + cv1 + " " + cFileName )
                   ELSEIF ic == 2
-                     cedi_RunConsoleApp( 'fossil diff --from ' + cv1 + " --to " + cv2 + " " + cFileName, cFileRes )
+                     cBuff := cRun( 'fossil diff --from ' + cv1 + " --to " + cv2 + " " + cFileName )
                   ENDIF
                ENDIF
             ENDIF
          ENDIF
 
-         IF Empty( cBuff := MemoRead(cFileRes) ) .OR. ( i1 > 1 .AND. iChoic > 0 .AND. Empty( cBuff0 ) )
+         IF Empty( cBuff ) .OR. ( i1 > 1 .AND. iChoic > 0 .AND. Empty( cBuff0 ) )
             edi_Alert( "No result" )
          ELSE
             edi_CloseWindow( cAddW1 )
@@ -117,15 +113,17 @@ FUNCTION Plug_Vcs( oEdit )
 
    RETURN Nil
 
-STATIC FUNCTION _vcs_GetFile( ic, cv1, cFileName, cFileRes )
+STATIC FUNCTION _vcs_GetFile( ic, cv1, cFileName )
+
+   LOCAL cBuff
 
    IF ic == 1
-      cedi_RunConsoleApp( 'git show ' + cv1 + ":./" + cFileName, cFileRes )
+      cBuff := cRun( 'git show ' + cv1 + ":./" + cFileName )
    ELSEIF ic == 2
-      cedi_RunConsoleApp( 'fossil finfo -p -r ' + cv1 + " " + cFileName, cFileRes )
+      cBuff := cRun( 'fossil finfo -p -r ' + cv1 + " " + cFileName )
    ENDIF
 
-   RETURN Nil
+   RETURN cBuff
 
 STATIC FUNCTION _vcs_GetPass( oEdit )
 

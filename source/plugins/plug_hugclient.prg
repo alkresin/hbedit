@@ -67,7 +67,7 @@ FUNCTION plug_HugClient( oEdit, cPath )
       RETURN Nil
    ENDIF
    cRes := Nil
-   cedi_RunConsoleApp( cCompiler + ' -c "import hugchat"',, @cRes )
+   cRes := cRun( cCompiler + ' -c "import hugchat"' )
    IF !Empty( cRes )
       edi_Alert( "You need to install 'hugchat' module for Python" )
       RETURN Nil

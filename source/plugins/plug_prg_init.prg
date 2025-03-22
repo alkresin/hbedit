@@ -342,7 +342,7 @@ STATIC FUNCTION _prg_Init_Build( oEdit )
       SetColor( oEdit:cColorSel )
       @ 10, Int(MaxCol()/2)-4 SAY " Wait... "
 
-      cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+      cBuff := cRun( "hwbc " + cDop + " " + oEdit:cFileName )
    ENDIF
    DirChange( cCurrDir )
    SetColor( oEdit:cColor )
@@ -646,13 +646,10 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
    ENDIF
    sFunc := Lower( aGets[1,4] )
 
+
    IF !lIsCurl
-      FErase( cFileRes )
-      cedi_RunConsoleApp( "curl --version", cFileRes )
-      IF !Empty( cBuff := MemoRead( cFileRes ) ) .AND. "libcurl" $ cBuff
-         lIsCurl := .T.
-      ELSE
-         edi_Alert( "Curl must be installed to use this plugin; curl executable should be in PATH" )
+      IF !( lIsCurl := edi_CheckCurl() )
+         DevPos( nRow, nCol )
          RETURN Nil
       ENDIF
    ENDIF

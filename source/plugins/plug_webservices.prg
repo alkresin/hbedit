@@ -17,11 +17,7 @@ FUNCTION Plug_WebServices( oEdit )
    LOCAL nRow := Row(), nCol := Col(), cAddW := "$Result"
 
    IF !lIsCurl
-      cBuff := cRun( "curl --version" )
-      IF !Empty( cBuff ) .AND. "libcurl" $ cBuff
-         lIsCurl := .T.
-      ELSE
-         edi_Alert( "Curl must be installed to use this plugin; curl executable should be in PATH" )
+      IF !( lIsCurl := edi_CheckCurl() )
          DevPos( nRow, nCol )
          RETURN Nil
       ENDIF

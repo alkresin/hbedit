@@ -245,6 +245,17 @@ FUNCTION edi_CheckPython()
    edi_Alert( "You need to install Python to use this" )
    RETURN ""
 
+FUNCTION edi_CheckCurl()
+
+   LOCAL cBuff := cRun( "curl --version" )
+
+   IF !Empty( cBuff ) .AND. "libcurl" $ cBuff
+      RETURN .T.
+   ELSE
+      edi_Alert( "Curl must be installed; curl executable should be in PATH" )
+   ENDIF
+   RETURN .F.
+
 FUNCTION cRun( cCmd )
 
    LOCAL cRes

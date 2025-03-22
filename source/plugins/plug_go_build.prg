@@ -4,7 +4,7 @@
 FUNCTION Plug_Go_Build( oEdit )
 
    LOCAL i, arr := { "Build current file", "Build project" }
-   LOCAL cFileOut := hb_DirTemp() + "hb_compile_err.out", cAddW := "$hb_compile_err", cBuff, oNew
+   LOCAL cAddW := "$hb_compile_err", cBuff, oNew
 
    oEdit:Save()
 
@@ -15,12 +15,10 @@ FUNCTION Plug_Go_Build( oEdit )
    @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
 
    IF i == 1
-      cedi_RunConsoleApp( "go build " + oEdit:cFileName, cFileOut )
+      cBuff := cRun( "go build " + oEdit:cFileName )
    ELSE
-      cedi_RunConsoleApp( "go build", cFileOut )
+      cBuff := cRun( "go build" )
    ENDIF
-
-   cBuff := MemoRead( cFileOut )
 
    IF Empty( cBuff )
       edi_Alert( "Done" )
