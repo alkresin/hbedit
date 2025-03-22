@@ -40,12 +40,12 @@ STATIC FUNCTION _DiffTool()
          RETURN (nDiffTool := 1)
       ENDIF
 #endif
-      cedi_RunConsoleApp( 'diff -v',, @cBuff )
+      cBuff := cRun( 'diff -v' )
       IF !Empty( cBuff ) .AND. Lower( Left( cBuff,4 ) ) == "diff"
          RETURN (nDiffTool := 2)
       ENDIF
 
-      cedi_RunConsoleApp( 'git --version',, @cBuff )
+      cBuff := cRun( 'git --version' )
       IF !Empty( cBuff ) .AND. Lower( Left( cBuff,3 ) ) == "git"
          RETURN (nDiffTool := 3)
       ENDIF
@@ -62,11 +62,11 @@ FUNCTION edi_MakeDiff( oEdit, cFileName )
    cFileFrom := cFileName
    IF nDiffTool > 0
       IF nDiffTool == 1
-         cedi_RunConsoleApp( hb_dirBase() + 'diff -u ' + cFileName + " " + oEdit:cFileName,, @cBuff )
+         cBuff := cRun( hb_dirBase() + 'diff -u ' + cFileName + " " + oEdit:cFileName )
       ELSEIF nDiffTool == 2
-         cedi_RunConsoleApp( 'diff -u ' + cFileName + " " + oEdit:cFileName,, @cBuff )
+         cBuff := cRun( 'diff -u ' + cFileName + " " + oEdit:cFileName )
       ELSEIF nDiffTool == 3
-         cedi_RunConsoleApp( 'git diff ' + cFileName + " " + oEdit:cFileName,, @cBuff )
+         cBuff := cRun( 'git diff ' + cFileName + " " + oEdit:cFileName )
       ENDIF
       RETURN cBuff
    ENDIF

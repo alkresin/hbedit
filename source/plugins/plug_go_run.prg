@@ -3,7 +3,7 @@ STATIC cTerm
 FUNCTION Plug_Go_Run( oEdit )
 
    LOCAL cTmpDir := hb_DirTemp(), cTmpGo := cTmpDir + "tmp_hbedit.go", cTmpScr
-   LOCAL cFileRes, arr, i, cBuff
+   LOCAL arr, i, cBuff
 
    hb_MemoWrit( cTmpGo, oEdit:ToString() )
 
@@ -15,10 +15,8 @@ FUNCTION Plug_Go_Run( oEdit )
       IF hb_gtVersion() == "HWGUI"
          IF Empty( cTerm )
             arr := { "gnome-terminal", "x-terminal-emulator", "konsole", "xfce4-terminal" }
-            cFileRes := cTmpDir + "tmp_hbedit.out"
             FOR i := 1 TO Len( arr )
-               cedi_RunConsoleApp( "which " + arr[i], cFileRes )
-               IF !Empty( cBuff := MemoRead( cFileRes ) )
+               IF !Empty( cBuff := cRun( "which " + arr[i] ) )
                   cBuff := StrTran( cBuff, Chr(10), "" )
                   IF Substr( cBuff, Len(cBuff)-Len(arr[i])+1, Len(arr[i]) ) == arr[i]
                      cTerm := arr[i]

@@ -17,7 +17,7 @@ FUNCTION Plug_WebServices( oEdit )
    LOCAL nRow := Row(), nCol := Col(), cAddW := "$Result"
 
    IF !lIsCurl
-      cedi_RunConsoleApp( "curl --version",, @cBuff )
+      cBuff := cRun( "curl --version" )
       IF !Empty( cBuff ) .AND. "libcurl" $ cBuff
          lIsCurl := .T.
       ELSE
@@ -29,7 +29,7 @@ FUNCTION Plug_WebServices( oEdit )
 
    IF !Empty( iChoic := FMenu( oEdit, aMenu, 3, 10 ) )
       IF iChoic  == 1
-         cedi_RunConsoleApp( "curl ifconfig.me -s",, @cBuff )
+         cBuff := cRun( "curl ifconfig.me -s" )
          edi_writelog( cBuff )
          IF !Empty( cBuff )
             IF Len( cBuff ) > 20
@@ -44,7 +44,7 @@ FUNCTION Plug_WebServices( oEdit )
          edi_SelectW( oEdit )
          cBuff := cp_Substr( oEdit:lUtf8, oEdit:aText[oEdit:nLine], oEdit:nbx1, oEdit:nbx2-oEdit:nbx1 )
          IF !Empty( cBuff := _plug_GetString( oEdit, "Find word:", cBuff ) )
-            cedi_RunConsoleApp( "curl dict://dict.org/d:" + cBuff + " -s",, @cBuff )
+            cBuff := cRun( "curl dict://dict.org/d:" + cBuff + " -s" )
             IF !Empty( cBuff )
                edi_AddWindow( oEdit, cBuff, cAddW, 2, 10 )
             ELSE
@@ -54,7 +54,7 @@ FUNCTION Plug_WebServices( oEdit )
       ELSEIF iChoic  == 3
          edi_CloseWindow( cAddW )
          IF !Empty( cBuff := _lorem_GetString( oEdit ) )
-            cedi_RunConsoleApp( "curl " + cBuff + "-s",, @cBuff )
+            cBuff := cRun( "curl " + cBuff + "-s" )
             IF !Empty( cBuff )
                edi_AddWindow( oEdit, cBuff, cAddW, 2, 10 )
             ELSE

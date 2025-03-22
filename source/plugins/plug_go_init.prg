@@ -109,7 +109,7 @@ FUNCTION _go_Init_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
 
-   LOCAL nx1, cBuff, cFileOut := hb_DirTemp() + "hbedit.out", o, nPos, cAddW := "$FuncInfo"
+   LOCAL nx1, cBuff, o, nPos, cAddW := "$FuncInfo"
    LOCAL aImport, cPackage, i
 
    IF Left( cWord, 1 ) == '"'
@@ -128,11 +128,7 @@ STATIC FUNCTION _go_GetFuncInfo( oEdit, cWord )
       RETURN Nil
    ENDIF
 
-   // edi_Alert( cPackage + " " + cWord )
-
-   FErase( cFileOut )
-   cedi_RunConsoleApp( 'go doc ' + cPackage + ' ' + cWord, cFileOut )
-   IF Empty( cBuff := MemoRead( cFileOut ) )
+   IF Empty( cBuff := cRun( 'go doc ' + cPackage + ' ' + cWord ) )
       edi_Alert( "Error" )
       RETURN Nil
    ENDIF
@@ -152,7 +148,7 @@ STATIC FUNCTION _go_Run()
    LOCAL cRes, cTempFile, nScreenH, nScreenW, bufsc, cCmd
 
    IF nGoInstalled == 0
-      cedi_RunConsoleApp( 'go version',, @cRes )
+      cRes := cRun( 'go version' )
       nGoInstalled := Iif( cRes != Nil .AND. "version" $ cRes, 1, -1 )
    ENDIF
    IF nGoInstalled == 1
@@ -175,12 +171,12 @@ STATIC FUNCTION _go_Format()
    LOCAL cRes
 
    IF nGoInstalled == 0
-      cedi_RunConsoleApp( 'go version',, @cRes )
+      cRes := cRun( 'go version' )
       nGoInstalled := Iif( cRes != Nil .AND. "version" $ cRes, 1, -1 )
    ENDIF
    IF nGoInstalled == 1
       oEd:Save()
-      cedi_RunConsoleApp( "gofmt -w " + oEd:cFileName,, @cRes )
+      cRes := cRun( "gofmt -w " + oEd:cFileName )
       oEd:SetText( MemoRead( oEd:cFileName ), oEd:cFileName )
       edi_Alert( "Done!" )
    ELSE

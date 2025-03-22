@@ -175,12 +175,12 @@ STATIC FUNCTION _c_Run( oEdit )
    ENDIF
    IF aCompilers[nCompiler,COMP_FAM] == "bcc"
       //edi_Writelog( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
-      cedi_RunConsoleApp( "bcc32.exe -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt,, @cRes )
+      cRes := cRun( "bcc32.exe -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "mingw"
       sDopOpt += " -lstdc++"
-      cedi_RunConsoleApp( "gcc.exe " + cTmpC + " -o" + cTmpExe + sDopOpt,, @cRes )
+      cRes := cRun( "gcc.exe " + cTmpC + " -o" + cTmpExe + sDopOpt )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "msvc"
-      cedi_RunConsoleApp( "cl.exe " + cTmpC + " -o" + cTmpExe + sDopOpt,, @cRes )
+      cRes := cRun( "cl.exe " + cTmpC + " -o" + cTmpExe + sDopOpt )
    ENDIF
    IF !Empty( aCompEnv )
       FOR i := 1 TO Len( aEnv )
@@ -189,7 +189,7 @@ STATIC FUNCTION _c_Run( oEdit )
    ENDIF
 #else
    cComp := Iif( hb_fnameExt(cTmpC) == ".cpp", "g++ ", "gcc " )
-   cedi_RunConsoleApp( cComp + cTmpC + " -o" + cTmpExe + sDopOpt + " 2>&1",, @cRes )
+   cRes := cRun( cComp + cTmpC + " -o" + cTmpExe + sDopOpt + " 2>&1" )
 #endif
 
    IF File( cTmpExe )

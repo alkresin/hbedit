@@ -535,9 +535,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ELSEIF is7z()
                cTemp := hb_DirTemp() + hb_fnameNameExt( oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
                FErase( cTemp )
-               cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+               //cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+               //   oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+               //   " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+               cRes := cRun( '7z e -o"' + hb_DirTemp() + '" '+ ;
                   oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
-                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
                FileView( cTemp, oPaneCurr:vx1, oPaneCurr:vy1, oPaneCurr:vx2, oPaneCurr:vy2 )
                FErase( cTemp )
             ENDIF
@@ -587,9 +590,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ELSEIF is7z()
                cTemp := hb_DirTemp() + hb_fnameNameExt( oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
                FErase( cTemp )
-               cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+               //cedi_RunConsoleApp( '7z e -o"' + hb_DirTemp() + '" '+ ;
+               //   oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+               //   " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+               cRes := cRun( '7z e -o"' + hb_DirTemp() + '" '+ ;
                   oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
-                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+                  " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
                IF File( cTemp ) .AND. !Empty( cTemp := MemoRead(cTemp) )
                   mnu_NewBuf( oHbc, oPaneCurr:cIOpref+"|"+oPaneCurr:net_cAddress+"|"+aDir[1], cTemp )
                ELSE
@@ -2078,9 +2084,12 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aWnd )
       ELSEIF cIOpref == "net:"
          edi_Alert( cNotPerm )
       ELSEIF is7z()
-         cedi_RunConsoleApp( '7z e -o"' + hb_fnameDir(cFileTo) + '" '+ ;
+         //cedi_RunConsoleApp( '7z e -o"' + hb_fnameDir(cFileTo) + '" '+ ;
+         //   oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
+         //   " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+         cRes := cRun( '7z e -o"' + hb_fnameDir(cFileTo) + '" '+ ;
             oPaneCurr:cCurrPath + oPaneCurr:net_cAddress + ;
-            " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1],, @cRes )
+            " " + oPaneCurr:aZipFull[aDir[ADIR_POS],1] )
       ENDIF
    ELSEIF oPaneTo:nPanelMod == 2
       IF oPaneTo:cIOpref == "zip:"
@@ -2844,7 +2853,8 @@ STATIC FUNCTION f7z_Read( cFileName )
    IF !is7z()
       RETURN Nil
    ENDIF
-   cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
+   //cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
+   cRes := cRun( "7z l " + cFileName )
    IF !Empty( cRes )
       aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
       FOR i := 1 TO Len( aRes )
@@ -2891,7 +2901,8 @@ STATIC FUNCTION is7z()
    LOCAL cRes
 
    IF Filepane():n7z == 0
-      cedi_RunConsoleApp( "7z",, @cRes )
+      //cedi_RunConsoleApp( "7z",, @cRes )
+      cRes := cRun( "7z" )
       IF !Empty( cRes ) .AND. "Copyright" $ cRes
          Filepane():n7z := 1
       ELSE
@@ -3044,7 +3055,8 @@ STATIC FUNCTION hbc_Search( lSele )
             cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
                '-l ' + '"' + cSearch + '" ' + aGets[1,4]
          ENDIF
-         cedi_RunConsoleApp( cCmd,, @cRes )
+         //cedi_RunConsoleApp( cCmd,, @cRes )
+         cRes := cRun( cCmd )
          IF !Empty( cRes )
             aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
             FOR i := 1 TO Len( aRes )
@@ -3253,7 +3265,8 @@ STATIC FUNCTION hbc_Unzip()
          ENDIF
       ELSE
          aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 8, oPaneCurr:vx2-12,, "Restore from archive" )
-         cedi_RunConsoleApp( '7z x -o"' + cPath + '" '+ cFileName,, @cRes )
+         //cedi_RunConsoleApp( '7z x -o"' + cPath + '" '+ cFileName,, @cRes )
+         cRes := cRun( '7z x -o"' + cPath + '" '+ cFileName )
          hbc_Wndclose( aWnd, _I("Done") )
          oPaneCurr:Refresh()
          oPaneCurr:RedrawAll()

@@ -25,7 +25,7 @@ FUNCTION Plug_Telegraph( oEdit, cPath )
    LOCAL aMenu := { "Get account info", "Create page in browser", "Create page in editor", "Get page list" }, iChoic
 
    IF !lIsCurl
-      cedi_RunConsoleApp( "curl --version",, @cBuff )
+      cBuff := cRun( "curl --version" )
       IF !Empty( cBuff ) .AND. "libcurl" $ cBuff
          lIsCurl := .T.
       ELSE
@@ -90,8 +90,8 @@ STATIC FUNCTION _tlph_CreateAccount()
    ENDIF
 
    IF !Empty( cShortName ) .AND. !Empty( cName )
-      cedi_RunConsoleApp( "curl https://api.telegra.ph/createAccount?short_name=" + cShortName + ;
-         "&author_name=" + cName,, @cBuff )
+      cBuff := cRun( "curl https://api.telegra.ph/createAccount?short_name=" + cShortName + ;
+         "&author_name=" + cName )
       IF !Empty( cBuff )
          IF ( nPos := At( '{"ok"', cBuff ) ) > 0
             hb_jsonDecode( Substr( cBuff, nPos ), @arr )
@@ -114,8 +114,8 @@ STATIC FUNCTION _tlph_GetAccountInfo()
 
    LOCAL cBuff, nPos, arr, xTemp, cr := Chr(10)
 
-   cedi_RunConsoleApp( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
-      "=" + cUserKey + '&fields=\[\"short_name\",\"author_name\",\"author_url\",\"auth_url\",\"page_count\"\]',, @cBuff )
+   cBuff := cRun( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"short_name\",\"author_name\",\"author_url\",\"auth_url\",\"page_count\"\]' )
    IF !Empty( cBuff )
       IF ( nPos := At( '{"ok"', cBuff ) ) > 0
          hb_jsonDecode( Substr( cBuff, nPos ), @arr )
@@ -139,8 +139,8 @@ STATIC FUNCTION _tlph_CreatePageInBrowser()
 
    LOCAL cBuff, nPos, arr, xTemp
 
-   cedi_RunConsoleApp( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
-      "=" + cUserKey + '&fields=\[\"auth_url\"\]',, @cBuff )
+   cBuff := cRun( "curl https://api.telegra.ph/getAccountInfo?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"auth_url\"\]' )
    IF !Empty( cBuff )
       IF ( nPos := At( '{"ok"', cBuff ) ) > 0
          hb_jsonDecode( Substr( cBuff, nPos ), @arr )
@@ -185,8 +185,8 @@ STATIC FUNCTION _tlph_GetPageList()
 
    LOCAL cBuff, nPos, arr, xTemp, i, j, aMenu, cp := hb_cdpSelect()
 
-   cedi_RunConsoleApp( "curl https://api.telegra.ph/getPageList?" + _cAccessToken + ;
-      "=" + cUserKey + '&fields=\[\"auth_url\"\]',, @cBuff )
+   cBuff := cRun( "curl https://api.telegra.ph/getPageList?" + _cAccessToken + ;
+      "=" + cUserKey + '&fields=\[\"auth_url\"\]' )
    IF !Empty( cBuff )
       IF ( nPos := At( '{"ok"', cBuff ) ) > 0
          hb_jsonDecode( Substr( cBuff, nPos ), @arr )
@@ -228,8 +228,8 @@ STATIC FUNCTION _tlph_GetPage( cPageName )
       RETURN Nil
    }
 
-   cedi_RunConsoleApp( "curl https://api.telegra.ph/getPage/" + cPageName + ;
-      "?return_content=true",, @cBuff )
+   cBuff := cRun( "curl https://api.telegra.ph/getPage/" + cPageName + ;
+      "?return_content=true" )
    IF !Empty( cBuff ) .AND. ( nPos := At( '{"ok"', cBuff ) ) > 0
       hb_jsonDecode( Substr( cBuff, nPos ), @arr )
       IF Valtype( arr ) == "H" .AND. arr["ok"]
@@ -279,7 +279,7 @@ STATIC FUNCTION _tlph_EditPage( oEdit )
          Iif( lNew, "", Substr(oEdit:cFileName,2) ) + ;
          ' -H "Content-Type: application/json" -d @"' + cJsonFile + '"'
       //edi_Writelog( xTemp )
-      cedi_RunConsoleApp( xTemp,, @cBuff )
+      cBuff := cRun( xTemp )
       IF !Empty( cBuff ) .AND. ( nPos := At( '{"ok"', cBuff ) ) > 0
          arr := Nil
          hb_jsonDecode( Substr( cBuff, nPos ), @arr )

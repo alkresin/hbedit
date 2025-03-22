@@ -238,7 +238,7 @@ STATIC FUNCTION _hwprj_Init_Build( oEdit )
          RETURN Nil
       ENDIF
       @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR oEdit:cColorSel
-      cedi_RunConsoleApp( "hwbc " + cDop + " " + oEdit:cFileName,, @cBuff )
+      cBuff := cRun( "hwbc " + cDop + " " + oEdit:cFileName )
    ENDIF
    DirChange( cCurrDir )
 

@@ -62,10 +62,10 @@ FUNCTION _bat_init_run( oEdit, cPath )
    edi_CloseWindow( cFileRes )
 
    DirChange( hb_fnameDir( oEdit:cFileName ) )
-   cedi_RunConsoleApp( oEdit:cFileName, cFileRes )
+   cBuff := cRun( oEdit:cFileName )
    DirChange( cDir )
 
-   IF Empty( cBuff := MemoRead( cFileRes ) )
+   IF Empty( cBuff )
       edi_Alert( "Done!" )
    ELSE
       oNew := edi_AddWindow( oEdit, cBuff, cFileRes, 2, 7 )
