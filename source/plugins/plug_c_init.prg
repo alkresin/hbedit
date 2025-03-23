@@ -12,6 +12,7 @@
 STATIC cIniPath
 STATIC lClass
 STATIC aCompilers := {}, aDopOpt := {}
+STATIC isCtags := Nil
 
 FUNCTION Plug_c_Init( oEdit, cPath )
 
@@ -29,12 +30,14 @@ FUNCTION Plug_c_Init( oEdit, cPath )
          IF oEdit:hCargo == Nil
             oEdit:hCargo := hb_hash()
          ENDIF
-         oEdit:hCargo["help"] := Iif( lCpp,"C++","C" ) + " plugin hotkeys:" + Chr(10) + ;
+         oEdit:hCargo["help"] := Iif( _c_isCtags(), "", "*** Install Ctags for better sources parsing ***" + Chr(10) ) + ;
+            Iif( lCpp,"C++","C" ) + " plugin hotkeys:" + Chr(10) + ;
             "  Alt-L  - Functions list" + Chr(10) + ;
             "  Alt-R  - Run" + Chr(10) + ;
             "  Alt-A  - Add to code a standard construction" + Chr(10) + ;
             Iif( hb_hGetDef(TEdit():options,"autocomplete",.F.),"  Tab - Autocompetion" + Chr(10),"" )
       ENDIF
+      oEdit:hCargo["flist"] := Nil
       o:bStartEdit := Nil
 
       RETURN Nil
@@ -65,6 +68,9 @@ STATIC FUNCTION _c_Init_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt), nCol := Col(), nRow := Row(), cWord
 
+   IF oEdit:lUpdated .AND. oEdit:hCargo["flist"] != Nil
+      oEdit:hCargo["flist"] := Nil
+   ENDIF
    IF hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
       IF nKey == K_ALT_L
          _c_Spis( oEdit )
@@ -208,9 +214,19 @@ STATIC FUNCTION _c_Spis( oEdit )
    LOCAL i, n, arrfnc
    LOCAL oHili := oEdit:oHili
 
-   lClass := .F.
-   oHili:CheckComm()
-   IF Empty( arrfnc := _c_Funcs( oEdit, oHili ) )
+   IF oEdit:hCargo["flist"] == Nil
+      IF _c_isCtags()
+         arrfnc := _c_Tags( oEdit )
+      ELSE
+         lClass := .F.
+         oHili:CheckComm()
+         arrfnc := _c_Funcs( oEdit, oHili )
+      ENDIF
+      oEdit:hCargo["flist"] := arrfnc
+   ELSE
+      arrfnc := oEdit:hCargo["flist"]
+   ENDIF
+   IF Empty( arrfnc )
       edi_Alert( "Nothing found..." )
    ELSE
       oEdit:TextOut()
@@ -228,6 +244,34 @@ STATIC FUNCTION _c_Spis( oEdit )
    ENDIF
 
    RETURN Nil
+
+STATIC FUNCTION _c_Tags( oEdit )
+
+   LOCAL arrfnc := {}, cBuff, cFileTmp
+   LOCAL nSkip, nSkipLine := 0, cLine, cToken, cType, cNum
+
+   IF oEdit:lUpdated
+      cFileTmp := hb_dirTemp() + "hb_c_tmp" + Iif( oEdit:cSyntaxType == "cpp", ".cpp", ".c" )
+      hb_MemoWrit( cFileTmp, oEdit:ToString() )
+      cBuff := cRun( "ctags -x " + cFileTmp )
+   ELSE
+      cBuff := cRun( "ctags -x " + oEdit:cFileName )
+   ENDIF
+   DO WHILE !Empty( cLine := hb_TokenPtr( cBuff, @nSkipLine, Chr(10) ) )
+      nSkip := 0
+      cToken := hb_TokenPtr( cLine, @nSkip )
+      cType := hb_TokenPtr( cLine, @nSkip )
+      cNum := hb_TokenPtr( cLine, @nSkip )
+      hb_TokenPtr( cLine, @nSkip )
+      IF cType == "class" .OR. cType == "function" .OR. cType == "struct"
+         AAdd( arrfnc, { Ltrim( Substr(cLine, nSkip) ), Nil, Val(cNum) } )
+      ENDIF
+   ENDDO
+   IF Empty( arrfnc )
+      RETURN Nil
+   ENDIF
+
+   RETURN ASort( arrfnc,,, {|a1,a2| a1[3]<a2[3] } )
 
 STATIC FUNCTION _c_Funcs( oEdit, oHili, nLineEnd )
 
@@ -426,6 +470,16 @@ STATIC FUNCTION _c_KeyWords( oEdit, cPrefix, hTrieLang )
    ENDIF
 
    RETURN aWords
+
+STATIC FUNCTION _c_isCtags()
+
+   LOCAL cBuff
+
+   IF isCtags == Nil
+      isCtags := ( !Empty( cBuff := cRun( "ctags --version" ) ) .AND. "opyri" $ cBuff )
+   ENDIF
+
+   RETURN isCtags
 
 STATIC FUNCTION _c_GetParams( oEdit )
 
