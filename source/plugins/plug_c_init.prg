@@ -165,6 +165,7 @@ STATIC FUNCTION _c_Run( oEdit )
          sDopOpt += " " + aDopOpt[ aOpt[4,i],2 ]
       NEXT
    ENDIF
+   sDopOpt += " " + aOpt[2]
    FErase( cTmpExe )
    // Compiling
    //edi_Writelog( hb_valtoexp( acompilers ) )
@@ -183,7 +184,9 @@ STATIC FUNCTION _c_Run( oEdit )
       //edi_Writelog( "bcc32 -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
       cRes := cRun( "bcc32.exe -e" + cSrcName + " -n" + hb_dirTemp() + " " + cTmpC + sDopOpt )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "mingw"
+      sDopOpt += " -luser32 -lwinspool -lcomctl32 -lcomdlg32 -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lwsock32 -lws2_32 -liphlpapi"
       sDopOpt += " -lstdc++"
+      //edi_writelog( "gcc.exe " + cTmpC + " -o" + cTmpExe + sDopOpt )
       cRes := cRun( "gcc.exe " + cTmpC + " -o" + cTmpExe + sDopOpt )
    ELSEIF aCompilers[nCompiler,COMP_FAM] == "msvc"
       cRes := cRun( "cl.exe " + cTmpC + " -o" + cTmpExe + sDopOpt )
