@@ -2562,11 +2562,14 @@ FUNCTION __PaintBo_Chess( hDC, nOp )
                   hb_Memowrit( cTemp, aResources[i,3] )
                   h := Eval( &( "{|s|" + cFuncGdi + "(s)}" ), cTemp )
                ENDIF
-               arrm := hwg_Getbitmapsize( h )
-               aImgHandles[aResources[i,1]] := { h, arrm[1], arrm[2] }
-               /* edi_writelog( hb_valtoexp(aResources[i,1]) + " " + ;
-                  hb_valtoexp(aImgHandles[aResources[i,1]]) + " " + ;
-                  hb_valtoexp(hwg_Getbitmapsize(aImgHandles[aResources[i,1]])) + hb_valtoexp(!Empty(aImgHandles[aResources[i,1]])) ) */
+               IF Empty( h )
+                  edi_writelog( "hwg_OpenImage error" )
+                  EXIT
+               ELSE
+                  arrm := hwg_Getbitmapsize( h )
+                  aImgHandles[aResources[i,1]] := { h, arrm[1], arrm[2] }
+                  //edi_writelog( hb_valtoexp(aImgHandles[aResources[i,1]]) )
+               ENDIF
             NEXT
          ENDIF
       ENDIF
