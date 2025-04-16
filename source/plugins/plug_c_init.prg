@@ -96,7 +96,7 @@ STATIC FUNCTION _c_AddCode( oEdit )
 
    IF lCpp
       AAdd( aMenu, "class {}" )
-      AAdd( aCode, e"class  {\rpublic:\r}\n" )
+      AAdd( aCode, e"class  {\rpublic:\r};\n" )
    ENDIF
    IF ( i := FMenu( oEdit, aMenu, oEdit:y1+2, oEdit:x1+4 ) ) == 0
       RETURN Nil
