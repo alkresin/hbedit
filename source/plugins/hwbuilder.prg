@@ -124,6 +124,12 @@ FUNCTION HwBuilder( cFile, lFromEdit )
          IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles ) )
             oPrg:Build( lClean )
          ENDIF
+      ELSEIF File( hb_fnameDir(cFile) + ".hwprj" )
+         Aadd( aFiles, {cFile,""} )
+         Aadd( aFiles, {".hwprj",""} )
+         IF !Empty( oPrg := HwProject():Open( hb_fnameDir(cFile) + ".hwprj", oComp, aUserPar, aFiles ) )
+            oPrg:Build()
+         ENDIF
       ELSE
          oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
             "", cFlagsPrg, "", "", "", .F., .F., lNoGui )
@@ -280,7 +286,7 @@ STATIC FUNCTION FindHarbour()
 
 STATIC FUNCTION ReadIni( cFile )
 
-   LOCAL cPath, hIni, aIni, arr, nSect, aSect, cTmp, i, j, key, nPos, cFam, oComp, oGui
+   LOCAL cPath, hIni, aIni, arr, nSect, aSect, cTmp, i, key, nPos, cFam, oComp, oGui
    LOCAL aEnv, aMsvc := Array(4), aEnvM
 
    IF File( cPath := ( _CurrPath() + cFile ) ) .OR. ;
@@ -925,8 +931,8 @@ CLASS HwProject
    DATA aProjects  INIT {}
 
    METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
-      cOutName, cObjPath, lLib, lMake )
-   METHOD Open( xSource, oComp, aUserPar )
+      cOutName, cObjPath, lLib, lMake, lNoGui )
+   METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars )
    METHOD Build( lClean )
 
 ENDCLASS
@@ -998,7 +1004,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
 
    IF !Empty( aFiles )
       FOR i := 1 TO Len( aFiles )
-         IF !( Lower( hb_fnameExt( aFiles[i,1] ) ) == ".hwprj" )
+         IF !( Lower( hb_fnameExt( "x"+hb_fnameNameExt(aFiles[i,1]) ) ) == ".hwprj" )
             AAdd( ::aFiles, aFiles[i] )
          ENDIF
       NEXT
@@ -1223,10 +1229,10 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
 
 METHOD Build( lClean, lSub ) CLASS HwProject
 
-   LOCAL i, cCmd, cComp, cLine, cOut, cFullOut := "", lErr := .F., to, tc
+   LOCAL i, cCmd, cLine, cOut, cFullOut := "", lErr := .F., to, tc
    LOCAL cObjs := "", cFile, cExt, cBinary, cObjFile, cObjPath
    LOCAL aLibs, cLibs := "", a4Delete := {}, tStart := hb_DtoT( Date(), Seconds()-1 )
-   LOCAL aEnv, cResFile := "", cResList := ""
+   LOCAL aEnv, cResFile, cResList := ""
    LOCAL cCompPath, cCompHrbLib, cCompGuiLib
 
    ::lBuildRes := ::lGuiLib
