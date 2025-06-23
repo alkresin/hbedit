@@ -744,16 +744,18 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             oPaneCurr:net_cPort, oPaneCurr:cCurrPath }
       ENDIF
    ELSEIF nKey == 39     // '
-      i := hbc_Wndinit( 2, 4, 6, 40,, _I("Go to Bookmark") )
+      i := hbc_Wndinit( 2, 4, 7, 40,, _I("Go to Bookmark") )
       hbc_Wndout( i, "a" + Iif( hb_hHaskey(oHbc:hBookMarks,97), ;
          " "+NameShortcut( (aDir := oHbc:hBookMarks[97])[1]+aDir[4],35,'~' ), "") )
       hbc_Wndout( i, "s" + Iif( hb_hHaskey(oHbc:hBookMarks,115), ;
          " "+NameShortcut( (aDir := oHbc:hBookMarks[115])[1]+aDir[4],35,'~' ), "") )
       hbc_Wndout( i, "d" + Iif( hb_hHaskey(oHbc:hBookMarks,100), ;
          " "+NameShortcut( (aDir := oHbc:hBookMarks[100])[1]+aDir[4],35,'~' ), "") )
+      hbc_Wndout( i, "'" + Iif( hb_hHaskey(oHbc:hBookMarks,39), ;
+         " "+NameShortcut( (aDir := oHbc:hBookMarks[39])[1]+aDir[4],35,'~' ), "") )
       nKey := Inkey(0)
       hbc_Wndclose( i )
-      IF Chr( nKey ) $ "asd" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
+      IF Chr( nKey ) $ "asd'" .AND. hb_hHaskey( oHbc:hBookMarks, nKey )
          aDir := oHbc:hBookMarks[nKey]
          oPaneCurr:ChangeDir( aDir[1]+aDir[2]+aDir[3]+aDir[4] )
       ENDIF
@@ -1290,6 +1292,9 @@ METHOD ChangeDir( cNewPath ) CLASS FilePane
    ENDIF
 
    IF !Empty( cNewPath )
+      IF Empty( ::cIOpref )
+         oHbc:hBookMarks[39] := { "", "", "", ::cCurrPath }   // '
+      ENDIF
       ::SetDir( Trim(cNewPath) )
       ::nCurrent := Iif( Empty( ::aDir ), 0, 1 )
       ::nShift := 0

@@ -48,7 +48,8 @@ HbCommander - built-in file manager
 
    m          - Set bookmark on current directory, then press a,s,d
                 to select a bookmark
-   '          - Go to directory, saved in a bookmark (a,s,d)
+   '          - Go to directory, saved in a bookmark (a,s,d,'), where ' - is an
+                  automatically saved previous directory
 
 
    Mouse left button click on a header calls main menu.
