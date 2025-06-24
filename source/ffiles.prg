@@ -127,10 +127,12 @@ FUNCTION edi_Directory( cPath, cMask )
 
    RETURN aMenu
 
-FUNCTION edi_IniRead( cFileName )
+FUNCTION edi_IniRead( cFileName, lString )
 
-   LOCAL cText := Memoread( cFileName ), aText, i, s, nPos
+   LOCAL cText, aText, i, s, nPos
    LOCAL hIni, hSect
+
+   cText := Iif( Empty( lString ), Memoread( cFileName ), cFileName )
 
    IF Empty( cText )
       RETURN Nil
