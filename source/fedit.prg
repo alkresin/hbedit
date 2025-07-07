@@ -154,6 +154,7 @@ CLASS TEdit
    DATA   funSave
    DATA   bStartEdit, bEndEdit
    DATA   bOnKey, bWriteTopPane, bTextOut
+   DATA   nInkeyDelay   INIT 0
    DATA   bAutoC
    DATA   oHili
    DATA   hBookMarks
@@ -387,7 +388,9 @@ METHOD Edit( lShowOnly ) CLASS TEdit
    ::lShow := .T.
    DO WHILE ::lShow .AND. !::lClose
       SetCursor( Iif( ::lIns==Nil, SC_NONE, Iif( ::lIns, SC_NORMAL, SC_SPECIAL1 ) ) )
-      IF nAutoDelay > 0
+      IF ::nInkeyDelay > 0
+         nKeyExt := Inkey( ::nInkeyDelay, HB_INKEY_ALL + HB_INKEY_EXT )
+      ELSEIF nAutoDelay > 0
          DO WHILE ( nKeyExt := Inkey( 0.5, HB_INKEY_ALL + HB_INKEY_EXT ) ) == 0
             FCheckAutoc()
          ENDDO
@@ -399,7 +402,7 @@ METHOD Edit( lShowOnly ) CLASS TEdit
          ::lClose := .T.
          EXIT
       ENDIF
-      IF !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
+      IF nKeyExt != 0 .AND. !Empty( hKeyMap ) .AND. !Empty( i := hb_hGetDef( hKeyMap, nKeyExt, 0 ) )
          //edi_Alert( hb_NumToHex(nkeyext) + " " + valtype(i) )
          IF Valtype( i ) == "N"
             nKeyExt := i
@@ -3515,16 +3518,6 @@ FUNCTION mnu_View( oEdit )
    ELSEIF i == 2
       TEdit():options["autocomplete"] := lAutoC := !lAutoC
       nAutoDelay := Iif( lAutoC, hb_hGetDef( TEdit():options,"autodelay", 0 ), 0 )
-      /*
-      IF lAutoC
-         IF hb_hGetDef( TEdit():options,"autodelay", 0 ) > 0
-            hIdle := hb_IdleAdd( {|| _FIdle() } )
-         ENDIF
-      ELSEIF !Empty( hIdle )
-         hb_IdleDel( hIdle )
-         hIdle := Nil
-      ENDIF
-      */
    ELSEIF i == 3
       TEdit():options["autovertical"] := !lAutoVert
    ELSEIF i == 4
@@ -5565,18 +5558,14 @@ FUNCTION cp_Upper( lUtf8, cString )
    IF lUtf8; RETURN cedi_utf8_Upper( cString ); ENDIF
    RETURN Upper( cString )
 
-//STATIC FUNCTION _FIdle()
 STATIC FUNCTION FCheckAutoc()
 
-   //LOCAL nDelay,
    LOCAL nKey, oEdit, nSec
 
    IF nLastSec <= 0 .OR. ( nSec := Seconds() ) < (nLastSec + nAutoDelay) .OR. nSec > (nLastSec + nAutoDelay*2)
       RETURN Nil
    ENDIF
 
-   //IF ( nDelay := hb_hGetDef( TEdit():options,"autodelay", 0 ) ) > 0 ;
-      //.AND. Seconds() > (nLastSec + nDelay) .AND. Seconds() < (nLastSec + nDelay*2)
    IF Empty( TEdit():aWindows ) .OR. TEdit():nCurr == 0 .OR. TEdit():nCurr > Len(TEdit():aWindows)
       RETURN Nil
    ENDIF
