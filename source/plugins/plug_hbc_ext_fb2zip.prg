@@ -11,6 +11,7 @@
 #define K_ALT_I    279
 #define K_ALT_L    294
 #define K_ALT_Q    272
+#define K_F2        -1
 
 #define  K_ENTER   13
 #define  K_ESC     27
@@ -29,7 +30,7 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
 
    LOCAL cFile, hUnzip, nSize, nPos, nPos1
    LOCAL n, aLevels := Array( 5 ), nStartBak, nEndBak
-   LOCAL oNew, lErr, lRes, nSec, aMenu, cTemp, aImages
+   LOCAL oNew, lErr, lRes, nSec, aMenu, cTemp, aImages, cNewDir
    LOCAL bStartEdit := {|o|
       LOCAL y := o:y1 - 1, nRow := Row(), nCol := Col(), h, l
       IF o:lTopPane
@@ -64,6 +65,14 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
       LOCAL nRes := _fb2zip_OnKey(o,n)
       RETURN nRes
    }
+   LOCAL bKeys := {|nKeyExt,nLine|
+      LOCAL nKey := hb_keyStd( nKeyExt )
+      IF nKey == K_F2
+         cNewDir := hb_fnameDir( aRecent[nLine,1] )
+         RETURN .F.
+      ENDIF
+      RETURN Nil
+   }
 
    cIniPath := cPath
    IF Empty( aParams )
@@ -82,10 +91,18 @@ FUNCTION plug_hbc_ext_fb2zip( oEdit, cPath, aParams )
             n --
          ENDIF
       NEXT
-      IF Len( aMenu ) > 0 .AND. ( n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
-         FilePane():vy1+3, FilePane():vx1+20,,, ;
-         FilePane():aClrMenu[1], FilePane():aClrMenu[2] ) ) > 0
-         cFile := aRecent[n,1]
+      IF Len( aMenu ) > 0
+         n := FMenu( TEdit():aWindows[TEdit():nCurr], aMenu, ;
+            FilePane():vy1+3, FilePane():vx1+20,,, ;
+            FilePane():aClrMenu[1], FilePane():aClrMenu[2],,,,, bKeys, "Enter - Open file, F2 - Go to folder" )
+         IF !Empty( cNewDir )
+            FilePane():PaneCurr:ChangeDir( cNewDir )
+            RETURN Nil
+         ELSEIF n > 0
+            cFile := aRecent[n,1]
+         ELSE
+            RETURN Nil
+         ENDIF
       ELSE
          RETURN Nil
       ENDIF
