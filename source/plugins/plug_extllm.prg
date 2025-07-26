@@ -37,6 +37,7 @@ STATIC cLastImage, cLastPrompt := ""
 STATIC nStartProc := 0
 STATIC nLogLevel := 0
 STATIC nStatus, lPaused := .F., cModType
+STATIC cEndl := e"\r\n"
 
 FUNCTION plug_extLLM( oEdit, cPath )
 
@@ -110,7 +111,7 @@ FUNCTION plug_extLLM( oEdit, cPath )
 
 STATIC FUNCTION _clillm_Start()
 
-   LOCAL aMenu, i, xRes
+   LOCAL aMenu, i, xRes, cParams, cQue
    LOCAL cExe := cIniPath + "llama_exsrv"
 #ifndef __PLATFORM__UNIX
    cExe += ".exe"
@@ -138,7 +139,7 @@ STATIC FUNCTION _clillm_Start()
                   RETURN Nil
                ENDIF
             ELSE
-               IF !_clillm_SetParams()
+               IF ( cParams := _clillm_SetParams() ) == Nil
                   oClient:lClose := .T.
                   RETURN Nil
                ENDIF
@@ -147,14 +148,17 @@ STATIC FUNCTION _clillm_Start()
             nStatus := S_MODEL_LOADING
             oClient:WriteTopPane()
             ecli_RunFunc( hExt, Iif( cModType=="sd", "sd__OpenModel", "OpenModel" ), ;
-               {cCurrModel}, .T. )
+               {cCurrModel, Iif( Empty(cParams),Nil,cParams)}, .T. )
+
+            i := Int( (oClient:x2 + oClient:x1)/2 )
+            cQue := edi_MsgGet_ext( cLastPrompt, 4, i-30, 8, i+30, oClient:cp )
+
             IF ( xRes := _clillm_Wait( ,.T. ) ) == Nil
                oClient:lClose := .T.
             ELSEIF xRes == "ok"
                IF cModType == "sd"
                   nStatus := S_CNT_CREATED
                   _Textout( Time() + " Model loaded" )
-                  _Textout( "Press F2 to input prompt" )
                ELSE
                   IF ecli_RunFunc( hExt, "CreateContext",{} ) == "ok"
                      nStatus := S_CNT_CREATED
@@ -164,6 +168,10 @@ STATIC FUNCTION _clillm_Start()
                      ecli_RunProc( hExt, "CloseModel",{} )
                      _Textout( "Can't create context" )
                   ENDIF
+               ENDIF
+               IF !Empty( cQue )
+                  _clillm_Ask( cQue )
+               ELSE
                   _Textout( "Press F2 to start dialog" )
                ENDIF
                oClient:WriteTopPane()
@@ -188,9 +196,9 @@ STATIC FUNCTION _clillm_Start()
 STATIC FUNCTION _clillm_SetParams()
 
    LOCAL xRes := "", cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL aGets, y1, x1, x2, y2, i, j, lOk := .F.
-   LOCAL n_ctx := 512, n_predict := -1, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
-   LOCAL min_p := 0.05, penalize_nl := 0, tb := -1
+   LOCAL aGets, y1, x1, x2, y2, i, j
+   LOCAL n_ctx := 4096, n_predict := -1, temp := 0.8, penalty_r := 1.1, top_k := 40, top_p := 0.95
+   LOCAL min_p := 0.05, penalty_l := 64, t := -1
 
    y1 := Int( MaxRow()/2 ) - 1
    x1 := Int( MaxCol()/2 ) - 20
@@ -201,12 +209,12 @@ STATIC FUNCTION _clillm_SetParams()
       { y1+1,x1+2, 11, "n_ctx" }, { y1+1,x1+10, 0, Ltrim(Str(n_ctx)), 6 }, ;
       { y1+1,x1+20, 11, "n_predict" }, { y1+1,x1+32, 0, Ltrim(Str(n_predict)), 6 }, ;
       { y1+3,x1+2, 11, "temp" }, { y1+3,x1+10, 0, Ltrim(Str(temp)), 6 }, ;
-      { y1+3,x1+20, 11, "penalty_r" }, { y1+3,x1+32, 0, Ltrim(Str(penalty_r)), 6 }, ;
+      { y1+3,x1+20, 11, "repeat_pen" }, { y1+3,x1+32, 0, Ltrim(Str(penalty_r)), 6 }, ;
       { y1+4,x1+2, 11, "top_k" }, { y1+4,x1+10, 0, Ltrim(Str(top_k)), 6 }, ;
       { y1+4,x1+20, 11, "top_p" }, { y1+4,x1+32, 0, Ltrim(Str(top_p)), 6 }, ;
       { y1+5,x1+2, 11, "min_p" }, { y1+5,x1+10, 0, Ltrim(Str(min_p)), 6 }, ;
-      { y1+5,x1+20, 11, "penalize_nl" }, { y1+5,x1+32, 0, Ltrim(Str(penalize_nl)), 6 }, ;
-      { y1+6,x1+2, 11, "tb" }, { y1+5,x1+8, 0, Ltrim(Str(tb)), 6 } ;
+      { y1+5,x1+20, 11, "repeat_last" }, { y1+5,x1+32, 0, Ltrim(Str(penalty_l)), 6 }, ;
+      { y1+6,x1+2, 11, "t" }, { y1+5,x1+8, 0, Ltrim(Str(t)), 6 } ;
       }
 
    cBuf := Savescreen( y1, x1, y2, x2 )
@@ -216,52 +224,48 @@ STATIC FUNCTION _clillm_SetParams()
    IF LastKey() == K_ENTER .OR. LastKey() == K_PGDN
       IF Val(AllTrim(aGets[3,4])) != n_ctx
          n_ctx := Val(AllTrim(aGets[3,4]))
-         xRes += 'c=' + Ltrim(Str(n_ctx)) + Chr(1)
+         xRes += '-c ' + Ltrim(Str(n_ctx)) + " "
       ENDIF
       IF Val(AllTrim(aGets[5,4])) != n_predict
          n_predict := Val(AllTrim(aGets[5,4]))
-         xRes += 'n=' + Ltrim(Str(n_predict)) + Chr(1)
+         xRes += '-n ' + Ltrim(Str(n_predict)) + ' '
       ENDIF
       IF Val(AllTrim(aGets[7,4])) != temp
          temp := Val(AllTrim(aGets[7,4]))
-         xRes += 'temp=' + Ltrim(Str(temp)) + Chr(1)
+         xRes += '-temp ' + Ltrim(Str(temp)) + ' '
       ENDIF
       IF Val(AllTrim(aGets[9,4])) != penalty_r
          penalty_r := Val(AllTrim(aGets[9,4]))
-         xRes += 'repeat-penalty=' + Ltrim(Str(penalty_r)) + Chr(1)
+         xRes += '--repeat-penalty ' + Ltrim(Str(penalty_r)) + ' '
       ENDIF
       IF Val(AllTrim(aGets[11,4])) != top_k
          top_k := Val(AllTrim(aGets[11,4]))
-         xRes += 'top-k=' + Ltrim(Str(top_k)) + Chr(1)
+         xRes += '--top-k ' + Ltrim(Str(top_k)) + ' '
       ENDIF
       IF Val(AllTrim(aGets[13,4])) != top_p
          top_p := Val(AllTrim(aGets[13,4]))
-         xRes += 'top-p=' + Ltrim(Str(top_p)) + Chr(1)
+         xRes += '--top-p ' + Ltrim(Str(top_p)) + ' '
       ENDIF
       IF Val(AllTrim(aGets[15,4])) != min_p
          min_p := Val(AllTrim(aGets[15,4]))
-         xRes += 'min-p=' + Ltrim(Str(min_p)) + Chr(1)
+         xRes += '--min-p ' + Ltrim(Str(min_p)) + ' '
       ENDIF
-      IF Val(AllTrim(aGets[17,4])) != penalize_nl
-         penalize_nl := Val(AllTrim(aGets[17,4]))
-         xRes += 'penalize_nl=' + Ltrim(Str(penalize_nl)) + Chr(1)
+      IF Val(AllTrim(aGets[17,4])) != penalty_l
+         penalty_l := Val(AllTrim(aGets[17,4]))
+         xRes += '--repeat_last_n ' + Ltrim(Str(penalty_l)) + ' '
       ENDIF
-      IF Val(AllTrim(aGets[19,4])) != tb
-         tb := Val(AllTrim(aGets[19,4]))
-         xRes += 'tb=' + Ltrim(Str(tb)) + Chr(1)
+      IF Val(AllTrim(aGets[19,4])) != t
+         t := Val(AllTrim(aGets[19,4]))
+         xRes += '-t ' + Ltrim(Str(t)) + ' '
       ENDIF
-
-      IF !Empty( xRes )
-         nStatus := S_MODEL_PARAMS
-         ecli_RunFunc( hExt, "SetParams",{xRes} )
-      ENDIF
-      lOk := .T.
+   ELSE
+      RETURN Nil
    ENDIF
 
    SetColor( oldc )
    Restscreen( y1, x1, y2, x2, cBuf )
 
-   RETURN lOk
+   RETURN xRes
 
 STATIC FUNCTION _clillm_sd_SetParams()
 
@@ -377,13 +381,15 @@ STATIC FUNCTION _clillm_OnKey( oEdit, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION _clillm_Ask()
+STATIC FUNCTION _clillm_Ask( cQue )
 
    LOCAL x := Int( (oClient:x2 + oClient:x1)/2 )
-   LOCAL cImg, nPos, cParams, cQue
+   LOCAL cImg, nPos, cParams
 
    lPaused := .F.
-   cQue := edi_MsgGet_ext( cLastPrompt, 4, x-30, 8, x+30, oClient:cp )
+   IF Empty( cQue )
+      cQue := edi_MsgGet_ext( cLastPrompt, 4, x-30, 8, x+30, oClient:cp )
+   ENDIF
    IF !Empty( cQue )
       cLastPrompt := cQue
       nStatus := S_ASKING
@@ -409,6 +415,8 @@ STATIC FUNCTION _clillm_Ask()
       ELSE
          ecli_RunFunc( hExt, "Ask",{cQue}, .T. )
          _Textout( "> " + cQue )
+         //_Textout( "" )
+         _Textout( Replicate( "-", 12 ) )
          _Textout( "" )
          _clillm_Wait4Answer()
       ENDIF
@@ -449,6 +457,9 @@ STATIC FUNCTION _clillm_Wait4Answer()
          IF ( xRes := _clillm_Wait() ) == Nil
             // ESC pressed
             nStatus := S_CNT_CREATED
+            //_Textout( "" )
+            _Textout( Replicate( "-", 12 ) )
+            _Textout( "" )
             EXIT
          ELSEIF xRes == ""
             // Ctrl-Tab
@@ -458,7 +469,11 @@ STATIC FUNCTION _clillm_Wait4Answer()
             xRes := _DropQuotes( xRes )
             IF Right( xRes,4 ) == '===='
                nStatus := S_CNT_CREATED
-               _Textout( hb_strShrink(xRes,4) + " ==", .T. )
+               //_Textout( hb_strShrink(xRes,4) + " ==", .T. )
+               _Textout( hb_strShrink(xRes,4), .T. )
+               //_Textout( "" )
+               _Textout( Replicate( "-", 12 ) )
+               _Textout( "" )
                EXIT
             ELSE
                ecli_RunFunc( hExt, "GetNextToken",{2}, .T. )
