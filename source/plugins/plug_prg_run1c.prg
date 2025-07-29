@@ -10,6 +10,14 @@ FUNCTION Plug_prg_Run1c( oEdit, cPath )
    LOCAL cText, cFileRes := hb_DirTemp() + "hb_compile_err.out"
    LOCAL acmd := Array( 5 ), cHrb, cBuff, cFile := "$hb_compile_err", bOldError, i, oNew
    LOCAL nRow, nCol
+   LOCAL bEndEdit := {||
+      IF oEdit:lClose
+         oSession := Nil
+         oConnection := Nil
+      ENDIF
+      RETURN Nil
+   }
+
    Memvar oConn
    PRIVATE oConn
 
@@ -23,6 +31,7 @@ FUNCTION Plug_prg_Run1c( oEdit, cPath )
       Chr(13)+Chr(10) + cText
 
    cIniPath := cPath
+   oEdit:bEndEdit := bEndEdit
    IF Empty( cComObject )
       Read_1c_Ini( cPath + "plug_1c.ini" )
    ENDIF
