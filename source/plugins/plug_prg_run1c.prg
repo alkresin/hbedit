@@ -12,8 +12,8 @@ FUNCTION Plug_prg_Run1c( oEdit, cPath )
    LOCAL nRow, nCol
    LOCAL bEndEdit := {||
       IF oEdit:lClose
-         oSession := Nil
          oConnection := Nil
+         oSession := Nil
       ENDIF
       RETURN Nil
    }
@@ -25,7 +25,9 @@ FUNCTION Plug_prg_Run1c( oEdit, cPath )
       RETURN Nil
    ENDIF
 
-   cText := "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]) => hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>})"  + ;
+   cText := "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]) => hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>})" + ;
+      Chr(13)+Chr(10) + "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]).<bbb>([<qqq,...>]) => hb_ExecFromArray( hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>}),<(bbb)>, {<qqq>} )" + ;
+      Chr(13)+Chr(10) + "#xtranslate ole.<ooo>.<aaa>([<ppp,...>]).<bbb>([<qqq,...>]).<ccc>([<rrr,...>]) => hb_ExecFromArray( hb_ExecFromArray( hb_ExecFromArray( <ooo>,<(aaa)>, {<ppp>} ),<(bbb)>, {<qqq>} ),<(ccc)>, {<rrr>} )" + ;
       Chr(13)+Chr(10) + "#xcommand TEXT TO VAR <var> => #pragma __stream|<var>:=%s" + ;
       Chr(13)+Chr(10) + "memvar oconn" + ;
       Chr(13)+Chr(10) + cText
@@ -66,13 +68,14 @@ FUNCTION Plug_prg_Run1c( oEdit, cPath )
          ENDIF
       ENDIF
       IF !Empty( oConnection )
+         ? Time(), "Start!"
          oConn := oConnection
          bOldError := Errorblock( {|e| MacroError( e ) } )
          BEGIN SEQUENCE
             hb_hrbRun( cHrb )
          END SEQUENCE
          Errorblock( bOldError )
-         ? "Done!. Press any key"
+         ? Time(), "Done!. Press any key"
          Inkey(0)
       ENDIF
       DevPos( nRow, nCol )
@@ -115,7 +118,7 @@ STATIC FUNCTION _1c_Connect()
    LOCAL cConnString
 
    IF Empty( oSession )
-      ? "Connect to OLE object..."
+      ? Time(), "Connect to OLE object..."
       oSession := win_OleCreateObject( cComObject )
    ENDIF
    IF Empty( oSession )
@@ -127,9 +130,9 @@ STATIC FUNCTION _1c_Connect()
       ENDIF
       cConnString := 'Srvr="' + cServerPath + '";Ref="' + cBaseName + ;
          '";Usr="' + cLogin + '";Pwd="' + cPass + '";LicDstr="Y"'
-      ? "Connect to " + cBaseName + " as " + cLogin + "..."
+      ? Time(), "Connect to " + cBaseName + " as " + cLogin + "..."
       oConnection := oSession:Connect( cConnString )
-      ? "Connected!"
+      ? Time(), "Connected!"
    ENDIF
 
    RETURN Nil
