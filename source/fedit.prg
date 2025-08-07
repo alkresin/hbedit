@@ -2617,7 +2617,9 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
 #else
          s := s_cb2t( oEdit )
 #endif
+         //edi_writelog( "/"+s+"/"+TEdit():aCBoards[1,1]+"/"+TEdit():aCBoards[1,2] )
          IF !( s == TEdit():aCBoards[1,1] )
+            //edi_Writelog( "Ins_1a" )
             TEdit():aCBoards[1,1] := s
             TEdit():aCBoards[1,2] := oEdit:cp
             TEdit():aCBoards[1,3] := Nil
@@ -2625,10 +2627,12 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
       ELSEIF nReg > 1
          s := TEdit():aCBoards[nReg,1]
       ENDIF
+      //edi_writelog( "Ins_2: " + s )
       IF nReg > 0
          lVert := !Empty( TEdit():aCBoards[nReg,3] )
          IF !Empty( TEdit():aCBoards[nReg,2] ) .AND. !( TEdit():aCBoards[nReg,2] == oEdit:cp )
             s := hb_Translate( s, TEdit():aCBoards[nReg,2], oEdit:cp )
+            //edi_writelog( "/"+Str(nReg,1)+"/"+TEdit():aCBoards[nReg,2]+"/"+oEdit:cp+"/"+"Ins_3: " + s )
          ENDIF
       ENDIF
    ELSE
@@ -2690,6 +2694,7 @@ FUNCTION cb2Text( oEdit, nReg, lToText, s, lVert )
          edi_SetPos( oEdit )
          oEdit:lTextOut := .T.
       ELSE
+         //edi_writelog( "Ins_5: " + s )
          oEdit:InsText( oEdit:nLine, oEdit:nPos, s, .F. )
       ENDIF
    ENDIF
@@ -3151,7 +3156,7 @@ FUNCTION edi_ReadIni( xIni )
 #ifdef __PLATFORM__UNIX
 #ifdef __GTHWG__
    TEdit():aCBoards[1,1] := s_cb2t()
-   TEdit():aCBoards[1,2] := TEdit():cpInit
+   TEdit():aCBoards[1,2] := "UTF8" //TEdit():cpInit
    TEdit():aCBoards[1,3] := Nil
 #endif
 #else
