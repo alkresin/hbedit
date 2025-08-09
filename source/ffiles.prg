@@ -195,13 +195,18 @@ FUNCTION edi_FindPath( cFile )
 
 FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
 
-   LOCAL phDst, phSrc, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0
-
-   //IF '\' $ cFileName
-   //   cFileName := StrTran( cFileName, '\', '/' )
-   //ENDIF
+   LOCAL phDst, phSrc, nBytes, cBuff := Space( BUFFSIZE ), nSize, nCopied := 0, dt
+#ifdef __PLATFORM__UNIX
+   LOCAL bExist := hb_vfExists( cFileDst ), nAttr, bOk := .F.
+#endif
    IF !Empty( phDst := hb_vfOpen( cFileDst, FO_WRITE+FO_CREAT+FO_TRUNC ) )
       IF !Empty( phSrc := hb_vfOpen( cFileSrc, FO_READ ) )
+         hb_vfTimeGet( cFileSrc, @dt )
+#ifdef __PLATFORM__UNIX
+         IF !bExist
+            bOk := hb_vfAttrGet( cFileSrc, @nAttr )
+         ENDIF
+#endif
          nSize := hb_vfSize( phSrc )
 #ifndef _NO_HBC
          hbc_WndProgress( aWnd, 0 )
@@ -221,6 +226,12 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
          ENDDO
          hb_vfClose( phSrc )
          hb_vfClose( phDst )
+         hb_vfTimeSet( cFileDst, dt )
+#ifdef __PLATFORM__UNIX
+         IF bOk
+            hb_vfAttrSet( cFileDst, nAttr )
+         ENDIF
+#endif
       ELSE
          hb_vfClose( phDst )
          hb_vfErase( cFileDst )
