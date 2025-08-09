@@ -1694,7 +1694,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
          cClrFil := ::cClrZip
       ELSE
 #ifdef __PLATFORM__UNIX
-         IF IsFileExec( arr )
+         IF IsFileExec( Self, arr )
             cClrFil := ::cClrExe
          ENDIF
 #else
@@ -3487,7 +3487,7 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
    LOCAL cTmp
 #ifdef __PLATFORM__UNIX
    LOCAL b := {|a|
-      RETURN IsFileExec( a )
+      RETURN IsFileExec( oPaneCurr, a )
    }
 #else
    LOCAL b := {|a|
@@ -4277,7 +4277,7 @@ STATIC FUNCTION AddDocHis( n, cDocName, cp, lNoTrans )
    RETURN Nil
 
 #ifdef __PLATFORM__UNIX
-STATIC FUNCTION IsFileExec( arr )
+STATIC FUNCTION IsFileExec( oPane, arr )
 
    LOCAL nAttr
 
@@ -4286,8 +4286,8 @@ STATIC FUNCTION IsFileExec( arr )
    ENDIF
    IF !( 'R' $ arr[5] )
       arr[5] += "R"
-      IF hb_vfAttrGet( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + arr[1], @nAttr )
+      IF hb_vfAttrGet( oPane:cIOpref + oPane:net_cAddress + oPane:net_cPort + ;
+         oPane:cCurrPath + arr[1], @nAttr )
          IF hb_bitAnd( nAttr,HB_FA_XUSR+HB_FA_XGRP+HB_FA_XOTH ) > 0
             arr[5] += "X"
          ENDIF
