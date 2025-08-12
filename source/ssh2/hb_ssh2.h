@@ -88,7 +88,7 @@ HB_SSH2_SFTP_HANDLE * hb_ssh2_SftpOpenDir( HB_SSH2_SESSION *, const char * );
 HB_SSH2_SFTP_HANDLE * hb_ssh2_SftpOpenFile( HB_SSH2_SESSION *, const char *, unsigned long, long );
 void hb_ssh2_SftpClose( HB_SSH2_SFTP_HANDLE * );
 int hb_ssh2_SftpMkDir( HB_SSH2_SESSION *, const char *, long );
-int hb_ssh2_SftpReadDir( HB_SSH2_SFTP_HANDLE *, char *, int, unsigned long *, unsigned long *, unsigned long * );
+int hb_ssh2_SftpReadDir( HB_SSH2_SFTP_HANDLE *, char *, int, libssh2_uint64_t *, unsigned long *, unsigned long * );
 int hb_ssh2_SftpRead( HB_SSH2_SFTP_HANDLE *, char *, int );
 int hb_ssh2_SftpWrite( HB_SSH2_SFTP_HANDLE *, char *, int );
 int hb_ssh2_SftpStat( HB_SSH2_SESSION *, char *, int, LIBSSH2_SFTP_ATTRIBUTES * );

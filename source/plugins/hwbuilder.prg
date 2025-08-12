@@ -70,6 +70,7 @@ STATIC cLibsHwGUI := ""
 
 STATIC cFontMain := "", lProgressOn := .T., cExtView := ""
 STATIC sResult
+STATIC lCreatScr
 
 FUNCTION HwBuilder( cFile, lFromEdit )
 
@@ -85,6 +86,7 @@ FUNCTION HwBuilder( cFile, lFromEdit )
    HGuiLib():aList := {}
    ReadIni( "hwbuild.ini" )
    lQ := .F.
+   lCreatScr := .F.
    IF( cDop := _GetParams( @oComp, (cExt==".hwprj") ) ) == Nil
       RETURN Nil
    ENDIF
@@ -98,6 +100,9 @@ FUNCTION HwBuilder( cFile, lFromEdit )
       ENDIF
       IF "-gui=" $ cDop
          lNoGui := .T.
+      ENDIF
+      IF "-creatscr" $ cDop
+         lCreatScr := .T.
       ENDIF
       aDop := hb_Atokens( cDop, " ", .T. )
       FOR i := 1 TO Len( aDop )
@@ -119,7 +124,9 @@ FUNCTION HwBuilder( cFile, lFromEdit )
       NEXT
    ENDIF
    IF cExt == ".hwprj" .OR. cExt == ".prg" .OR. cExt == ".c" .OR. cExt == ".cpp"
-      @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
+      IF !lCreatScr
+         @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
+      ENDIF
       IF cExt == ".hwprj"
          IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles ) )
             oPrg:Build( lClean )
@@ -143,7 +150,7 @@ FUNCTION HwBuilder( cFile, lFromEdit )
         .AND. oPane:aDir[oPane:nCurrent,1] == cFile
         oPane:Refresh()
       ENDIF
-      IF !lFromEdit
+      IF !lFromEdit .AND. !lCreatScr
          oOld := TEdit():aWindows[TEdit():nCurr]
          TEdit():New( sResult, cAddW, TEdit():aRectFull[1], TEdit():aRectFull[2], TEdit():aRectFull[3], TEdit():aRectFull[4] )
          oOld:lShow := .F.
@@ -172,6 +179,7 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
       { y1+1,x1+2, 11, "[ ] Short output" }, { y1+1,x1+3, 1, .T., 2 }, ;
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
       { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, Iif(lHwprj,-1,1), .T., 2 }, ;
+      { y1+2,x1+21, 11, "[ ] CrScr" }, { y1+2,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
       { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt... -l"lib1 lib2"' ) }, ;
       { y1+4,x1+2, 0, "", x2-x1-4 } }
 
@@ -190,10 +198,10 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
    cBuf := Savescreen( y1, x1, y2, x2 )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
-   KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN )
+   KEYBOARD Chr( K_DOWN ) + Chr( K_DOWN ) + Chr( K_DOWN )
    edi_READ( aGets )
    IF LastKey() == 13
-      xRes := AllTrim( aGets[9,4] )
+      xRes := AllTrim( aGets[11,4] )
       IF aGets[3,4]
          xRes := Iif( Empty(xRes), "-q", xRes + " -q" )
       ENDIF
@@ -203,8 +211,11 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
       IF !aGets[7,4]
          xRes := Iif( Empty(xRes), "-gui=", xRes + " -gui=" )
       ENDIF
+      IF aGets[9,4]
+         xRes := Iif( Empty(xRes), "-creatscr", xRes + " -creatscr" )
+      ENDIF
       j := 0
-      FOR i := 10 TO Len( aGets ) STEP 2
+      FOR i := 12 TO Len( aGets ) STEP 2
          IF aGets[i,4]
             IF j > 0
                oComp := HCompiler():aList[j]
@@ -668,7 +679,11 @@ STATIC FUNCTION _PrjVarsTran( aPrjVars, cLine )
 
    LOCAL i, nPos := 1, nPos2, nLen, cVar, cValue
 
+#ifdef __PLATFORM__UNIX
+   IF !Empty( aPrjVars ) .AND. !lCreatScr
+#else
    IF !Empty( aPrjVars )
+#endif
       DO WHILE ( nPos := hb_At( '$', cLine, nPos ) ) > 0
          nPos2 := nPos + 2
          nLen := Len( cLine )
@@ -676,9 +691,13 @@ STATIC FUNCTION _PrjVarsTran( aPrjVars, cLine )
             nPos2 ++
          ENDDO
          cVar := Substr( cLine, nPos+1, nPos2-nPos-1 )
-         IF ( i := Ascan( aPrjVars, {|a|a[1] == cVar} ) ) > 0
-            cValue := aPrjVars[i,2]
-            cLine := Left( cLine, nPos-1 ) + cValue + Substr( cLine, nPos2 )
+         IF lCreatScr
+            cLine := Left( cLine, nPos-1 ) + "%" + cVar + "%" + Substr( cLine, nPos2 )
+         ELSE
+            IF ( i := Ascan( aPrjVars, {|a|a[1] == cVar} ) ) > 0
+               cValue := aPrjVars[i,2]
+               cLine := Left( cLine, nPos-1 ) + cValue + Substr( cLine, nPos2 )
+            ENDIF
          ENDIF
          nPos ++
       ENDDO
@@ -761,16 +780,20 @@ STATIC FUNCTION _PS( cPath )
       Iif( !lUnix .AND. '/' $ cPath, StrTran( cPath, '/', '\' ), cPath ) ), cPath )
 
 STATIC FUNCTION _CurrPath()
+   RETURN Iif( hb_Version(20), '/', hb_curDrive() + ':\' ) + CurDir() + hb_ps()
 
-   LOCAL cPrefix
+STATIC FUNCTION _CreateScr( cLine )
 
-#ifdef __PLATFORM__UNIX
-   cPrefix := '/'
-#else
-   cPrefix := hb_curDrive() + ':\'
-#endif
+   LOCAL cFile := Iif( hb_Version(20), "_hwprj.sh", "_hwprj.bat" )
+   STATIC s := ""
 
-   RETURN cPrefix + CurDir() + hb_ps()
+   IF Empty( cLine )
+      hb_MemoWrit( cFile, s )
+      edi_Alert( "Build script " + cFile + " created!" )
+   ELSE
+      s += cLine + hb_eol()
+   ENDIF
+   RETURN Nil
 
 CLASS HCompiler
 
@@ -1000,6 +1023,13 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
    IF Empty( aPrjVars )
       _MsgInfo( "User params: " + hb_ValToExp( aUserPar )  + hb_eol() )
       AAdd( aPrjVars, {"COMPILER",oComp:id} )
+      IF lCreatScr
+#ifdef __PLATFORM__UNIX
+        _CreateScr( "export COMPILER=" + oComp:id )
+#else
+        _CreateScr( "set COMPILER=" + oComp:id )
+#endif
+      ENDIF
    ENDIF
 
    IF !Empty( aFiles )
@@ -1042,6 +1072,13 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
          IF ( nPos := At( "=", cLine ) ) > 0 .AND. !( " " $ (cTmp := Trim( Left( cLine, nPos-1 ) )) )
             IF Left( cTmp,1 ) == "$"
                AAdd( aPrjVars, { Substr( cTmp, 2 ), AllTrim( Substr( cLine, nPos + 1 ) ) } )
+               IF lCreatScr
+#ifdef __PLATFORM__UNIX
+                  _CreateScr( "export " + Substr(cTmp,2) + '="' + AllTrim( Substr( cLine, nPos + 1 ) )  + '"')
+#else
+                  _CreateScr( "set " + Substr(cTmp,2) + "=" + AllTrim( Substr( cLine, nPos + 1 ) ) )
+#endif
+               ENDIF
             ELSEIF ( cTmp := Lower( cTmp ) ) == "srcpath"
                cSrcPath := _DropSlash( Substr( cLine, nPos + 1 ) ) + hb_ps()
 
@@ -1311,15 +1348,24 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    cCompPath := _EnvVarsTran( ::oComp:cPath )
    cCompHrbLib := _EnvVarsTran( ::oComp:cPathHrbLib )
 
-   IF !Empty( ::oComp:aEnv )
-      aEnv := Array( Len(::oComp:aEnv),2 )
-      FOR i := 1 TO Len( ::oComp:aEnv )
-         aEnv[i,1] := ::oComp:aEnv[i,1]
-         aEnv[i,2] := getenv( aEnv[i,1] )
-         hb_setenv( ::oComp:aEnv[i,1], ::oComp:aEnv[i,2] )
-      NEXT
-   ELSEIF ::oComp:family == "msvc"
-      _ShowProgress( "Error: Environment variables are absent in hwbuild.ini", 1,, @cFullOut )
+   IF Empty( lSub )
+      IF !Empty( ::oComp:aEnv )
+         aEnv := Array( Len(::oComp:aEnv),2 )
+         FOR i := 1 TO Len( ::oComp:aEnv )
+            aEnv[i,1] := ::oComp:aEnv[i,1]
+            aEnv[i,2] := getenv( aEnv[i,1] )
+            hb_setenv( ::oComp:aEnv[i,1], ::oComp:aEnv[i,2] )
+            IF lCreatScr
+#ifdef __PLATFORM__UNIX
+               _CreateScr( "export " + ::oComp:aEnv[i,1] + "=" + ::oComp:aEnv[i,2] )
+#else
+               _CreateScr( "set " + ::oComp:aEnv[i,1] + "=" + ::oComp:aEnv[i,2] )
+#endif
+            ENDIF
+         NEXT
+      ELSEIF ::oComp:family == "msvc"
+         _ShowProgress( "Error: Environment variables are absent in hwbuild.ini", 1,, @cFullOut )
+      ENDIF
    ENDIF
 
    _ShowProgress( "Harbour: "+Iif(::lHarbour,"Yes","No") + ;
@@ -1338,20 +1384,22 @@ METHOD Build( lClean, lSub ) CLASS HwProject
             hb_vfTimeGet( cFile, @tc ) .AND. to >= tc
          ELSE
             cLine := cCmd + Iif( Empty( ::aFiles[i,2] ), "", " " + ::aFiles[i,2] ) + " " + cFile
-
-            _ShowProgress( "> " + cLine, 1, hb_fnameNameExt( cFile ), @cFullOut )
-            _RunApp( cLine, @cOut )
-            IF Valtype( cOut ) != "C"
-               _ShowProgress( "Error: the Harbour compiler didn't start", 1,, @cFullOut )
-               lErr := .T.
-               EXIT
+            IF lCreatScr
+               _CreateScr( cLine )
+            ELSE
+               _ShowProgress( "> " + cLine, 1, hb_fnameNameExt( cFile ), @cFullOut )
+               _RunApp( cLine, @cOut )
+               IF Valtype( cOut ) != "C"
+                  _ShowProgress( "Error: the Harbour compiler didn't start", 1,, @cFullOut )
+                  lErr := .T.
+                  EXIT
+               ENDIF
+               _ShowProgress( cOut, 1,, @cFullOut )
+               IF "Error" $ cOut
+                  lErr := .T.
+                  EXIT
+               ENDIF
             ENDIF
-            _ShowProgress( cOut, 1,, @cFullOut )
-            IF "Error" $ cOut
-               lErr := .T.
-               EXIT
-            ENDIF
-
          ENDIF
          ::aFiles[i,1] := cObjFile
          ::aFiles[i,2] := Nil
@@ -1372,7 +1420,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          cFile := _PS( ::aFiles[i,1] )
          IF ( cExt := Lower( hb_fnameExt( cFile )) ) == ".c" .OR. cExt == ".cpp"
             cObjFile := cObjPath + hb_fnameName( cFile ) + ::oComp:cObjExt
-            IF ::lMake .AND. File( cObjFile ) .AND. hb_vfTimeGet( cObjFile, @to ) .AND. ;
+            IF ::lMake .AND. !lCreatScr .AND. File( cObjFile ) .AND. hb_vfTimeGet( cObjFile, @to ) .AND. ;
                hb_vfTimeGet( cFile, @tc ) .AND. to >= tc
             ELSE
                cLine := StrTran( StrTran( StrTran( cCmd, "{obj}", cObjFile ), ;
@@ -1381,20 +1429,23 @@ METHOD Build( lClean, lSub ) CLASS HwProject
                   Iif( Empty( ::cFlagsC ), "", " " + ::cFlagsC ) + ;
                   Iif( Empty( ::aFiles[i,2] ), "", " " + ::aFiles[i,2] ) )
 
-               _ShowProgress( "> " + cLine, 1, hb_fnameNameExt(cFile), @cFullOut )
-               _RunApp( cLine, @cOut )
-               IF Valtype( cOut ) != "C"
-                  _ShowProgress( "Error: the compiler didn't start", 1,, @cFullOut )
-                  lErr := .T.
-                  EXIT
-               ENDIF
-               _ShowProgress( cOut, 1,, @cFullOut )
-               IF _HasError( cOut )
-                  //_ShowProgress( "Error: "+cLine, 1,, @cFullOut )
-                  lErr := .T.
-                  EXIT
-               ENDIF
-
+               IF lCreatScr
+                  _CreateScr( cLine )
+               ELSE
+                  _ShowProgress( "> " + cLine, 1, hb_fnameNameExt(cFile), @cFullOut )
+                  _RunApp( cLine, @cOut )
+                  IF Valtype( cOut ) != "C"
+                     _ShowProgress( "Error: the compiler didn't start", 1,, @cFullOut )
+                     lErr := .T.
+                     EXIT
+                  ENDIF
+                  _ShowProgress( cOut, 1,, @cFullOut )
+                  IF _HasError( cOut )
+                     //_ShowProgress( "Error: "+cLine, 1,, @cFullOut )
+                     lErr := .T.
+                     EXIT
+                  ENDIF
+              ENDIF
             ENDIF
             cObjs += " " + cObjFile
             IF !::lMake
@@ -1418,16 +1469,20 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          hb_MemoWrit( "hwgui_xp.rc", cLine )
          cLine := StrTran( StrTran( StrTran( ::oComp:cCmdRes, "{path}", cCompPath ), ;
          "{src}", "hwgui_xp.rc" ), "{out}", "hwgui_xp" )
-         _ShowProgress( "> " + cLine, 1,, @cFullOut)
-         _RunApp( cLine, @cOut )
-         IF Valtype( cOut ) == "C"
-            _ShowProgress( cOut, 1,, @cFullOut )
-            AAdd( a4Delete, "hwgui_xp.rc" )
-            AAdd( a4Delete, cResFile )
-            cResList += cResFile
+         IF lCreatScr
+            _CreateScr( cLine )
          ELSE
-            _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
-            lErr := .T.
+            _ShowProgress( "> " + cLine, 1,, @cFullOut)
+            _RunApp( cLine, @cOut )
+            IF Valtype( cOut ) == "C"
+               _ShowProgress( cOut, 1,, @cFullOut )
+               AAdd( a4Delete, "hwgui_xp.rc" )
+               AAdd( a4Delete, cResFile )
+               cResList += cResFile
+            ELSE
+               _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
+               lErr := .T.
+            ENDIF
          ENDIF
       ENDIF
    ENDIF
@@ -1439,17 +1494,21 @@ METHOD Build( lClean, lSub ) CLASS HwProject
             cLine := StrTran( StrTran( StrTran( ::oComp:cCmdRes, "{path}", cCompPath ), ;
                "{src}", cFile ), "{out}", hb_fnameName( cFile ) + ;
                Iif( ::oComp:family == "mingw", "_rc", "" ) )
-            _ShowProgress( "> " + cLine, 1,, @cFullOut)
-            _RunApp( cLine, @cOut )
-            IF Valtype( cOut ) == "C"
-               _ShowProgress( cOut, 1,, @cFullOut )
-               cResFile := hb_fnameName( cFile ) + Iif( ::oComp:family == "mingw", "_rc.o", ".res" )
-               AAdd( a4Delete, cResFile )
-               cResList += " " + cResFile
+            IF lCreatScr
+               _CreateScr( cLine )
             ELSE
-              _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
-              lErr := .T.
-              EXIT
+               _ShowProgress( "> " + cLine, 1,, @cFullOut)
+               _RunApp( cLine, @cOut )
+               IF Valtype( cOut ) == "C"
+                  _ShowProgress( cOut, 1,, @cFullOut )
+                  cResFile := hb_fnameName( cFile ) + Iif( ::oComp:family == "mingw", "_rc.o", ".res" )
+                  AAdd( a4Delete, cResFile )
+                  cResList += " " + cResFile
+               ELSE
+                 _ShowProgress( "Error: the resource compiler didn't start", 1,, @cFullOut )
+                 lErr := .T.
+                 EXIT
+               ENDIF
             ENDIF
          ENDIF
       NEXT
@@ -1510,28 +1569,36 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          ENDIF
       ENDIF
 
-      _ShowProgress( "> " + cLine, 1, hb_fnameNameExt(cBinary), @cFullOut )
-      FErase( cBinary )
-      _RunApp( cLine, @cOut )
-      IF Valtype( cOut ) == "C"
-         _ShowProgress( cOut, 1,, @cFullOut )
-      ENDIF
+      IF lCreatScr
+         _CreateScr( cLine )
+      ELSE
+         _ShowProgress( "> " + cLine, 1, hb_fnameNameExt(cBinary), @cFullOut )
+         FErase( cBinary )
+         _RunApp( cLine, @cOut )
+         IF Valtype( cOut ) == "C"
+            _ShowProgress( cOut, 1,, @cFullOut )
+         ENDIF
 
-      cLine := Iif( File( cBinary ) .AND. hb_vfTimeGet( cBinary, @to ) .AND. to > tStart, ;
-         cBinary + " " + "created successfully!", "Error. Can't create " + cBinary )
-      _ShowProgress( cLine, 2,, @cFullOut )
+         cLine := Iif( File( cBinary ) .AND. hb_vfTimeGet( cBinary, @to ) .AND. to > tStart, ;
+            cBinary + " " + "created successfully!", "Error. Can't create " + cBinary )
+         _ShowProgress( cLine, 2,, @cFullOut )
+      ENDIF
    ELSE
       _ShowProgress( "Error...", 2,, @cFullOut )
    ENDIF
 
-   IF !Empty( aEnv )
+   IF !Empty( aEnv ) .AND. Empty( lSub )
       FOR i := 1 TO Len( aEnv )
          hb_setenv( aEnv[i,1], aEnv[i,2] )
       NEXT
    ENDIF
 
-   IF Empty( lSub )
-      ShowResult( cFullOut )
+   IF lCreatScr
+      _CreateScr()
+   ELSE
+      IF Empty( lSub )
+         ShowResult( cFullOut )
+      ENDIF
    ENDIF
    FOR i := 1 TO Len( a4Delete )
       FErase( a4Delete[i] )
