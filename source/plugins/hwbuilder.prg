@@ -782,14 +782,21 @@ STATIC FUNCTION _PS( cPath )
 STATIC FUNCTION _CurrPath()
    RETURN Iif( hb_Version(20), '/', hb_curDrive() + ':\' ) + CurDir() + hb_ps()
 
+#define HB_FA_XUSR    0x00400000  /* 0100 execute/search by owner */
+
 STATIC FUNCTION _CreateScr( cLine )
 
-   LOCAL cFile := Iif( hb_Version(20), "_hwprj.sh", "_hwprj.bat" )
+   LOCAL cFile := Iif( hb_Version(20), "_hwprj.sh", "_hwprj.bat" ), nAttr
    STATIC s := ""
 
    IF Empty( cLine )
       hb_MemoWrit( cFile, s )
       s := ""
+      IF hb_Version(20)
+         IF hb_fGetAttr( cFile, @nAttr )
+            hb_fSetAttr( cFile, hb_BitOr( nAttr, HB_FA_XUSR ) )
+         ENDIF
+      ENDIF
       edi_Alert( "Build script " + cFile + " created!" )
    ELSE
       s += cLine + hb_eol()
