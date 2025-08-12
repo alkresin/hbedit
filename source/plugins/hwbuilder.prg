@@ -789,6 +789,7 @@ STATIC FUNCTION _CreateScr( cLine )
 
    IF Empty( cLine )
       hb_MemoWrit( cFile, s )
+      s := ""
       edi_Alert( "Build script " + cFile + " created!" )
    ELSE
       s += cLine + hb_eol()
