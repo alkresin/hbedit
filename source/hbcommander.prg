@@ -3462,7 +3462,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
                arr[5] := StrTran( StrTran( arr[5], "R", "" ), "X", "" )
                oPane:Draw()
             ENDIF
-#endiof
+#endif
          ENDIF
       ENDIF
    ENDIF
