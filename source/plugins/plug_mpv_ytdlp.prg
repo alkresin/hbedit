@@ -1,11 +1,23 @@
 
 #define K_ESC    27
+#define K_DEL     7
 
 STATIC cPath_mpv := "", aHis := {}, lHisUpd := .F.
 
 FUNCTION plug_mpv_ytdlp( oEdit, cPath )
 
    LOCAL cIniName := "mpv_ytdlp.ini", aMenu := { "New address" }, i, cUrl, lRes := .T.
+   LOCAL bKeys := {|nKeyExt,nLine|
+      LOCAL nKey := hb_keyStd( nKeyExt )
+      IF nKey == K_DEL .AND. nLine > 1 .AND. ;
+         edi_Alert( aMenu[nLine] + ';' + "really delete?", "Yes", "No" ) == 1
+         aMenu[nLine] := "---"
+         aHis[nLine-1,1] := "---"
+         lHisUpd := .T.
+         RETURN .T.
+      ENDIF
+      RETURN Nil
+   }
 
    IF Empty( cPath_mpv )
       _mpv_ytdlp_rdini( cPath + cIniName )
@@ -20,15 +32,13 @@ FUNCTION plug_mpv_ytdlp( oEdit, cPath )
       Aadd( aMenu, aHis[i,1] )
    NEXT
 
-   IF ( i := FMenu( oEdit, aMenu,,,,,,,, .T. ) ) == 1
+   IF ( i := FMenu( oEdit, aMenu,,,,,,,, .T.,,, bKeys ) ) == 1
       IF !Empty( cUrl := _mpv_ytdlp_GetAddr() )
          IF !( lRes := cedi_RunApp( cPath_mpv + " " + cUrl ) )
             lHisUpd := .F.
          ENDIF
       ENDIF
-   ELSEIF i == 0
-      RETURN Nil
-   ELSE
+   ELSEIF i > 1
       lRes := cedi_RunApp( cPath_mpv + " " + aHis[i-1,2] )
    ENDIF
 
@@ -107,6 +117,12 @@ STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
 
    LOCAL s := "[MAIN]" + Chr(10) + "path=" + cPath_mpv + Chr(10) + Chr(10) + "[HIS]" + Chr(10)
    LOCAL i, cdpCurr := hb_CdpSelect()
+
+   FOR i := Len( aHis ) TO 1 STEP -1
+      IF aHis[i,1] == "---"
+         hb_ADel( aHis, i, .T. )
+      ENDIF
+   NEXT
 
    FOR i := 1 TO Len( aHis )
       s += PAdl( Ltrim(Str(i,4)), 4, '0' ) + "=" + ;
