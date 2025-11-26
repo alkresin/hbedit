@@ -1088,7 +1088,7 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
 #endif
                ENDIF
             ELSEIF ( cTmp := Lower( cTmp ) ) == "srcpath"
-               cSrcPath := _DropSlash( Substr( cLine, nPos + 1 ) ) + hb_ps()
+               cSrcPath := _PS( _DropSlash( Substr( cLine, nPos + 1 ) ) ) + hb_ps()
 
             ELSEIF cTmp == "def_cflags"
                ::cDefFlagsC := _PrjVarsTran( aPrjVars, Substr( cLine, nPos + 1 ) )
