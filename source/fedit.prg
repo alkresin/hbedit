@@ -3300,6 +3300,10 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
 #endif
 #ifdef __GTHWG__
    cDop += ", gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2)))
+#else
+   #ifdef __GTWVT__
+      cDop += ", gtwvt"
+   #endif
 #endif
    cDop += ", " + hb_Version(1)
    IF Empty( cFullPath )
