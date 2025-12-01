@@ -1031,13 +1031,6 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
    IF Empty( aPrjVars )
       _MsgInfo( "User params: " + hb_ValToExp( aUserPar )  + hb_eol() )
       AAdd( aPrjVars, {"COMPILER",oComp:id} )
-      IF lCreatScr
-#ifdef __PLATFORM__UNIX
-        _CreateScr( "export COMPILER=" + oComp:id )
-#else
-        _CreateScr( "set COMPILER=" + oComp:id )
-#endif
-      ENDIF
    ENDIF
 
    IF !Empty( aFiles )
@@ -1304,6 +1297,13 @@ METHOD Build( lClean, lSub ) CLASS HwProject
    ENDIF
 
    IF Empty( lSub )
+      IF lCreatScr
+#ifdef __PLATFORM__UNIX
+        _CreateScr( "export COMPILER=" + ::oComp:id )
+#else
+        _CreateScr( "set COMPILER=" + ::oComp:id )
+#endif
+      ENDIF
       IF !Empty( ::oComp:aEnv )
          aEnv := Array( Len(::oComp:aEnv),2 )
          FOR i := 1 TO Len( ::oComp:aEnv )
