@@ -7,6 +7,7 @@
 
 #ifdef __BUILT_IN
    #define _NO_HBC
+   #define _NO_SQLIDYN
 #else
    #include "hbfuncsfull.ch"
    #ifdef __GTHWG__
@@ -17,4 +18,4 @@
    #endif
 #endif
 
-#define HBEDIT_VERSION  "v2.7-15"
+#define HBEDIT_VERSION  "v2.7-21"

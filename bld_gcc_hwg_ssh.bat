@@ -25,8 +25,8 @@ set HB_LIBS=-lhbvm -lhbrdd -lhbmacro -lhbrtl -lhbcpage -lhblang -lhbcommon -lrdd
 %HB_INSTALL%\bin\harbour %SRC_PATH%\hbcvf.prg /n /q /w -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\ssh2\hbcssh2.prg /n /q /w -I%HB_INSTALL%\include %1 2>>harbour.out
 
-gcc -I%HB_INSTALL%\include -D_USE_HB -DUNICODE -D__GTHWG__ -c hbedit.c fedit.c fmenu.c fcmd.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c hbcvf.c hbcssh2.c %SRC_PATH%\ssh2\hb_ssh2.c %SRC_PATH%\cfuncs.c %SRC_PATH%\trie\trie.c %SRC_PATH%\trie\hbtrie.c
-gcc -Wall -mwindows -ohbeditw.exe hbedit.o fedit.o fmenu.o fcmd.o fgetsys.o falert.o ffiles.o fkeymaps.o fdiff.o hilight.o fautoc.o errorsys.o hbcommander.o fview.o hbextcli.o hbcvf.o hbcssh2.o hb_ssh2.o cfuncs.o trie.o hbtrie.o -L. -L%HB_INSTALL%\lib\win\mingw -L%HWGUI_INSTALL%\lib -Wl,--allow-multiple-definition -Wl,--start-group %HB_LIBS% -luser32 -lwinspool -lcomctl32 -lcomdlg32 -lgdiplus -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lwsock32 -lws2_32 -liphlpapi -lssh2 -Wl,--end-group -lhbpp
+gcc -I%HB_INSTALL%\include -D_USE_HB -DUNICODE -D__GTHWG__ -c hbedit.c fedit.c fmenu.c fcmd.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c hbcvf.c hbcssh2.c %SRC_PATH%\ssh2\hb_ssh2.c %SRC_PATH%\cfuncs.c %SRC_PATH%\trie\trie.c %SRC_PATH%\trie\hbtrie.c %SRC_PATH%\sqlidyn\hbsqlit3.c %SRC_PATH%\sqlidyn\sqlit3.c
+gcc -Wall -mwindows -ohbeditw.exe hbedit.o fedit.o fmenu.o fcmd.o fgetsys.o falert.o ffiles.o fkeymaps.o fdiff.o hilight.o fautoc.o errorsys.o hbcommander.o fview.o hbextcli.o hbcvf.o hbcssh2.o hb_ssh2.o cfuncs.o trie.o hbtrie.o hbsqlit3.o sqlit3.o -L. -L%HB_INSTALL%\lib\win\mingw -L%HWGUI_INSTALL%\lib -Wl,--allow-multiple-definition -Wl,--start-group %HB_LIBS% -luser32 -lwinspool -lcomctl32 -lcomdlg32 -lgdiplus -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lwsock32 -lws2_32 -liphlpapi -lssh2 -Wl,--end-group -lhbpp
 
 del *.o
 del *.c

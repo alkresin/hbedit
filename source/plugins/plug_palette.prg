@@ -39,8 +39,6 @@ FUNCTION plug_Palette( oEd )
    DevPos( nRow, nCol )
    SetColor( oldc )
 
-   IF lEnd
-   ENDIF
    oEdit := Nil
 
    RETURN Nil
@@ -73,4 +71,3 @@ STATIC FUNCTION DrawTable()
    NEXT
 
    RETURN Nil
-

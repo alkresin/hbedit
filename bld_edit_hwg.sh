@@ -20,7 +20,7 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbcommander.prg  -n -q0 -es2 -gc0 -d__GTH
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/fview.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour $SRC_DIR/hbextcli.prg  -n -q0 -es2 -gc0 -I$HB_INS/include
 
-gcc hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c $SRC_DIR/cfuncs.c $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c \
+gcc hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c $SRC_DIR/cfuncs.c $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c $SRC_DIR/sqlidyn/hbsqlit3.c $SRC_DIR/sqlidyn/sqlit3.c \
       -ohbedit_hwg -I. -I$HB_INS/include -L $HB_INS/lib/linux/gcc -L $HWG_INS/lib -D__GTHWG__ \
 	  -Wl,--start-group $HWGUI_LIBS $HARBOUR_LIBS -Wl,--end-group \
       `pkg-config --cflags gtk+-2.0` `pkg-config gtk+-2.0 --libs` -lm -lz -lrt -ldl  >bld.log 2>bld.log

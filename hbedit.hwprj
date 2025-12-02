@@ -1,5 +1,6 @@
 # HbEdit project file
 # hwbc hbedit.hwprj -{nossh} - build without ssh
+# hwbc hbedit.hwprj -{nosqli} - build without sqlidyn
 # hwbc hbedit.hwprj -{nohwg} - build without gthwg
 # libssh2-devel must be installed in Linux system to build hbedit with ssh support
 
@@ -53,3 +54,7 @@ hbtrie.c
 {!nossh}srcpath=source\ssh2
 {!nossh}hbcssh2.prg
 {!nossh}hb_ssh2.c
+
+{!nosqli}srcpath=source\sqlidyn
+{!nosqli}hbsqlit3.c
+{!nosqli}sqlit3.c

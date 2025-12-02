@@ -25,7 +25,7 @@ $HB_INS/bin/linux/gcc/harbour $SRC_DIR/ssh2/hbcssh2.prg  -n -q0 -es2 -gc0 -I$HB_
 
 gcc hbedit.c fedit.c fcmd.c fmenu.c fgetsys.c falert.c ffiles.c fkeymaps.c fdiff.c \
      hilight.c fautoc.c errorsys.c hbcommander.c fview.c hbextcli.c $SRC_DIR/cfuncs.c \
-     $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c hbcvf.c hbcssh2.c $SRC_DIR/ssh2/hb_ssh2.c \
+     $SRC_DIR/trie/trie.c $SRC_DIR/trie/hbtrie.c hbcvf.c hbcssh2.c $SRC_DIR/ssh2/hb_ssh2.c $SRC_DIR/sqlidyn/hbsqlit3.c $SRC_DIR/sqlidyn/sqlit3.c \
       -ohbedit_hwg -I. -I$HB_INS/include -L $HB_INS/lib/linux/gcc -L $HWG_INS/lib -D__GTHWG__ -D_USE_HB \
 	  -Wl,--start-group $HWGUI_LIBS $HARBOUR_LIBS -Wl,--end-group \
       `pkg-config --cflags gtk+-2.0` `pkg-config gtk+-2.0 --libs` \

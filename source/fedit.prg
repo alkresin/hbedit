@@ -3286,7 +3286,14 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
       RETURN Nil
    ENDIF
 #ifdef _USE_SSH2
+   #ifndef _NO_SQLIDYN
+      cDop += _I(", sqlite")
+   #endif
    cDop += _I(", libssh2 support")
+#else
+   #ifndef _NO_SQLIDYN
+      cDop += _I(", sqlite support")
+   #endif
 #endif
 #ifdef __BUILT_IN
    cDop += _I(", built-in version")
