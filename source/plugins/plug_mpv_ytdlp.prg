@@ -2,7 +2,7 @@
 #define K_ESC    27
 #define K_DEL     7
 
-STATIC cPath_mpv := "", aHis := {}, lHisUpd := .F.
+STATIC cPath_mpv := "", cProxy := "", aHis := {}, lHisUpd := .F.
 
 FUNCTION plug_mpv_ytdlp( oEdit, cPath )
 
@@ -34,12 +34,14 @@ FUNCTION plug_mpv_ytdlp( oEdit, cPath )
 
    IF ( i := FMenu( oEdit, aMenu,,,,,,,, .T.,,, bKeys ) ) == 1
       IF !Empty( cUrl := _mpv_ytdlp_GetAddr() )
-         IF !( lRes := cedi_RunApp( cPath_mpv + " " + cUrl ) )
+         IF !( lRes := cedi_RunApp( cPath_mpv + ;
+            Iif( Empty(cProxy), "", " --http-proxy " + cProxy ) + " " + cUrl ) )
             lHisUpd := .F.
          ENDIF
       ENDIF
    ELSEIF i > 1
-      lRes := cedi_RunApp( cPath_mpv + " " + aHis[i-1,2] )
+      lRes := cedi_RunApp( cPath_mpv + ;
+         Iif( Empty(cProxy), "", " --http-proxy " + cProxy ) + " " + aHis[i-1,2] )
    ENDIF
 
    IF !lRes
@@ -95,6 +97,9 @@ STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
                IF hb_hHaskey( aSect, cTemp := "path" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
                   cPath_mpv := cTemp
                ENDIF
+               IF hb_hHaskey( aSect, cTemp := "proxy" ) .AND. !Empty( cTemp := aSect[ cTemp ] )
+                  cProxy := cTemp
+               ENDIF
             ENDIF
          ELSEIF Upper(aIni[nSect]) == "HIS"
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
@@ -115,7 +120,9 @@ STATIC FUNCTION _mpv_ytdlp_rdini( cIni )
 
 STATIC FUNCTION _mpv_ytdlp_wrini( cIni )
 
-   LOCAL s := "[MAIN]" + Chr(10) + "path=" + cPath_mpv + Chr(10) + Chr(10) + "[HIS]" + Chr(10)
+   LOCAL s := "[MAIN]" + Chr(10) + "path=" + cPath_mpv + ;
+      Iif( Empty(cProxy), "", Chr(10) + "proxy=" + cProxy ) + ;
+      Chr(10) + Chr(10) + "[HIS]" + Chr(10)
    LOCAL i, cdpCurr := hb_CdpSelect()
 
    FOR i := Len( aHis ) TO 1 STEP -1
