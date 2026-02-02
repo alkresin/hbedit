@@ -110,15 +110,14 @@ void c_writelog( const char * sFile, const char * sTraceMsg, ... )
 static BOOL AddDirectoryToPath( const char* filePath ) {
 
    char* lastSlash;
-   char* pathOnly = NULL;
-   size_t pathLength = 0;
-   char* currentPath = NULL;
-   char* newPath = NULL;
+   char* pathOnly;
+   size_t pathLength;
+   char* currentPath;
+   char* newPath;
    size_t newPathSize;
    BOOL result = FALSE;
-   size_t neededSize = 0;
+   size_t neededSize;
 
-   lastSlash = strrchr( filePath, '\\' );
    if( ( lastSlash = strrchr( filePath, '\\' ) ) == 0 &&
       ( lastSlash = strrchr( filePath, '/' ) ) == 0 )
       return FALSE;
