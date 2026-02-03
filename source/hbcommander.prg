@@ -2125,13 +2125,17 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aWnd )
 STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
 
    LOCAL lSilent, l1 := .F., cTemp, lDir, nCopied := 0
-   LOCAL cFileName := aDir[1], lRes := .F., nRes
+   LOCAL cFileName := aDir[1], cFullPath, lRes := .F., nRes
    LOCAL bCopy := {|s,arr|
-      LOCAL nLen := Len(oPaneCurr:cIOpref+oPaneCurr:net_cAddress+oPaneCurr:net_cPort+oPaneCurr:cCurrPath) + 1
-      LOCAL nRes
+      LOCAL nLen := Len( cFullPath ) + 1
+      LOCAL nRes, cDirName
       IF "D" $ arr[5]
          IF !( s == "." .OR. s == ".." )
-            IF !hb_vfDirExists( cFileTo + Substr(s,nLen) ) .AND. hb_vfDirMake( cFileTo + Substr(s,nLen) ) != 0
+            cDirName := cFileTo + Substr(s,nLen)
+            IF !Empty( oPaneTo:cIOpref ) .AND. ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "MKDIR", ;
+               {cDirName} ) ) != Nil
+               RETURN .T.
+            ELSEIF !hb_vfDirExists( cDirName ) .AND. hb_vfDirMake( cDirName ) != 0
                RETURN ( lRes := .F. )
             ENDIF
          ENDIF
@@ -2139,7 +2143,11 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
          nStart ++
          hbc_Wndout( aWnd, FTransl( Substr( s,nLen ) ), .T. )
          hbc_Wndout( aWnd, "" )
-         IF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cFileTo + ;
+         IF !Empty( oPaneTo:cIOpref ) .AND. ;
+            ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPYTO", ;
+            {cFullPath + cFileName, cFileTo, .F., nStart, arr[2]} ) ) != Nil
+            nCopied ++
+         ELSEIF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cFileTo + ;
             FTransl( Substr(s,nLen),oPaneCurr:cpPane,oPaneTo:cpPane ), nStart, aWnd ) ) == 0
             nCopied ++
          ELSEIF nRes == 1
@@ -2158,6 +2166,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
    lDir := ( 'D' $ aDir[5] )
    lSilent := !Empty( cFileTo )
    IF Empty(nStart); nStart := 0; ENDIF
+   cFullPath := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath
 
    IF !lSilent
       IF oPaneTo:nPanelMod == 2
@@ -2182,14 +2191,12 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
       cFileTo := FTransl( cFileTo, oPaneCurr:cpPane, oPaneTo:cpPane )
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "COPYFROM", ;
-         {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart, aDir[2],aDir[3]} ) ) != Nil
+         {cFullPath + cFileName, cFileTo, lDir, nStart, aDir[2],aDir[3]} ) ) != Nil
          RETURN nRes
       ENDIF
-      IF !Empty( oPaneTo:cIOpref ) .AND. ;
+      IF !lDir .AND. !Empty( oPaneTo:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPYTO", ;
-         {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cFileName, cFileTo, lDir, nStart, aDir[2]} ) ) != Nil
+         {cFullPath + cFileName, cFileTo, lDir, nStart, aDir[2]} ) ) != Nil
          RETURN nRes
       ENDIF
       IF lDir
@@ -2197,14 +2204,16 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
             cFileTo += hb_ps()
          ENDIF
          //edi_Alert( cFileTo  + cFileName )
-         IF !hb_vfDirExists( cFileTo  + cFileName ) .AND. hb_vfDirMake( cFileTo  + cFileName ) != 0
-            edi_Alert( _I("Error creating")+" " + cFileName )
-            RETURN 2
+         IF Empty( oPaneTo:cIOpref ) .OR. ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "MKDIR", ;
+            {cFileTo  + cFileName} ) ) == Nil
+            IF !hb_vfDirExists( cFileTo  + cFileName ) .AND. hb_vfDirMake( cFileTo  + cFileName ) != 0
+               edi_Alert( _I("Error creating")+" " + cFileName )
+               RETURN 2
+            ENDIF
          ENDIF
          aWnd := hbc_Wndinit( 05, oPaneCurr:vx1+12, 12, oPaneCurr:vx2-12,, _I("Wait") )
          lRes := .T.
-         DirEval( oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-            oPaneCurr:cCurrPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
+         DirEval( cFullPath + cFileName + hb_ps(), "*", .T., bCopy, .T. )
          IF lSilent
             KEYBOARD Chr(K_SPACE)
          ENDIF
@@ -2551,11 +2560,11 @@ STATIC FUNCTION hbc_FMakeDir()
    IF LastKey() != 27 .AND. !Empty( cNewName := AllTrim(cNewName) )
       IF !Empty( oPaneCurr:cIOpref )
          nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "MKDIR", ;
-         {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
-         oPaneCurr:cCurrPath + cNewName} )
+            {oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + ;
+            oPaneCurr:cCurrPath + cNewName} )
       ENDIF
       IF nRes == 0 .OR. ( nRes == Nil .AND. hb_vfDirMake( oPaneCurr:cIOpref + ;
-         oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim(cNewName) ) == 0 )
+            oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath + Trim(cNewName) ) == 0 )
          oPaneCurr:Refresh()
          oPaneCurr:Draw()
          oPaneCurr:DrawCell( ,.T.)

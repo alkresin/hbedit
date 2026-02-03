@@ -106,7 +106,7 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
    dDate := aParams[6]
 
    IF aParams[3]
-      edi_Alert( cNotPerm )
+      edi_Alert( "From ftp: " + cNotPerm )
       RETURN 2
    ENDIF
 
@@ -140,10 +140,25 @@ FUNCTION plug_hbc_ftp_copyto( o, aParams )
    nFirst := aParams[4]
    nSize := aParams[5]
 
+   //edi_Writelog( cFileName )
+   //edi_Writelog( cFileTo )
    IF aParams[3] .OR. !( cFileTo = "ftp:" )
-      edi_Alert( cNotPerm )
+   //IF !( cFileTo = "ftp:" )
+      edi_Alert( "To ftp: " + cNotPerm )
       RETURN 2
    ENDIF
+
+/*
+   IF aParams[3]
+      n := At( '/', cFileTo )
+      cFileTo += hb_fnameNameExt( cFileName )
+      edi_Writelog( "MKD " + Substr(cFileTo,n) )
+      IF !FtpSendCmd( o:pSess, "MKD " + Substr(cFileTo,n) )
+         RETURN 2
+      ENDIF
+      RETURN 0
+   ENDIF
+*/
 
    oPaneCurr := Iif( o == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
    IF ( n := Ascan2( o:aDir, FTransl( hb_fnameNameExt(cFileName),oPaneCurr:cpPane,o:cpPane ) ) ) > 0
@@ -201,6 +216,7 @@ FUNCTION plug_hbc_ftp_mkdir( oPane, aParams )
    ENDIF
 
    nPos := At( '/', cDirName )
+   //edi_Writelog( "MKD " + Substr(cDirName,nPos) )
    IF !FtpSendCmd( oPane:pSess, "MKD " + Substr(cDirName,nPos) )
       RETURN 2
    ENDIF
