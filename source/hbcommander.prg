@@ -2128,14 +2128,14 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
    LOCAL cFileName := aDir[1], cFullPath, lRes := .F., nRes
    LOCAL bCopy := {|s,arr|
       LOCAL nLen := Len( cFullPath ) + 1
-      LOCAL nRes, cDirName
+      LOCAL nRes, cName
       IF "D" $ arr[5]
          IF !( s == "." .OR. s == ".." )
-            cDirName := cFileTo + Substr(s,nLen)
+            cName := cFileTo + Substr(s,nLen)
             IF !Empty( oPaneTo:cIOpref ) .AND. ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "MKDIR", ;
-               {cDirName} ) ) != Nil
+               {cName} ) ) != Nil
                RETURN .T.
-            ELSEIF !hb_vfDirExists( cDirName ) .AND. hb_vfDirMake( cDirName ) != 0
+            ELSEIF !hb_vfDirExists( cName ) .AND. hb_vfDirMake( cName ) != 0
                RETURN ( lRes := .F. )
             ENDIF
          ENDIF
@@ -2143,12 +2143,12 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
          nStart ++
          hbc_Wndout( aWnd, FTransl( Substr( s,nLen ) ), .T. )
          hbc_Wndout( aWnd, "" )
+         cName := cFileTo + FTransl( Substr(s,nLen),oPaneCurr:cpPane,oPaneTo:cpPane )
          IF !Empty( oPaneTo:cIOpref ) .AND. ;
             ( nRes := PlugFunc( oPaneTo, oPaneTo:cIOpref, "COPYTO", ;
-            {cFullPath + cFileName, cFileTo, .F., nStart, arr[2]} ) ) != Nil
+            {Substr(s,nLen), cName, .F., nStart, arr[2]} ) ) != Nil
             nCopied ++
-         ELSEIF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cFileTo + ;
-            FTransl( Substr(s,nLen),oPaneCurr:cpPane,oPaneTo:cpPane ), nStart, aWnd ) ) == 0
+         ELSEIF ( nRes := FCopy( {Substr(s,nLen),arr[2],arr[3]}, cName, nStart, aWnd ) ) == 0
             nCopied ++
          ELSEIF nRes == 1
             l1 := .T.
