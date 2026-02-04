@@ -204,8 +204,9 @@ FUNCTION plug_hbc_ftp_mkdir( oPane, aParams )
    ENDIF
 
    nPos := At( '/', cDirName )
+   cDirName := StrTran( Substr( cDirName, nPos ), "\", "/" )
    //edi_Writelog( "MKD " + Substr(cDirName,nPos) )
-   IF !FtpSendCmd( oPane:pSess, "MKD " + Substr(cDirName,nPos) )
+   IF !FtpSendCmd( oPane:pSess, "MKD " + cDirName )
       RETURN 2
    ENDIF
 
