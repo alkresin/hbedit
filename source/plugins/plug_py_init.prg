@@ -89,7 +89,10 @@ STATIC FUNCTION _py_Spis( oEdit )
       ENDIF
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
-      IF cfirst == "class" .OR. cFirst == "def"
+      IF cfirst == "class" .OR. cFirst == "def" .OR. cFirst == "async"
+         IF cFirst == "async" .AND. hb_TokenPtr( cLine, @nSkip ) != "def"
+            LOOP
+         ENDIF
          Aadd( arrfnc, { cp_Left( oEdit:lUtf8,arr[i],64 ), Nil, i } )
       ENDIF
    NEXT
@@ -274,8 +277,11 @@ STATIC FUNCTION _py_KeyWords( oEdit, cPrefix )
       cLine := Ltrim( aText[i] )
       nSkip := 0
       cfirst := hb_TokenPtr( cLine, @nSkip )
-      IF cfirst == "class" .OR. cFirst == "def"
+      IF cfirst == "class" .OR. cFirst == "def" .OR. cFirst == "async"
          lGlob := .F.
+         IF cFirst == "async" .AND. hb_TokenPtr( cLine, @nSkip ) != "def"
+            LOOP
+         ENDIF
          cSecond := hb_TokenPtr( cLine, @nSkip )
          IF ( nPos := At( "(", cSecond ) ) > 0
             cSecond := Left( cSecond, nPos )
