@@ -3344,7 +3344,8 @@ STATIC FUNCTION AppList( oPane )
 #ifdef __PLATFORM__UNIX
          cedi_RunApp( FilePane():aAppList[i,1] )
 #else
-         cedi_shellExecute( FilePane():aAppList[i,1] )
+         //cedi_shellExecute( FilePane():aAppList[i,1] )
+         cedi_RunApp( FilePane():aAppList[i,1] )
 #endif
       ENDIF
    ENDIF
