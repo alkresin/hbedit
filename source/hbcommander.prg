@@ -154,7 +154,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
    ENDIF
 
    IF oPaneCurr:lQSeaMode
-      IF (nKey >= 65 .AND. nKey <= 122) .OR. (nKey >= 45 .AND. nKey <= 57)
+      IF (nKey >= 65 .AND. nKey <= 122) .OR. (nKey >= 45 .AND. nKey <= 57) .OR. nKey == K_BS
          hbc_QSea( nKey )
          RETURN -1
       ELSE
@@ -3148,8 +3148,23 @@ STATIC FUNCTION hbc_QSea( nKey )
          SetCursor( SC_NORMAL )
       ENDIF
    ELSE
-      i := Ascan( oPaneCurr:aDir, {|a|Left( Lower(a[1]),Len(cSea)+1 ) == cSea + Chr(nKey)} )
-      IF i > 0
+      IF nKey == K_BS
+         IF Len( cSea ) > 1
+            nKey := Asc( Right( cSea,1 ) )
+            cSea := Left( cSea, Len(cSea)-2 )
+         ELSEIF Len( cSea ) == 1
+            cSea := ""
+            oPaneCurr:nShift := 0
+            oPaneCurr:nCurrent := 1
+            oPaneCurr:Draw()
+            nKey := 0
+         ELSE
+            RETURN Nil
+         ENDIF
+      ENDIF
+
+      IF nKey > 0 .AND. ( i := Ascan( oPaneCurr:aDir, ;
+         {|a|Left( Lower(a[1]),Len(cSea)+1 ) == cSea + Chr(nKey)} ) ) > 0
          cSea += Chr( nKey )
 
          oPaneCurr:DrawCell( ,.F. )
@@ -3160,10 +3175,12 @@ STATIC FUNCTION hbc_QSea( nKey )
          ELSE
             oPaneCurr:nCurrent := i - oPaneCurr:nShift
          ENDIF
-         oPaneCurr:DrawCell( ,.T. )
-         DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
-         DevOut( cSea )
+      ELSE
+         RETURN Nil
       ENDIF
+      oPaneCurr:DrawCell( ,.T. )
+      DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
+      DevOut( cSea )
    ENDIF
 
    RETURN Nil
