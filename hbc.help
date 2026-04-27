@@ -28,6 +28,7 @@ HbCommander - built-in file manager
    Ctrl-F1    - Change directory for a left pane
    Ctrl-F2    - Change directory for a right pane
    Ctrl-R     - Refresh panel
+   Alt-S      - Быстрый поиск файла в текущем каталоге
    Ctrl-F7    - Search
    +          - Search/select
    Ctrl-F8    - Commands History

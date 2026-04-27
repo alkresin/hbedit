@@ -153,6 +153,14 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
    ENDIF
 
+   IF oPaneCurr:lQSeaMode
+      IF (nKey >= 65 .AND. nKey <= 122) .OR. (nKey >= 45 .AND. nKey <= 57)
+         hbc_QSea( nKey )
+         RETURN -1
+      ELSE
+         hbc_QSea()
+      ENDIF
+   ENDIF
    aDir := Iif( Empty(oPaneCurr:aDir).OR.oPaneCurr:nCurrent==0, {}, oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift] )
    IF nKey == K_F9
      IF !oPaneCurr:PaneMenu()
@@ -721,6 +729,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          //oPaneCurr:nCurrent := Len( oPaneCurr:aDir ) - oPaneCurr:nShift
       ENDIF
       oPaneCurr:RedrawAll()
+   ELSEIF nKey == K_ALT_S .AND. hb_BitAnd( nKeyExt, ALT_PRESSED ) != 0
+      hbc_QSea()
    ELSEIF nKey == 43     // +
       hbc_Search( .T. )
    ELSEIF nKey == 61     // =
@@ -1166,7 +1176,6 @@ CLASS FilePane
    DATA net_cAddress_bak INIT ""
    DATA zip_cCurrDir
    DATA x1, y1, x2, y2
-   DATA lViewStatus   INIT .T.
 
    DATA cpPane
    DATA nDispMode     INIT 1
@@ -1176,6 +1185,7 @@ CLASS FilePane
    DATA nRows, nWidth
    DATA nPanelMod     INIT 0      // 0 - default, 1 - Search, 2 - Archive, 3 - QView
    DATA nPanelMod_bak
+   DATA lQSeaMode     INIT .F.
    DATA hUnzip
    DATA pSess
    DATA cCurrPath
@@ -1618,7 +1628,7 @@ METHOD Draw() CLASS FilePane
    SetColor( ::cClrBox )
    @ ::y1, ::x1, ::y2, ::x2 BOX "ÚÄ¿³ÙÄÀ³ "
 
-   ::nRows := ::y2 - ::y1 - Iif( ::lViewStatus, 3, 1 )
+   ::nRows := ::y2 - ::y1 - 3
    IF ::nDispMode == 1 .OR. ::nDispMode == 3 .OR. ::nDispMode == 4
       ::nCells := ::nRows
       ::nWidth := ::x2 - ::x1 - 1
@@ -1627,9 +1637,7 @@ METHOD Draw() CLASS FilePane
       ::nWidth := Int( (::x2 - ::x1) / 2 ) - 1
       @ ::y1 + 1, ::x1 + ::nWidth + 1 TO ::y1 + ::nRows, ::x1 + ::nWidth + 1
    ENDIF
-   IF ::lViewStatus
-      @ ::y2 - 2, ::x1 + 1 TO ::y2 - 2, ::x2 - 1
-   ENDIF
+   @ ::y2 - 2, ::x1 + 1 TO ::y2 - 2, ::x2 - 1
 
    FOR i := 1 TO ::nCells
       IF i + ::nShift > Len( ::aDir )
@@ -1726,7 +1734,7 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
    ENDIF
 
    SetColor( ::cClrFil )
-   IF ::lViewStatus .AND. lCurr
+   IF !::lQSeaMode .AND. lCurr
       IF Empty( arr[3] )
          IF !hb_fGetDateTime( ::cCurrPath + arr[1], @dDate )
             arr[3] := Stod( "19171107" )
@@ -3116,6 +3124,46 @@ STATIC FUNCTION hbc_Search( lSele )
       oPaneCurr:DrawHead( .T. )
    ELSEIF LastKey() != K_ESC
       edi_Alert( _I("Nothing found") )
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION hbc_QSea( nKey )
+
+   LOCAL i
+   STATIC cSea := ""
+
+   IF nKey == Nil
+      cSea := ""
+      IF oPaneCurr:lQSeaMode
+         oPaneCurr:lQSeaMode := .F.
+         oPaneCurr:DrawCell( , .T. )
+         oHbc:lIns := Nil
+         SetCursor( SC_NONE )
+      ELSE
+         oPaneCurr:lQSeaMode := .T.
+         @ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 CLEAR TO oPaneCurr:y2 - 1, oPaneCurr:x2 - 1
+         DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
+         oHbc:lIns := .T.
+         SetCursor( SC_NORMAL )
+      ENDIF
+   ELSE
+      i := Ascan( oPaneCurr:aDir, {|a|Left( Lower(a[1]),Len(cSea)+1 ) == cSea + Chr(nKey)} )
+      IF i > 0
+         cSea += Chr( nKey )
+
+         oPaneCurr:DrawCell( ,.F. )
+         IF i - oPaneCurr:nShift > oPaneCurr:nCells
+            oPaneCurr:nShift := i - 1
+            oPaneCurr:nCurrent := 1
+            oPaneCurr:Draw()
+         ELSE
+            oPaneCurr:nCurrent := i - oPaneCurr:nShift
+         ENDIF
+         oPaneCurr:DrawCell( ,.T. )
+         DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
+         DevOut( cSea )
+      ENDIF
    ENDIF
 
    RETURN Nil

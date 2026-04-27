@@ -339,7 +339,7 @@ STATIC FUNCTION DrawCell( oPane, nCell, lCurr )
    ENDIF
 
    SetColor( oPane:cClrFil )
-   IF oPane:lViewStatus .AND. lCurr
+   IF !oPane:lQSeaMode .AND. lCurr
       cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
       nWidth := oPane:x2 - oPane:x1 - 3 - Len(cDop)
       cText := NameShortcut( Trim( oPane:aDir[nCell+oPane:nShift,1] ), nWidth, "~", lUtf8 )
