@@ -3412,8 +3412,11 @@ STATIC FUNCTION AppList( oPane )
 #ifdef __PLATFORM__UNIX
          cedi_RunApp( FilePane():aAppList[i,1] )
 #else
-         //cedi_shellExecute( FilePane():aAppList[i,1] )
-         cedi_RunApp( FilePane():aAppList[i,1] )
+         IF Right( FilePane():aAppList[i,1], 4 ) == ".exe"
+            cedi_shellExecute( FilePane():aAppList[i,1] )
+         ELSE
+            cedi_RunApp( FilePane():aAppList[i,1] )
+         ENDIF
 #endif
       ENDIF
    ENDIF
