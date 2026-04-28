@@ -21,7 +21,7 @@ static char* shm_file_name = "hbedit_cb";
 #endif
 
 #include "hbapifs.h"
-
+/*
 static void _writelog( const char * sFile, int n, const char * s, ... )
 {
 
@@ -55,7 +55,7 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
       }
    }
 }
-
+*/
 
 static int cedi_Utf8CharLen( unsigned char ucChar )
 {

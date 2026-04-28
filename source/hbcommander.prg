@@ -3142,7 +3142,8 @@ STATIC FUNCTION hbc_QSea( nKey )
          SetCursor( SC_NONE )
       ELSE
          oPaneCurr:lQSeaMode := .T.
-         @ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 CLEAR TO oPaneCurr:y2 - 1, oPaneCurr:x2 - 1
+         //@ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 CLEAR TO oPaneCurr:y2 - 1, oPaneCurr:x2 - 1
+         @ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1, oPaneCurr:y2 - 1, oPaneCurr:x2 - 1 BOX "         " COLOR oPaneCurr:cClrBox
          DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
          oHbc:lIns := .T.
          SetCursor( SC_NORMAL )
@@ -3150,21 +3151,25 @@ STATIC FUNCTION hbc_QSea( nKey )
    ELSE
       IF nKey == K_BS
          IF Len( cSea ) > 1
-            nKey := Asc( Right( cSea,1 ) )
+            nKey := Asc( Substr( cSea,Len(cSea)-1,1 ) )
             cSea := Left( cSea, Len(cSea)-2 )
+            @ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1, oPaneCurr:y2 - 1, oPaneCurr:x2 - 1 BOX "         " COLOR oPaneCurr:cClrBox
          ELSEIF Len( cSea ) == 1
             cSea := ""
             oPaneCurr:nShift := 0
             oPaneCurr:nCurrent := 1
             oPaneCurr:Draw()
-            nKey := 0
+            @ oPaneCurr:y2 - 1, oPaneCurr:x1 + 1, oPaneCurr:y2 - 1, oPaneCurr:x2 - 1 BOX "         " COLOR oPaneCurr:cClrBox
+            oPaneCurr:DrawCell( ,.T. )
+            DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
+            DevOut( cSea )
+            RETURN Nil
          ELSE
             RETURN Nil
          ENDIF
       ENDIF
 
-      IF nKey > 0 .AND. ( i := Ascan( oPaneCurr:aDir, ;
-         {|a|Left( Lower(a[1]),Len(cSea)+1 ) == cSea + Chr(nKey)} ) ) > 0
+      IF ( i := Ascan( oPaneCurr:aDir, {|a|Left( Lower(a[1]),Len(cSea)+1 ) == cSea + Chr(nKey)} ) ) > 0
          cSea += Chr( nKey )
 
          oPaneCurr:DrawCell( ,.F. )
@@ -3175,12 +3180,10 @@ STATIC FUNCTION hbc_QSea( nKey )
          ELSE
             oPaneCurr:nCurrent := i - oPaneCurr:nShift
          ENDIF
-      ELSE
-         RETURN Nil
+         oPaneCurr:DrawCell( ,.T. )
+         DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
+         DevOut( cSea )
       ENDIF
-      oPaneCurr:DrawCell( ,.T. )
-      DevPos( oPaneCurr:y2 - 1, oPaneCurr:x1 + 1 )
-      DevOut( cSea )
    ENDIF
 
    RETURN Nil
