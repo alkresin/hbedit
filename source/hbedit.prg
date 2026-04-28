@@ -172,14 +172,14 @@ FUNCTION Main( ... )
       IF lHbc //.AND. Len( TEdit():aWindows ) == 1
          Hbc()
       ELSE
-        TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
+         TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
       ENDIF
 #else
       TEdit():New( "", "", 0, 0, nScreenH-1, nScreenW-1 )
 #endif
    ENDIF
    IF nStartLine != Nil
-     IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
+      IF nStartLine < 0; nStartLine := Len(TEdit():aWindows[1]:aText) + nStartLine; ENDIF
       TEdit():aWindows[1]:Goto( nStartLine,,, .T. )
    ENDIF
 
@@ -245,8 +245,10 @@ STATIC FUNCTION ReadIni( cIniName, cDefCP )
          IF hb_hHaskey( aSect, cTmp := "maximize" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             lMaximize := ( Lower(cTmp) == "on" )
          ENDIF
-         IF hb_hHaskey( aSect, cTmp := "hbcommander" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-            lHbc := ( Lower(cTmp) == "on" )
+         IF !lHbc
+            IF hb_hHaskey( aSect, cTmp := "hbcommander" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+               lHbc := ( Lower(cTmp) == "on" )
+            ENDIF
          ENDIF
          IF hb_hHaskey( aSect, cTmp := "files" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
             arr := hb_ATokens( cTmp, "," )
