@@ -37,6 +37,7 @@ harbour plug_hbc_ext_fb2zip.prg -n -gh -q
 harbour plug_hbc_fb2_quick.prg -n -gh -q
 harbour plug_hbc_files_compare.prg -n -gh -q
 harbour plug_hbc_folders_compare.prg -n -gh -q
+harbour plug_hbc_filelist.prg -n -gh -q
 harbour plug_hbc_ftp.prg -n -gh -q -I%HB_INSTALL%\include
 harbour plug_hbc_img_quick.prg -n -gh -q
 harbour plug_hbc_latin.prg -n -gh -q
