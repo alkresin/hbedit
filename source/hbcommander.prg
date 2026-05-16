@@ -1348,8 +1348,10 @@ METHOD ParsePath( cPath ) CLASS FilePane
                cCurrPath := Substr( cPath, nPos2 )
             ELSE
                // net:10.8.0.1:100abc
-               cPort := cDefPort
-               cCurrPath := Substr( cPath, nPos1+1 )
+               /* cPort := cDefPort
+               cCurrPath := Substr( cPath, nPos1+1 ) */
+               cPort := Substr( cPath, nPos1+1 )
+               cCurrPath := ""
             ENDIF
          ELSE
             // net:10.8.0.1:...
