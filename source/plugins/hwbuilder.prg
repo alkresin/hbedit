@@ -522,7 +522,7 @@ STATIC FUNCTION WriteIni()
    FOR EACH oComp IN HCompiler():aList
       n ++
       s += "[C_COMPILER" + Iif( n == 1, "", "_" + Ltrim(Str(n)) ) + "]" + cr + ;
-         "id=" + oComp:id + "family=" + oComp:family + cr + "bin_path=" + ;
+         "id=" + oComp:id + cr + "family=" + oComp:family + cr + "bin_path=" + ;
          oComp:cPath + cr + "harbour_lib_path=" + oComp:cPathHrbLib + cr + ;
          "def_cflags=" + oComp:cFlags + cr + "def_linkflags=" + oComp:cLinkFlagsGui + cr + ;
          + "def_libflags=" + oComp:cLinkFlagsLib + cr + "def_syslibs=" + oComp:cSysLibs + cr
@@ -975,7 +975,17 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
 
    IF PCount() > 1
       ::aFiles := aFiles
-      ::oComp  := Iif( Empty( oComp ), HCompiler():aList[1], oComp )
+      //::oComp  := Iif( Empty( oComp ), HCompiler():aList[1], oComp )
+      IF Empty( oComp )
+         i := Ascan( HCompiler():aList, {|o|!Empty(o:cPath)} )
+         IF i == 0
+            _MsgStop( "C compiler not found", "Error" )
+            RETURN Nil
+         ENDIF
+         ::oComp := HCompiler():aList[i]
+      ELSE
+         ::oComp := oComp
+      ENDIF
       ::cGtLib    := cGtLib
       ::cLibsDop  := Iif( Empty( cLibsDop ) , "", cLibsDop )
       IF !Empty( cGtLib )
@@ -1013,7 +1023,12 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
    LOCAL aPrjVars := Iif( Empty( aParentVars ), {}, AClone( aParentVars ) )
 
    IF Empty( oComp )
-      oComp := HCompiler():aList[1]
+      i := Ascan( HCompiler():aList, {|o|!Empty(o:cPath)} )
+      IF i == 0
+         _MsgStop( "C compiler not found", "Error" )
+         RETURN Nil
+      ENDIF
+      ::oComp := HCompiler():aList[i]
       lCompDefault := .T.
    ENDIF
 
