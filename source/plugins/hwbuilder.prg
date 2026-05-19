@@ -137,9 +137,8 @@ FUNCTION HwBuilder( cFile, lFromEdit )
          IF !Empty( oPrg := HwProject():Open( hb_fnameDir(cFile) + ".hwprj", oComp, aUserPar, aFiles ) )
             oPrg:Build()
          ENDIF
-      ELSE
-         oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
-            "", cFlagsPrg, "", "", "", .F., .F., lNoGui )
+      ELSEIF !Empty( oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
+            "", cFlagsPrg, "", "", "", .F., .F., lNoGui ) )
          oPrg:Build()
       ENDIF
       cFile := hb_fnameNameExt( cFile )
@@ -982,7 +981,7 @@ METHOD New( aFiles, oComp, cGtLib, cLibsDop, cLibsPath, cFlagsPrg, cFlagsC, ;
             _MsgStop( "C compiler not found", "Error" )
             RETURN Nil
          ENDIF
-         ::oComp := HCompiler():aList[i]
+         ::oComp := oComp := HCompiler():aList[i]
       ELSE
          ::oComp := oComp
       ENDIF
@@ -1028,8 +1027,10 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
          _MsgStop( "C compiler not found", "Error" )
          RETURN Nil
       ENDIF
-      ::oComp := HCompiler():aList[i]
+      ::oComp := oComp := HCompiler():aList[i]
       lCompDefault := .T.
+   ELSE
+      ::oComp := oComp
    ENDIF
 
    IF Valtype( xSource ) == "A"
