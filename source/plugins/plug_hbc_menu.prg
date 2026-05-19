@@ -51,6 +51,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
          Aadd( aMenu, { "---",,, } )
       ENDIF
       Aadd( aMenu, { "fossil changes",,18, } )
+      Aadd( aMenu, { "fossil timeline",,19, } )
       IF !Empty( aMenuFoss )
          FOR i := 1 TO Len( aMenuFoss )
             Aadd( aMenu, { aMenuFoss[i,1],,130+i, } )
@@ -142,6 +143,8 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       hbc_Console( 'git commit -a -m "%m"' )
    ELSEIF n == 18
       hbc_Console( "fossil changes" )
+   ELSEIF n == 19
+      hbc_Console( "fossil timeline" )
    ELSEIF n == 21
       hbc_Console(  "hbformat %p" )
       lRefr := .T.
