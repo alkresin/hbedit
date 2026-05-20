@@ -144,7 +144,7 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
    ELSEIF n == 18
       hbc_Console( "fossil changes" )
    ELSEIF n == 19
-      hbc_Console( "fossil timeline" )
+      hbc_Console( "fossil timeline -v -n 6" )
    ELSEIF n == 21
       hbc_Console(  "hbformat %p" )
       lRefr := .T.
