@@ -144,6 +144,9 @@ FUNCTION edi_READ( aGets, pKeys )
                         ENDIF
                      NEXT
                   ENDIF
+                  IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
+                     Eval( aGets[nCurr,G_CB], aOpt )
+                  ENDIF
                   DevPos( y, aGets[nCurr,G_X] )
                ENDIF
             ENDIF
@@ -360,6 +363,9 @@ FUNCTION edi_READ( aGets, pKeys )
                            DevOut( " " )
                         ENDIF
                      NEXT
+                  ENDIF
+                  IF Len(aGets[nCurr]) >= G_CB .AND. !Empty(aGets[nCurr,G_CB])
+                     Eval( aGets[nCurr,G_CB], aOpt )
                   ENDIF
                   DevPos( nRow, aGets[nCurr,G_X] )
                ELSEIF aGets[nCurr,G_TYPE] == G_TYPE_BUTTON

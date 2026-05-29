@@ -4699,7 +4699,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
    LOCAL aGets := { {11,22,0,Iif(Left(oEdit:cFileName,1)=="$",oEdit:cFileName,hb_fnameNameExt(oEdit:cFileName)),48,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,22,0,cDir,46,oEdit:cColorMenu,oEdit:cColorMenu}, ;
       {13,69,2,"[D]",3,oEdit:cColorSel,oEdit:cColorMenu,{||mnu_DirList(oEdit,aGets[2],.T.)}}, ;
-      {15,29,3,.T.,1}, {15,47,3,.F.,1}, {15,63,3,.F.,1} }
+      {15,29,3,.T.,2}, {15,48,3,.F.,2}, {15,64,3,.F.,2} }
    STATIC pKeys
 
    IF Empty( pKeys )
@@ -4715,7 +4715,7 @@ STATIC FUNCTION edi_SaveDlg( oEdit, cDir )
 
    @ 10,22 SAY _I("Save file as")
    @ 12,22 SAY _I("in directory")
-   @ 15, 22 SAY " Eol: ( ) Do not change  ( ) Dos/Windows ( ) Unix"
+   @ 15, 22 SAY "Eol:  ( )Do not change   ( )Dos/Windows  ( )Unix"
    Aadd( aGets, {18,25,2,_I("[Save]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}} )
    Aadd( aGets, {18,58,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} )
    IF oEdit:lUtf8

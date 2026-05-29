@@ -1656,7 +1656,7 @@ METHOD Draw() CLASS FilePane
 
 METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
-   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen
+   LOCAL arr, nRow, x1 := ::x1 + 1, cText, nWidth, cDop, lSel, nLen, i, n
    LOCAL cDate, dDate, cSize, cClrFil := ::cClrFil, cExt, lUtf8, nAttr := 0
 
    IF ::nPanelMod == 3
@@ -1737,18 +1737,32 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
 
    SetColor( ::cClrFil )
    IF !::lQSeaMode .AND. lCurr
-      IF Empty( arr[3] )
-         IF !hb_fGetDateTime( ::cCurrPath + arr[1], @dDate )
-            arr[3] := Stod( "19171107" )
-            arr[2] := -1
-         ELSE
-            arr[3] := dDate
-            arr[2] := hb_fSize( ::cCurrPath + arr[1] )
+      IF arr[1] == ".."
+         cDop := ""
+         n := nLen := 0
+         FOR i := 1 TO Len( ::aDir )
+            IF !( 'D' $ ::aDir[i,5] )
+               n ++
+               IF Valtype( ::aDir[i,2] ) == "N"
+                  nLen += ::aDir[i,2]
+               ENDIF
+            ENDIF
+         NEXT
+         cText := "files: " + Ltrim(Str( n )) + ", size: " + Ltrim(Transform( nLen, "999 999 999 999" ))
+      ELSE
+         IF Empty( arr[3] )
+            IF !hb_fGetDateTime( ::cCurrPath + arr[1], @dDate )
+               arr[3] := Stod( "19171107" )
+               arr[2] := -1
+            ELSE
+               arr[3] := dDate
+               arr[2] := hb_fSize( ::cCurrPath + arr[1] )
+            ENDIF
          ENDIF
+         cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
+         nWidth := ::x2 - ::x1 - 3 - Len(cDop)
+         cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~", lUtf8 )
       ENDIF
-      cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
-      nWidth := ::x2 - ::x1 - 3 - Len(cDop)
-      cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~", lUtf8 )
       @ ::y2 - 1, ::x1 + 1 SAY cText
       @ ::y2 - 1, ::x1 + 1 + Len(cText) SAY Space( ::x2 - ::x1 - 1 - Len(cText) )
       @ ::y2 - 1, ::x2 - Len(cDop) SAY cDop
@@ -2980,14 +2994,14 @@ STATIC FUNCTION hbc_Search( lSele )
       {08,30,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,30,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,65,2,"[^]",3,oHbc:cColorSel,oHbc:cColorMenu,{||mnu_SeaHist(oHbc,aGets[2])}}, ;
-      {11,18,1,.F.,1}, ;
-      {11,40,1,.F.,1}, ;
-      {12,18,1,.F.,1}, ;
-      {12,40,1,Empty(lSele),1}, ;
-      {11,58,1,!Empty(lSele),1}, ;
-      {13,18,1,.F.,1}, ;
-      {13,30,0,hb_dtoc(Date(),"dd.mm.yyyy"),10,oHbc:cColorMenu,oHbc:cColorMenu,"99.99.9999"}, ;
-      {13,42,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu,"99:99"}, ;
+      {11,18,1,.F.,2}, ;
+      {11,40,1,.F.,2}, ;
+      {12,18,1,.F.,2}, ;
+      {12,40,1,Empty(lSele),2,,,{||Iif(aGets[7,4],aGets[8,4]:=.F.,.T.),ShowGetItem(aGets[8],.F.)}}, ;
+      {11,58,1,!Empty(lSele),2,,,{||Iif(aGets[8,4],aGets[7,4]:=.F.,.T.),ShowGetItem(aGets[7],.F.)}}, ;
+      {13,18,1,.F.,2}, ;
+      {13,29,0,hb_dtoc(Date(),"dd.mm.yyyy"),10,oHbc:cColorMenu,oHbc:cColorMenu,"99.99.9999"}, ;
+      {13,40,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu,"99:99"}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,50,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, dDateS, d, d1, cTimeS
@@ -3029,8 +3043,6 @@ STATIC FUNCTION hbc_Search( lSele )
    @ 12, 39 SAY "[ ] " + _I("Recursive")
    @ 11, 57 SAY "[ ] " + _I("Select")
    @ 13, 17 SAY "[ ] " + _I("Date") + " >="
-   //@ 13, 39 SAY "(yyyymmdd)"
-   //@ 13, 56 SAY "(hh:mm)"
 
    IF Empty( lSele ) .AND. !Empty( TEdit():aSeaHis )
       aGets[2,4] := hb_Translate( TEdit():aSeaHis[1], "UTF8" )
