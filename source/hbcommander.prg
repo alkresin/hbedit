@@ -2989,7 +2989,7 @@ FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
 
 STATIC FUNCTION hbc_Search( lSele )
 
-   LOCAL cScBuf, oldc, nRes, i
+   LOCAL cScBuf, oldc, nRes, i, j
    LOCAL aGets := { ;
       {08,30,0,"*.*",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
       {09,30,0,"",33,oHbc:cColorMenu,oHbc:cColorMenu}, ;
@@ -3136,8 +3136,22 @@ STATIC FUNCTION hbc_Search( lSele )
    IF lFound
       IF lToText
          cBuff := ""
+         n := 0
          FOR i := 2 TO Len(aDir)
-            cBuff += aDir[i,1] + Chr(10)
+            n := Max( n, Len(aDir[i,1]) )
+         NEXT
+         n += 10
+         FOR i := 2 TO Len(aDir)
+            IF '/' $ aDir[i,1] .OR. ( j := Ascan( oPaneCurr:aDir, {|a|a[1]==aDir[i,1]} ) ) == 0
+               cBuff += aDir[i,1] + Chr(10)
+            ELSE
+               cRes := Iif( Empty(oPaneCurr:aDir[j,3]), "", hb_ValToStr(oPaneCurr:aDir[j,3]) )
+               IF !Empty( cRes ) .AND. Left( cRes,1 ) == '"'
+                  cRes := hb_strShrink( Substr(cRes,2),1 )
+               ENDIF
+               cBuff += PAdr( aDir[i,1],n ) + Str(oPaneCurr:aDir[j,2],14) + ;
+                   " " + cRes + Chr(10)
+            ENDIF
          NEXT
          mnu_NewBuf( oHbc, "$NewPage", cBuff )
       ELSE
