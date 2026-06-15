@@ -28,6 +28,8 @@
 #define COMP_TMPLLIB 16
 #define COMP_BINLIB  17
 #define COMP_SYSLIBS 18
+#define COMP_SYSLIBSMT   19
+#define COMP_SYSLIBSNOMT 20
 
 #define CLR_WHITE    0xffffff
 #define CLR_BLACK    0
@@ -60,12 +62,14 @@ STATIC lPathHwgui := .F.
 #ifdef __PLATFORM__UNIX
 STATIC lUnix := .T.
 STATIC cExeExt := ""
-STATIC cLibsHrb := "hbvm hbrtl gtcgi gttrm hbcpage hblang hbrdd hbmacro hbpp rddntx rddcdx rddfpt hbsix hbcommon hbct hbcplr hbpcre hbzlib"
+STATIC cLibsHrb := "hbrtl gtcgi gttrm hbcpage hblang hbrdd hbmacro hbpp rddntx rddcdx rddfpt hbsix hbcommon hbct hbcplr hbpcre hbzlib"
 #else
 STATIC lUnix := .F.
 STATIC cExeExt := ".exe"
-STATIC cLibsHrb := "hbvm hbrtl gtgui gtwin hbcpage hblang hbrdd hbmacro hbpp rddntx rddcdx rddfpt hbsix hbcommon hbct hbcplr hbpcre hbzlib"
+STATIC cLibsHrb := "hbrtl gtgui gtwin hbcpage hblang hbrdd hbmacro hbpp rddntx rddcdx rddfpt hbsix hbcommon hbct hbcplr hbpcre hbzlib"
 #endif
+STATIC cLibsHrbMt := "hbvmmt"
+STATIC cLibsHrbNoMt := "hbvm"
 STATIC cLibsHwGUI := ""
 
 STATIC cFontMain := "", lProgressOn := .T., cExtView := ""
@@ -74,7 +78,7 @@ STATIC lCreatScr
 
 FUNCTION HwBuilder( cFile, lFromEdit )
 
-   LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., oComp, cComp, aUserPar := {}, aFiles := {}
+   LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., lMt := .F., oComp, cComp, aUserPar := {}, aFiles := {}
    LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := "", cFlagsPrg := ""
    LOCAL cAddW := "$hb_compile_err", oOld, oPane
 
@@ -120,6 +124,8 @@ FUNCTION HwBuilder( cFile, lFromEdit )
             Aadd( aFiles, {cFile,""} )
             cExt := ".hwprj"
             cFile := aDop[i]
+         ELSEIF aDop[i] == "-mt"
+            lMt := .T.
          ENDIF
       NEXT
    ENDIF
@@ -128,18 +134,18 @@ FUNCTION HwBuilder( cFile, lFromEdit )
          @ 10, Int(MaxCol()/2)-4 SAY " Wait... " COLOR TEdit():cColorSel
       ENDIF
       IF cExt == ".hwprj"
-         IF !Empty( oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles ) )
-            oPrg:Build( lClean )
-         ENDIF
+          oPrg := HwProject():Open( cFile, oComp, aUserPar, aFiles )
       ELSEIF File( hb_fnameDir(cFile) + ".hwprj" )
          Aadd( aFiles, {cFile,""} )
          Aadd( aFiles, {".hwprj",""} )
-         IF !Empty( oPrg := HwProject():Open( hb_fnameDir(cFile) + ".hwprj", oComp, aUserPar, aFiles ) )
-            oPrg:Build()
-         ENDIF
-      ELSEIF !Empty( oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
-            "", cFlagsPrg, "", "", "", .F., .F., lNoGui ) )
-         oPrg:Build()
+         oPrg := HwProject():Open( hb_fnameDir(cFile) + ".hwprj", oComp, aUserPar, aFiles )
+      ELSE
+          oPrg := HwProject():New( {{cFile,""}}, oComp, cGTlib, Trim(cLibsDop), ;
+            "", cFlagsPrg, "", "", "", .F., .F., lNoGui )
+      ENDIF
+      IF !Empty( oPrg )
+         oPrg:lMt := lMt
+         oPrg:Build( lClean )
       ENDIF
       cFile := hb_fnameNameExt( cFile )
       IF Len( (oPane := FilePane():aPanes[1]):aDir ) >= oPane:nCurrent ;
@@ -179,7 +185,7 @@ STATIC FUNCTION _GetParams( oComp, lHwprj )
       { y1+1,x1+21, 11, "[ ] Clean" }, { y1+1,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
       { y1+2,x1+2, 11, "[ ] GUI app" }, { y1+2,x1+3, Iif(lHwprj,-1,1), .T., 2 }, ;
       { y1+2,x1+21, 11, "[ ] CrScr" }, { y1+2,x1+22, Iif(lHwprj,1,-1), .F., 2 }, ;
-      { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt... -l"lib1 lib2"' ) }, ;
+      { y1+3,x1+2, 11, Iif( lHwprj,'-{...}', '-gt -mt ... -l"lib1 lib2"' ) }, ;
       { y1+4,x1+2, 0, "", x2-x1-4 } }
 
    IF Len( HCompiler():aList ) > 1
@@ -380,6 +386,10 @@ STATIC FUNCTION ReadIni( cFile )
                   ELSEIF key == "def_libflags" .AND. !Empty( cTmp := aSect[ key ] )
                      oComp:cLinkFlagsLib := cTmp
                      oComp:lLinkFlagsLib := .T.
+                  ELSEIF key == "def_syslibsmt" .AND. !Empty( cTmp := aSect[ key ] )
+                     oComp:cSysLibsMt := cTmp
+                  ELSEIF key == "def_syslibsNomt" .AND. !Empty( cTmp := aSect[ key ] )
+                     oComp:cSysLibsNomt := cTmp
                   ELSEIF key == "def_syslibs" .AND. !Empty( cTmp := aSect[ key ] )
                      oComp:cSysLibs := cTmp
                      oComp:lSysLibs := .T.
@@ -524,7 +534,9 @@ STATIC FUNCTION WriteIni()
          "id=" + oComp:id + cr + "family=" + oComp:family + cr + "bin_path=" + ;
          oComp:cPath + cr + "harbour_lib_path=" + oComp:cPathHrbLib + cr + ;
          "def_cflags=" + oComp:cFlags + cr + "def_linkflags=" + oComp:cLinkFlagsGui + cr + ;
-         + "def_libflags=" + oComp:cLinkFlagsLib + cr + "def_syslibs=" + oComp:cSysLibs + cr
+         + "def_libflags=" + oComp:cLinkFlagsLib + cr + "def_syslibs=" + oComp:cSysLibs + cr + ;
+         Iif( Empty(oComp:cSysLibsMt), "", "def_syslibsmt=" + oComp:cSysLibsMt + cr ) + ;
+         Iif( Empty(oComp:cSysLibsNoMt), "", "def_syslibsnomt=" + oComp:cSysLibsNoMt + cr )
       n1 := 0
       FOR EACH aEnv in oComp:aEnv
          s += "env_" + Ltrim(Str(++n1)) + "=" + aEnv[1] + "=" + aEnv[2] + cr
@@ -811,7 +823,7 @@ CLASS HCompiler
          "{path}\brc32 -r {src} -fo{out}", ;
          "{path}\tlib {f} {out} {objs}", ;
          "{path}\ilink32 -L{hL} -L{gL} {dL} {f} {objs}, {out},, {libs},, {res}", ;
-         "", "", "", "", "ws2_32.lib cw32.lib import32.lib iphlpapi.lib" }, ;
+         "", "", "", "", "ws2_32.lib import32.lib iphlpapi.lib","cw32mt.lib","cw32.lib" }, ;
       {"mingw", "gcc.exe", "\lib\win\mingw", "-c -Wall", "-Wall -mwindows", "-Wall", "", ;
          "libhbvm.a", "libhwgui.a", ;
          "{path}\gcc {f} -I{hi} -I{gi} -o{obj} {src}", ;
@@ -819,21 +831,21 @@ CLASS HCompiler
          "{path}\ar rc {f} {out} {objs}", ;
          "{path}\gcc {f} -o{out} {objs} {res} -L{hL} -L{gL} {dL} -Wl,--allow-multiple-definition -Wl,--start-group {libs} -Wl,--end-group", ;
          ".o", ".a", "-l{l}", "lib{l}.a", ;
-         "-luser32 -lwinspool -lcomctl32 -lcomdlg32 -lgdiplus -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lws2_32 -lwsock32 -liphlpapi" }, ;
+         "-luser32 -lwinspool -lcomctl32 -lcomdlg32 -lgdiplus -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lws2_32 -lwsock32 -liphlpapi","","" }, ;
       {"msvc", "cl.exe", "\lib\win\msvc", "/TP /W3 /nologo /c", "-SUBSYSTEM:WINDOWS", "", "", ;
          "hbvm.lib", "hwgui.lib", ;
          "cl.exe {f} /I{hi} /I{gi} /Fo{obj} {src}", ;
          "rc -fo {out}.res {src}", ;
          "lib {f} /out:{out} {objs}", ;
          "link {f} /LIBPATH:{hL} /LIBPATH:{gL} {dL} {objs} {res} {libs}", "", "", "", "", ;
-         "user32.lib gdi32.lib comdlg32.lib shell32.lib comctl32.lib winspool.lib advapi32.lib winmm.lib ws2_32.lib iphlpapi.lib OleAut32.Lib Ole32.Lib" }, ;
+         "user32.lib gdi32.lib comdlg32.lib shell32.lib comctl32.lib winspool.lib advapi32.lib winmm.lib ws2_32.lib iphlpapi.lib OleAut32.Lib Ole32.Lib","","" }, ;
       {"gcc", "gcc", "/lib/linux/gcc", "-c -Wall -Wunused `pkg-config --cflags gtk+-2.0`", ;
          "`pkg-config --libs gtk+-2.0`", "", "", "libhbvm.a", "libhwgui.a", ;
          "gcc {f} -I{hi} -I{gi} -o{obj} {src}", ;
          "", ;
          "ar rc {f} {out} {objs}", ;
          "gcc {objs} -o{out} -L{hL} -L{gL} {dL} -Wl,--start-group {libs} -Wl,--end-group {f}", ;
-         ".o", ".a", "-l{l}", "lib{l}.a", "-lm -lz -lpcre -ldl" } }
+         ".o", ".a", "-l{l}", "lib{l}.a", "-lm -lz -lpcre -ldl","","" } }
    //,, hwgui_xp.res
    CLASS VAR aList       SHARED INIT {}
 
@@ -850,6 +862,8 @@ CLASS HCompiler
    DATA cObjExt          INIT ".obj"
    DATA cLibExt          INIT ".obj"
    DATA cSysLibs         INIT ""
+   DATA cSysLibsMt       INIT ""
+   DATA cSysLibsNoMt     INIT ""
 
    DATA cCmdComp         INIT ""
    DATA cCmdRes          INIT ""
@@ -893,6 +907,8 @@ METHOD New( id, cFam ) CLASS HCompiler
       ::cCmdLinkLib := HCompiler():aDef[nDef,COMP_CMDL]
       ::cCmdLinkExe := HCompiler():aDef[nDef,COMP_CMDE]
       ::cSysLibs := HCompiler():aDef[nDef,COMP_SYSLIBS]
+      ::cSysLibsMt := HCompiler():aDef[nDef,COMP_SYSLIBSMT]
+      ::cSysLibsNomt := HCompiler():aDef[nDef,COMP_SYSLIBSNOMT]
       IF !Empty( cTmp := HCompiler():aDef[nDef,COMP_TMPLLIB] )
          ::cTmplLib  := cTmp
       ENDIF
@@ -953,6 +969,7 @@ CLASS HwProject
    DATA lGuiLib    INIT .T.
    DATA lBuildRes  INIT .T.
    DATA lGuiLinkFlag  INIT .F.
+   DATA lMt        INIT .F.
 
    DATA cDefFlagsC INIT Nil
    DATA cDefFlagsL INIT Nil
@@ -1154,6 +1171,10 @@ METHOD Open( xSource, oComp, aUserPar, aFiles, aParentVars ) CLASS HwProject
                   _MsgStop( cLine, "Wrong compiler id" )
                   RETURN Nil
                ENDIF
+
+            ELSEIF cTmp == "mt"
+               ::lMt := ( cTmp := Lower( Substr( cLine, nPos + 1 ) ) ) == "on" .OR. cTmp == "yes"
+
             ELSEIF cTmp == "guilib"
                cTmp := Substr( cLine, nPos + 1 )
                IF Empty( cTmp ) .OR. cTmp == '""'
@@ -1562,6 +1583,10 @@ METHOD Build( lClean, lSub ) CLASS HwProject
          IF !Empty( ::cGtLib )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", ::cGtLib )
          ENDIF
+         aLibs := hb_ATokens( Iif( ::lMt, cLibsHrbMt, cLibsHrbNoMt ), " " )
+         FOR i := 1 TO Len( aLibs )
+            cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
+         NEXT
          aLibs := hb_ATokens( cLibsHrb, " " )
          FOR i := 1 TO Len( aLibs )
             cLibs += " " + StrTran( ::oComp:cTmplLib, "{l}", aLibs[i] )
@@ -1589,7 +1614,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
              ::oComp:cLinkFlagsCons ), ::cDefFlagsL ) ), ;
              "{hL}", cCompHrbLib ), "{gL}", Iif( ::lGuiLib.AND.::lHarbour, cCompGuiLib,"." ) ), ;
              "{dL}", Iif( Empty(::cLibsPath), "", Iif(::oComp:family=="msvc","/LIBPATH:","-L") + ::cLibsPath ) ), ;
-             "{libs}", cLibs + " " + ::oComp:cSysLibs ), "{res}", cResList )
+             "{libs}", cLibs + " " + Iif(::lMt,::oComp:cSysLibsMt,::oComp:cSysLibsNoMt) + " " + ::oComp:cSysLibs ), "{res}", cResList )
          IF ::oComp:family == "bcc"
             AAdd( a4Delete, hb_fnameExtSet( cBinary, "tds" ) )
             AAdd( a4Delete, hb_fnameExtSet( cBinary, "map" ) )
