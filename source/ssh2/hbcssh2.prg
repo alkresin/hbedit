@@ -80,14 +80,14 @@ FUNCTION hbc_ssh2_MemoRead( pSess, cFileName )
 
 FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
 
-   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0
+   LOCAL pHandle, handle, cBuff, nSize := 0, nCopied := 0, dDT
 
    CLEAR TYPEAHEAD
    IF '\' $ cFileName
       cFileName := StrTran( cFileName, '\', '/' )
    ENDIF
    IF !Empty( pHandle := ssh2_Sftp_OpenFile( pSess, cFileName ) )
-      ssh2_Sftp_FStat( pHandle, @nSize )
+      ssh2_Sftp_FStat( pHandle, @nSize, @dDT )
       handle := fOpen( cFileLocal, FO_WRITE+FO_CREAT+FO_TRUNC )
       hbc_WndProgress( aWnd, 0 )
       DO WHILE !Empty( cBuff := ssh2_Sftp_Read( pHandle ) )
@@ -103,6 +103,7 @@ FUNCTION hbc_ssh2_Download( pSess, cFileName, cFileLocal, aWnd )
       ENDDO
       fClose( handle )
       ssh2_Sftp_Close( pHandle )
+      hb_vfTimeSet( cFileLocal, dDT )
    ELSE
       RETURN -1
    ENDIF
