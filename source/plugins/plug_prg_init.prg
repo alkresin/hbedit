@@ -183,7 +183,7 @@ STATIC FUNCTION _prg_Spis( oEdit )
    LOCAL i, n, arrfnc
    LOCAL lSorted := .F., lToLoop := .F.
    LOCAL bKeys := {|nKeyExt,nRow|
-      LOCAL nn
+      LOCAL nn, oNew, s
       IF nKeyExt == 0x41000009  // F9
          nn := arrfnc[nRow,3]
          IF lSorted
@@ -194,6 +194,15 @@ STATIC FUNCTION _prg_Spis( oEdit )
          n := Ascan2( arrfnc, nn, 3 )
          lSorted := !lSorted
          lToLoop := .T.
+         RETURN .F.
+      ELSEIF nKeyExt == 0x41000008  // F8
+         s := ""
+         FOR nn := 1 TO Len( arrfnc )
+            s += arrfnc[nn,1] + Chr(10)
+         NEXT
+         oNew := mnu_NewBuf( TEdit():aWindows[TEdit():nCurr], "$FuncList", s )
+         oNew:cp := oEdit:cp
+         oNew:lUtf8 := oEdit:lUtf8
          RETURN .F.
       ENDIF
       RETURN .T.
@@ -213,7 +222,7 @@ STATIC FUNCTION _prg_Spis( oEdit )
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
       DO WHILE .T.
          IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, ;
-            " Functions list  F9 - " + Iif(lSorted,"Natural order ","Sort by name ") ) ) > 0 .OR. lToLoop
+            " Functions list  F8 - Editor  F9 - " + Iif(lSorted,"Natural order ","Sort by name ") ) ) > 0 .OR. lToLoop
             IF !lToLoop
                oEdit:Goto( arrfnc[i,3] )
                EXIT
@@ -595,6 +604,7 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
    LOCAL aGets, nPos, arrf
    LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), nRes
    LOCAL cFileRes := hb_DirTemp() + "hbedit_curl.out", cBuff, cAddW := "$FuncInfo", o
+   LOCAL nCol := Col(), nRow := Row()
 
    IF ( nPos := At( '(', sFunc ) ) > 0
       sFunc := AllTrim( Left( sFunc, nPos-1 ) )
@@ -645,7 +655,6 @@ STATIC FUNCTION _GetFuncInfo( oEdit, sFunc, nDict )
       RETURN Nil
    ENDIF
    sFunc := Lower( aGets[1,4] )
-
 
    IF !lIsCurl
       IF !( lIsCurl := edi_CheckCurl() )
