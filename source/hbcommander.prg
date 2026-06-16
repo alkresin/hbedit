@@ -2883,7 +2883,6 @@ STATIC FUNCTION f7z_Read( cFileName )
    IF !is7z()
       RETURN Nil
    ENDIF
-   //cedi_RunConsoleApp( "7z l " + cFileName,, @cRes )
    cRes := cRun( "7z l " + cFileName )
    IF !Empty( cRes )
       aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
@@ -2931,7 +2930,6 @@ STATIC FUNCTION is7z()
    LOCAL cRes
 
    IF Filepane():n7z == 0
-      //cedi_RunConsoleApp( "7z",, @cRes )
       cRes := cRun( "7z" )
       IF !Empty( cRes ) .AND. "Copyright" $ cRes
          Filepane():n7z := 1
@@ -2959,7 +2957,6 @@ FUNCTION DirEval( cInitDir, cMask, lRecur, bCode, lEvalDir )
          lDo := .F.
       ENDIF
       aFiles := hb_vfDirectory( cInitDir + "*", "HSD" )
-      //edi_writelog( cInitDir + "*" + " msk:" + cMask )
       arlen := Len( aFiles )
       FOR i := 1 TO arlen
          IF "D" $ aFiles[ i,5 ] .AND. !("L" $ aFiles[ i,5 ])

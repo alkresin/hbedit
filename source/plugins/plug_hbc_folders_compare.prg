@@ -116,23 +116,6 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
                oPane2:nCurrent -= (n - oPane2:nCells)
                oPane2:nShift += (n - oPane2:nCells)
             ENDIF
-            /*
-            IF n > oPane2:nShift + oPane2:nCells
-               oPane2:nShift := n - 1
-               oPane2:nCurrent := 1
-            ELSEIF n < oPane2:nShift + 1
-               IF n < oPane2:nCells
-                  oPane2:nCurrent := n
-                  oPane2:nShift := 0
-               ELSE
-                  oPane2:nShift := n - 1
-                  oPane2:nCurrent := 1
-               ENDIF
-            ELSE
-               oPane2:nCurrent := n
-               oPane2:nShift := 0
-            ENDIF
-            */
             oPane2:Draw()
          ENDIF
       ENDIF
@@ -156,8 +139,8 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
    IF !( Right( cDir2,1 ) $ "/\" )
       cDir2 += ps
    ENDIF
-   aDir1 := hb_vfDirectory( cDir1, "HSD" )
-   aDir2 := hb_vfDirectory( cDir2, "HSD" )
+   aDir1 := FilePane():aPanes[1]:aDir
+   aDir2 := FilePane():aPanes[2]:aDir
 
    FOR i := 1 TO Len( aDir1 )
       IF ( j := Ascan2( aDir2, aDir1[i,1] ) ) > 0
@@ -165,10 +148,7 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
             IF lRecur .AND. !(aDir1[i,1] == "..") .AND. !(aDir1[i,1] == ".")
                dirCompare( arr1, arr2, cDir1+aDir1[i,1], cDir2+aDir2[j,1], cRel1+aDir1[i,1]+ps, cRel2+aDir2[j,1]+ps, lSizOnly, lNoEof, lRecur )
             ENDIF
-         ELSE  //IF lSizOnly
-            //edi_writelog( aDir1[i,1] + " " + hb_valtoexp(lNoEof)+hb_valtoexp(lSizOnly)+;
-            //   hb_valtoexp(aDir1[i,2] == aDir2[j,2])+hb_valtoexp(aDir1[i,3] == aDir2[j,3])+;
-            //   hb_valtoexp(fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof)) )
+         ELSE
             IF ( lNoEof .AND. !fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof) ) .OR. ;
                ( !lNoEof .AND. ;
                   ( aDir1[i,2] != aDir2[j,2] .OR. ;
@@ -186,7 +166,6 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
             IF lRecur .AND. !(aDir1[i,1] == "..") .AND. !(aDir1[i,1] == ".")
                dirAdd( arr1, cDir1+aDir1[i,1], cRel1+aDir1[i,1]+ps, aCount[1] )
             ENDIF
-            //AAdd( arr1, { cRel1+aDir1[i,1]+ps, aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5] , 0 } )
          ELSE
             AAdd( arr1, { cRel1+aDir1[i,1], aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5], 0 } )
             aCount[1,2] ++
@@ -235,14 +214,11 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
    LOCAL handle1, handle2, cBuf1, cBuf2, i, nRet1, nRet2, n1, n2, lRes := .T.
    LOCAL cn := Chr(10), cr := Chr(13), c1, c2
 
-   //edi_writelog( cFile1 )
    IF Empty( handle1 := hb_vfOpen( cFile1, FO_READ ) )
-      //edi_writelog("0a "+cFile1 )
       RETURN .F.
    ENDIF
    IF Empty( handle2 := hb_vfOpen( cFile2, FO_READ ) )
       hb_vfClose( handle1 )
-      //edi_writelog("0b" )
       RETURN .F.
    ENDIF
    cBuf1 := Space( READ_BUFF_LEN )
@@ -252,19 +228,21 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
       nRet1 := nRet2 := -1
       DO WHILE lRes
          IF n1 > nRet1
-            nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN )
+            //nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN )
+            cBuf1 := hb_vfReadLen( handle1, READ_BUFF_LEN )
+            nRet1 := Iif( Empty( cBuf1 ), 0, Len( cBuf1 ) )
             IF nRet1 <= 0
                lRes := (n2 > nRet2)
-               //edi_writelog( "1: " + Iif(lRes,"T ", "F ") )
                EXIT
             ENDIF
             n1 := 0
          ENDIF
          IF n2 > nRet1
-            nRet2 := hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
+            //nRet2 := hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
+            cBuf2 := hb_vfReadLen( handle2, READ_BUFF_LEN )
+            nRet2 := Iif( Empty( cBuf2 ), 0, Len( cBuf2 ) )
             IF nRet2 <= 0
                lRes := (n1 > nRet1)
-               //edi_writelog( "2: " + Iif(lRes,"T ", "F ") )
                EXIT
             ENDIF
             n2 := 0
@@ -286,19 +264,26 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
             ENDIF
             IF c1 != c2
                lRes := .F.
-               //edi_writelog( "3: " + ltrim(str(n1)) + " " + ltrim(str(n2)) )
                EXIT
             ENDIF
          ENDDO
       ENDDO
-      //edi_Writelog( Iif(lRes,"T ", "F ") + cFile1 )
    ELSE
-      DO WHILE lRes .AND. ( nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN ) ) > 0
-         hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
+      DO WHILE lRes // .AND. ( nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN ) ) > 0
+         IF Empty( cBuf1 := hb_vfReadLen( handle1, READ_BUFF_LEN ) )
+            EXIT
+         ENDIF
+         nRet1 := Len( cBuf1 )
+
+         //hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
+         cBuf2 := hb_vfReadLen( handle2, READ_BUFF_LEN )
+         IF ( nRet2 := Iif( Empty( cBuf2 ), 0, Len( cBuf2 ) ) ) != nRet1
+            lRes := .F.
+            EXIT
+         ENDIF
          FOR i := 1 TO nRet1
             IF hb_bpeek( cBuf1, i ) != hb_bpeek( cBuf2, i )
                lRes := .F.
-               //edi_writelog( "A: " + ltrim(str(i)) )
                EXIT
             ENDIF
          NEXT
