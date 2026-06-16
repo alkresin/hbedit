@@ -78,7 +78,7 @@ STATIC lCreatScr
 
 FUNCTION HwBuilder( cFile, lFromEdit )
 
-   LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., lMt := .F., oComp, cComp, aUserPar := {}, aFiles := {}
+   LOCAL cExt, oPrg, lClean := .F., lNoGui := .F., lMt := Nil, oComp, cComp, aUserPar := {}, aFiles := {}
    LOCAL i, j, cDop, aDop, cGTlib := "", cLibsDop := "", cFlagsPrg := ""
    LOCAL cAddW := "$hb_compile_err", oOld, oPane
 
@@ -144,7 +144,9 @@ FUNCTION HwBuilder( cFile, lFromEdit )
             "", cFlagsPrg, "", "", "", .F., .F., lNoGui )
       ENDIF
       IF !Empty( oPrg )
-         oPrg:lMt := lMt
+         IF Valtype( lMt ) == "L"
+            oPrg:lMt := lMt
+         ENDIF
          oPrg:Build( lClean )
       ENDIF
       cFile := hb_fnameNameExt( cFile )
@@ -1428,7 +1430,7 @@ METHOD Build( lClean, lSub ) CLASS HwProject
 
    _ShowProgress( "Harbour: "+Iif(::lHarbour,"Yes","No") + ;
       " Guilib: "+Iif(::lGuiLib,"Yes","No") + " BuildRes: "+Iif(::lBuildRes,"Yes","No") + ;
-      " GuiFlags: "+Iif(::lGuiLinkFlag,"Yes","No"), 1,, @cFullOut )
+      " GuiFlags: "+Iif(::lGuiLinkFlag,"Yes","No")+" Mt mode:"+Iif(::lMt,"Yes","No"), 1,, @cFullOut )
    // Compile prg sources with Harbour
    cCmd := _EnvVarsTran(cPathHrbBin) + hb_ps() + "harbour " + cHrbDefFlags + ;
       " -i" + _EnvVarsTran(cPathHrbInc) + Iif( ::lGuiLib, " -i" + cPathHwguiInc, "" ) + ;
