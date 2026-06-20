@@ -20,10 +20,9 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
 
    FOR i := 1 TO Len( oPane:aDir )
       cFile := oPane:aDir[i,1]
-      cExt := hb_fnameExt( cFile )
       IF cFile == ".git"
          lGit := .T.
-      ELSEIF cExt == ".fossil"
+      ELSEIF cFile == "_FOSSIL_" .OR. cFile == ".fslckout"
          lFoss := .T.
       ELSEIF cFile == "go.mod"
          lGo := .T.

@@ -293,10 +293,15 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       ::cEol := Iif( nEol == 1, Chr(10), Chr(13) + Chr(10) )
    ELSE
       ::aText := hb_ATokens( cText, Chr(10) )
-      IF nEol == 0
-         ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+      IF Len( ::aText ) == 1 .AND. Chr(13) $ cText
+         ::cEol := Chr(13)
+         ::aText := hb_ATokens( cText, Chr(13) )
       ELSE
-         ::cEol := Iif( nEol == 1, Chr(10), Chr(13) + Chr(10) )
+         IF nEol == 0
+            ::cEol := Iif( Right( ::aText[1],1 ) == Chr(13), Chr(13) + Chr(10), Chr(10) )
+         ELSE
+            ::cEol := Iif( nEol == 1, Chr(10), Chr(13) + Chr(10) )
+         ENDIF
       ENDIF
       IF Left( ::aText[1], 3 ) == cBom
          hb_cdpSelect( ::cp := "UTF8" )
