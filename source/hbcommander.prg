@@ -1759,7 +1759,9 @@ METHOD DrawCell( nCell, lCurr ) CLASS FilePane
                arr[2] := hb_fSize( ::cCurrPath + arr[1] )
             ENDIF
          ENDIF
-         cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + " " + hb_Dtoc(arr[3]) + " " + Left(arr[4],5)
+         cDop := Iif( 'D' $ arr[5] .AND. arr[2]==0, "<dir>", Ltrim(Str(arr[2])) ) + ;
+            " " + hb_Dtoc(arr[3]) + " " + ;
+            Iif( Valtype(arr[3])=="T", Substr(hb_Ttos(arr[3]),9,2) + ":" + Substr(hb_Ttos(arr[3]),11,2), Left(arr[4],5) )
          nWidth := ::x2 - ::x1 - 3 - Len(cDop)
          cText := NameShortcut( Trim( ::aDir[nCell+::nShift,1] ), nWidth, "~", lUtf8 )
       ENDIF
