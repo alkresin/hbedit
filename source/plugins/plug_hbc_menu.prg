@@ -1,4 +1,17 @@
 
+#define M_GIT_PULL   11
+#define M_GIT_STAT   12
+#define M_GIT_REMO   13
+#define M_GIT_DESC   14
+#define M_GIT_LOG    15
+#define M_GIT_COMM   16
+#define M_HRB_FORMAT   31
+#define M_HRB_COMPILE  32
+#define M_GO_BUILD   41
+#define M_GO_RUN     42
+#define M_GCC_COMPILE  51
+#define M_BCC_COMPILE  52
+
 STATIC cIniPath
 STATIC cPath_Hrb
 STATIC aMenuGit, aMenuFoss, aMenuC
@@ -33,12 +46,12 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "git pull",,11, } )
-      Aadd( aMenu, { "git status",,12, } )
-      Aadd( aMenu, { "git remote",,13, } )
-      Aadd( aMenu, { "git describe",,14, } )
-      Aadd( aMenu, { "git log",,15, } )
-      Aadd( aMenu, { "git commit",,16, } )
+      Aadd( aMenu, { "git pull",, M_GIT_PULL, } )
+      Aadd( aMenu, { "git status",, M_GIT_STAT, } )
+      Aadd( aMenu, { "git remote",, M_GIT_REMO, } )
+      Aadd( aMenu, { "git describe",, M_GIT_DESC, } )
+      Aadd( aMenu, { "git log",, M_GIT_LOG, } )
+      Aadd( aMenu, { "git commit",, M_GIT_COMM, } )
       IF !Empty( aMenuGit )
          FOR i := 1 TO Len( aMenuGit )
             Aadd( aMenu, { aMenuGit[i,1],,100+i, } )
@@ -61,7 +74,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "go build",,31, } )
+      Aadd( aMenu, { "go build",, M_GO_BUILD, } )
    ENDIF
 
    cFile := oPane:aDir[oPane:nCurrent + oPane:nShift,1]
@@ -70,22 +83,22 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "format",,21 } )
-      Aadd( aMenu, { "compile",,22 } )
+      Aadd( aMenu, { "format",, M_HRB_FORMAT } )
+      Aadd( aMenu, { "compile",, M_HRB_COMPILE } )
    ELSEIF cExt == ".go"
       IF !Empty( aMenu ) .AND. !lGo
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "run "+cFile,,32 } )
+      Aadd( aMenu, { "run "+cFile,, M_GO_RUN } )
    ELSEIF cExt == ".c" .OR. cExt == ".cpp"
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
       IF hb_Version(20)
-         Aadd( aMenu, { "compile",,37 } )
+         Aadd( aMenu, { "compile",, M_C_COMPILE } )
        ELSE
-         Aadd( aMenu, { "compile with Mingw",,37 } )
-         Aadd( aMenu, { "compile with Borland",,38 } )
+         Aadd( aMenu, { "compile with Mingw",, M_GCC_COMPILE } )
+         Aadd( aMenu, { "compile with Borland",, M_BCC_COMPILE } )
       ENDIF
    ENDIF
    IF !(cExt == ".") .AND. !Empty( aExt ) .AND. aExt[1,1] == "*"
@@ -127,39 +140,39 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       oPane:DrawCell( ,.T. )
       oPane:DrawHead( .T. )
 
-   ELSEIF n == 11
+   ELSEIF n == M_GIT_PULL
       hbc_Console( "git pull" )
       lRefr := .T.
-   ELSEIF n == 12
+   ELSEIF n == M_GIT_STAT
       hbc_Console( "git status" )
-   ELSEIF n == 13
+   ELSEIF n == M_GIT_REMO
       hbc_Console( "git remote -v" )
-   ELSEIF n == 14
+   ELSEIF n == M_GIT_DESC
       hbc_Console( "git describe --tags" )
-   ELSEIF n == 15
+   ELSEIF n == M_GIT_LOG
       hbc_Console( 'git log --after=@{%m.days.ago} --pretty=format:"%ad%x09%s"' )
-   ELSEIF n == 16
+   ELSEIF n == M_GIT_COMM
       hbc_Console( 'git commit -a -m "%m"' )
    ELSEIF n == 18
       hbc_Console( "fossil changes" )
    ELSEIF n == 19
       hbc_Console( "fossil timeline -v -n 6" )
-   ELSEIF n == 21
+   ELSEIF n == M_HRB_FORMAT
       hbc_Console(  "hbformat %p" )
       lRefr := .T.
-   ELSEIF n == 22
+   ELSEIF n == M_HRB_COMPILE
       hbc_Console( { cPath_Hrb + "bin%/harbour %p -n -w -i" + cPath_Hrb + "%/include", ;
          "bcc32 -O2 -d -I" + cPath_Hrb + "include -L" + cPath_Hrb + "lib%/win%/bcc " + ;
           "%n.c " + "hbdebug.lib hbvm.lib hbrtl.lib gtwin.lib hblang.lib hbrdd.lib hbmacro.lib hbpp.lib rddntx.lib rddcdx.lib rddfpt.lib hbsix.lib hbcommon.lib hbcpage.lib hbct.lib hbpcre.lib hbcplr.lib hbzlib.lib hbziparc.lib hbmzip.lib minizip.lib hbtip.lib hbnetio.lib hbwin.lib ws2_32.lib ws2_32.lib iphlpapi.lib", ;
           "cmd /C del %n.c", "cmd /C del %n.obj", "cmd /C del %n.tds" } )
       lRefr := .T.
-   ELSEIF n == 31
+   ELSEIF n == M_GO_BUILD
       hbc_Console( "go build" )
-   ELSEIF n == 32
+   ELSEIF n == M_GO_RUN
       hbc_Console( "go run %p" )
-   ELSEIF n == 37
+   ELSEIF n == M_GC‘_COMPILE
       hbc_Console( "gcc %p" )
-   ELSEIF n == 38
+   ELSEIF n == M_BCC_COMPILE
       hbc_Console( "bcc32 %p" )
    ELSEIF !Empty( aMenuGit ) .AND. n > 100 .AND. n < 130 .AND. ;
       (n-100) <= Len( aMenuGit ) .AND. !Empty( aMenuGit[n-100] )
