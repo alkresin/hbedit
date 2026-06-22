@@ -1,14 +1,19 @@
 
-#define M_GIT_PULL   11
-#define M_GIT_STAT   12
-#define M_GIT_REMO   13
-#define M_GIT_DESC   14
-#define M_GIT_LOG    15
-#define M_GIT_COMM   16
+#define M_GOTO_FILE     5
+#define M_GIT_PULL     11
+#define M_GIT_STAT     12
+#define M_GIT_REMO     13
+#define M_GIT_DESC     14
+#define M_GIT_LOG      15
+#define M_GIT_COMM     16
+#define M_FOSS_CHG     21
+#define M_FOSS_TIME    22
+#define M_FOSS_STATUS  23
+#define M_FOSS_EXTRAS  24
 #define M_HRB_FORMAT   31
 #define M_HRB_COMPILE  32
-#define M_GO_BUILD   41
-#define M_GO_RUN     42
+#define M_GO_BUILD     41
+#define M_GO_RUN       42
 #define M_GCC_COMPILE  51
 #define M_BCC_COMPILE  52
 
@@ -28,7 +33,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
    ENDIF
 
    IF oPane:nPanelMod == 1 .AND. oPane:nCurrent > 1
-      Aadd( aMenu, { "go to file",,5, } )
+      Aadd( aMenu, { "go to file",,M_GOTO_FILE, } )
    ENDIF
 
    FOR i := 1 TO Len( oPane:aDir )
@@ -62,8 +67,10 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
       IF !Empty( aMenu )
          Aadd( aMenu, { "---",,, } )
       ENDIF
-      Aadd( aMenu, { "fossil changes",,18, } )
-      Aadd( aMenu, { "fossil timeline",,19, } )
+      Aadd( aMenu, { "fossil changes",, M_FOSS_CHG, } )
+      Aadd( aMenu, { "fossil timeline",, M_FOSS_TIME, } )
+      Aadd( aMenu, { "fossil status",, M_FOSS_STATUS, } )
+      Aadd( aMenu, { "fossil extras",, M_FOSS_EXTRAS, } )
       IF !Empty( aMenuFoss )
          FOR i := 1 TO Len( aMenuFoss )
             Aadd( aMenu, { aMenuFoss[i,1],,130+i, } )
@@ -95,7 +102,7 @@ FUNCTION plug_hbc_menu( aMenu, oPane, cPath )
          Aadd( aMenu, { "---",,, } )
       ENDIF
       IF hb_Version(20)
-         Aadd( aMenu, { "compile",, M_C_COMPILE } )
+         Aadd( aMenu, { "compile",, M_GCC_COMPILE } )
        ELSE
          Aadd( aMenu, { "compile with Mingw",, M_GCC_COMPILE } )
          Aadd( aMenu, { "compile with Borland",, M_BCC_COMPILE } )
@@ -118,7 +125,7 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
 
    LOCAL lRefr := .F., cFile, cDir, cExt, i, cCmd
 
-   IF n == 5
+   IF n == M_GOTO_FILE
       oPane:cIOpref := oPane:cIOpref_bak
       oPane:net_cAddress := oPane:net_cAddress_bak
       cFile := hb_fnameNameExt( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
@@ -153,10 +160,14 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       hbc_Console( 'git log --after=@{%m.days.ago} --pretty=format:"%ad%x09%s"' )
    ELSEIF n == M_GIT_COMM
       hbc_Console( 'git commit -a -m "%m"' )
-   ELSEIF n == 18
+   ELSEIF n == M_FOSS_CHG
       hbc_Console( "fossil changes" )
-   ELSEIF n == 19
+   ELSEIF n == M_FOSS_TIME
       hbc_Console( "fossil timeline -v -n 6" )
+   ELSEIF n == M_FOSS_STATUS
+      hbc_Console( "fossil status" )
+   ELSEIF n == M_FOSS_EXTRAS
+      hbc_Console( "fossil extras" )
    ELSEIF n == M_HRB_FORMAT
       hbc_Console(  "hbformat %p" )
       lRefr := .T.
@@ -170,7 +181,7 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
       hbc_Console( "go build" )
    ELSEIF n == M_GO_RUN
       hbc_Console( "go run %p" )
-   ELSEIF n == M_GC‘_COMPILE
+   ELSEIF n == M_GCC_COMPILE
       hbc_Console( "gcc %p" )
    ELSEIF n == M_BCC_COMPILE
       hbc_Console( "bcc32 %p" )
