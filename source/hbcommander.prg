@@ -3010,21 +3010,28 @@ STATIC FUNCTION hbc_Search( lSele )
       {13,70,0,"00:00",5,oHbc:cColorMenu,oHbc:cColorMenu,"99:99"}, ;
       {15,25,2,_I("[Search]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
       {15,54,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
-   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, lToText, lRaw, dDateS, d, d1, cTimeS
+   LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, lToText, lRaw
+   LOCAL dDateS, d, d1, l, cTimeS, dDateE, cTimeE
    LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath, cPar1
    LOCAL cBuff
    LOCAL b1 := {|s,a|
       d := a[3]
-      IF !aGets[11,4] .OR. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
-         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) )
+      l := ( !aGets[11,4] .OR. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) ) ) .AND. ;
+         ( !aGets[14,4] .OR. ( ( d1 := hb_ttod(d) ) < dDateE .OR. ;
+         ( d1 == dDateE .AND. Substr( hb_ttos(d),9,4 ) <= cTimeE ) ) )
+      IF l
          Aadd( aDir, Ascan2( oPaneCurr:aDir,hb_fnameNameExt(s) ) )
       ENDIF
       RETURN .T.
    }
    LOCAL b2 := {|s,a|
       d := a[3]
-      IF !aGets[11,4] .OR. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
-         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) )
+      l := ( !aGets[11,4] .OR. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+         ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) ) ) .AND. ;
+         ( !aGets[14,4] .OR. ( ( d1 := hb_ttod(d) ) < dDateE .OR. ;
+         ( d1 == dDateE .AND. Substr( hb_ttos(d),9,4 ) <= cTimeE ) ) )
+      IF l
          Aadd( aDir,{ Substr( s,Len(oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath)+1 ),a[2],a[3],a[4],a[5] } )
       ENDIF
       RETURN .T.
@@ -3078,6 +3085,14 @@ STATIC FUNCTION hbc_Search( lSele )
          ENDIF
          cTimeS := Left( aGets[13,4],2 ) + Substr( aGets[13,4],4,2 )
       ENDIF
+      IF aGets[14,4]
+         dDateE := Stod( Substr(aGets[15,4],7,4) + Substr(aGets[15,4],4,2) + Left(aGets[15,4],2) )
+         IF Empty( dDateE )
+            edi_Alert( _I("Wrong date") )
+            LOOP
+         ENDIF
+         cTimeE := Left( aGets[16,4],2 ) + Substr( aGets[16,4],4,2 )
+      ENDIF
       aDir := Iif( lSelect, {}, { { "..","","","","D" } } )
       IF Empty( cSearch )
          cPath := oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort + oPaneCurr:cCurrPath
@@ -3106,9 +3121,15 @@ STATIC FUNCTION hbc_Search( lSele )
                aRes := hb_ATokens( cRes, Iif( Chr(13) $ cRes, Chr(13)+Chr(10), Chr(10) ) )
                FOR i := 1 TO Len( aRes )
                   IF !Empty( aRes[i] )
-                     IF !( !aGets[11,4] .OR. ( hb_vfTimeGet( aRes[i], @d ) .AND. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
-                        ( d1 == dDateS .AND. Substr( hb_ttos(d), 9,4 ) >= cTimeS ) ) ) )
-                        LOOP
+                     IF aGets[11,4] .OR. aGets[14,4]
+                        hb_vfTimeGet( aRes[i], @d )
+                        l := ( !aGets[11,4] .OR. ( ( d1 := hb_ttod(d) ) > dDateS .OR. ;
+                           ( d1 == dDateS .AND. Substr( hb_ttos(d),9,4 ) >= cTimeS ) ) ) .AND. ;
+                           ( !aGets[14,4] .OR. ( ( d1 := hb_ttod(d) ) < dDateE .OR. ;
+                           ( d1 == dDateE .AND. Substr( hb_ttos(d),9,4 ) <= cTimeE ) ) )
+                        IF !l
+                           LOOP
+                        ENDIF
                      ENDIF
                      IF lSelect
                         IF ( n := Ascan2( oPaneCurr:aDir,aRes[i] ) ) > 0
