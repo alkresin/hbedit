@@ -1802,7 +1802,12 @@ METHOD DrawHead( lCurr ) CLASS FilePane
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 1
       cPath := _I("Search results")
-      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY cPath
+#ifdef __PLATFORM__WINDOWS
+      IF ::cpPane == "UTF8"
+         cPath := hb_strToUtf8( cPath, ::cp )
+      ENDIF
+#endif
+      @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( cp_Len(::cpPane=="UTF8",cPath)/2 ) SAY cPath
    ELSEIF ::nPanelMod == 2
       cPath := ::net_cAddress + ":" + ::zip_cCurrDir
       @ ::y1, ::x1 + Int((::x2-::x1-1)/2) - Int( Len(cPath)/2 ) SAY NameShortcut( cPath, ::x2-::x1-3,, oHbc:lUtf8 )
