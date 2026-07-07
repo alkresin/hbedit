@@ -3101,13 +3101,26 @@ STATIC FUNCTION hbc_Search( lSele )
          ELSE
             DirEval( cPath, aGets[1,4], lRecu, b2,, oPaneCurr:aDir )
          ENDIF
-      ELSEIF oPaneCurr:cIOpref == "net:"
+      ELSEIF !Empty( oPaneCurr:cIOpref )
          edi_Alert( _I(cNotPerm) )
       ELSE
 #ifdef __PLATFORM__UNIX
-         IF "'" $ cSearch .AND. '"' $ cSearch
-         ELSEIF "'" $ cSearch
-            cSearch := '"' + cSearch + '"'
+         IF "'" $ cSearch
+            i := j := 1
+            DO WHILE ( i := hb_At( "'", cSearch, i ) ) > 0
+               IF i > j
+                  cSearch := Iif( j > 1, Left( cSearch,j-1 ), "" ) + "'" + Substr( cSearch,j,i-j ) + ;
+                     "'\'" + Substr( cSearch, i+1 )
+                     i += 4
+               ELSE
+                  cSearch := Iif( j > 1, Left( cSearch,j-1 ), "" ) + "\'" + Substr( cSearch, i+1 )
+                  i += 2
+               ENDIF
+               j := i
+            ENDDO
+            IF j <= Len( cSearch )
+               cSearch := Left( cSearch, j-1 ) + "'" + Substr( cSearch,j ) + "'"
+            ENDIF
          ELSE
             cSearch := "'" + cSearch + "'"
          ENDIF
@@ -3194,18 +3207,11 @@ STATIC FUNCTION hbc_Search( lSele )
             NEXT
             n += 10
             FOR i := 2 TO Len(aDir)
-               /*IF '/' $ aDir[i,1] .OR. ( j := Ascan( oPaneCurr:aDir, {|a|a[1]==aDir[i,1]} ) ) == 0
-                  cBuff += aDir[i,1] + Chr(10)
-               ELSE*/
-                  //cRes := Iif( Empty(oPaneCurr:aDir[j,3]), "", hb_ValToStr(oPaneCurr:aDir[j,3]) )
-                  cRes := Iif( Empty(aDir[i,3]), "", hb_ValToStr(aDir[i,3]) )
-                  IF !Empty( cRes ) .AND. Left( cRes,1 ) == '"'
-                     cRes := hb_strShrink( Substr(cRes,2),1 )
-                  ENDIF
-                  //cBuff += PAdr( aDir[i,1],n ) + Str(oPaneCurr:aDir[j,2],14) + ;
-                  //    " " + cRes + Chr(10)
-                  cBuff += PAdr( aDir[i,1],n ) + Iif(Valtype(aDir[i,2])=="N",Str(aDir[i,2],14),Space(14)) + " " + cRes + Chr(10)
-               //ENDIF
+               cRes := Iif( Empty(aDir[i,3]), "", hb_ValToStr(aDir[i,3]) )
+               IF !Empty( cRes ) .AND. Left( cRes,1 ) == '"'
+                  cRes := hb_strShrink( Substr(cRes,2),1 )
+               ENDIF
+               cBuff += PAdr( aDir[i,1],n ) + Iif(Valtype(aDir[i,2])=="N",Str(aDir[i,2],14),Space(14)) + " " + cRes + Chr(10)
             NEXT
          ENDIF
          mnu_NewBuf( oHbc, "$NewPage", cBuff )
