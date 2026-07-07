@@ -3012,7 +3012,7 @@ STATIC FUNCTION hbc_Search( lSele )
       {15,54,2,_I("[Cancel]"),,oHbc:cColorSel,oHbc:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} }
    LOCAL cSearch, lCase, lWord, lRegex, lRecu, lSelect, lToText, lRaw
    LOCAL dDateS, d, d1, l, cTimeS, dDateE, cTimeE
-   LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath, cPar1
+   LOCAL cs_utf8, cCmd, cRes, aRes, aDir := { { "..","","","","D" } }, lFound := .F., n, cPath
    LOCAL cBuff
    LOCAL b1 := {|s,a|
       d := a[3]
@@ -3104,15 +3104,31 @@ STATIC FUNCTION hbc_Search( lSele )
       ELSEIF oPaneCurr:cIOpref == "net:"
          edi_Alert( _I(cNotPerm) )
       ELSE
-         cPar1 := Iif( lRaw, " -n ", ' -l ' )
-         IF lRecu
-            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
-               '-R ' + cPar1 + '--include "' + aGets[1,4] + '" "' + cSearch + '"'
+#ifdef __PLATFORM__UNIX
+         IF "'" $ cSearch .AND. '"' $ cSearch
+         ELSEIF "'" $ cSearch
+            cSearch := '"' + cSearch + '"'
          ELSE
-            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','') + ;
-               cPar1 + '"' + cSearch + '" ' + aGets[1,4]
+            cSearch := "'" + cSearch + "'"
          ENDIF
-
+         IF lRecu
+            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','-F ') + ;
+               '-R ' + Iif( lRaw, " -n ", ' -l ' ) + '--include "' + aGets[1,4] + '" ' + cSearch
+         ELSE
+            cCmd := 'grep ' + Iif(!lCase,'-i ','') + Iif(lWord,'-w ','') + Iif(lRegex,'-P ','-F ') + ;
+               Iif( lRaw, " -n ", ' -l ' ) + cSearch + " " + aGets[1,4]
+         ENDIF
+#else
+         IF '\' $ cSearch
+            cSearch := StrTran( cSearch, "\", "\\" )
+         ENDIF
+         IF '"' $ cSearch
+            cSearch := StrTran( cSearch, '"', '\"' )
+         ENDIF
+         cCmd := 'findstr ' + Iif(!lCase,'/i ','') + Iif(lRecu,'/s ','') + Iif(lRegex,'','/l ') + ;
+            Iif( lRaw, ' /n ', ' /m ' ) + '/c:"' + cSearch + '" ' + aGets[1,4]
+#endif
+         cSearch := aGets[2,4]
          cRes := cRun( cCmd )
          IF !Empty( cRes )
             IF lRaw .AND. lToText
