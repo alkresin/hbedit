@@ -453,9 +453,12 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                   hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T., .F. )
                ELSE
 #ifdef __PLATFORM__WINDOWS
-                  IF !( oPaneCurr:cpPane == "UTF8" )
-                     cTemp := hb_strToUtf8( cTemp, oPaneCurr:cpPane )
+                  IF oPaneCurr:cpPane == "RU866"
+                     cTemp := hb_Translate( cTemp, "RU866", "RU1251" )
                   ENDIF
+                  /* IF !( oPaneCurr:cpPane == "UTF8" )
+                     cTemp := hb_strToUtf8( cTemp, oPaneCurr:cpPane )
+                  ENDIF */
 #endif
                   cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp, .T. )
                ENDIF
