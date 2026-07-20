@@ -1542,7 +1542,7 @@ METHOD Refresh( lResort ) CLASS FilePane
       RETURN .T.
    ENDIF
 
-   IF !Empty( ::bRefresh )
+   IF Empty( lResort ) .AND. !Empty( ::bRefresh )
       IF Eval( ::bRefresh, Self ) == -1
          RETURN .F.
       ELSE

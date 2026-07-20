@@ -130,7 +130,7 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
 
 STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lNoEof, lRecur )
 
-   LOCAL aDir1, aDir2
+   LOCAL aDir1, aDir2, aDir3
    LOCAL i, j, ps := hb_ps(), lRes
 
    IF !( Right( cDir1,1 ) $ "/\" )
@@ -141,6 +141,8 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
    ENDIF
    aDir1 := FilePane():aPanes[1]:aDir
    aDir2 := FilePane():aPanes[2]:aDir
+   aDir3 := Array( Len( aDir2 ) )
+   AFill( aDir3, .T. )
 
    FOR i := 1 TO Len( aDir1 )
       IF ( j := Ascan2( aDir2, aDir1[i,1] ) ) > 0
@@ -160,7 +162,8 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
                aCount[2,3] ++
             ENDIF
          ENDIF
-         aDir2[j,1] := Nil
+         //aDir2[j,1] := Nil
+         aDir3[j] := .F.
       ELSE
          IF 'D' $ aDir1[i,5]
             IF lRecur .AND. !(aDir1[i,1] == "..") .AND. !(aDir1[i,1] == ".")
@@ -173,7 +176,8 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
       ENDIF
    NEXT
    FOR j := 1 TO Len( aDir2 )
-      IF !Empty( aDir2[j,1] )
+      //IF !Empty( aDir2[j,1] )
+      IF aDir3[j]
          IF 'D' $ aDir2[j,5]
             IF lRecur .AND. !(aDir2[j,1] == "..") .AND. !(aDir2[j,1] == ".")
                dirAdd( arr2, cDir2+aDir2[j,1], cRel2+aDir2[j,1]+ps, aCount[2] )
@@ -311,6 +315,7 @@ STATIC FUNCTION DrawCell( oPane, nCell, lCurr )
    ENDIF
 
    cText := Trim( arr[1] )
+   //edi_writelog( hb_valtoexp(arr) )
    cClrFil := Iif('D' $ arr[5], oPane:cClrDir, Iif( arr[6] == 0, ;
       oPane:cClrFil, oPane:cClrExe ) )
 
