@@ -8,7 +8,6 @@ STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_PGDN, K_PGUP, K_HOME, K_END, K_TAB, K_CTRL_TAB, K_LBUTTONDOWN, K_RBUTTONDOWN, K_LDBLCLK, ;
    K_ENTER, K_INS, K_CTRL_R, K_CTRL_P, K_CTRL_PGUP, K_F9, K_F10, K_F5, K_F6, K_F7, ;
    K_F8, 68, 100 }
-STATIC aMonths := { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" }
 STATIC cNotPerm := "Operation isn't permitted"
 
 FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
@@ -20,8 +19,8 @@ FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
    IF Empty( aParams )
       aMenu := { "New address" }
       FOR i := 1 TO Len( FilePane():aDefPaths )
-         IF FilePane():aDefPaths[i,1] = "ftp:"
-            Aadd( aMenu, Substr( FilePane():aDefPaths[i,1],5 ) )
+         IF FilePane():aDefPaths[i,1] = "leto:"
+            Aadd( aMenu, Substr( FilePane():aDefPaths[i,1],6 ) )
          ENDIF
       NEXT
       NetInfoLoad()
