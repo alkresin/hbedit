@@ -1325,8 +1325,8 @@ METHOD ParsePath( cPath ) CLASS FilePane
    LOCAL c, l, i, nNetFou := 0, lPassEmpty, lSave := .F., aParam, nPlug
 
    IF ( nNet := Ascan( aRemote, {|s| cPath = s } ) ) > 0 .OR. ;
-      ( nPos := At( ':', cPath ) ) > 2 .AND. ;
-      ( nPlug := Ascan2( FilePane():aPlugins, "plug_hbc_"+Left(cPath,nPos-1)+".hrb" ) ) > 0
+      ( ( nPos := At( ':', cPath ) ) > 2 .AND. ;
+      ( nPlug := Ascan2( FilePane():aPlugins, "plug_hbc_"+Left(cPath,nPos-1)+".hrb" ) ) > 0 )
       IF nNet > 0
          cPref := aRemote[nNet]
          nPos := Len(cPref) + 1
