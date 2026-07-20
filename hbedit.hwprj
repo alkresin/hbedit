@@ -18,11 +18,13 @@ cflags=-D_USE_HB
 
 prgflags=-d_FULL
 {!nossh}prgflags=-d_USE_SSH2
+{rddleto}prgflags=-d_RDDLETO
 
 libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
 {unix}libs=rt
 {!nossh}libs=ssh2
+{rddleto}libs=rddleto
 
 {!nohwg}{!nossh}outname=hbedit_hwg
 {nohwg}{nossh}outname=hbedit
