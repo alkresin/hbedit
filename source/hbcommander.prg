@@ -375,6 +375,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                   ENDIF
                   oPaneCurr:cIOpref := oPaneCurr:cIOpref_bak
                   oPaneCurr:nPanelMod := 0
+                  IF !Empty( oPaneCurr:cIOpref )
+                     PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "SET", {} )
+                  ENDIF
                   oPaneCurr:Refresh()
                ELSE
                   IF ( nPos := hb_Rat( '/', cTemp,, Len(cTemp)-1 ) ) == 0

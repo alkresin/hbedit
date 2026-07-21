@@ -15,7 +15,7 @@ FUNCTION plug_hbc_folders_compare( oPane )
    LOCAL y1 := oPane:y1+5, x1 := oPane1:x2-20, y2 := y1+12, x2 := x1+40
    LOCAL cScBuf := Savescreen( y1, x1, y2, x2 )
    LOCAL oldc := SetColor( "N/W"+","+"N/W"+",,"+"N+/W"+","+"N/W" )
-   LOCAL cDir1, cDir2, arr1, arr2, lRecur, lSizOnly, lContent, lNoEof
+   LOCAL cDir1, cDir2, arr1, arr2, lRecur, lSizDate, lSizOnly, lContent, lNoEof
    LOCAL cAppCompare := Iif( hb_hHaskey(FilePane():hMisc,"foldcompare"), FilePane():hMisc["foldcompare"], Nil )
 
    aGets := { ;
@@ -23,24 +23,25 @@ FUNCTION plug_hbc_folders_compare( oPane )
       { y1+1,x1+2, 11, NameShortcut( oPane1:cCurrPath, 36, "~", lUtf8 ) }, ;
       { y1+2,x1+2, 11, NameShortcut( oPane2:cCurrPath, 36, "~", lUtf8 ) }, ;
       { y1+4,x1+2, 11, "( ) by file dates and sizes" }, { y1+4,x1+3, 3, .T., 2,,,,2 }, ;
-      { y1+5,x1+2, 11, "( ) by file content" }, { y1+5,x1+3, 3, .F., 2,,,,2 }, ;
-      { y1+6,x1+2, 11, "( ) ignore eof" }, { y1+6,x1+3, 3, .F., 2,,,,2 }, ;
-      { y1+7,x1+2, 11, Iif(Empty(cAppCompare),"","( ) external app") }, { y1+7,x1+3, Iif(Empty(cAppCompare),-1,3), .F., 2,,,,2 }, ;
-      { y1+9,x1+2, 11, "[ ] Recursive" }, { y1+9,x1+3, 1, .F., 2 }, ;
-      { y1+11,x1+5, 2, "[Ok]", 6, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} }, ;
-      { y1+11,x1+15, 2, "[Cancel]", 10, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } }
+      { y1+5,x1+2, 11, "( ) by file sizes only" }, { y1+5,x1+3, 3, .F., 2,,,,2 }, ;
+      { y1+6,x1+2, 11, "( ) by file content" }, { y1+6,x1+3, 3, .F., 2,,,,2 }, ;
+      { y1+7,x1+2, 11, "( ) ignore eof" }, { y1+7,x1+3, 3, .F., 2,,,,2 }, ;
+      { y1+8,x1+2, 11, Iif(Empty(cAppCompare),"","( ) external app") }, { y1+8,x1+3, Iif(Empty(cAppCompare),-1,3), .F., 2,,,,2 }, ;
+      { y1+10,x1+2, 11, "[ ] Recursive" }, { y1+10,x1+3, 1, .F., 2 }, ;
+      { y1+12,x1+5, 2, "[Ok]", 6, "N/W","N/W",{||__KeyBoard(Chr(K_ENTER))} }, ;
+      { y1+12,x1+15, 2, "[Cancel]", 10, "N/W","N/W",{||__KeyBoard(Chr(K_ESC))} } }
 
    hb_cdpSelect( "RU866" )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
    @ y1+3, x1 SAY "Ã"
    @ y1+3, x2 SAY "´"
    @ y1+3, x1+1 TO y1+3, x2-1
-   @ y1+8, x1 SAY "Ã"
-   @ y1+8, x2 SAY "´"
-   @ y1+8, x1+1 TO y1+8, x2-1
-   @ y1+10, x1 SAY "Ã"
-   @ y1+10, x2 SAY "´"
-   @ y1+10, x1+1 TO y1+10, x2-1
+   @ y1+9, x1 SAY "Ã"
+   @ y1+9, x2 SAY "´"
+   @ y1+9, x1+1 TO y1+9, x2-1
+   @ y1+11, x1 SAY "Ã"
+   @ y1+11, x2 SAY "´"
+   @ y1+11, x1+1 TO y1+11, x2-1
    hb_cdpSelect( TEdit():aWindows[TEdit():nCurr]:cp )
 
    i := edi_READ( aGets )
@@ -50,15 +51,16 @@ FUNCTION plug_hbc_folders_compare( oPane )
       cDir1 := oPane1:cCurrPath
       cDir2 := oPane2:cCurrPath
       aCount := { {oPane1, 0, 0, cDir1}, {oPane2, 0, 0, cDir2} }
-      lSizOnly := aGets[5,4]
-      lContent := aGets[7,4]
-      lNoEof := aGets[9,4]
+      lSizDate := aGets[5,4]
+      lSizOnly := aGets[7,4]
+      lContent := aGets[9,4]
+      lNoEof := aGets[11,4]
       lRecur := aGets[Len(aGets)-2,4]
 
-      IF lSizOnly .OR. lContent .OR. lNoEof
+      IF lSizDate .OR. lSizOnly .OR. lContent .OR. lNoEof
          arr1 := {}
          arr2 := {}
-         dirCompare( arr1, arr2, cDir1, cDir2, "", "", lSizOnly, lNoEof, lRecur )
+         dirCompare( arr1, arr2, cDir1, cDir2, "", "", lSizDate, lSizOnly, lNoEof, lRecur )
          IF Empty( arr1 ) .AND. Empty( arr2 )
             edi_Alert( "Folders are identical" )
          ELSE
@@ -128,7 +130,7 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lNoEof, lRecur )
+STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizDate, lSizOnly, lNoEof, lRecur )
 
    LOCAL aDir1, aDir2, aDir3
    LOCAL i, j, ps := hb_ps(), lRes
@@ -148,21 +150,21 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
       IF ( j := Ascan2( aDir2, aDir1[i,1] ) ) > 0
          IF 'D' $ aDir1[i,5]
             IF lRecur .AND. !(aDir1[i,1] == "..") .AND. !(aDir1[i,1] == ".")
-               dirCompare( arr1, arr2, cDir1+aDir1[i,1], cDir2+aDir2[j,1], cRel1+aDir1[i,1]+ps, cRel2+aDir2[j,1]+ps, lSizOnly, lNoEof, lRecur )
+               dirCompare( arr1, arr2, cDir1+aDir1[i,1], cDir2+aDir2[j,1], cRel1+aDir1[i,1]+ps, cRel2+aDir2[j,1]+ps, lSizDate, lSizOnly, lNoEof, lRecur )
             ENDIF
          ELSE
             IF ( lNoEof .AND. !fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof) ) .OR. ;
-               ( !lNoEof .AND. ;
+               ( lSizOnly .AND. aDir1[i,2] != aDir2[j,2] ) .OR. ;
+               ( !lNoEof .AND. !lSizOnly .AND. ;
                   ( aDir1[i,2] != aDir2[j,2] .OR. ;
                      ( aDir1[i,3] != aDir2[j,3] .AND. ;
-                     ( lSizOnly .OR. !fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof) ) ) ) )
+                     ( lSizDate .OR. !fileCompare(cDir1+aDir1[i,1], cDir2+aDir2[j,1], lNoEof) ) ) ) )
                AAdd( arr1, { cRel1+aDir1[i,1], aDir1[i,2], aDir1[i,3], aDir1[i,4], aDir1[i,5], 1 } )
                AAdd( arr2, { cRel2+aDir2[j,1], aDir2[j,2], aDir2[j,3], aDir2[j,4], aDir2[j,5], 1 } )
                aCount[1,3] ++
                aCount[2,3] ++
             ENDIF
          ENDIF
-         //aDir2[j,1] := Nil
          aDir3[j] := .F.
       ELSE
          IF 'D' $ aDir1[i,5]
@@ -176,7 +178,6 @@ STATIC FUNCTION dirCompare( arr1, arr2, cDir1, cDir2, cRel1, cRel2, lSizOnly, lN
       ENDIF
    NEXT
    FOR j := 1 TO Len( aDir2 )
-      //IF !Empty( aDir2[j,1] )
       IF aDir3[j]
          IF 'D' $ aDir2[j,5]
             IF lRecur .AND. !(aDir2[j,1] == "..") .AND. !(aDir2[j,1] == ".")
@@ -232,7 +233,6 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
       nRet1 := nRet2 := -1
       DO WHILE lRes
          IF n1 > nRet1
-            //nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN )
             cBuf1 := hb_vfReadLen( handle1, READ_BUFF_LEN )
             nRet1 := Iif( Empty( cBuf1 ), 0, Len( cBuf1 ) )
             IF nRet1 <= 0
@@ -242,7 +242,6 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
             n1 := 0
          ENDIF
          IF n2 > nRet1
-            //nRet2 := hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
             cBuf2 := hb_vfReadLen( handle2, READ_BUFF_LEN )
             nRet2 := Iif( Empty( cBuf2 ), 0, Len( cBuf2 ) )
             IF nRet2 <= 0
@@ -273,13 +272,12 @@ STATIC FUNCTION fileCompare( cFile1, cFile2, lNoEof )
          ENDDO
       ENDDO
    ELSE
-      DO WHILE lRes // .AND. ( nRet1 := hb_vfRead( handle1, @cBuf1, READ_BUFF_LEN ) ) > 0
+      DO WHILE lRes
          IF Empty( cBuf1 := hb_vfReadLen( handle1, READ_BUFF_LEN ) )
             EXIT
          ENDIF
          nRet1 := Len( cBuf1 )
 
-         //hb_vfRead( handle2, @cBuf2, READ_BUFF_LEN )
          cBuf2 := hb_vfReadLen( handle2, READ_BUFF_LEN )
          IF ( nRet2 := Iif( Empty( cBuf2 ), 0, Len( cBuf2 ) ) ) != nRet1
             lRes := .F.

@@ -76,8 +76,7 @@ FUNCTION plug_hbc_ftp( oPane, cPlugPath, aParams )
       FtpSendCmd( hSocket, "TYPE I" )
 
       oPane:pSess := hSocket
-      oPane:bRefresh := {|o|_plug_Refresh(o)}
-      oPane:bOnKey := {|o,n|_plug_OnKey(o,n)}
+      plug_hbc_ftp_set( oPane )
 
       aParams[4] := cLogin
       aParams[5] := cPass
@@ -90,9 +89,16 @@ FUNCTION plug_hbc_ftp( oPane, cPlugPath, aParams )
 
    RETURN .F.
 
-FUNCTION plug_hbc_ftp_close( o )
+FUNCTION plug_hbc_ftp_set( oPane )
 
-   hb_inetClose( o:pSess )
+   oPane:bRefresh := {|o|_plug_Refresh(o)}
+   oPane:bOnKey := {|o,n|_plug_OnKey(o,n)}
+
+   RETURN Nil
+
+FUNCTION plug_hbc_ftp_close( oPane )
+
+   hb_inetClose( oPane:pSess )
 
    RETURN 0
 

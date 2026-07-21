@@ -64,8 +64,7 @@ FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
    IF ( nConnection := leto_Connect( cAddr, cLogin, cPass ) ) > 0
 
       oPane:pSess := nConnection
-      oPane:bRefresh := {|o|_plug_Refresh(o)}
-      oPane:bOnKey := {|o,n|_plug_OnKey(o,n)}
+      plug_hbc_leto_set( oPane )
 
       aParams[4] := cLogin
       aParams[5] := cPass
@@ -78,9 +77,16 @@ FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
 
    RETURN .F.
 
-FUNCTION plug_hbc_leto_close( o )
+FUNCTION plug_hbc_leto_set( oPane )
 
-   leto_Disconnect( o:pSess )
+   oPane:bRefresh := {|o|_plug_Refresh(o)}
+   oPane:bOnKey := {|o,n|_plug_OnKey(o,n)}
+
+   RETURN Nil
+
+FUNCTION plug_hbc_leto_close( oPane )
+
+   leto_Disconnect( oPane:pSess )
 
    RETURN 0
 
