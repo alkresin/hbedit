@@ -5,6 +5,14 @@
  * www - http://www.kresin.ru
  */
 
+#define K_ESC        27
+#define K_CTRL_TAB  404
+#define K_SH_TAB    271
+#define K_UP          5
+#define K_DOWN       24
+#define K_LEFT       19
+#define K_RIGHT       4
+
 FUNCTION hbc_dbf( cFileName )
 
    LOCAL oPane := FilePane():PaneCurr()
@@ -17,3 +25,57 @@ FUNCTION hbc_dbf( cFileName )
 
 
    RETURN Nil
+
+STATIC FUNCTION _dbf_OnKey( oPane, nKeyExt )
+
+   LOCAL nKey := hb_keyStd( nKeyExt )
+
+   IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
+      RETURN -1
+   ENDIF
+
+   IF nKey == K_LEFT
+
+   ELSEIF nKey == K_RIGHT
+
+   ELSEIF nKey == K_UP
+
+   ELSEIF nKey == K_DOWN
+   ENDIF
+
+   RETURN -1
+
+STATIC FUNCTION LineOut()
+   RETURN Nil
+
+STATIC FUNCTION FieldOut( numf )
+   LOCAL fldtype := dbFieldInfo( 2, numf ), xRez, vartmp, nItem := numf
+
+   xRez := Fieldget( numf )
+
+   DO CASE
+   CASE fldtype == "C"
+      RETURN cRez
+
+   CASE fldtype $ "NIBYZ842+^"
+      RETURN Str( cRez, dbFieldInfo(3, numf), dbFieldInfo(4, numf) )
+
+   CASE fldtype = "D"
+      RETURN Dtoc( xRez )
+
+   CASE fldtype = "L"
+      RETURN Iif( xRez, "T", "F" )
+
+   CASE fldtype = "M"
+      RETURN "  <Memo>  "
+
+   CASE fldtype $ "T=@"
+      IF dbFieldInfo( 3, numf ) == 4
+         RETURN Transform( xRez, "@T" )
+      ELSE
+         RETURN hb_ttoc( xRez )
+      ENDIF
+
+   ENDCASE
+
+RETURN ''
