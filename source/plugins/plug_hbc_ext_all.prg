@@ -21,6 +21,8 @@ FUNCTION plug_hbc_ext_all( oEdit, cPath, aParams )
          ENDIF
       ELSEIF cExt == ".hwprj" .OR. cExt == ".prg" .OR. cExt == ".c" .OR. cExt == ".cpp"
          hbc_RunPlugin( "hwbc_plug", cPath + "hwbuilder.hrb", aParams[2] )
+      ELSEIF cExt $ ".dbf"
+         hbc_RunPlugin( "dbf_plug", cPath + "hbc_dbf.hrb", cFile )
       ENDIF
    ENDIF
 
