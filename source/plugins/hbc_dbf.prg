@@ -12,6 +12,12 @@
 #define K_DOWN       24
 #define K_LEFT       19
 #define K_RIGHT       4
+#define K_HOME        1
+#define K_END         6
+#define K_PGUP       18
+#define K_PGDN        3
+#define K_CTRL_PGUP  31
+#define K_CTRL_PGDN  30
 
 #define K_NCMOUSEMOVE           1016
 #define HB_K_MENU               1108
@@ -24,7 +30,7 @@ STATIC nBottom
 
 FUNCTION hbc_dbf( cFileName )
 
-   LOCAL oDbfV, cAlias, cName := "$DbfViewer", i, l := .T.
+   LOCAL oDbfV, cAlias, cName := "$DbfViewer", i, l := .T., lLeto := .F.
    LOCAL oEdit := TEdit():aWindows[1], bOldError
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
@@ -43,6 +49,11 @@ FUNCTION hbc_dbf( cFileName )
       RETURN Nil
    }
 
+   IF Left( cFileName,5 ) == "leto:"
+      i := At( '/', cFileName )
+      cFileName := SubStr( cFileName, i )
+      lLeto := .T.
+   ENDIF
    oDbfV := mnu_NewBuf( oEdit )
    oDbfV:cFileName := cName + " " + hb_fnameName(cFileName)
    oDbfV:bWriteTopPane := bWPane
@@ -58,7 +69,11 @@ FUNCTION hbc_dbf( cFileName )
 
    bOldError := ErrorBlock( { |e|MacroError( e ) } )
    BEGIN SEQUENCE
-      USE (cFileName) NEW SHARED ALIAS (cAlias)
+      IF lLeto
+         USE (cFileName) NEW SHARED ALIAS (cAlias) CODEPAGE "RU866" VIA "LETO"
+      ELSE
+         USE (cFileName) NEW SHARED ALIAS (cAlias) CODEPAGE "RU866"
+      ENDIF
    RECOVER
       l := .F.
    END SEQUENCE
@@ -89,7 +104,7 @@ STATIC FUNCTION _dbf_Start( oDbfV )
 
 STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
 
-   LOCAL nKey := hb_keyStd( nKeyExt )
+   LOCAL nKey := hb_keyStd( nKeyExt ), n
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN -1
@@ -116,6 +131,9 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
       IF oDbfV:hCargo["nRow"] > _ROW_FIRST
          oDbfV:hCargo["nRow"] := oDbfV:hCargo["nRow"] - 1
          TableOut( oDbfV )
+      ELSEIF oDbfV:hCargo["nRecF"] > 1
+         oDbfV:hCargo["nRecF"] := oDbfV:hCargo["nRecF"] - 1
+         TableOut( oDbfV )
       ENDIF
 
    ELSEIF nKey == K_DOWN
@@ -123,7 +141,31 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
       IF oDbfV:hCargo["nRow"] < oDbfV:hCargo["nBott"]
          oDbfV:hCargo["nRow"] := oDbfV:hCargo["nRow"] + 1
          TableOut( oDbfV )
+      ELSEIF oDbfV:hCargo["nRecF"] + oDbfV:hCargo["nBott"] - _ROW_FIRST < RecCount()
+         oDbfV:hCargo["nRecF"] := oDbfV:hCargo["nRecF"] + 1
+         TableOut( oDbfV )
       ENDIF
+
+   ELSEIF nKey == K_PGUP
+
+   ELSEIF nKey == K_PGDN
+
+   ELSEIF nKey == K_CTRL_PGUP
+
+      oDbfV:hCargo["nRecF"] := 1
+      oDbfV:hCargo["nRow"] := _ROW_FIRST
+      TableOut( oDbfV )
+
+   ELSEIF nKey == K_CTRL_PGDN
+
+      n := RecCount()
+      IF oDbfV:hCargo["nBott"] - _ROW_FIRST + 1 >= n
+         oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
+      ELSE
+         oDbfV:hCargo["nRecF"] := n - (oDbfV:hCargo["nBott"] - _ROW_FIRST)
+         oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
+      ENDIF
+      TableOut( oDbfV )
 
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       IF Len( TEdit():aWindows ) == 1
@@ -163,6 +205,9 @@ STATIC FUNCTION TableOut( oDbfV, lClear )
       SKIP
    ENDDO
    oDbfV:hCargo["nBott"] := i - 1
+   DevPos( oDbfV:y2, oDbfV:x1 + 2 )
+   DevOut( PAdr( Ltrim(Str(oDbfV:hCargo["nRecF"]+oDbfV:hCargo["nRow"]-_ROW_FIRST)) + "/" + ;
+      Ltrim(Str(RecCount())),18 ) )
 
    RETURN Nil
 

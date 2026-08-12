@@ -9,6 +9,7 @@ STATIC aKeys1 := { K_DOWN, K_UP, K_MWBACKWARD, K_MWFORWARD, K_LEFT, K_RIGHT, ;
    K_ENTER, K_INS, K_CTRL_R, K_CTRL_P, K_CTRL_PGUP, K_ALT_S, K_F9, K_F10, K_F5, K_F6, K_F7, ;
    K_F8, 68, 100 }
 STATIC cNotPerm := "Operation isn't permitted"
+STATIC cPlPath
 
 FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
 
@@ -16,6 +17,7 @@ FUNCTION plug_hbc_leto( oPane, cPlugPath, aParams )
    LOCAL nConnection, nPort
    LOCAL i, aMenu
 
+   cPlPath := cPlugPath
    IF Empty( aParams )
       aMenu := { "New address" }
       FOR i := 1 TO Len( FilePane():aDefPaths )
@@ -256,6 +258,12 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
       ENDIF
    ELSEIF nKey == K_CTRL_F7 .OR. nKey == 43
       edi_Alert( cNotPerm )
+   ELSEIF nKey == 32
+      cName := oPane:aDir[oPane:nCurrent + oPane:nShift][1]
+      IF Lower( hb_fnameExt( cName ) ) == ".dbf"
+         hbc_RunPlugin( "dbf_plug", cPlPath + "hbc_dbf.hrb", oPane:cIOpref + ;
+            oPane:net_cAddress + oPane:net_cPort + oPane:cCurrPath + cName )
+      ENDIF
    ELSEIF Ascan( aKeys1, nKey ) > 0
       RETURN 0
    ENDIF
