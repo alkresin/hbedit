@@ -18,6 +18,7 @@
 #define K_PGDN        3
 #define K_CTRL_PGUP  31
 #define K_CTRL_PGDN  30
+#define K_F4         -3
 
 #define K_NCMOUSEMOVE           1016
 #define HB_K_MENU               1108
@@ -86,18 +87,21 @@ FUNCTION hbc_dbf( cFileName )
 
    nBottom := oDbfV:y2 -oDbfV:y1 - 1
 
-   oDbfV:hCargo["name"] := cFileName
+   oDbfV:hCargo["name"]  := cFileName
    oDbfV:hCargo["alias"] := cAlias
    oDbfV:hCargo["nLeft"] := 1
    oDbfV:hCargo["nRecF"] := 1
-   oDbfV:hCargo["nRow"] := _ROW_FIRST
-   oDbfV:hCargo["lEof"] := .F.
+   oDbfV:hCargo["nRow"]  := _ROW_FIRST
+   oDbfV:hCargo["lEof"]  := .F.
+   oDbfV:hCargo["pBuff"] := hb_hash()
+   oDbfV:hCargo["nRecCou"] := RecCount()
 
    RETURN Nil
 
 STATIC FUNCTION _dbf_Start( oDbfV )
 
    IF !hb_hHaskey( oDbfV:hCargo, "aCols" )
+      dbSelectArea( oDbfV:hCargo["alias"] )
       _dbf_LineTest( oDbfV )
    ENDIF
    TableOut( oDbfV, .T. )
@@ -106,7 +110,7 @@ STATIC FUNCTION _dbf_Start( oDbfV )
 
 STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
 
-   LOCAL nKey := hb_keyStd( nKeyExt ), n
+   LOCAL nKey := hb_keyStd( nKeyExt ), n, n1, nh
 
    IF (nKey >= K_NCMOUSEMOVE .AND. nKey <= HB_K_MENU) .OR. nKey == K_MOUSEMOVE
       RETURN -1
@@ -116,6 +120,7 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
 
       IF oDbfV:hCargo["nLeft"] > 1
          oDbfV:hCargo["nLeft"] := oDbfV:hCargo["nLeft"] - 1
+         oDbfV:hCargo["pBuff"] := hb_hash()
          _dbf_LineTest( oDbfV )
          TableOut( oDbfV, .T. )
       ENDIF
@@ -124,6 +129,7 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
 
       IF oDbfV:hCargo["nRight"] < FCount()
          oDbfV:hCargo["nLeft"] := oDbfV:hCargo["nLeft"] + 1
+         oDbfV:hCargo["pBuff"] := hb_hash()
          _dbf_LineTest( oDbfV )
          TableOut( oDbfV, .T. )
       ENDIF
@@ -137,37 +143,59 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
          oDbfV:hCargo["nRecF"] := oDbfV:hCargo["nRecF"] - 1
          TableOut( oDbfV )
       ENDIF
+      _dbf_BuffClear( oDbfV )
 
    ELSEIF nKey == K_DOWN
 
       IF oDbfV:hCargo["nRow"] < oDbfV:hCargo["nBott"]
          oDbfV:hCargo["nRow"] := oDbfV:hCargo["nRow"] + 1
          TableOut( oDbfV )
-      ELSEIF oDbfV:hCargo["nRecF"] + oDbfV:hCargo["nBott"] - _ROW_FIRST < RecCount()
+      ELSEIF oDbfV:hCargo["nRecF"] + oDbfV:hCargo["nBott"] - _ROW_FIRST < oDbfV:hCargo["nRecCou"]
          oDbfV:hCargo["nRecF"] := oDbfV:hCargo["nRecF"] + 1
          TableOut( oDbfV )
       ENDIF
+      _dbf_BuffClear( oDbfV )
 
    ELSEIF nKey == K_PGUP
 
+      n1 := oDbfV:hCargo["nRecF"]
+      nh := oDbfV:hCargo["nBott"] - _ROW_FIRST + 1
+      IF n1 - nh < 0
+         oDbfV:hCargo["nRecF"] := 1
+         oDbfV:hCargo["nRow"] := _ROW_FIRST
+      ELSE
+         oDbfV:hCargo["nRecF"] := n1 - nh
+      ENDIF
+      TableOut( oDbfV )
+      _dbf_BuffClear( oDbfV )
+
    ELSEIF nKey == K_PGDN
+
+      n := oDbfV:hCargo["nRecCou"]
+      n1 := oDbfV:hCargo["nRecF"]
+      nh := oDbfV:hCargo["nBott"] - _ROW_FIRST + 1
+      IF n1 + nh >= n
+         _dbf_GoBottom( oDbfV )
+      ELSE
+         oDbfV:hCargo["nRecF"] := n1 + nh - 1
+         TableOut( oDbfV, .T. )
+      ENDIF
+      _dbf_BuffClear( oDbfV )
 
    ELSEIF nKey == K_CTRL_PGUP
 
       oDbfV:hCargo["nRecF"] := 1
       oDbfV:hCargo["nRow"] := _ROW_FIRST
       TableOut( oDbfV )
+      _dbf_BuffClear( oDbfV )
 
    ELSEIF nKey == K_CTRL_PGDN
 
-      n := RecCount()
-      IF oDbfV:hCargo["nBott"] - _ROW_FIRST + 1 >= n
-         oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
-      ELSE
-         oDbfV:hCargo["nRecF"] := n - (oDbfV:hCargo["nBott"] - _ROW_FIRST)
-         oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
-      ENDIF
-      TableOut( oDbfV )
+      _dbf_GoBottom( oDbfV )
+
+   ELSEIF nKey == K_F4
+
+      _dbf_Stru( oDbfV )
 
    ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_SH_TAB
       IF Len( TEdit():aWindows ) == 1
@@ -183,14 +211,29 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
 
    RETURN -1
 
+STATIC FUNCTION _dbf_GoBottom( oDbfV )
+
+   LOCAL n := oDbfV:hCargo["nRecCou"]
+
+   IF oDbfV:hCargo["nBott"] - _ROW_FIRST + 1 >= n
+      oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
+   ELSE
+      oDbfV:hCargo["nRecF"] := n - (oDbfV:hCargo["nBott"] - _ROW_FIRST)
+      oDbfV:hCargo["nRow"] := oDbfV:hCargo["nBott"]
+   ENDIF
+   TableOut( oDbfV )
+   _dbf_BuffClear( oDbfV )
+
+   RETURN Nil
+
 STATIC FUNCTION TableOut( oDbfV, lClear )
 
-   LOCAL i, nRowCurr := oDbfV:hCargo["nRow"]
+   LOCAL i, s, nCurr := Recno(), nTo := oDbfV:hCargo["nRecF"], nRecCou := oDbfV:hCargo["nRecCou"]
    LOCAL nLeft := oDbfV:hCargo["nLeft"], nRight := oDbfV:hCargo["nRight"]
-   LOCAL arr := oDbfV:hCargo["aCols"]
+   LOCAL arr := oDbfV:hCargo["aCols"], nRowCurr := oDbfV:hCargo["nRow"]
+   LOCAL h := oDbfV:hCargo["pBuff"]
 
    dbSelectArea( oDbfV:hCargo["alias"] )
-   dbGoTo( oDbfV:hCargo["nRecF"] )
 
    IF !Empty( lClear )
       Scroll( oDbfV:y1, oDbfV:x1, oDbfV:y2, oDbfV:x2 )
@@ -201,15 +244,38 @@ STATIC FUNCTION TableOut( oDbfV, lClear )
    ENDIF
 
    i := _ROW_FIRST
-   DO WHILE !Eof() .AND. i <= nBottom
-      _dbf_LineOut( oDbfV, i, (i == nRowCurr) )
+   DO WHILE nTo <= nRecCou .AND. i <= nBottom
+      IF hb_hHasKey( h, nTo )
+         s := h[nTo]
+         //edi_Writelog( "2> " + Str(nTo) )
+      ELSE
+         //edi_Writelog( "1> " + Str(nTo) )
+         IF nTo != nCurr
+            IF nTo == nCurr + 1
+               SKIP
+            ELSE
+               dbGoTo( nTo )
+            ENDIF
+         ENDIF
+         nCurr := nTo
+         s := _dbf_LineOut( oDbfV )
+         h[nTo] := s
+      ENDIF
+      IF i == nRowCurr
+         SetColor( oDbfV:cColorPane )
+      ENDIF
+      DevPos( i, oDbfV:x1+1 )
+      DevOut( s )
+      IF i == nRowCurr
+         SetColor( oDbfV:cColor )
+      ENDIF
       i ++
-      SKIP
+      nTo ++
    ENDDO
    oDbfV:hCargo["nBott"] := i - 1
    DevPos( oDbfV:y2, oDbfV:x1 + 2 )
    DevOut( PAdr( Ltrim(Str(oDbfV:hCargo["nRecF"]+oDbfV:hCargo["nRow"]-_ROW_FIRST)) + "/" + ;
-      Ltrim(Str(RecCount())),18 ) )
+      Ltrim(Str(oDbfV:hCargo["nRecCou"])),18 ) )
 
    RETURN Nil
 
@@ -232,7 +298,7 @@ STATIC FUNCTION _dbf_LineTest( oDbfV )
 
    RETURN Nil
 
-STATIC FUNCTION _dbf_LineOut( oDbfV, nL, lCurr )
+STATIC FUNCTION _dbf_LineOut( oDbfV )
 
    LOCAL nLeft := oDbfV:hCargo["nLeft"], nRight := oDbfV:hCargo["nRight"]
    LOCAL i, nFields := FCount(), s := ""
@@ -245,16 +311,8 @@ STATIC FUNCTION _dbf_LineOut( oDbfV, nL, lCurr )
          EXIT
       ENDIF
    NEXT
-   IF lCurr
-      SetColor( oDbfV:cColorPane )
-   ENDIF
-   DevPos( nL, oDbfV:x1+1 )
-   DevOut( s )
-   IF lCurr
-      SetColor( oDbfV:cColor )
-   ENDIF
 
-   RETURN Nil
+   RETURN s
 
 STATIC FUNCTION _dbf_FieldOut( numf )
    LOCAL fldtype := dbFieldInfo( 2, numf ), xRez, vartmp, nItem := numf
@@ -287,3 +345,34 @@ STATIC FUNCTION _dbf_FieldOut( numf )
    ENDCASE
 
 RETURN ''
+
+STATIC FUNCTION _dbf_BuffClear( oDbfV )
+
+   LOCAL p := oDbfV:hCargo["pBuff"], key, v, arr := {}
+   LOCAL n1 := oDbfV:hCargo["nRecF"], nh := oDbfV:hCargo["nBott"] - _ROW_FIRST + 1
+
+   FOR EACH v IN p
+      key := v:__enumKey()
+      IF key < n1 - nh * 1.5 .OR. key > n1 + nh * 2.5
+         AAdd( arr, key )
+      ENDIF
+   NEXT
+
+   FOR EACH key IN arr
+      hb_hdel( p, key )
+   NEXT
+
+   RETURN Nil
+
+STATIC FUNCTION _dbf_Stru( oDbfV )
+
+   LOCAL i, nFields, arr := {}
+
+   dbSelectArea( oDbfV:hCargo["alias"] )
+   nFields := FCount()
+   FOR i := 1 TO nFields
+      AAdd( arr, PAdr(FieldName(i),11) + FieldType(i) + " " + Str(FieldLen(i),5) + Str(FieldDec(i),2) )
+   NEXT
+
+   fMenu( oDbfV, arr )
+   RETURN Nil
