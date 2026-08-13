@@ -92,12 +92,14 @@ FUNCTION hbc_dbf( cFileName )
    oDbfV:hCargo["nRecF"] := 1
    oDbfV:hCargo["nRow"] := _ROW_FIRST
    oDbfV:hCargo["lEof"] := .F.
-   _dbf_LineTest( oDbfV )
 
    RETURN Nil
 
 STATIC FUNCTION _dbf_Start( oDbfV )
 
+   IF !hb_hHaskey( oDbfV:hCargo, "aCols" )
+      _dbf_LineTest( oDbfV )
+   ENDIF
    TableOut( oDbfV, .T. )
 
    RETURN Nil
