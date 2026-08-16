@@ -18,6 +18,7 @@
 #define K_PGDN        3
 #define K_CTRL_PGUP  31
 #define K_CTRL_PGDN  30
+#define K_F1         28
 #define K_F4         -3
 
 #define K_NCMOUSEMOVE           1016
@@ -64,7 +65,6 @@ FUNCTION hbc_dbf( cFileName )
    oDbfV:cp := "RU866"
 
    oDbfV:hCargo := hb_hash()
-   oDbfV:hCargo["help"] := "Harbour plugin hotkeys:" + Chr(10)
 
    cAlias := "A" + Ltrim(Str(++nAlias))
 
@@ -192,6 +192,10 @@ STATIC FUNCTION _dbf_OnKey( oDbfV, nKeyExt )
    ELSEIF nKey == K_CTRL_PGDN
 
       _dbf_GoBottom( oDbfV )
+
+   ELSEIF nKey == K_F1
+
+      _dbf_Help( oDbfV )
 
    ELSEIF nKey == K_F4
 
@@ -375,4 +379,11 @@ STATIC FUNCTION _dbf_Stru( oDbfV )
    NEXT
 
    fMenu( oDbfV, arr )
+   RETURN Nil
+
+STATIC FUNCTION _dbf_Help( oDbfV )
+
+   LOCAL cText := "Dbf Viewer" + Chr(10) + "F4 - View dbf structure" + Chr(10)
+   edi_MsgGet_ext( cText, oDbfV:y1+4, oDbfV:x1+10, oDbfV:y1+7, oDbfV:x2-10,, .T., .T. )
+
    RETURN Nil

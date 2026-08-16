@@ -94,13 +94,14 @@ FUNCTION plug_hbc_leto_close( oPane )
 
 FUNCTION plug_hbc_leto_copyfrom( oPane, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize, dDate
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize, dDate, cTime
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
    nFirst := aParams[4]
    nSize := aParams[5]
    dDate := aParams[6]
+   cTime := Iif( Len(aParams)>6, aParams[7], Nil )
 
    IF aParams[3]
       edi_Alert( "From leto: " + cNotPerm )
@@ -123,6 +124,7 @@ FUNCTION plug_hbc_leto_copyfrom( oPane, aParams )
    IF !Empty( cBuffer := leto_Memoread( cFileName ) )
       //ftplog( "Read - ok" )
       hb_Memowrit( cFileTo, cBuffer )
+      hb_fSetDateTime( cFileTo, dDate, cTime )
       IF nFirst == 0
          oPaneTo:Refresh()
          oPaneTo:RedrawAll()

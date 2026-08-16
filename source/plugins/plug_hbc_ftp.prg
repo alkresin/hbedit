@@ -104,13 +104,14 @@ FUNCTION plug_hbc_ftp_close( oPane )
 
 FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
-   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize, dDate
+   LOCAL cFileName, cFileTo, nPos, oPaneTo, cBuffer, i, aDir, nFirst, nSize, dDate, cTime
 
    cFileName := aParams[1]
    cFileTo := aParams[2]
    nFirst := aParams[4]
    nSize := aParams[5]
    dDate := aParams[6]
+   cTime := Iif( Len(aParams)>6, aParams[7], Nil )
 
    IF aParams[3]
       edi_Alert( "From ftp: " + cNotPerm )
@@ -127,7 +128,7 @@ FUNCTION plug_hbc_ftp_copyfrom( oPane, aParams )
 
    oPaneTo := Iif( oPane == FilePane():aPanes[1], FilePane():aPanes[2], FilePane():aPanes[1] )
    nPos := At( '/', cFileName )
-   IF FtpReadFile( oPane:pSess, Substr(cFileName,nPos), cFileTo, nSize )
+   IF FtpReadFile( oPane:pSess, Substr(cFileName,nPos), cFileTo, nSize, dDate, cTime )
       IF nFirst == 0
          oPaneTo:Refresh()
          oPaneTo:RedrawAll()
@@ -250,8 +251,6 @@ STATIC FUNCTION _plug_OnKey( oPane, nKeyExt )
             oPane:cCurrPath + cName, cBuffer, ):lReadOnly := .T.
          ENDIF
       ENDIF
-   //ELSEIF nKey == K_CTRL_F7 .OR. nKey == 43
-   //   edi_Alert( cNotPerm )
    ELSEIF Ascan( aKeys1, nKey ) > 0
       RETURN 0
    ENDIF
@@ -386,7 +385,7 @@ STATIC FUNCTION FtpList( hSocket, cPath )
 
    RETURN aDir
 
-STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
+STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize, dDate, cTime )
 
    LOCAL hSockNew, cBuffer := "", cBuf, handle, nRet, lToFile := .F., nCopied := 0, lRes := .T.
    LOCAL aWnd, oPaneCurr := FilePane():PaneCurr()
@@ -430,7 +429,11 @@ STATIC FUNCTION FtpReadFile( hSocket, cFileName, cFileTo, nSize )
 
    IF lToFile
       hb_vfClose( handle )
-      IF !lRes
+      IF lRes
+         IF !Empty( dDate )
+            hb_fSetDateTime( cFileTo, dDate, cTime )
+         ENDIF
+      ELSE
          hb_vfErase( cFileTo )
       ENDIF
    ENDIF

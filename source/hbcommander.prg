@@ -2228,7 +2228,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
       cFileTo := FTransl( cFileTo, oPaneCurr:cpPane, oPaneTo:cpPane )
       IF !Empty( oPaneCurr:cIOpref ) .AND. ;
          ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref, "COPYFROM", ;
-         {cFullPath + cFileName, cFileTo, lDir, nStart, aDir[2],aDir[3]} ) ) != Nil
+         {cFullPath + cFileName, cFileTo, lDir, nStart, aDir[2],aDir[3],aDir[4]} ) ) != Nil
          RETURN nRes
       ENDIF
       IF !lDir .AND. !Empty( oPaneTo:cIOpref ) .AND. ;
