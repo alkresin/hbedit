@@ -56,15 +56,6 @@ FUNCTION hbc_dbf( cFileName )
       cFileName := SubStr( cFileName, i )
       lLeto := .T.
    ENDIF
-   oDbfV := mnu_NewBuf( oEdit )
-   oDbfV:cFileName := cName + " " + hb_fnameName(cFileName)
-   oDbfV:bWriteTopPane := bWPane
-   oDbfV:bOnKey := {|o,n| _dbf_OnKey(o,n) }
-   oDbfV:bStartEdit := {|o| _dbf_Start(o) }
-   oDbfV:bEndEdit := bEndEdit
-   oDbfV:cp := "RU866"
-
-   oDbfV:hCargo := hb_hash()
 
    cAlias := "A" + Ltrim(Str(++nAlias))
 
@@ -82,8 +73,18 @@ FUNCTION hbc_dbf( cFileName )
 
    IF !l
       edi_Alert( "Can't open file" )
-      mnu_Exit( oDbfV )
+      RETURN Nil
    ENDIF
+
+   oDbfV := mnu_NewBuf( oEdit )
+   oDbfV:cFileName := cName + " " + hb_fnameName(cFileName)
+   oDbfV:bWriteTopPane := bWPane
+   oDbfV:bOnKey := {|o,n| _dbf_OnKey(o,n) }
+   oDbfV:bStartEdit := {|o| _dbf_Start(o) }
+   oDbfV:bEndEdit := bEndEdit
+   oDbfV:cp := "RU866"
+
+   oDbfV:hCargo := hb_hash()
 
    nBottom := oDbfV:y2 -oDbfV:y1 - 1
 
