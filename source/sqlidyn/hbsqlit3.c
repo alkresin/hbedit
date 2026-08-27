@@ -84,6 +84,13 @@ HB_FUNC( SQLT_FINALIZE ) {
    hb_retni( sqlt_Finalize( hb_parptr(1) ) );
 }
 
+/* sqlt_ColumnCount( pStmt ) -> iValue
+ */
+HB_FUNC( SQLT_COLUMNCOUNT ) {
+
+   hb_retni( sqlt_Column_count( hb_parptr(1) ) );
+}
+
 /* sqlt_ColumnBlob( pStmt, iCol ) -> cValue
  */
 HB_FUNC( SQLT_COLUMNBLOB ) {

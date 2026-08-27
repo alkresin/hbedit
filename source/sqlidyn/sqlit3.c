@@ -33,6 +33,7 @@ typedef int (*psqlt_exec_t)( SQLTConn*, const char *sql, int (*callback)(void*,i
 typedef int (*psqlt_prepare_v2_t)( SQLTConn *db, const char *zSql, int nByte, SQLTstmt **ppStmt, const char **pzTail );
 typedef int (*psqlt_step_t)( SQLTstmt* );
 typedef int (*psqlt_finalize_t)( SQLTstmt* );
+typedef int (*psqlt_column_count_t)( SQLTstmt * );
 typedef void* (*psqlt_column_blob_t)( SQLTstmt *, int iCol );
 typedef double (*psqlt_column_double_t)( SQLTstmt*, int iCol );
 typedef int (*psqlt_column_int_t)( SQLTstmt *, int iCol );
@@ -58,6 +59,7 @@ static psqlt_exec_t psqlt_exec = NULL;
 static psqlt_prepare_v2_t psqlt_prepare_v2 = NULL;
 static psqlt_step_t psqlt_step = NULL;
 static psqlt_finalize_t psqlt_finalize = NULL;
+static psqlt_column_count_t psqlt_column_count = NULL;
 static psqlt_column_blob_t psqlt_column_blob = NULL;
 static psqlt_column_double_t psqlt_column_double = NULL;
 static psqlt_column_int_t psqlt_column_int = NULL;
@@ -450,6 +452,20 @@ int sqlt_Step( SQLTstmt *stmt ) {
 int sqlt_Finalize( SQLTstmt *stmt ) {
 
    return psqlt_finalize( stmt );
+}
+
+int sqlt_Column_count( SQLTstmt *stmt ) {
+
+   if( !psqlt_column_count ) {
+      char *szFunc = "sqlite3_column_count";
+      psqlt_column_count = (psqlt_column_count_t)GET_FUNCTION( pDll, szFunc );
+      if( !psqlt_column_count ) {
+         c_writelog( NULL, errNoFunc, szFunc );
+         return -1;
+      }
+   }
+
+   return psqlt_column_count( stmt );
 }
 
 void * sqlt_Column_blob( SQLTstmt *stmt, int iCol ) {

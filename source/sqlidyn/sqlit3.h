@@ -31,6 +31,7 @@ extern int sqlt_Exec( SQLTConn *db, char *szQuery );
 extern SQLTstmt * sqlt_Prepare( SQLTConn *db, char *szQuery );
 extern int sqlt_Step( SQLTstmt *stmt );
 extern int sqlt_Finalize( SQLTstmt *stmt );
+extern int sqlt_Column_count( SQLTstmt *stmt );
 extern void * sqlt_Column_blob( SQLTstmt *stmt, int iCol );
 extern double sqlt_Column_double( SQLTstmt *stmt, int iCol );
 extern int sqlt_Column_int( SQLTstmt *stmt, int iCol );
