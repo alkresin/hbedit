@@ -60,6 +60,7 @@ FUNCTION Plug_Vcs( oEdit )
          cv1 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
          edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
          IF i1 == 1
+            // Show specified version of file: cBuff0 = file content
             cBuff0 := _vcs_GetFile( ic, cv1, cFileName )
          ELSEIF i1 == 2
             iChoic --
@@ -95,7 +96,7 @@ FUNCTION Plug_Vcs( oEdit )
             edi_CloseWindow( cAddW0 )
             IF i1 == 1
                edi_CloseWindow( cAddW2 )
-               o := edi_AddWindow( oEdit, cBuff, cAddW1, 3, Int(MaxCol()/2) )
+               o := edi_AddWindow( oEdit, cBuff0, cAddW1, 3, Int(MaxCol()/2) )
                o:lReadOnly := .T.
             ELSEIF iChoic == 0
                edi_AddDiff( oEdit, cBuff, .T. )
