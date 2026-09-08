@@ -216,6 +216,20 @@ STATIC FUNCTION _c_Spis( oEdit )
 
    LOCAL i, n, arrfnc
    LOCAL oHili := oEdit:oHili
+   LOCAL bKeys := {|nKeyExt,nRow|
+      LOCAL nn, oNew, s
+      IF nKeyExt == 0x41000008  // F8
+         s := ""
+         FOR nn := 1 TO Len( arrfnc )
+            s += arrfnc[nn,1] + Chr(10)
+         NEXT
+         oNew := mnu_NewBuf( TEdit():aWindows[TEdit():nCurr], "$FuncList", s )
+         oNew:cp := oEdit:cp
+         oNew:lUtf8 := oEdit:lUtf8
+         RETURN .F.
+      ENDIF
+      RETURN .T.
+   }
 
    IF oEdit:hCargo["flist"] == Nil
       IF _c_isCtags()
@@ -241,7 +255,8 @@ STATIC FUNCTION _c_Spis( oEdit )
          ENDIF
       NEXT
       n := Iif( n > Len(arrfnc), Len(arrfnc), Iif( n == 0, 1, n ) )
-      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3) ) ) > 0
+      IF ( i := FMenu( oEdit, arrfnc, 2, 6,,,,, n, (Len(arrfnc)>3),,, bKeys, ;
+            " Functions list    F8 - Editor" ) ) > 0
          oEdit:Goto( arrfnc[i,3] )
       ENDIF
    ENDIF

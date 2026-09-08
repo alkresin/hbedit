@@ -7,7 +7,7 @@ FUNCTION Plug_Vcs( oEdit )
    LOCAL aMenu := { "Git: History", "Fossil: History" }, iChoic, ic
    LOCAL aMenu1 := { "Show file", "Diff with next", "Diff with last", "Diff with current" }, i1, o, o0
    LOCAL cCurrDir
-   LOCAL cAddW0 := "$NextVer", cAddW1 := "$Vcs", cAddW2 := "$Diff", cBuff, cBuff0, arrh
+   LOCAL cAddW0 := "$NextVer", cAddW1 := "$Vcs"+hb_fnameExt(oEdit:cFileName), cAddW2 := "$Diff", cBuff, cBuff0, arrh
    LOCAL cFileName := hb_FNameNameExt( oEdit:cFileName ), cv1, cv2
    LOCAL nRow := Row(), nCol := Col()
 
@@ -20,7 +20,8 @@ FUNCTION Plug_Vcs( oEdit )
       ELSEIF ic == 2
          DirChange( cCurrDir )
          cBuff := cRun( 'fossil finfo -b ' + cFileName )
-      ELSEIF ic == 3
+      /* ELSEIF ic == 3
+         //SVN - not implemented yet
          IF Empty( cSvnName )
             _vcs_ReadIni()
          ENDIF
@@ -34,7 +35,7 @@ FUNCTION Plug_Vcs( oEdit )
          ELSE
             DevPos( nRow, nCol )
             RETURN Nil
-         ENDIF
+         ENDIF */
       ENDIF
       edi_Wait()
 
@@ -55,56 +56,62 @@ FUNCTION Plug_Vcs( oEdit )
          ENDIF
       NEXT
 
+      // Select from arrh - list of revisions
       IF ( iChoic := FMenu( oEdit, arrh, 3, 10 ) ) > 0
-         i1 := FMenu( oEdit, aMenu1, Int(MaxRow()/2)-3, Int(MaxCol()/2)-9 )
-         cv1 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
-         edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
-         IF i1 == 1
-            // Show specified version of file: cBuff0 = file content
-            cBuff0 := _vcs_GetFile( ic, cv1, cFileName )
-         ELSEIF i1 == 2
-            iChoic --
-         ELSEIF i1 == 3
-            iChoic := 1
-         ELSEIF i1 == 4
-            iChoic := 0
-         ENDIF
+         aMenu1[2] += " (" + Left( arrh[iChoic-1], 21 ) + ")"
+         aMenu1[3] += " (" + Left( arrh[1], 21 ) + ")"
+         // Select from "Show file", "Next file", ... options
+         IF ( i1 := FMenu( oEdit, aMenu1, Int(MaxRow()/2)-3, Int(MaxCol()/2)-20,,,,,,,,,, ;
+            Left( arrh[iChoic], 21 ) ) ) > 0
+            cv1 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
+            edi_Wait( Padc( "Wait...", 16 ), TEdit():cColorWR )
+            IF i1 == 1
+               // Show specified version of file: cBuff0 = file content
+               cBuff0 := _vcs_GetFile( ic, cv1, cFileName )
+            ELSEIF i1 == 2
+               iChoic --
+            ELSEIF i1 == 3
+               iChoic := 1
+            ELSEIF i1 == 4
+               iChoic := 0
+            ENDIF
 
-         IF i1 > 1
-            IF iChoic == 0
-               IF ic == 1
-                  cBuff := cRun( 'git diff ' + cv1 + " " + cFileName )
-               ELSEIF ic == 2
-                  cBuff := cRun( 'fossil diff --from ' + cv1 + " " + cFileName )
-               ENDIF
-            ELSE
-               cv2 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
-               IF !Empty( cBuff0 := _vcs_GetFile( ic, cv2, cFileName ) )
+            IF i1 > 1
+               IF iChoic == 0
                   IF ic == 1
-                     cBuff := cRun( 'git diff ' + cv2 + " " + cv1 + " " + cFileName )
+                     cBuff := cRun( 'git diff ' + cv1 + " " + cFileName )
                   ELSEIF ic == 2
-                     cBuff := cRun( 'fossil diff --from ' + cv1 + " --to " + cv2 + " " + cFileName )
+                     cBuff := cRun( 'fossil diff --from ' + cv1 + " " + cFileName )
+                  ENDIF
+               ELSE
+                  cv2 := Iif( ic == 1, Substr( arrh[iChoic],3,7 ), Left( arrh[iChoic],10 ) )
+                  IF !Empty( cBuff0 := _vcs_GetFile( ic, cv2, cFileName ) )
+                     IF ic == 1
+                        cBuff := cRun( 'git diff ' + cv2 + " " + cv1 + " " + cFileName )
+                     ELSEIF ic == 2
+                        cBuff := cRun( 'fossil diff --from ' + cv1 + " --to " + cv2 + " " + cFileName )
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF
-         ENDIF
 
-         IF Empty( cBuff ) .OR. ( i1 > 1 .AND. iChoic > 0 .AND. Empty( cBuff0 ) )
-            edi_Alert( "No result" )
-         ELSE
-            edi_CloseWindow( cAddW1 )
-            edi_CloseWindow( cAddW0 )
-            IF i1 == 1
-               edi_CloseWindow( cAddW2 )
-               o := edi_AddWindow( oEdit, cBuff0, cAddW1, 3, Int(MaxCol()/2) )
-               o:lReadOnly := .T.
-            ELSEIF iChoic == 0
-               edi_AddDiff( oEdit, cBuff, .T. )
+            IF Empty( cBuff ) .OR. ( i1 > 1 .AND. iChoic > 0 .AND. Empty( cBuff0 ) )
+               edi_Alert( "No result" )
             ELSE
-               o0 := TEdit():New( cBuff0, cAddw0, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
-               o0:lReadOnly := .T.
-               o := edi_AddDiff( o0, cBuff, .T. )
-               mnu_ToBuf( oEdit, o )
+               edi_CloseWindow( cAddW1 )
+               edi_CloseWindow( cAddW0 )
+               IF i1 == 1
+                  edi_CloseWindow( cAddW2 )
+                  o := edi_AddWindow( oEdit, cBuff0, cAddW1, 3, Int(MaxCol()/2) )
+                  o:lReadOnly := .T.
+               ELSEIF iChoic == 0
+                  edi_AddDiff( oEdit, cBuff, .T. )
+               ELSE
+                  o0 := TEdit():New( cBuff0, cAddW0, oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
+                  o0:lReadOnly := .T.
+                  o := edi_AddDiff( o0, cBuff, .T. )
+                  mnu_ToBuf( oEdit, o )
+               ENDIF
             ENDIF
          ENDIF
       ENDIF
