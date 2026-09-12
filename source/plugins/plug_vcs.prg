@@ -5,7 +5,7 @@ STATIC cSvnName := "", cSvnPass := ""
 FUNCTION Plug_Vcs( oEdit )
 
    LOCAL aMenu := { "Git: History", "Fossil: History" }, iChoic, ic
-   LOCAL aMenu1 := { "Show file", "Diff with next", "Diff with last", "Diff with current" }, i1, o, o0
+   LOCAL aMenu1 := { "Show file", "Diff with current" }, i1, o, o0
    LOCAL cCurrDir
    LOCAL cAddW0 := "$NextVer", cAddW1 := "$Vcs"+hb_fnameExt(oEdit:cFileName), cAddW2 := "$Diff", cBuff, cBuff0, arrh
    LOCAL cFileName := hb_FNameNameExt( oEdit:cFileName ), cv1, cv2
@@ -58,8 +58,12 @@ FUNCTION Plug_Vcs( oEdit )
 
       // Select from arrh - list of revisions
       IF ( iChoic := FMenu( oEdit, arrh, 3, 10 ) ) > 0
-         aMenu1[2] += " (" + Left( arrh[iChoic-1], 21 ) + ")"
-         aMenu1[3] += " (" + Left( arrh[1], 21 ) + ")"
+         IF iChoic > 1
+            AAdd( aMenu1, "Diff with next (" + Left( arrh[iChoic-1], 21 ) + ")" )
+         ENDIF
+         IF iChoic > 2
+            AAdd( aMenu1, "Diff with last (" + Left( arrh[1], 21 ) + ")" )
+         ENDIF
          // Select from "Show file", "Next file", ... options
          IF ( i1 := FMenu( oEdit, aMenu1, Int(MaxRow()/2)-3, Int(MaxCol()/2)-20,,,,,,,,,, ;
             Left( arrh[iChoic], 21 ) ) ) > 0
@@ -69,11 +73,11 @@ FUNCTION Plug_Vcs( oEdit )
                // Show specified version of file: cBuff0 = file content
                cBuff0 := _vcs_GetFile( ic, cv1, cFileName )
             ELSEIF i1 == 2
-               iChoic --
-            ELSEIF i1 == 3
-               iChoic := 1
-            ELSEIF i1 == 4
                iChoic := 0
+            ELSEIF i1 == 3
+               iChoic --
+            ELSEIF i1 == 4
+               iChoic := 1
             ENDIF
 
             IF i1 > 1
