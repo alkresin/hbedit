@@ -3905,9 +3905,9 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
             END SEQUENCE
             Errorblock( bOldError )
             SetColor( "W/N" )
-            ? hb_ValToExp( xRes )
+            ? Iif(Valtype(xRes)=="C", xRes, hb_ValToExp( xRes ) )
             Add2Consout( cCommand + Chr(13)+Chr(10) )
-            Add2Consout( hb_ValToExp( xRes ) )
+            Add2Consout( Iif(Valtype(xRes)=="C", xRes, hb_ValToExp( xRes ) ) )
          ELSEIF oPaneCurr:nPanelMod > 0
             edi_Alert( "Pane is in "+Iif(oPaneCurr:nPanelMod==1,"search","zip") + " mode" )
          ELSEIF oPaneCurr:cIOpref == "net:"
