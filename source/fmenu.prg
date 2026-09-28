@@ -197,7 +197,7 @@ FUNCTION FMenu( obj, aMenu, y1, x1, y2, x2, clrMenu, clrMenuSel, nCurr, lSearch,
 
       ELSEIF (nKey == K_CTRL_INS .OR. nKey == 3) .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
          IF Valtype( obj ) == "O" .AND. __ObjHasMsg( obj, "LUTF8" )
-            edi_2cb( obj,, AllTrim( arr[i + nFirst - 1] ) )
+            edi_2cb( obj,, AllTrim( Iif( lSingle, aMenu[i + nFirst - 1], aMenu[i + nFirst - 1, 1] ) ) )
          ENDIF
 
       ELSEIF nKey == K_BS
