@@ -4,16 +4,20 @@
 
 #include "hbclass.ch"
 
+#ifdef _HBEDIT_PLUGIN
 #define  _LETO
 #xtranslate _RunConsoleApp([<n,...>])  => cedi_RunConsoleApp(<n>)
-FUNCTION plug_aiagent_class
+FUNCTION Aiagent_class
    RETURN Nil
+#endif
 
 CLASS LLM_Service
 
    CLASS VAR aList SHARED INIT {}
-   CLASS VAR nLogLevel SHARED INIT 1
-   CLASS VAR cLogPath  SHARED
+   CLASS VAR nLogLevel   SHARED INIT 1
+   CLASS VAR cLogPath    SHARED
+   CLASS VAR cToolsPath  SHARED INIT "tools"
+   CLASS VAR cSkillsPath SHARED INIT "skills"
 
    DATA id         INIT ""
    DATA cSystem
@@ -83,9 +87,25 @@ METHOD SetSystemPrompt( cText ) CLASS LLM_Service
    RETURN Nil
 
 METHOD AddTools() CLASS LLM_Service
+
+   LOCAL cPath
+
+   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + LLM_Service():cToolsPath ) ) .AND. ;
+      !hb_DirExists( cPath := ( hb_dirBase() + LLM_Service():cToolsPath ) )
+      RETURN Nil
+   ENDIF
+
    RETURN Nil
 
 METHOD AddSkills() CLASS LLM_Service
+
+   LOCAL cPath
+
+   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + LLM_Service():cToolsPath ) ) .AND. ;
+      !hb_DirExists( cPath := ( hb_dirBase() + LLM_Service():cSkillsPath ) )
+      RETURN Nil
+   ENDIF
+
    RETURN Nil
 
 METHOD ClearContext() CLASS LLM_Service

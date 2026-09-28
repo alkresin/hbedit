@@ -22,7 +22,7 @@ STATIC cPathSkill  := "skills"
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
-   LOCAL cHrb := "plug_aiagent_class.hrb", aList := {}, i
+   LOCAL cHrb := "aiagent_class.hrb", aList := {}, i
    LOCAL cName := "$AI Agent"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()

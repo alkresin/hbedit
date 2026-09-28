@@ -982,7 +982,7 @@ STATIC FUNCTION _prg_Compile( oEdit )
 
    edi_CloseWindow( cFile )
 
-   acmd := { oEdit:ToString(), "harbour", "-n2", "-q", "-w" }
+   acmd := { oEdit:ToString(), "harbour", "-n2", "-q", "-w", "-d_HBEDIT_PLUGIN" }
    IF !Empty( cPathInclude )
       AAdd( aCmd, "-I" + cPathInclude )
    ENDIF
