@@ -18,6 +18,8 @@ CLASS LLM_Service
    CLASS VAR cLogPath    SHARED
    CLASS VAR cToolsPath  SHARED INIT "tools"
    CLASS VAR cSkillsPath SHARED INIT "skills"
+   CLASS VAR aTools      SHARED INIT {}
+   CLASS VAR aSkills      SHARED INIT {}
 
    DATA id         INIT ""
    DATA cSystem
@@ -88,12 +90,28 @@ METHOD SetSystemPrompt( cText ) CLASS LLM_Service
 
 METHOD AddTools() CLASS LLM_Service
 
-   LOCAL cPath
+   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson
 
-   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + LLM_Service():cToolsPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + LLM_Service():cToolsPath ) )
-      RETURN Nil
+   IF Empty( ::aTools )
+      IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
+         !hb_DirExists( cPath := ( hb_dirBase() + ::cToolsPath ) )
+         RETURN Nil
+      ENDIF
+
+      arr := hb_Directory( cPath + hb_ps() + "tool_*" )
+      FOR i := 1 TO Len( arr )
+         IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i,1] ) ) .AND. ;
+            ( nPos1 := At( "/*", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( "*/", cBuff, nPos1 ) ) > 0
+            hb_jsonDecode( AllTrim( Substr( cBuff, nPos1 + 2, nPos1 - nPos1 - 2 ) ), @arrJson )
+            IF !Empty( arrJson )
+               AAdd( ::aTools, arrJson, cPath + hb_ps() + arr[i,1] )
+            ENDIF
+         ENDIF
+      NEXT
    ENDIF
+
+   FOR i := 1 TO Len( ::aTools )
+   NEXT
 
    RETURN Nil
 
@@ -101,8 +119,8 @@ METHOD AddSkills() CLASS LLM_Service
 
    LOCAL cPath
 
-   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + LLM_Service():cToolsPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + LLM_Service():cSkillsPath ) )
+   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
+      !hb_DirExists( cPath := ( hb_dirBase() + ::\cSkillsPath ) )
       RETURN Nil
    ENDIF
 
