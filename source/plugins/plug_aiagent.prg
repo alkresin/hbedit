@@ -47,16 +47,6 @@ FUNCTION plug_aiagent( oEdit, cPath )
       ag_RdIni()
    ENDIF
 
-   oClient := mnu_NewBuf( oEdit )
-   oClient:cFileName := cName
-   oClient:bWriteTopPane := bWPane
-   oClient:bOnKey := {|o,n| ag_OnKey(o,n) }
-   oClient:bEndEdit := bEndEdit
-   oClient:cp := "UTF8"
-   hb_cdpSelect( oClient:cp )
-   oClient:lUtf8 := .T.
-   oClient:lWrap := .T.
-
    FOR i := 1 TO Len( LLM_Service():aList )
       AAdd( aList, LLM_Service():aList[i]:id )
    NEXT
@@ -66,6 +56,16 @@ FUNCTION plug_aiagent( oEdit, cPath )
       RETURN Nil
    ENDIF
    oService := LLM_Service():aList[i]
+
+   oClient := mnu_NewBuf( oEdit )
+   oClient:cFileName := cName
+   oClient:bWriteTopPane := bWPane
+   oClient:bOnKey := {|o,n| ag_OnKey(o,n) }
+   oClient:bEndEdit := bEndEdit
+   oClient:cp := "UTF8"
+   hb_cdpSelect( oClient:cp )
+   oClient:lUtf8 := .T.
+   oClient:lWrap := .T.
 
    ag_Textout( oService:id + ": " + oService:cUrl )
 

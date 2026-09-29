@@ -150,19 +150,21 @@ METHOD ClearContext() CLASS LLM_Service
 
 METHOD Log( cText, cTitle ) CLASS LLM_Service
 
-   LOCAL nHand, fname
+   LOCAL nHand, cPath, fname
 
    IF ::nLogLevel == 0
       RETURN Nil
    ENDIF
-   IF Empty( ::cLogPath ) .OR. !hb_DirExists( ::cLogPath )
-      ::cLogPath := hb_DirBase() + "log"
-      IF !hb_DirExists( ::cLogPath )
-         hb_DirCreate( ::cLogPath )
+
+   IF Empty( ::cLogPath ) .OR. ( ;
+      !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cLogPath ) ) .AND. ;
+      !hb_DirExists( cPath := ( hb_dirBase() + ::cLogPath ) ) )
+      ::cLogPath := "log"
+      IF !hb_DirExists( cPath := ( hb_dirBase() + ::cLogPath ) )
+         hb_DirCreate( cPath )
       ENDIF
-      ::cLogPath += "/"
    ENDIF
-   fname := ::cLogPath + "service.log"
+   fname := cPath + hb_ps() + "service.log"
 
    IF !File( fname )
       nHand := FCreate( fname )
