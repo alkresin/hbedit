@@ -22,7 +22,7 @@ CLASS LLM_Service
    CLASS VAR aSkills      SHARED INIT {}
 
    DATA id         INIT ""
-   DATA cSystem
+   DATA cSystem    INIT ""
    DATA aHistory   INIT {}
 
    DATA  cUrl
@@ -90,7 +90,7 @@ METHOD SetSystemPrompt( cText ) CLASS LLM_Service
 
 METHOD AddTools() CLASS LLM_Service
 
-   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson
+   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson, s := "", aTool, cParams, oParam
 
    IF Empty( ::aTools )
       IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
@@ -102,29 +102,45 @@ METHOD AddTools() CLASS LLM_Service
       FOR i := 1 TO Len( arr )
          IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i,1] ) ) .AND. ;
             ( nPos1 := At( "/*", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( "*/", cBuff, nPos1 ) ) > 0
-            hb_jsonDecode( AllTrim( Substr( cBuff, nPos1 + 2, nPos1 - nPos1 - 2 ) ), @arrJson )
-            IF !Empty( arrJson )
-               AAdd( ::aTools, arrJson, cPath + hb_ps() + arr[i,1] )
+            cBuff := AllTrim( StrTran( StrTran( Substr( cBuff, nPos1+2, nPos2-nPos1-2 ), Chr(10), "" ), Chr(13), "" ) )
+            hb_jsonDecode( cBuff, @arrJson )
+            IF !Empty( arrJson ) .AND. hb_hHasKey( arrJson, "name" ) .AND. hb_hHasKey( arrJson, "description" )
+               AAdd( ::aTools, { arrJson, cPath + hb_ps() + arr[i,1] } )
             ENDIF
          ENDIF
       NEXT
    ENDIF
 
-   FOR i := 1 TO Len( ::aTools )
+   FOR EACH aTool IN ::aTools
+      s += "- " + aTool[1]["name"] + ": " + aTool[1]["description"] + Chr(10)
+      IF hb_hHasKey( aTool[1], "parameters" )
+         cParams := ""
+         FOR EACH oParam IN aTool[1]["parameters"]["properties"]
+            cParams += "    * " + oParam:__enumkey + " (" + oParam["type"] + "): " + oParam["description"] + Chr(10)
+         NEXT
+         IF !Empty( cParams )
+            s += "  Parameters:" + Chr(10) + cParams
+         ENDIF
+      ENDIF
    NEXT
 
-   RETURN Nil
+   IF !Empty( s )
+      s := "Available tools:" + Chr(10) + s
+      ::cSystem += s
+   ENDIF
+
+   RETURN s
 
 METHOD AddSkills() CLASS LLM_Service
 
-   LOCAL cPath
+   LOCAL cPath, s := ""
 
    IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + ::\cSkillsPath ) )
+      !hb_DirExists( cPath := ( hb_dirBase() + ::cSkillsPath ) )
       RETURN Nil
    ENDIF
 
-   RETURN Nil
+   RETURN s
 
 METHOD ClearContext() CLASS LLM_Service
 
@@ -166,40 +182,40 @@ METHOD Log( cText, cTitle ) CLASS LLM_Service
  */
 CLASS LLM_OpenAI INHERIT LLM_Service
 
-   METHOD New( aSect )
-   METHOD Ask( cModel, cTask )
+   METHOD New( pOptions )
+   METHOD Send( cModel, cTask )
 
 ENDCLASS
 
-METHOD New( aSect ) CLASS LLM_OpenAI
+METHOD New( pOptions ) CLASS LLM_OpenAI
 
    LOCAL cTmp
 
    ::Super:New()
 
    ::cEndPoint := "v1/chat/completions"
-   IF hb_hHaskey( aSect, cTmp := "id" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "id" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::id := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "key" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "key" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::key := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "url" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "url" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cUrl := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "endpoint" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "endpoint" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cEndPoint := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "model_def" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "model_def" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cModelDef := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "sertificat" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "sertificat" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cSertif := cTmp
    ENDIF
 
    RETURN Self
 
-METHOD Ask( cModel, cTask ) CLASS LLM_OpenAI
+METHOD Send( cModel, cTask ) CLASS LLM_OpenAI
 
    LOCAL cContent, cCmd
 
@@ -226,33 +242,33 @@ CLASS LLM_Llama INHERIT LLM_OpenAI
    DATA leto_user, leto_pass
    DATA leto_path
 
-   METHOD Ask( cModel, cTask )
+   METHOD Send( cModel, cTask )
 #endif
 
-   METHOD New( aSect )
+   METHOD New( pOptions )
 
 ENDCLASS
 
-METHOD New( aSect ) CLASS LLM_Llama
+METHOD New( pOptions ) CLASS LLM_Llama
 
    LOCAL cTmp
 
    ::id := "llama"
    ::cUrl := "http://127.0.0.1:8080/"
    ::cModelDef := "local"
-   ::Super:New( aSect )
+   ::Super:New( pOptions )
 
 #ifdef _LETO
-   IF hb_hHaskey( aSect, cTmp := "address" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "address" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_addr := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "user" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "user" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_user := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "pass" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "pass" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_pass := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "path" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "path" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       IF !( Right( cTmp,1 ) $ "/\" )
          cTmp += '/'
       ENDIF
@@ -263,12 +279,12 @@ METHOD New( aSect ) CLASS LLM_Llama
    RETURN Self
 
 #ifdef _LETO
-METHOD Ask( cModel, cTask ) CLASS LLM_Llama
+METHOD Send( cModel, cTask ) CLASS LLM_Llama
 
    LOCAL pArr, cCmd, cContent, cReason, arr, lRes, cFile
 
    IF Empty( ::leto_addr )
-      RETURN ::Super:Ask( cModel, cTask )
+      RETURN ::Super:Send( cModel, cTask )
 
    ELSEIF leto_Connect( ::leto_addr, ::leto_user, ::leto_pass ) > 0
       cContent := ::SetQuery( ::cModelDef, cTask )
@@ -299,30 +315,30 @@ CLASS LLM_Gigachat INHERIT LLM_OpenAI
    DATA cUrlGetToken   INIT "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
    DATA authkey
 
-   METHOD New( aSect )
-   METHOD Ask( cModel, cTask )
+   METHOD New( pOptions )
+   METHOD Send( cModel, cTask )
 
 ENDCLASS
 
-METHOD New( aSect ) CLASS LLM_Gigachat
+METHOD New( pOptions ) CLASS LLM_Gigachat
 
    LOCAL cTmp
 
    ::id := "gigachat"
    ::cModelDef := "Gigachat-2"
    ::cUrl := "https://api.giga.chat/"
-   ::Super:New( aSect )
+   ::Super:New( pOptions )
 
-   IF hb_hHaskey( aSect, cTmp := "authkey" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "authkey" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::authkey := cTmp
    ENDIF
-   IF hb_hHaskey( aSect, cTmp := "url_gettoken" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "url_gettoken" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cUrlGetToken := cTmp
    ENDIF
 
    RETURN Self
 
-METHOD Ask( cModel, cTask ) CLASS LLM_Gigachat
+METHOD Send( cModel, cTask ) CLASS LLM_Gigachat
 
    LOCAL cCmd, cResult, pArr
 
@@ -343,4 +359,4 @@ METHOD Ask( cModel, cTask ) CLASS LLM_Gigachat
       ENDIF
    ENDIF
 
-   RETURN ::Super:Ask( cModel, cTask )
+   RETURN ::Super:Send( cModel, cTask )

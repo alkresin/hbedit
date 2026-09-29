@@ -1,24 +1,18 @@
+/*
+ * Simple AI Agent
+ * HbEdit plugin
+ *
+ * Copyright 2026 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
+ */
 
-#define K_ENTER      13
-#define K_ESC        27
-#define K_CTRL_TAB  404
-#define K_SH_TAB    271
-#define K_F1         28
-#define K_F2         -1
-#define K_F3         -2
-#define K_F5         -4
-#define K_F6         -5
-#define K_F9         -8
-#define K_F10        -9
-#define K_PGDN        3
+#include "inkey.ch"
 
 DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
 
 STATIC oClient, cPlugPath
 STATIC oService
 STATIC cPathPrompt := "prompts"
-STATIC cPathTool   := "tools"
-STATIC cPathSkill  := "skills"
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
@@ -27,9 +21,16 @@ FUNCTION plug_aiagent( oEdit, cPath )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       DevPos( y, o:x1 )
-      DevOut( "AI Agent   F3-Ask  F5-New dialog  " + ;
-         Iif( Empty( oService:aHistory ), "F6-System prompt", Space(16) ) )
+      DevOut( "AI Agent   F3:Ask  Ctrl-N:New dialog  " + ;
+         Iif( Empty( oService:aHistory ), "Ctrl-S:System prompt  Ctrl-T:Add tools", "" ) )
       DevPos( nRow, nCol )
+      RETURN Nil
+   }
+   LOCAL bEndEdit := {||
+      IF oClient:lClose
+         //LLM_Service():cSystem := ""
+         LLM_Service():ClearContext()
+      ENDIF
       RETURN Nil
    }
 
@@ -40,6 +41,9 @@ FUNCTION plug_aiagent( oEdit, cPath )
    ENDIF
    IF !hb_hHaskey( FilePane():hMisc,"aiagent_class" )
       FilePane():hMisc["aiagent_class"] := hb_hrbLoad( cPath + cHrb )
+      LLM_Service():cToolsPath := "plugins" + hb_ps() + "ai_tools"
+      LLM_Service():cSkillsPath := "plugins" + hb_ps() + "ai_skills"
+      LLM_Service():cLogPath := "plugins" + hb_ps() + "ai_log"
       ag_RdIni()
    ENDIF
 
@@ -47,6 +51,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
    oClient:cFileName := cName
    oClient:bWriteTopPane := bWPane
    oClient:bOnKey := {|o,n| ag_OnKey(o,n) }
+   oClient:bEndEdit := bEndEdit
    oClient:cp := "UTF8"
    hb_cdpSelect( oClient:cp )
    oClient:lUtf8 := .T.
@@ -62,8 +67,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
    ENDIF
    oService := LLM_Service():aList[i]
 
-   ag_Textout( oService:cUrl )
-   ag_Ask()
+   ag_Textout( oService:id + ": " + oService:cUrl )
 
    RETURN Nil
 
@@ -74,15 +78,21 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
    IF nKey == K_F3
       ag_Ask()
 
-   ELSEIF nKey == K_F5
+   ELSEIF nKey == K_CTRL_N
 
       oService:ClearContext()
       ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
 
-   ELSEIF nKey == K_F6
+   ELSEIF nKey == K_CTRL_S
 
       IF Empty( oService:aHistory )
-         ag_SystemPrompt()
+         ag_SystemPrompt( .F. )
+      ENDIF
+
+   ELSEIF nKey == K_CTRL_T
+
+      IF Empty( oService:aHistory )
+         ag_SystemPrompt( .T. )
       ENDIF
 
    ENDIF
@@ -96,7 +106,7 @@ STATIC FUNCTION ag_Ask()
    IF !Empty( cQue := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
       ag_Textout( cQue )
       ag_Textout( ">>> Wait <<<" )
-      aAnswer := oService:Ask( ,cQue )
+      aAnswer := oService:Send( ,cQue )
       IF !Empty( aAnswer )
          ag_Textout( aAnswer[1] )
       ELSE
@@ -106,12 +116,13 @@ STATIC FUNCTION ag_Ask()
 
    RETURN Nil
 
-STATIC FUNCTION ag_SystemPrompt()
+STATIC FUNCTION ag_SystemPrompt( lAddTools )
 
    LOCAL cQue
 
-   oService:AddTools()
-   oService:AddSkills()
+   IF lAddTools
+      oService:AddTools()
+   ENDIF
    IF !Empty( cQue := edi_MsgGet_ext( oService:cSystem, oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
       oService:cSystem := cQue
    ENDIF
@@ -120,13 +131,16 @@ STATIC FUNCTION ag_SystemPrompt()
 
 STATIC FUNCTION ag_Textout( cLine )
 
-   LOCAL n := Len( oClient:aText ), nf
+   LOCAL n := Len( oClient:aText ), nf := 1
 
-   n ++
-   nf := n
-   oClient:InsText( n, 1, cLine )
+   IF n == 1 .AND. Empty( oClient:aText[1] )
+      oClient:aText[1] := cLine
+   ELSE
+      n ++
+      oClient:InsText( n, 1, cLine )
+      nf := Max( 1, Row() - oClient:y1 )
+   ENDIF
 
-   nf := Max( 1, Row() - oClient:y1 )
    oClient:TextOut( nf )
 
    RETURN Nil
@@ -147,14 +161,11 @@ STATIC FUNCTION ag_RdIni()
       FOR nSect := 1 TO Len( aIni )
          IF aIni[nSect] == "MAIN" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
             hb_hCaseMatch( aSect, .F. )
-            IF hb_hHaskey( aSect, cTmp := "path_prompts" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-               cPathPrompt := Lower( cTmp )
-            ENDIF
             IF hb_hHaskey( aSect, cTmp := "path_tools" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-               cPathTool := Lower( cTmp )
+               LLM_Service():cToolsPath := Lower( cTmp )
             ENDIF
             IF hb_hHaskey( aSect, cTmp := "path_skills" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-               cPathSkill := Lower( cTmp )
+               LLM_Service():cSkillsPath := Lower( cTmp )
             ENDIF
 
          ELSEIF Left(aIni[nSect],6) == "OPENAI" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
@@ -175,9 +186,6 @@ STATIC FUNCTION WriteIni()
    LOCAL cEol := Chr(10)
 
    LOCAL s := "[MAIN]" + cEol + ;
-      "path_prompts=" + cPathPrompt + cEol + ;
-      "path_tools=" + cPathTool + cEol + ;
-      "path_skills=" + cPathSkill + cEol + ;
       cEol + ;
       "[OPENAI]" + cEol + "id=llama" + cEol
 
