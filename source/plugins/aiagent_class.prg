@@ -16,27 +16,36 @@ CLASS LLM_Service
    CLASS VAR aList SHARED INIT {}
    CLASS VAR nLogLevel   SHARED INIT 1
    CLASS VAR cLogPath    SHARED
+   CLASS VAR cPromptsPath SHARED INIT "prompts"
    CLASS VAR cToolsPath  SHARED INIT "tools"
    CLASS VAR cSkillsPath SHARED INIT "skills"
    CLASS VAR aTools      SHARED INIT {}
-   CLASS VAR aSkills      SHARED INIT {}
+   CLASS VAR aSysTools   SHARED INIT {}
+   CLASS VAR aSkills     SHARED INIT {}
 
    DATA id         INIT ""
    DATA cSystem    INIT ""
+   DATA cPrompt    INIT ""
    DATA aHistory   INIT {}
+   DATA lToolsAutoRun  INIT .F.
+   DATA lFinish    INIT .F.
 
-   DATA  cUrl
-   DATA  cEndPoint INIT ""
-   DATA  key
-   DATA  cModelDef
+   DATA cUrl
+   DATA cEndPoint INIT ""
+   DATA key
+   DATA cModelDef
 
-   DATA  cSertif
+   DATA cSertif
 
    METHOD New()
-   METHOD SetQuery( cModel, cPrompt )
+   METHOD SetQuery( cModel )
    METHOD ParseResult( cResult )
    METHOD SetSystemPrompt( cText )
+   METHOD LoadTools()
    METHOD AddTools()
+   METHOD RunTool( cToolName, pParams )
+   METHOD RunSysTool( cToolName, aParams )
+   METHOD AddEvent( cType, pOpt, cValue )
    METHOD AddSkills()
    METHOD ClearContext()
    METHOD Log( cText )
@@ -49,25 +58,28 @@ METHOD New( cId ) CLASS LLM_Service
 
    RETURN Self
 
-METHOD SetQuery( cModel, cPrompt ) CLASS LLM_Service
+METHOD SetQuery( cModel ) CLASS LLM_Service
 
    LOCAL pArr := hb_hash(), pArr1, i
 
-   pArr["model"] := cModel
+   IF !Empty( cModel )
+      pArr["model"] := cModel
+   ENDIF
 
    IF Empty( ::aHistory )
       IF !Empty( ::cSystem )
          AAdd( ::aHistory, hb_hash( "role", "system", "content", ::cSystem ) )
       ENDIF
    ENDIF
-   AAdd( ::aHistory, hb_hash( "role", "user", "content", cPrompt ) )
+   AAdd( ::aHistory, hb_hash( "role", "user", "content", ::cPrompt ) )
+   ::cPrompt := ""
    pArr["messages"] := ::aHistory
 
    RETURN hb_jsonEncode( pArr )
 
 METHOD ParseResult( cResult ) CLASS LLM_Service
 
-   LOCAL pArr, arr, cContent, cReason
+   LOCAL pArr, arr, arr1, cContent, cReason, nPos, nPos2, cToolName, aTools := {}, i
 
    ::Log( cResult, "<--" )
    hb_jsonDecode( cResult, @pArr )
@@ -75,7 +87,31 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
       cContent := arr[1]["message"]["content"]
       cReason := hb_hGetDef( arr[1]["message"], "reasoning_content", "" )
       AAdd( ::aHistory, hb_hash( "role", "assistant", "content", cContent ) )
-      RETURN { cContent, cReason }
+
+      nPos := 1
+      DO WHILE hb_At( "<tool_call", cContent, nPos ) > 0
+         nPos += 11
+         DO WHILE Substr( cContent, nPos, 1 ) == " "; nPos ++; ENDDO
+         IF Substr( cContent, nPos, 4 ) == "name"
+            DO WHILE Substr( cContent, nPos, 1 ) $ [ ="']; nPos ++; ENDDO
+            nPos2 := nPos + 1
+            DO WHILE !(Substr( cContent, nPos, 1 ) $ [ "']); nPos ++; ENDDO
+            cToolName := SubStr( cContent, nPos, nPos2-nPos )
+            nPos := hb_At( ">", cContent, nPos2 )
+            nPos ++
+            arr1 := Nil
+            hb_jsonDecode( Substr( cContent, nPos ), @arr1 )
+            AAdd( aTools, { cToolName, arr1 } )
+         ENDIF
+      ENDDO
+      IF ::lToolsAutoRun
+         FOR i := 1 TO Len( aTools )
+            ::RunTool( aTools[i,1], aTools[i,2] )
+         NEXT
+         RETURN { cContent, cReason }
+      ENDIF
+
+      RETURN { cContent, cReason, aTools }
    ENDIF
 
    RETURN Nil
@@ -88,34 +124,46 @@ METHOD SetSystemPrompt( cText ) CLASS LLM_Service
 
    RETURN Nil
 
+METHOD LoadTools() CLASS LLM_Service
+
+   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson
+   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
+      !hb_DirExists( cPath := ( hb_dirBase() + ::cToolsPath ) )
+      RETURN Nil
+   ENDIF
+
+   arr := hb_Directory( cPath + hb_ps() + "tool_*" )
+   FOR i := 1 TO Len( arr )
+      IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i,1] ) ) .AND. ;
+         ( nPos1 := At( "/*", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( "*/", cBuff, nPos1 ) ) > 0
+         cBuff := AllTrim( StrTran( StrTran( Substr( cBuff, nPos1+2, nPos2-nPos1-2 ), Chr(10), "" ), Chr(13), "" ) )
+         hb_jsonDecode( cBuff, @arrJson )
+         IF !Empty( arrJson ) .AND. hb_hHasKey( arrJson, "name" ) .AND. hb_hHasKey( arrJson, "description" )
+            AAdd( ::aTools, { arrJson["name"], arrJson, cPath + hb_ps() + arr[i,1] } )
+         ENDIF
+      ENDIF
+   NEXT
+
+   arr := hb_Directory( cPath + hb_ps() + "systool_*" )
+   FOR i := 1 TO Len( arr )
+      AAdd( ::aSysTools, { hb_fnameName(arr[i,1]), cPath + hb_ps() + arr[i,1] } )
+   NEXT
+
+   RETURN Nil
+
 METHOD AddTools() CLASS LLM_Service
 
-   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson, s := "", aTool, cParams, oParam
+   LOCAL s := "", aTool, cParams, oParam
 
    IF Empty( ::aTools )
-      IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
-         !hb_DirExists( cPath := ( hb_dirBase() + ::cToolsPath ) )
-         RETURN Nil
-      ENDIF
-
-      arr := hb_Directory( cPath + hb_ps() + "tool_*" )
-      FOR i := 1 TO Len( arr )
-         IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i,1] ) ) .AND. ;
-            ( nPos1 := At( "/*", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( "*/", cBuff, nPos1 ) ) > 0
-            cBuff := AllTrim( StrTran( StrTran( Substr( cBuff, nPos1+2, nPos2-nPos1-2 ), Chr(10), "" ), Chr(13), "" ) )
-            hb_jsonDecode( cBuff, @arrJson )
-            IF !Empty( arrJson ) .AND. hb_hHasKey( arrJson, "name" ) .AND. hb_hHasKey( arrJson, "description" )
-               AAdd( ::aTools, { arrJson, cPath + hb_ps() + arr[i,1] } )
-            ENDIF
-         ENDIF
-      NEXT
+      ::LoadTools()
    ENDIF
 
    FOR EACH aTool IN ::aTools
-      s += "- " + aTool[1]["name"] + ": " + aTool[1]["description"] + Chr(10)
-      IF hb_hHasKey( aTool[1], "parameters" )
+      s += "- " + aTool[2]["name"] + ": " + aTool[2]["description"] + Chr(10)
+      IF hb_hHasKey( aTool[2], "parameters" )
          cParams := ""
-         FOR EACH oParam IN aTool[1]["parameters"]["properties"]
+         FOR EACH oParam IN aTool[2]["parameters"]["properties"]
             cParams += "    * " + oParam:__enumkey + " (" + oParam["type"] + "): " + oParam["description"] + Chr(10)
          NEXT
          IF !Empty( cParams )
@@ -130,6 +178,57 @@ METHOD AddTools() CLASS LLM_Service
    ENDIF
 
    RETURN s
+
+METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
+
+   LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} )
+
+   IF n == 0
+      RETURN Nil
+   ENDIF
+   IF Valtype( ::aTools[n,3] ) == "C"
+      ::aTools[n,3] := hb_hrbLoad( ::aTools[n,3] )
+   ENDIF
+
+   hb_hrbDo( ::aTools[n,3], Self, pParams )
+
+   RETURN Nil
+
+METHOD RunSysTool( cToolName, aParams ) CLASS LLM_Service
+
+   LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} )
+
+   IF n == 0
+      RETURN Nil
+   ENDIF
+
+   IF Valtype( ::aSysTools[n,2] ) == "C"
+      ::aTools[n,2] := hb_hrbLoad( ::aTools[n,2] )
+   ENDIF
+
+   hb_hrbDo( ::aTools[n,2], Self, aParams )
+
+   RETURN Nil
+
+METHOD AddEvent( cType, pOpt, cValue ) CLASS LLM_Service
+
+   LOCAL x, s := '<event type="' + cType + '"'
+
+   IF !Empty( pOpt )
+      FOR EACH x IN pOpt
+         s += ' ' + x:__enumkey + '="' + x:__enumvalue + '"'
+      NEXT
+   ENDIF
+   s += '>' + Chr(10)
+
+   s += '  <time>' + hb_dtoc( Date(), "yyyy-mm-dd" ) + " " + Left( Time(),5 ) + '</time>' + Chr(10)
+   IF !Empty( cValue )
+      s += cValue + Chr(10)
+   ENDIF
+   s += '</event>'
+
+   ::cPrompt += Iif( Empty( ::cPrompt ), "", Chr(10) ) + s
+   RETURN Nil
 
 METHOD AddSkills() CLASS LLM_Service
 
@@ -185,7 +284,7 @@ METHOD Log( cText, cTitle ) CLASS LLM_Service
 CLASS LLM_OpenAI INHERIT LLM_Service
 
    METHOD New( pOptions )
-   METHOD Send( cModel, cTask )
+   METHOD Send( cModel )
 
 ENDCLASS
 
@@ -208,8 +307,8 @@ METHOD New( pOptions ) CLASS LLM_OpenAI
    IF hb_hHaskey( pOptions, cTmp := "endpoint" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cEndPoint := cTmp
    ENDIF
-   IF hb_hHaskey( pOptions, cTmp := "model_def" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-      ::cModelDef := cTmp
+   IF hb_hHaskey( pOptions, cTmp := "model_def" )
+      ::cModelDef := pOptions[ cTmp ]
    ENDIF
    IF hb_hHaskey( pOptions, cTmp := "sertificat" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::cSertif := cTmp
@@ -217,11 +316,11 @@ METHOD New( pOptions ) CLASS LLM_OpenAI
 
    RETURN Self
 
-METHOD Send( cModel, cTask ) CLASS LLM_OpenAI
+METHOD Send( cModel ) CLASS LLM_OpenAI
 
    LOCAL cContent, cCmd
 
-   cContent := ::SetQuery( Iif( Empty(cModel), ::cModelDef, cModel ), cTask )
+   cContent := ::SetQuery( Iif( Empty(cModel), ::cModelDef, cModel ) )
    hb_Memowrit( "body.json", cContent )
 
    cCmd := "curl -s " + ::cUrl + ::cEndPoint + ;
@@ -244,7 +343,7 @@ CLASS LLM_Llama INHERIT LLM_OpenAI
    DATA leto_user, leto_pass
    DATA leto_path
 
-   METHOD Send( cModel, cTask )
+   METHOD Send( cModel )
 #endif
 
    METHOD New( pOptions )
@@ -261,16 +360,16 @@ METHOD New( pOptions ) CLASS LLM_Llama
    ::Super:New( pOptions )
 
 #ifdef _LETO
-   IF hb_hHaskey( pOptions, cTmp := "address" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "leto_address" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_addr := cTmp
    ENDIF
-   IF hb_hHaskey( pOptions, cTmp := "user" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "leto_user" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_user := cTmp
    ENDIF
-   IF hb_hHaskey( pOptions, cTmp := "pass" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "leto_pass" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_pass := cTmp
    ENDIF
-   IF hb_hHaskey( pOptions, cTmp := "path" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+   IF hb_hHaskey( pOptions, cTmp := "leto_path" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       IF !( Right( cTmp,1 ) $ "/\" )
          cTmp += '/'
       ENDIF
@@ -281,15 +380,15 @@ METHOD New( pOptions ) CLASS LLM_Llama
    RETURN Self
 
 #ifdef _LETO
-METHOD Send( cModel, cTask ) CLASS LLM_Llama
+METHOD Send( cModel ) CLASS LLM_Llama
 
    LOCAL pArr, cCmd, cContent, cReason, arr, lRes, cFile
 
    IF Empty( ::leto_addr )
-      RETURN ::Super:Send( cModel, cTask )
+      RETURN ::Super:Send( cModel )
 
    ELSEIF leto_Connect( ::leto_addr, ::leto_user, ::leto_pass ) > 0
-      cContent := ::SetQuery( ::cModelDef, cTask )
+      cContent := ::SetQuery( ::cModelDef )
       cFile := ::leto_addr + ::leto_path + "body.json"
       lRes := leto_MemoWrite( cFile, cContent )
       IF !lRes
@@ -318,7 +417,7 @@ CLASS LLM_Gigachat INHERIT LLM_OpenAI
    DATA authkey
 
    METHOD New( pOptions )
-   METHOD Send( cModel, cTask )
+   METHOD Send( cModel )
 
 ENDCLASS
 
@@ -340,7 +439,7 @@ METHOD New( pOptions ) CLASS LLM_Gigachat
 
    RETURN Self
 
-METHOD Send( cModel, cTask ) CLASS LLM_Gigachat
+METHOD Send( cModel ) CLASS LLM_Gigachat
 
    LOCAL cCmd, cResult, pArr
 
@@ -361,4 +460,4 @@ METHOD Send( cModel, cTask ) CLASS LLM_Gigachat
       ENDIF
    ENDIF
 
-   RETURN ::Super:Send( cModel, cTask )
+   RETURN ::Super:Send( cModel )
