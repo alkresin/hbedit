@@ -39,15 +39,17 @@ CLASS LLM_Service
 
    METHOD New()
    METHOD SetQuery( cModel )
+   METHOD ParsePrompt( cText )
    METHOD ParseResult( cResult )
    METHOD SetSystemPrompt( cText )
    METHOD LoadTools()
    METHOD AddTools()
    METHOD RunTool( cToolName, pParams )
-   METHOD RunSysTool( cToolName, aParams )
+   METHOD RunSysTool( cToolName, pParams )
    METHOD AddEvent( cType, pOpt, cValue )
    METHOD AddSkills()
    METHOD ClearContext()
+   METHOD MainCycle( nCyclesMax, pFunc )
    METHOD Log( cText )
 
 ENDCLASS
@@ -60,7 +62,7 @@ METHOD New( cId ) CLASS LLM_Service
 
 METHOD SetQuery( cModel ) CLASS LLM_Service
 
-   LOCAL pArr := hb_hash(), pArr1, i
+   LOCAL pArr := hb_hash()
 
    IF !Empty( cModel )
       pArr["model"] := cModel
@@ -68,14 +70,41 @@ METHOD SetQuery( cModel ) CLASS LLM_Service
 
    IF Empty( ::aHistory )
       IF !Empty( ::cSystem )
-         AAdd( ::aHistory, hb_hash( "role", "system", "content", ::cSystem ) )
+         AAdd( ::aHistory, hb_hash( "role", "system", "content", ParsePrompt( ::cSystem ) ) )
       ENDIF
    ENDIF
-   AAdd( ::aHistory, hb_hash( "role", "user", "content", ::cPrompt ) )
+
+   AAdd( ::aHistory, hb_hash( "role", "user", "content", ParsePrompt( ::cPrompt ) ) )
    ::cPrompt := ""
    pArr["messages"] := ::aHistory
 
    RETURN hb_jsonEncode( pArr )
+
+METHOD ParsePrompt( cText ) CLASS LLM_Service
+
+   LOCAL nPos := 1, nPos1, nPos2, nPos3, cTool, cParams, arr1, cResult
+
+   DO WHILE ( nPos := hb_At( "<systool_", cText, nPos ) ) > 0
+      IF ( nPos2 := hb_At( ">", cText, nPos + 9 ) ) == 0
+         EXIT
+      ENDIF
+      cTool := Trim( Substr( cText, nPos+1, nPos2 - nPos - 1 ) )
+      nPos1 := nPos2 + 1
+      IF ( nPos2 := hb_At( "</systool_", cText, nPos1 ) ) == 0 .OR. ;
+         ( nPos3 := hb_At( ">", cText, nPos2 + 9 ) ) == 0
+         EXIT
+      ENDIF
+      cParams := AllTrim( Strtran( Strtran( Substr( cText,nPos1,nPos2-nPos1 ), ;
+         Chr(10), " " ), Chr(13), " " ) )
+      arr1 := Nil
+      IF !Empty( cParams )
+         hb_jsonDecode( cParams, @arr1 )
+      ENDIF
+      cResult := ::RunSysTool( cTool, arr1 )
+      cText := Left( cText, nPos-1 ) + cResult + Substr( cText, nPos3+1 )
+   ENDDO
+
+   RETURN cText
 
 METHOD ParseResult( cResult ) CLASS LLM_Service
 
@@ -194,21 +223,19 @@ METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
 
    RETURN Nil
 
-METHOD RunSysTool( cToolName, aParams ) CLASS LLM_Service
+METHOD RunSysTool( cToolName, pParams ) CLASS LLM_Service
 
-   LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} )
+   LOCAL n := Ascan( ::aSysTools, {|a|a[1] == cToolName} )
 
    IF n == 0
       RETURN Nil
    ENDIF
 
    IF Valtype( ::aSysTools[n,2] ) == "C"
-      ::aTools[n,2] := hb_hrbLoad( ::aTools[n,2] )
+      ::aSysTools[n,2] := hb_hrbLoad( ::aSysTools[n,2] )
    ENDIF
 
-   hb_hrbDo( ::aTools[n,2], Self, aParams )
-
-   RETURN Nil
+   RETURN hb_hrbDo( ::aSysTools[n,2], Self, pParams )
 
 METHOD AddEvent( cType, pOpt, cValue ) CLASS LLM_Service
 
@@ -244,6 +271,26 @@ METHOD AddSkills() CLASS LLM_Service
 METHOD ClearContext() CLASS LLM_Service
 
    ::aHistory := {}
+
+   RETURN Nil
+
+METHOD MainCycle( nCyclesMax, pFunc ) CLASS LLM_Service
+
+   LOCAL n := 0, aAns
+
+   ::lFinish := .F.
+   DO WHILE n < nCyclesMax .AND. !::lFinish
+/*
+      IF File( cFile := ( cBasePath + ::cPromptsPath + hb_ps() + cMessageFromMan ) )
+         oService:AddEvent( "message_from_man",, Memoread( cFile )  )
+      ENDIF
+*/
+      aAns := ::Send()
+      n ++
+
+   ENDDO
+
+   ::lFinish := .F.
 
    RETURN Nil
 
