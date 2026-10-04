@@ -4,6 +4,8 @@
 
 #include "hbclass.ch"
 
+STATIC cMessageFromMan := "message_from_man.txt"
+
 #ifdef _HBEDIT_PLUGIN
 #define  _LETO
 #xtranslate _RunConsoleApp([<n,...>])  => cedi_RunConsoleApp(<n>)
@@ -14,20 +16,22 @@ FUNCTION Aiagent_class
 CLASS LLM_Service
 
    CLASS VAR aList SHARED INIT {}
-   CLASS VAR nLogLevel   SHARED INIT 1
-   CLASS VAR cLogPath    SHARED
+   CLASS VAR nLogLevel    SHARED INIT 1
+   CLASS VAR cBasePath    SHARED INIT ""
+   CLASS VAR cLogPath     SHARED
    CLASS VAR cPromptsPath SHARED INIT "prompts"
-   CLASS VAR cToolsPath  SHARED INIT "tools"
-   CLASS VAR cSkillsPath SHARED INIT "skills"
-   CLASS VAR aTools      SHARED INIT {}
-   CLASS VAR aSysTools   SHARED INIT {}
-   CLASS VAR aSkills     SHARED INIT {}
+   CLASS VAR cToolsPath   SHARED INIT "tools"
+   CLASS VAR cSkillsPath  SHARED INIT "skills"
+   CLASS VAR aTools       SHARED INIT {}
+   CLASS VAR aSysTools    SHARED INIT {}
+   CLASS VAR aSkills      SHARED INIT {}
+   CLASS VAR nCyclesMax   SHARED INIT 5
 
    DATA id         INIT ""
    DATA cSystem    INIT ""
    DATA cPrompt    INIT ""
    DATA aHistory   INIT {}
-   DATA lToolsAutoRun  INIT .F.
+   DATA lToolsAutoRun  INIT .T.
    DATA lFinish    INIT .F.
 
    DATA cUrl
@@ -47,9 +51,11 @@ CLASS LLM_Service
    METHOD RunTool( cToolName, pParams )
    METHOD RunSysTool( cToolName, pParams )
    METHOD AddEvent( cType, pOpt, cValue )
+   METHOD AddMsgFromMan()
    METHOD AddSkills()
    METHOD ClearContext()
    METHOD MainCycle( nCyclesMax, pFunc )
+   METHOD SetOptions( pOptions )
    METHOD Log( cText )
 
 ENDCLASS
@@ -70,11 +76,11 @@ METHOD SetQuery( cModel ) CLASS LLM_Service
 
    IF Empty( ::aHistory )
       IF !Empty( ::cSystem )
-         AAdd( ::aHistory, hb_hash( "role", "system", "content", ParsePrompt( ::cSystem ) ) )
+         AAdd( ::aHistory, hb_hash( "role", "system", "content", ::ParsePrompt( ::cSystem ) ) )
       ENDIF
    ENDIF
 
-   AAdd( ::aHistory, hb_hash( "role", "user", "content", ParsePrompt( ::cPrompt ) ) )
+   AAdd( ::aHistory, hb_hash( "role", "user", "content", ::ParsePrompt( ::cPrompt ) ) )
    ::cPrompt := ""
    pArr["messages"] := ::aHistory
 
@@ -190,7 +196,7 @@ METHOD AddTools() CLASS LLM_Service
 
    FOR EACH aTool IN ::aTools
       s += "- " + aTool[2]["name"] + ": " + aTool[2]["description"] + Chr(10)
-      IF hb_hHasKey( aTool[2], "parameters" )
+      IF hb_hHasKey( aTool[2], "parameters" ) .AND. hb_hHasKey( aTool[2]["parameters"], "properties" )
          cParams := ""
          FOR EACH oParam IN aTool[2]["parameters"]["properties"]
             cParams += "    * " + oParam:__enumkey + " (" + oParam["type"] + "): " + oParam["description"] + Chr(10)
@@ -202,7 +208,7 @@ METHOD AddTools() CLASS LLM_Service
    NEXT
 
    IF !Empty( s )
-      s := "Available tools:" + Chr(10) + s
+      s := Chr(10) + "Available tools:" + Chr(10) + s
       ::cSystem += s
    ENDIF
 
@@ -210,13 +216,16 @@ METHOD AddTools() CLASS LLM_Service
 
 METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
 
-   LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} )
+   LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} ), acmd
 
+   _writelog( "runtool " + cToolName + " " + str(n) )
+   _writelog( hb_ValtoExp( pParams ) )
    IF n == 0
       RETURN Nil
    ENDIF
    IF Valtype( ::aTools[n,3] ) == "C"
-      ::aTools[n,3] := hb_hrbLoad( ::aTools[n,3] )
+      acmd := { Memoread( ::aTools[n,3] ), "harbour", "-n2", "-q2" }
+      ::aTools[n,3] := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
    ENDIF
 
    hb_hrbDo( ::aTools[n,3], Self, pParams )
@@ -225,17 +234,18 @@ METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
 
 METHOD RunSysTool( cToolName, pParams ) CLASS LLM_Service
 
-   LOCAL n := Ascan( ::aSysTools, {|a|a[1] == cToolName} )
+   LOCAL n := Ascan( ::aSysTools, {|a|a[1] == cToolName} ), acmd
 
    IF n == 0
       RETURN Nil
    ENDIF
 
    IF Valtype( ::aSysTools[n,2] ) == "C"
-      ::aSysTools[n,2] := hb_hrbLoad( ::aSysTools[n,2] )
+      acmd := { Memoread( ::aSysTools[n,2] ), "harbour", "-n2", "-q2" }
+      ::aSysTools[n,2] := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
    ENDIF
 
-   RETURN hb_hrbDo( ::aSysTools[n,2], Self, pParams )
+   RETURN hb_hrbRun( ::aSysTools[n,2], Self, pParams )
 
 METHOD AddEvent( cType, pOpt, cValue ) CLASS LLM_Service
 
@@ -254,7 +264,19 @@ METHOD AddEvent( cType, pOpt, cValue ) CLASS LLM_Service
    ENDIF
    s += '</event>'
 
-   ::cPrompt += Iif( Empty( ::cPrompt ), "", Chr(10) ) + s
+   ::cPrompt += ( Iif( Empty( ::cPrompt ), "", Chr(10) ) ) + s
+   RETURN Nil
+
+METHOD AddMsgFromMan() CLASS LLM_Service
+
+   LOCAL cFile
+
+   IF File( cFile := ( ::cBasePath + ::cPromptsPath + hb_ps() + cMessageFromMan ) )
+      ::AddEvent( "message_from_man",, Memoread( cFile ) )
+      _writelog( cFile )
+      FErase( cFile )
+   ENDIF
+
    RETURN Nil
 
 METHOD AddSkills() CLASS LLM_Service
@@ -279,18 +301,41 @@ METHOD MainCycle( nCyclesMax, pFunc ) CLASS LLM_Service
    LOCAL n := 0, aAns
 
    ::lFinish := .F.
-   DO WHILE n < nCyclesMax .AND. !::lFinish
-/*
-      IF File( cFile := ( cBasePath + ::cPromptsPath + hb_ps() + cMessageFromMan ) )
-         oService:AddEvent( "message_from_man",, Memoread( cFile )  )
-      ENDIF
-*/
+   DO WHILE n < ::nCyclesMax .AND. !::lFinish
+      ::AddMsgFromMan()
       aAns := ::Send()
+      IF !Empty( pFunc )
+         pFunc:exec( aAns )
+      ENDIF
       n ++
-
    ENDDO
 
    ::lFinish := .F.
+
+   RETURN Nil
+
+METHOD SetOptions( pOptions )
+
+   LOCAL cTmp
+
+   IF !Empty( pOptions )
+      IF hb_hHaskey( pOptions, cTmp := "path_prompts" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cPromptsPath := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "path_tools" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cToolsPath := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "path_skills" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cSkillsPath := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "cycles_max" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::nCyclesMax := Val( cTmp )
+      ENDIF
+   ENDIF
+   ::cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+   IF !hb_DirExists( ::cBasePath + LLM_Service():cPromptsPath )
+      ::cBasePath := hb_DirBase()
+   ENDIF
 
    RETURN Nil
 

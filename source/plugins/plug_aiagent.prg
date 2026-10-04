@@ -12,7 +12,6 @@ DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
 
 STATIC oClient, cPlugPath
 STATIC oService
-STATIC cPathPrompt := "prompts"
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
@@ -222,12 +221,7 @@ STATIC FUNCTION ag_RdIni()
       FOR nSect := 1 TO Len( aIni )
          IF aIni[nSect] == "MAIN" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
             hb_hCaseMatch( aSect, .F. )
-            IF hb_hHaskey( aSect, cTmp := "path_tools" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-               LLM_Service():cToolsPath := Lower( cTmp )
-            ENDIF
-            IF hb_hHaskey( aSect, cTmp := "path_skills" ) .AND. !Empty( cTmp := aSect[ cTmp ] )
-               LLM_Service():cSkillsPath := Lower( cTmp )
-            ENDIF
+            LLM_Service():SetOptions( aSect )
 
          ELSEIF Left(aIni[nSect],6) == "OPENAI" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
             hb_hCaseMatch( aSect, .F. )
