@@ -18,6 +18,7 @@ CLASS LLM_Service
    CLASS VAR aList SHARED INIT {}
    CLASS VAR nLogLevel    SHARED INIT 1
    CLASS VAR cBasePath    SHARED INIT ""
+   CLASS VAR cWorkPath    SHARED INIT "work"
    CLASS VAR cLogPath     SHARED
    CLASS VAR cPromptsPath SHARED INIT "prompts"
    CLASS VAR cToolsPath   SHARED INIT "tools"
@@ -54,7 +55,7 @@ CLASS LLM_Service
    METHOD AddMsgFromMan()
    METHOD AddSkills()
    METHOD ClearContext()
-   METHOD MainCycle( nCyclesMax, pFunc )
+   METHOD MainCycle( pFunc )
    METHOD SetOptions( pOptions )
    METHOD Log( cText )
 
@@ -124,13 +125,14 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
       AAdd( ::aHistory, hb_hash( "role", "assistant", "content", cContent ) )
 
       nPos := 1
-      DO WHILE hb_At( "<tool_call", cContent, nPos ) > 0
+      DO WHILE ( nPos := hb_At( "<tool_call", cContent, nPos ) ) > 0
          nPos += 11
          DO WHILE Substr( cContent, nPos, 1 ) == " "; nPos ++; ENDDO
          IF Substr( cContent, nPos, 4 ) == "name"
+            nPos += 4
             DO WHILE Substr( cContent, nPos, 1 ) $ [ ="']; nPos ++; ENDDO
             nPos2 := nPos + 1
-            DO WHILE !(Substr( cContent, nPos, 1 ) $ [ "']); nPos ++; ENDDO
+            DO WHILE !(Substr( cContent, nPos2, 1 ) $ [ "']); nPos2 ++; ENDDO
             cToolName := SubStr( cContent, nPos, nPos2-nPos )
             nPos := hb_At( ">", cContent, nPos2 )
             nPos ++
@@ -218,17 +220,16 @@ METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
 
    LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} ), acmd
 
-   _writelog( "runtool " + cToolName + " " + str(n) )
-   _writelog( hb_ValtoExp( pParams ) )
+   ::Log( "runtool " + cToolName + " " + Ltrim(Str(n)) + " " + hb_ValtoExp( pParams ) )
    IF n == 0
       RETURN Nil
    ENDIF
    IF Valtype( ::aTools[n,3] ) == "C"
       acmd := { Memoread( ::aTools[n,3] ), "harbour", "-n2", "-q2" }
-      ::aTools[n,3] := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
+      ::aTools[n,3] := { hb_compileFromBuf( hb_ArrayToParams( acmd ) ) }
    ENDIF
 
-   hb_hrbDo( ::aTools[n,3], Self, pParams )
+   hb_hrbRun( ::aTools[n,3,1], Self, pParams )
 
    RETURN Nil
 
@@ -242,10 +243,10 @@ METHOD RunSysTool( cToolName, pParams ) CLASS LLM_Service
 
    IF Valtype( ::aSysTools[n,2] ) == "C"
       acmd := { Memoread( ::aSysTools[n,2] ), "harbour", "-n2", "-q2" }
-      ::aSysTools[n,2] := hb_compileFromBuf( hb_ArrayToParams( acmd ) )
+      ::aSysTools[n,2] := { hb_compileFromBuf( hb_ArrayToParams( acmd ) ) }
    ENDIF
 
-   RETURN hb_hrbRun( ::aSysTools[n,2], Self, pParams )
+   RETURN hb_hrbRun( ::aSysTools[n,2,1], Self, pParams )
 
 METHOD AddEvent( cType, pOpt, cValue ) CLASS LLM_Service
 
@@ -273,7 +274,6 @@ METHOD AddMsgFromMan() CLASS LLM_Service
 
    IF File( cFile := ( ::cBasePath + ::cPromptsPath + hb_ps() + cMessageFromMan ) )
       ::AddEvent( "message_from_man",, Memoread( cFile ) )
-      _writelog( cFile )
       FErase( cFile )
    ENDIF
 
@@ -296,7 +296,7 @@ METHOD ClearContext() CLASS LLM_Service
 
    RETURN Nil
 
-METHOD MainCycle( nCyclesMax, pFunc ) CLASS LLM_Service
+METHOD MainCycle( pFunc ) CLASS LLM_Service
 
    LOCAL n := 0, aAns
 
@@ -319,6 +319,9 @@ METHOD SetOptions( pOptions )
    LOCAL cTmp
 
    IF !Empty( pOptions )
+      IF hb_hHaskey( pOptions, cTmp := "path_work" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cWorkPath := Lower( cTmp )
+      ENDIF
       IF hb_hHaskey( pOptions, cTmp := "path_prompts" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
          ::cPromptsPath := Lower( cTmp )
       ENDIF
