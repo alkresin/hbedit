@@ -39,6 +39,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
    ENDIF
    IF !hb_hHaskey( FilePane():hMisc,"aiagent_class" )
       FilePane():hMisc["aiagent_class"] := hb_hrbLoad( cPath + cHrb )
+      LLM_Service():cWorkPath := "plugins" + hb_ps() + "ai_work"
       LLM_Service():cPromptsPath := "plugins" + hb_ps() + "ai_prompts"
       LLM_Service():cToolsPath := "plugins" + hb_ps() + "ai_tools"
       LLM_Service():cSkillsPath := "plugins" + hb_ps() + "ai_skills"
@@ -111,7 +112,7 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
 STATIC FUNCTION ag_Menu()
 
    LOCAL aMenu := { {"Send new prompt",,,"F3"}, {"Set system prompt",,,"Ctrl-S"}, ;
-   {"Clear context",,,"Ctrl-N"}, {"Change model",,}, {"Exit",,,"F10"} }
+   {"Clear context",,,"Ctrl-N"}, {"Start cycle",,}, {"Change model",,}, {"Exit",,,"F10"} }
    LOCAL i, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
@@ -124,6 +125,9 @@ STATIC FUNCTION ag_Menu()
    ELSEIF i == 3
       oService:ClearContext()
       ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
+
+   ELSEIF i == 5
+      ag_Cycle()
 
    ELSEIF i == 4
       IF !Empty( xVal := ag_SelectModel() )
@@ -149,6 +153,16 @@ STATIC FUNCTION ag_Ask()
       ELSE
          ag_Textout( "No answer" )
       ENDIF
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION ag_Cycle()
+
+   LOCAL cPath, cPrompt
+
+   IF File( cPath := ( LLM_Service():cBasePath + LLM_Service():cPromptsPath + hb_ps() + "system.txt" ) )
+      oService:SetSystemPrompt( Memoread( cPath ) )
    ENDIF
 
    RETURN Nil
@@ -240,8 +254,7 @@ STATIC FUNCTION WriteIni()
 
    LOCAL cEol := Chr(10)
 
-   LOCAL s := "[MAIN]" + cEol + ;
-      cEol + ;
+   LOCAL s := "[MAIN]" + cEol + cEol + ;
       "[OPENAI]" + cEol + "id=llama" + cEol
 
    hb_MemoWrit( cPlugPath + "plug_aiagent.ini", s )
