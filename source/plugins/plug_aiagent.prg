@@ -10,12 +10,13 @@
 
 DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
 
+STATIC cIniFile := "plug_aiagent.ini", lSpecDir
 STATIC oClient, cPlugPath
 STATIC oService
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
-   LOCAL cHrb := "aiagent_class.hrb"
+   LOCAL cHrb := "aiagent_class.hrb", cBasePath
    LOCAL cName := "$AI Agent"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
@@ -37,15 +38,33 @@ FUNCTION plug_aiagent( oEdit, cPath )
    IF !edi_CheckCurl()
       RETURN Nil
    ENDIF
+
    IF !hb_hHaskey( FilePane():hMisc,"aiagent_class" )
       FilePane():hMisc["aiagent_class"] := hb_hrbLoad( cPath + cHrb )
-      LLM_Service():cWorkPath := "plugins" + hb_ps() + "ai_work"
-      LLM_Service():cPromptsPath := "plugins" + hb_ps() + "ai_prompts"
-      LLM_Service():cToolsPath := "plugins" + hb_ps() + "ai_tools"
-      LLM_Service():cSkillsPath := "plugins" + hb_ps() + "ai_skills"
-      LLM_Service():cLogPath := "plugins" + hb_ps() + "ai_log"
-      ag_RdIni()
    ENDIF
+
+   LLM_Service():cBasePath := cPlugPath
+   cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+   lSpecDir := .F.
+   IF !File( cBasePath + cIniFile )
+      IF edi_Alert( NameShortcut( cBasePath, 42, '~', oEdit:lUtf8 ) + ;
+         ";Do you want to use agent in this directory;and create " + ;
+         cIniFile + " here?", "No", "Yes" ) == 2
+         IF !File( cPlugPath + cIniFile )
+            WriteIni()
+         ENDIF
+         hb_vfCopyFile( cPlugPath + cIniFile, cBasePath + cIniFile )
+         LLM_Service():cBasePath := cBasePath
+         lSpecDir := .T.
+      ENDIF
+   ENDIF
+
+   LLM_Service():cWorkPath    := "ai_work"
+   LLM_Service():cPromptsPath := "ai_prompts"
+   LLM_Service():cToolsPath   := "ai_tools"
+   LLM_Service():cSkillsPath  := "ai_skills"
+   LLM_Service():cLogPath     := "ai_log"
+   ag_RdIni()
 
    IF Empty( oService := ag_SelectModel() )
       RETURN Nil
@@ -245,15 +264,13 @@ STATIC FUNCTION ag_SelectModel()
 
 STATIC FUNCTION ag_RdIni()
 
-   LOCAL cFile := "plug_aiagent.ini", hIni, aIni, aSect, nSect, cTmp
+   LOCAL hIni, aIni, aSect, nSect, cTmp
 
-   IF !File( cPlugPath + cFile )
-      WriteIni()
-   ENDIF
-
-   hIni := edi_IniRead( cPlugPath + cFile )
+   hIni := edi_IniRead( cPlugPath + cIniFile )
 
    IF !Empty( hIni )
+      LLM_Service():aList := {}
+
       hb_hCaseMatch( hIni, .F. )
       aIni := hb_hKeys( hIni )
       FOR nSect := 1 TO Len( aIni )
@@ -281,6 +298,6 @@ STATIC FUNCTION WriteIni()
    LOCAL s := "[MAIN]" + cEol + cEol + ;
       "[OPENAI]" + cEol + "id=llama" + cEol
 
-   hb_MemoWrit( cPlugPath + "plug_aiagent.ini", s )
+   hb_MemoWrit( cPlugPath + cIniFile, s )
 
    RETURN Nil

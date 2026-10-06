@@ -339,11 +339,12 @@ METHOD SetOptions( pOptions )
          ::nCyclesMax := Val( cTmp )
       ENDIF
    ENDIF
-   ::cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
-   IF !hb_DirExists( ::cBasePath + LLM_Service():cPromptsPath )
-      ::cBasePath := hb_DirBase()
+   IF Empty( ::cBasePath )
+      ::cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+      IF !hb_DirExists( ::cBasePath + LLM_Service():cPromptsPath )
+         ::cBasePath := hb_DirBase()
+      ENDIF
    ENDIF
-
    RETURN Nil
 
 METHOD Log( cText, cTitle ) CLASS LLM_Service
