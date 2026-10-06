@@ -141,12 +141,12 @@ STATIC FUNCTION ag_Menu()
 
 STATIC FUNCTION ag_Ask()
 
-   LOCAL cQue, aAnswer
+   LOCAL cPrompt, aAnswer
 
-   IF !Empty( cQue := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
-      ag_Textout( cQue )
+   IF !Empty( cPrompt := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
+      ag_Textout( cPrompt )
       ag_Textout( ">>> Wait <<<" )
-      oService:cPrompt := cQue
+      oService:cPrompt := cPrompt
       aAnswer := oService:Send()
       IF !Empty( aAnswer )
          ag_Textout( aAnswer[1] )
@@ -159,11 +159,35 @@ STATIC FUNCTION ag_Ask()
 
 STATIC FUNCTION ag_Cycle()
 
-   LOCAL cPath, cPrompt
+   LOCAL cPath, cInitPrompt, n := 0
 
    IF File( cPath := ( LLM_Service():cBasePath + LLM_Service():cPromptsPath + hb_ps() + "system.txt" ) )
       oService:SetSystemPrompt( Memoread( cPath ) )
    ENDIF
+   IF !Empty( cInitPrompt := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, ;
+      oClient:y1+10, oClient:x2-12, oClient:cp ) ) .OR. !Empty( oService:cSystem )
+
+      oService:cPrompt := cInitPrompt
+      oService:MainCycle( @cbFunc() )
+      oService:Log( "--------------" + Chr(10) )
+
+   ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
+
+   ag_Textout( "------ " + Ltrim(Str(n)) + " ------" )
+   IF !Empty( cUserPrompt )
+      ag_Textout( cUserPrompt )
+   ENDIF
+   ag_Textout( Replicate( "=", 15 ) )
+   IF !Empty( aAnswer )
+      ag_Textout( aAnswer[1] )
+   ELSE
+      ag_Textout( "Empty answer" )
+   ENDIF
+   Inkey( 1 )
 
    RETURN Nil
 

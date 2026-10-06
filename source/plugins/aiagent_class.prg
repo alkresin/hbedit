@@ -298,14 +298,18 @@ METHOD ClearContext() CLASS LLM_Service
 
 METHOD MainCycle( pFunc ) CLASS LLM_Service
 
-   LOCAL n := 0, aAns
+   LOCAL n := 0, aAns, cUserPrompt := "", pArr
 
    ::lFinish := .F.
    DO WHILE n < ::nCyclesMax .AND. !::lFinish
       ::AddMsgFromMan()
       aAns := ::Send()
       IF !Empty( pFunc )
-         pFunc:exec( aAns )
+         pArr := ::aHistory[ Len(::aHistory)-1 ]
+         IF hb_hGetDef( pArr, "role", "" ) == "user"
+            cUserPrompt := hb_hGetDef( pArr, "content", "" )
+         ENDIF
+         pFunc:exec( cUserPrompt, aAns, n )
       ENDIF
       n ++
    ENDDO
@@ -413,7 +417,7 @@ METHOD New( pOptions ) CLASS LLM_OpenAI
 
 METHOD Send( cModel ) CLASS LLM_OpenAI
 
-   LOCAL cContent, cCmd
+   LOCAL cContent, cCmd, cResult
 
    cContent := ::SetQuery( Iif( Empty(cModel), ::cModelDef, cModel ) )
    hb_Memowrit( "body.json", cContent )
@@ -424,10 +428,10 @@ METHOD Send( cModel ) CLASS LLM_OpenAI
       ' -H "Content-Type: application/json" -H "Accept: application/json" -d @body.json'
    ::Log( cCmd, "-->" )
    ::Log( "body.json: " + cContent )
-   _RunConsoleApp( cCmd,, @cContent )
+   _RunConsoleApp( cCmd,, @cResult )
    FErase( "body.json" )
 
-   RETURN ::ParseResult( cContent )
+   RETURN ::ParseResult( cResult )
 
 /*
  */
