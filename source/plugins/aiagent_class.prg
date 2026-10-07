@@ -17,12 +17,14 @@ CLASS LLM_Service
 
    CLASS VAR aList SHARED INIT {}
    CLASS VAR nLogLevel    SHARED INIT 1
+   CLASS VAR cIniName     SHARED INIT "aiagent.ini"
+   CLASS VAR cProjPath    SHARED INIT ""
    CLASS VAR cBasePath    SHARED INIT ""
-   CLASS VAR cWorkPath    SHARED INIT "work"
-   CLASS VAR cLogPath     SHARED
-   CLASS VAR cPromptsPath SHARED INIT "prompts"
-   CLASS VAR cToolsPath   SHARED INIT "tools"
-   CLASS VAR cSkillsPath  SHARED INIT "skills"
+   CLASS VAR cWorkDir     SHARED INIT "work"
+   CLASS VAR cLogDir      SHARED INIT "log"
+   CLASS VAR cPromptsDir  SHARED INIT "prompts"
+   CLASS VAR cToolsDir    SHARED INIT "tools"
+   CLASS VAR cSkillsDir   SHARED INIT "skills"
    CLASS VAR aTools       SHARED INIT {}
    CLASS VAR aSysTools    SHARED INIT {}
    CLASS VAR aSkills      SHARED INIT {}
@@ -43,12 +45,13 @@ CLASS LLM_Service
    DATA cSertif
 
    METHOD New()
+   METHOD Init( pOptions )
    METHOD SetQuery( cModel )
    METHOD ParsePrompt( cText )
    METHOD ParseResult( cResult )
-   METHOD SetSystemPrompt( cText )
-   METHOD LoadTools()
-   METHOD AddTools()
+   METHOD SetSystemPrompt( cText, lAddTools )
+   METHOD LoadTools( arr )
+   METHOD AddTools( arr )
    METHOD RunTool( cToolName, pParams )
    METHOD RunSysTool( cToolName, pParams )
    METHOD AddEvent( cType, pOpt, cValue )
@@ -56,7 +59,6 @@ CLASS LLM_Service
    METHOD AddSkills()
    METHOD ClearContext()
    METHOD MainCycle( pFunc )
-   METHOD SetOptions( pOptions )
    METHOD Log( cText )
 
 ENDCLASS
@@ -66,6 +68,53 @@ METHOD New( cId ) CLASS LLM_Service
    AAdd( ::aList, Self )
 
    RETURN Self
+
+METHOD Init( pOptions )
+
+   LOCAL cTmp, cPath, arr, i
+
+   ::aList := {}
+   ::aTools := {}
+   ::aSysTools := {}
+
+   IF Empty( ::cBasePath )
+      ::cBasePath := hb_dirBase()
+   ENDIF
+   IF Empty( ::cProjPath )
+      ::cProjPath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+      IF !File( ::cProjPath + ::cIniName )
+         ::cProjPath := ::cBasePath
+      ENDIF
+   ENDIF
+
+   IF !Empty( pOptions )
+      IF hb_hHaskey( pOptions, cTmp := "path_work" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cWorkDir := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "path_prompts" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cPromptsDir := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "path_tools" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cToolsDir := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "path_skills" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::cSkillsDir := Lower( cTmp )
+      ENDIF
+      IF hb_hHaskey( pOptions, cTmp := "cycles_max" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
+         ::nCyclesMax := Val( cTmp )
+      ENDIF
+   ENDIF
+
+   IF hb_DirExists( cPath := ( ::cProjPath + ::cToolsDir ) ) .OR. ;
+      hb_DirExists( cPath := ( ::cBasePath + ::cToolsDir ) )
+      arr := hb_Directory( cPath + hb_ps() + "systool_*" )
+      FOR i := 1 TO Len( arr )
+         AAdd( ::aSysTools, { hb_fnameName(arr[i,1]), cPath + hb_ps() + arr[i,1] } )
+      NEXT
+
+   ENDIF
+
+   RETURN Nil
 
 METHOD SetQuery( cModel ) CLASS LLM_Service
 
@@ -153,47 +202,49 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
 
    RETURN Nil
 
-METHOD SetSystemPrompt( cText ) CLASS LLM_Service
+METHOD SetSystemPrompt( cText, lAddTools ) CLASS LLM_Service
 
    ::cSystem := Iif( Empty(cText), "", cText )
-   ::AddTools()
-   ::AddSkills()
+   IF ValType( lAddTools ) == "L" .AND. lAddTools
+      ::cSystem += ::AddTools()
+   ENDIF
 
    RETURN Nil
 
-METHOD LoadTools() CLASS LLM_Service
+METHOD LoadTools( arr ) CLASS LLM_Service
 
-   LOCAL cPath, arr, i, cBuff, nPos1, nPos2, arrJson
-   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + ::cToolsPath ) )
+   LOCAL cPath, i, cBuff, nPos1, nPos2, arrJson
+
+   IF !hb_DirExists( cPath := ( ::cProjPath + ::cToolsDir ) ) .AND. ;
+      !hb_DirExists( cPath := ( ::cBasePath + ::cToolsDir ) )
       RETURN Nil
    ENDIF
 
-   arr := hb_Directory( cPath + hb_ps() + "tool_*" )
+   IF Empty( arr )
+      arr := hb_Directory( cPath + hb_ps() + "tool_*" )
+      FOR i := 1 TO Len( arr )
+         arr[i] := arr[i,1]
+      NEXT
+   ENDIF
    FOR i := 1 TO Len( arr )
-      IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i,1] ) ) .AND. ;
+      IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i] ) ) .AND. ;
          ( nPos1 := At( "/*", cBuff ) ) > 0 .AND. ( nPos2 := hb_At( "*/", cBuff, nPos1 ) ) > 0
          cBuff := AllTrim( StrTran( StrTran( Substr( cBuff, nPos1+2, nPos2-nPos1-2 ), Chr(10), "" ), Chr(13), "" ) )
          hb_jsonDecode( cBuff, @arrJson )
          IF !Empty( arrJson ) .AND. hb_hHasKey( arrJson, "name" ) .AND. hb_hHasKey( arrJson, "description" )
-            AAdd( ::aTools, { arrJson["name"], arrJson, cPath + hb_ps() + arr[i,1] } )
+            AAdd( ::aTools, { arrJson["name"], arrJson, cPath + hb_ps() + arr[i] } )
          ENDIF
       ENDIF
    NEXT
 
-   arr := hb_Directory( cPath + hb_ps() + "systool_*" )
-   FOR i := 1 TO Len( arr )
-      AAdd( ::aSysTools, { hb_fnameName(arr[i,1]), cPath + hb_ps() + arr[i,1] } )
-   NEXT
-
    RETURN Nil
 
-METHOD AddTools() CLASS LLM_Service
+METHOD AddTools( arr ) CLASS LLM_Service
 
    LOCAL s := "", aTool, cParams, oParam
 
    IF Empty( ::aTools )
-      ::LoadTools()
+      ::LoadTools( arr )
    ENDIF
 
    FOR EACH aTool IN ::aTools
@@ -211,7 +262,6 @@ METHOD AddTools() CLASS LLM_Service
 
    IF !Empty( s )
       s := Chr(10) + "Available tools:" + Chr(10) + s
-      ::cSystem += s
    ENDIF
 
    RETURN s
@@ -272,7 +322,7 @@ METHOD AddMsgFromMan() CLASS LLM_Service
 
    LOCAL cFile
 
-   IF File( cFile := ( ::cBasePath + ::cPromptsPath + hb_ps() + cMessageFromMan ) )
+   IF File( cFile := ( ::cProjPath + ::cPromptsDir + hb_ps() + cMessageFromMan ) )
       ::AddEvent( "message_from_man",, Memoread( cFile ) )
       FErase( cFile )
    ENDIF
@@ -283,8 +333,8 @@ METHOD AddSkills() CLASS LLM_Service
 
    LOCAL cPath, s := ""
 
-   IF !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cToolsPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + ::cSkillsPath ) )
+   IF !hb_DirExists( cPath := ( ::cProjPath + ::cSkillsDir ) ) .AND. ;
+      !hb_DirExists( cPath := ( ::cBasePath + ::cSkillsDir ) )
       RETURN Nil
    ENDIF
 
@@ -318,35 +368,6 @@ METHOD MainCycle( pFunc ) CLASS LLM_Service
 
    RETURN Nil
 
-METHOD SetOptions( pOptions )
-
-   LOCAL cTmp
-
-   IF !Empty( pOptions )
-      IF hb_hHaskey( pOptions, cTmp := "path_work" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-         ::cWorkPath := Lower( cTmp )
-      ENDIF
-      IF hb_hHaskey( pOptions, cTmp := "path_prompts" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-         ::cPromptsPath := Lower( cTmp )
-      ENDIF
-      IF hb_hHaskey( pOptions, cTmp := "path_tools" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-         ::cToolsPath := Lower( cTmp )
-      ENDIF
-      IF hb_hHaskey( pOptions, cTmp := "path_skills" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-         ::cSkillsPath := Lower( cTmp )
-      ENDIF
-      IF hb_hHaskey( pOptions, cTmp := "cycles_max" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
-         ::nCyclesMax := Val( cTmp )
-      ENDIF
-   ENDIF
-   IF Empty( ::cBasePath )
-      ::cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
-      IF !hb_DirExists( ::cBasePath + LLM_Service():cPromptsPath )
-         ::cBasePath := hb_DirBase()
-      ENDIF
-   ENDIF
-   RETURN Nil
-
 METHOD Log( cText, cTitle ) CLASS LLM_Service
 
    LOCAL nHand, cPath, fname
@@ -355,15 +376,11 @@ METHOD Log( cText, cTitle ) CLASS LLM_Service
       RETURN Nil
    ENDIF
 
-   IF Empty( ::cLogPath ) .OR. ( ;
-      !hb_DirExists( cPath := ( hb_ps() + Curdir() + hb_ps() + ::cLogPath ) ) .AND. ;
-      !hb_DirExists( cPath := ( hb_dirBase() + ::cLogPath ) ) )
-      ::cLogPath := "log"
-      IF !hb_DirExists( cPath := ( hb_dirBase() + ::cLogPath ) )
-         hb_DirCreate( cPath )
-      ENDIF
+   IF !hb_DirExists( cPath := ( ::cProjPath + ::cLogDir ) ) .AND. ;
+      !hb_DirExists( cPath := ( ::cBasePath + ::cLogDir ) )
+      hb_DirCreate( cPath )
    ENDIF
-   fname := cPath + hb_ps() + "service.log"
+   fname := cPath + hb_ps() + "aiagent.log"
 
    IF !File( fname )
       nHand := FCreate( fname )

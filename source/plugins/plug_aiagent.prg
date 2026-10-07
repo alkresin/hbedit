@@ -10,13 +10,12 @@
 
 DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
 
-STATIC cIniFile := "plug_aiagent.ini", lSpecDir
 STATIC oClient, cPlugPath
 STATIC oService
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
-   LOCAL cHrb := "aiagent_class.hrb", cBasePath
+   LOCAL cHrb := "aiagent_class.hrb", cProjPath
    LOCAL cName := "$AI Agent"
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
@@ -43,28 +42,27 @@ FUNCTION plug_aiagent( oEdit, cPath )
       FilePane():hMisc["aiagent_class"] := hb_hrbLoad( cPath + cHrb )
    ENDIF
 
-   LLM_Service():cBasePath := cPlugPath
-   cBasePath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
-   lSpecDir := .F.
-   IF !File( cBasePath + cIniFile )
-      IF edi_Alert( NameShortcut( cBasePath, 42, '~', oEdit:lUtf8 ) + ;
+   LLM_Service():cIniFile := "plug_aiagent.ini"
+   LLM_Service():cProjPath := LLM_Service():cBasePath := cPlugPath
+   cProjPath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+   IF !File( cProjPath + LLM_Service():cIniFile )
+      IF edi_Alert( NameShortcut( cProjPath, 42, '~', oEdit:lUtf8 ) + ;
          ";Do you want to use agent in this directory;and create " + ;
-         cIniFile + " here?", "No", "Yes" ) == 2
-         IF !File( cPlugPath + cIniFile )
-            WriteIni()
+         LLM_Service():cIniFile + " here?", "No", "Yes" ) == 2
+         IF !File( cPlugPath + LLM_Service():cIniFile )
+            WriteIni( cPlugPath + LLM_Service():cIniFile )
          ENDIF
-         hb_vfCopyFile( cPlugPath + cIniFile, cBasePath + cIniFile )
-         LLM_Service():cBasePath := cBasePath
-         lSpecDir := .T.
+         hb_vfCopyFile( cPlugPath + LLM_Service():cIniFile, cProjPath + LLM_Service():cIniFile )
+         LLM_Service():cProjPath := cProjPath
       ENDIF
    ENDIF
 
-   LLM_Service():cWorkPath    := "ai_work"
-   LLM_Service():cPromptsPath := "ai_prompts"
-   LLM_Service():cToolsPath   := "ai_tools"
-   LLM_Service():cSkillsPath  := "ai_skills"
-   LLM_Service():cLogPath     := "ai_log"
-   ag_RdIni()
+   LLM_Service():cWorkDir    := "ai_work"
+   LLM_Service():cPromptsDir := "ai_prompts"
+   LLM_Service():cToolsDir   := "ai_tools"
+   LLM_Service():cSkillsDir  := "ai_skills"
+   LLM_Service():cLogDir     := "ai_log"
+   ag_RdIni( LLM_Service():cProjPath + LLM_Service():cIniFile )
 
    IF Empty( oService := ag_SelectModel() )
       RETURN Nil
@@ -180,7 +178,7 @@ STATIC FUNCTION ag_Cycle()
 
    LOCAL cPath, cInitPrompt, n := 0
 
-   IF File( cPath := ( LLM_Service():cBasePath + LLM_Service():cPromptsPath + hb_ps() + "system.txt" ) )
+   IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "system.txt" ) )
       oService:SetSystemPrompt( Memoread( cPath ) )
    ENDIF
    IF !Empty( cInitPrompt := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, ;
@@ -262,23 +260,21 @@ STATIC FUNCTION ag_SelectModel()
 
    RETURN oNew
 
-STATIC FUNCTION ag_RdIni()
+STATIC FUNCTION ag_RdIni( cIni )
 
    LOCAL hIni, aIni, aSect, nSect, cTmp
 
-   hIni := edi_IniRead( cPlugPath + cIniFile )
+   hIni := edi_IniRead( cIni )
 
    IF !Empty( hIni )
-      LLM_Service():aList := {}
-
       hb_hCaseMatch( hIni, .F. )
       aIni := hb_hKeys( hIni )
+      IF hb_hHaskey( hIni, cTmp := "MAIN" ) .AND. !Empty( aSect := hIni[ cTmp ] )
+         hb_hCaseMatch( aSect, .F. )
+         LLM_Service():Init( aSect )
+      ENDIF
       FOR nSect := 1 TO Len( aIni )
-         IF aIni[nSect] == "MAIN" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
-            hb_hCaseMatch( aSect, .F. )
-            LLM_Service():SetOptions( aSect )
-
-         ELSEIF Left(aIni[nSect],6) == "OPENAI" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
+         IF Left(aIni[nSect],6) == "OPENAI" .AND. !Empty( aSect := hIni[ aIni[nSect] ] )
             hb_hCaseMatch( aSect, .F. )
             LLM_Llama():New( aSect )
 
@@ -291,13 +287,13 @@ STATIC FUNCTION ag_RdIni()
    ENDIF
    RETURN Nil
 
-STATIC FUNCTION WriteIni()
+STATIC FUNCTION WriteIni( cIni )
 
    LOCAL cEol := Chr(10)
 
    LOCAL s := "[MAIN]" + cEol + cEol + ;
       "[OPENAI]" + cEol + "id=llama" + cEol
 
-   hb_MemoWrit( cPlugPath + cIniFile, s )
+   hb_MemoWrit( cIni, s )
 
    RETURN Nil
