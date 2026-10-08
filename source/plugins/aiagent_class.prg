@@ -17,7 +17,7 @@ CLASS LLM_Service
 
    CLASS VAR aList SHARED INIT {}
    CLASS VAR nLogLevel    SHARED INIT 1
-   CLASS VAR cIniName     SHARED INIT "aiagent.ini"
+   CLASS VAR cIniFile     SHARED INIT "aiagent.ini"
    CLASS VAR cProjPath    SHARED INIT ""
    CLASS VAR cBasePath    SHARED INIT ""
    CLASS VAR cWorkDir     SHARED INIT "work"
@@ -28,7 +28,7 @@ CLASS LLM_Service
    CLASS VAR aTools       SHARED INIT {}
    CLASS VAR aSysTools    SHARED INIT {}
    CLASS VAR aSkills      SHARED INIT {}
-   CLASS VAR nCyclesMax   SHARED INIT 5
+   CLASS VAR nCyclesMax   SHARED INIT 7
 
    DATA id         INIT ""
    DATA cSystem    INIT ""
@@ -270,8 +270,9 @@ METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
 
    LOCAL n := Ascan( ::aTools, {|a|a[1] == cToolName} ), acmd
 
-   ::Log( "runtool " + cToolName + " " + Ltrim(Str(n)) + " " + hb_ValtoExp( pParams ) )
+   ::Log( "  runtool " + cToolName + " " + Ltrim(Str(n)) + " " + hb_ValtoExp( pParams ) )
    IF n == 0
+      ::Log( "    " + str(len(::aTools)) )
       RETURN Nil
    ENDIF
    IF Valtype( ::aTools[n,3] ) == "C"
@@ -348,12 +349,16 @@ METHOD ClearContext() CLASS LLM_Service
 
 METHOD MainCycle( pFunc ) CLASS LLM_Service
 
-   LOCAL n := 0, aAns, cUserPrompt := "", pArr
+   LOCAL n := 1, aAns, cUserPrompt := "", pArr
 
    ::lFinish := .F.
+   ::aHistory := {}
    DO WHILE n < ::nCyclesMax .AND. !::lFinish
       ::AddMsgFromMan()
       aAns := ::Send()
+      IF Empty( aAns )
+         EXIT
+      ENDIF
       IF !Empty( pFunc )
          pArr := ::aHistory[ Len(::aHistory)-1 ]
          IF hb_hGetDef( pArr, "role", "" ) == "user"
@@ -518,6 +523,7 @@ METHOD Send( cModel ) CLASS LLM_Llama
       ::Log( "body.json: " + cContent )
       cContent := leto_RunSync( cCmd )
       leto_FErase( cFile )
+      leto_Disconnect()
 
       RETURN ::ParseResult( cContent )
    ENDIF

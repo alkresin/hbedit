@@ -9,6 +9,7 @@
 #include "inkey.ch"
 
 DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
+DYNAMIC HWINDOW, HWG_PROCESSMESSAGE
 
 STATIC oClient, cPlugPath
 STATIC oService
@@ -42,26 +43,39 @@ FUNCTION plug_aiagent( oEdit, cPath )
       FilePane():hMisc["aiagent_class"] := hb_hrbLoad( cPath + cHrb )
    ENDIF
 
-   LLM_Service():cIniFile := "plug_aiagent.ini"
-   LLM_Service():cProjPath := LLM_Service():cBasePath := cPlugPath
-   cProjPath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
-   IF !File( cProjPath + LLM_Service():cIniFile )
-      IF edi_Alert( NameShortcut( cProjPath, 42, '~', oEdit:lUtf8 ) + ;
-         ";Do you want to use agent in this directory;and create " + ;
-         LLM_Service():cIniFile + " here?", "No", "Yes" ) == 2
-         IF !File( cPlugPath + LLM_Service():cIniFile )
-            WriteIni( cPlugPath + LLM_Service():cIniFile )
-         ENDIF
-         hb_vfCopyFile( cPlugPath + LLM_Service():cIniFile, cProjPath + LLM_Service():cIniFile )
-         LLM_Service():cProjPath := cProjPath
-      ENDIF
-   ENDIF
-
    LLM_Service():cWorkDir    := "ai_work"
    LLM_Service():cPromptsDir := "ai_prompts"
    LLM_Service():cToolsDir   := "ai_tools"
    LLM_Service():cSkillsDir  := "ai_skills"
    LLM_Service():cLogDir     := "ai_log"
+
+   LLM_Service():cIniFile := "plug_aiagent.ini"
+   LLM_Service():cProjPath := LLM_Service():cBasePath := cPlugPath
+   cProjPath := Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps()
+   IF File( cProjPath + LLM_Service():cIniFile )
+      LLM_Service():cProjPath := cProjPath
+   ELSE
+      IF edi_Alert( NameShortcut( cProjPath, 42, '~', oEdit:lUtf8 ) + ;
+         ";Do you want to use agent in this directory;and create " + ;
+         LLM_Service():cIniFile + " here?", "No", "Yes" ) == 2
+
+         LLM_Service():cProjPath := cProjPath
+         IF !File( cPlugPath + LLM_Service():cIniFile )
+            WriteIni( cPlugPath + LLM_Service():cIniFile )
+         ENDIF
+         hb_vfCopyFile( cPlugPath + LLM_Service():cIniFile, cProjPath + LLM_Service():cIniFile )
+         IF !hb_dirExists( cProjPath + LLM_Service():cLogDir )
+            MakeDir( cProjPath + LLM_Service():cLogDir )
+         ENDIF
+         IF !hb_dirExists( cProjPath + LLM_Service():cWorkDir )
+            MakeDir( cProjPath + LLM_Service():cWorkDir )
+         ENDIF
+         IF !hb_dirExists( cProjPath + LLM_Service():cPromptsDir )
+            MakeDir( cProjPath + LLM_Service():cPromptsDir )
+         ENDIF
+      ENDIF
+   ENDIF
+
    ag_RdIni( LLM_Service():cProjPath + LLM_Service():cIniFile )
 
    IF Empty( oService := ag_SelectModel() )
@@ -94,7 +108,7 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
    IF nKey == K_F3
       ag_Ask()
 
-   ELSEIF nKey == K_F9
+   ELSEIF nKey == K_F2
 
       ag_Menu()
       RETURN -1
@@ -128,25 +142,25 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION ag_Menu()
 
-   LOCAL aMenu := { {"Send new prompt",,,"F3"}, {"Set system prompt",,,"Ctrl-S"}, ;
-   {"Clear context",,,"Ctrl-N"}, {"Start cycle",,}, {"Change model",,}, {"Exit",,,"F10"} }
+   LOCAL aMenu := { {"Run cycle",,}, {"Send new prompt",,,"F3"}, {"Set system prompt",,,"Ctrl-S"}, ;
+   {"Clear context",,,"Ctrl-N"}, {"Change model",,}, {"Exit",,,"F10"} }
    LOCAL i, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
    IF i == 1
-      ag_Ask()
+      ag_Cycle()
 
    ELSEIF i == 2
-      ag_SystemPrompt( .F. )
+      ag_Ask()
 
    ELSEIF i == 3
+      ag_SystemPrompt( .F. )
+
+   ELSEIF i == 4
       oService:ClearContext()
       ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
 
    ELSEIF i == 5
-      ag_Cycle()
-
-   ELSEIF i == 4
       IF !Empty( xVal := ag_SelectModel() )
          oService := xVal
          ag_Textout( Chr(10) + oService:id + ": " + oService:cUrl )
@@ -158,13 +172,24 @@ STATIC FUNCTION ag_Menu()
 
 STATIC FUNCTION ag_Ask()
 
-   LOCAL cPrompt, aAnswer
+   LOCAL cPrompt := "", aAnswer, cPath
 
-   IF !Empty( cPrompt := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
-      ag_Textout( cPrompt )
-      ag_Textout( ">>> Wait <<<" )
+   IF Empty( oService:aHistory )
+      IF File( cPath :=  ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + ;
+         hb_ps() + "tick_init_prompt.txt" ) )
+         cPrompt := Memoread( cPath )
+      ENDIF
+   ELSE
+      cPrompt := oService:cPrompt
+   ENDIF
+   IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
+      ag_Textout( "------ Prompt ------" )
+      ag_Textout( oService:ParsePrompt( cPrompt ) )
+      ag_Textout( "------ Answer ------" )
+      edi_Wait( "Wait..." )
       oService:cPrompt := cPrompt
       aAnswer := oService:Send()
+      edi_Wait()
       IF !Empty( aAnswer )
          ag_Textout( aAnswer[1] )
       ELSE
@@ -176,16 +201,22 @@ STATIC FUNCTION ag_Ask()
 
 STATIC FUNCTION ag_Cycle()
 
-   LOCAL cPath, cInitPrompt, n := 0
+   LOCAL cPath, cInitPrompt := "", n := 0
 
    IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "system.txt" ) )
       oService:SetSystemPrompt( Memoread( cPath ) )
    ENDIF
-   IF !Empty( cInitPrompt := edi_MsgGet_ext( "", oClient:y1+2, oClient:x1+4, ;
+   IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "tick_init_prompt.txt" ) )
+      cInitPrompt := Memoread( cPath )
+   ENDIF
+
+   IF !Empty( cInitPrompt := edi_MsgGet_ext( cInitPrompt, oClient:y1+2, oClient:x1+4, ;
       oClient:y1+10, oClient:x2-12, oClient:cp ) ) .OR. !Empty( oService:cSystem )
 
       oService:cPrompt := cInitPrompt
+      edi_Wait( "Wait (1)" )
       oService:MainCycle( @cbFunc() )
+      edi_Wait()
       oService:Log( "--------------" + Chr(10) )
 
    ENDIF
@@ -194,6 +225,7 @@ STATIC FUNCTION ag_Cycle()
 
 STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
 
+   edi_Wait()
    ag_Textout( "------ " + Ltrim(Str(n)) + " ------" )
    IF !Empty( cUserPrompt )
       ag_Textout( cUserPrompt )
@@ -204,16 +236,22 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
    ELSE
       ag_Textout( "Empty answer" )
    ENDIF
-   Inkey( 1 )
+   ag_Textout( Chr(10) )
+   cedi_Sleep( 1000 )
+   Inkey( 0.2 )
+   edi_Wait( "Wait (" + Ltrim(Str(n+2)) + ")" )
 
    RETURN Nil
 
 STATIC FUNCTION ag_SystemPrompt( lAddTools )
 
-   LOCAL cQue
+   LOCAL cQue, cPath
 
+   IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "system.txt" ) )
+      oService:SetSystemPrompt( Memoread( cPath ) )
+   ENDIF
    IF lAddTools
-      oService:AddTools()
+      oService:cSystem += oService:AddTools()
    ENDIF
    IF !Empty( cQue := edi_MsgGet_ext( oService:cSystem, oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
       oService:cSystem := cQue
@@ -223,17 +261,24 @@ STATIC FUNCTION ag_SystemPrompt( lAddTools )
 
 STATIC FUNCTION ag_Textout( cLine )
 
-   LOCAL n := Len( oClient:aText ), nf := 1
+   LOCAL n := Len( oClient:aText )
 
    IF n == 1 .AND. Empty( oClient:aText[1] )
       oClient:aText[1] := cLine
    ELSE
       n ++
       oClient:InsText( n, 1, cLine )
-      nf := Max( 1, Row() - oClient:y1 )
    ENDIF
 
-   oClient:TextOut( nf )
+   oClient:TextOut()
+   IF hb_isFunction( "HWINDOW" )
+      HWindow():GetMain():Refresh()
+      hwg_ProcessMessage()
+      hwg_ProcessMessage()
+      hwg_ProcessMessage()
+   ENDIF
+   cedi_Sleep( 100 )
+   Inkey( 0.1 )
 
    RETURN Nil
 
@@ -251,7 +296,7 @@ STATIC FUNCTION ag_SelectModel()
    ENDIF
 
    oNew := LLM_Service():aList[i]
-   IF !Empty( oService )
+   IF !Empty( oService ) .AND. !( oNew == oService )
       oNew:cSystem := oService:cSystem
       oNew:aHistory := oService:aHistory
       oService:aHistory := {}
