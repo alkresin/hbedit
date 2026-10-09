@@ -225,6 +225,10 @@ METHOD LoadTools( arr ) CLASS LLM_Service
       FOR i := 1 TO Len( arr )
          arr[i] := arr[i,1]
       NEXT
+   ELSE
+      FOR i := 1 TO Len( arr )
+         arr[i] := "tool_" + arr[i] + ".prg"
+      NEXT
    ENDIF
    FOR i := 1 TO Len( arr )
       IF !Empty( cBuff := MemoRead( cPath + hb_ps() + arr[i] ) ) .AND. ;
