@@ -659,7 +659,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             o:nCurrent := Len( o:aDir ) - o:nShift
          ENDIF
          IF nKey == K_RBUTTONDOWN
-            IF 'D' $ o:aDir[o:nCurrent + o:nShift,5] .AND. oPaneCurr:nPanelMod != 0
+            IF ( 'D' $ o:aDir[o:nCurrent + o:nShift,5] .AND. oPaneCurr:nPanelMod != 0 ) .OR. ;
+               o:aDir[o:nCurrent + o:nShift,1] == ".."
                RETURN -1
             ENDIF
             IF ( nPos := Ascan( o:aSelected, o:nCurrent+o:nShift ) ) == 0
