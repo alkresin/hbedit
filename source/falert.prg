@@ -115,7 +115,7 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    RETURN xRes
 
-FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly, lTopPane, lNoWrap )
+FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly, cTitle, lNoWrap )
 
    LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
    LOCAL oNew, oldc := SetColor( TEdit():cColorSel ), nRow := Row(), nCol := Col(), oldCurs := SetCursor()
@@ -169,7 +169,7 @@ FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly, lTopPane, l
    ENDIF
    SetColor( oldc )
 
-   oNew := TEdit():New( cText, "$QUE", y1, x1, y2, x2,, !Empty(lTopPane) )
+   oNew := TEdit():New( cText, Iif(!Empty(cTitle),"$"+cTitle,"$QUE"), y1, x1, y2, x2,, !Empty(cTitle) )
    oNew:lBuiltIn := .T.
    oNew:lCtrlTab := .F.
    oNew:lWrap := Empty( lNoWrap )

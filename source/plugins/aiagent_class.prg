@@ -63,7 +63,7 @@ CLASS LLM_Service
 
 ENDCLASS
 
-METHOD New( cId ) CLASS LLM_Service
+METHOD New() CLASS LLM_Service
 
    AAdd( ::aList, Self )
 
@@ -165,42 +165,57 @@ METHOD ParsePrompt( cText ) CLASS LLM_Service
 METHOD ParseResult( cResult ) CLASS LLM_Service
 
    LOCAL pArr, arr, arr1, cContent, cReason, nPos, nPos2, cToolName, aTools := {}, i
+   LOCAL pArr1, nPromptTokens, nComplTokens
 
    ::Log( cResult, "<--" )
    hb_jsonDecode( cResult, @pArr )
-   IF !Empty( pArr ) .AND. !Empty( arr := hb_hGetDef( pArr, "choices", Nil ) )
-      cContent := arr[1]["message"]["content"]
-      cReason := hb_hGetDef( arr[1]["message"], "reasoning_content", "" )
-      AAdd( ::aHistory, hb_hash( "role", "assistant", "content", cContent ) )
-
-      nPos := 1
-      DO WHILE ( nPos := hb_At( "<tool_call", cContent, nPos ) ) > 0
-         nPos += 11
-         DO WHILE Substr( cContent, nPos, 1 ) == " "; nPos ++; ENDDO
-         IF Substr( cContent, nPos, 4 ) == "name"
-            nPos += 4
-            DO WHILE Substr( cContent, nPos, 1 ) $ [ ="']; nPos ++; ENDDO
-            nPos2 := nPos + 1
-            DO WHILE !(Substr( cContent, nPos2, 1 ) $ [ "']); nPos2 ++; ENDDO
-            cToolName := SubStr( cContent, nPos, nPos2-nPos )
-            nPos := hb_At( ">", cContent, nPos2 )
-            nPos ++
-            arr1 := Nil
-            hb_jsonDecode( Substr( cContent, nPos ), @arr1 )
-            AAdd( aTools, { cToolName, arr1 } )
-         ENDIF
-      ENDDO
-      IF ::lToolsAutoRun
-         FOR i := 1 TO Len( aTools )
-            ::RunTool( aTools[i,1], aTools[i,2] )
-         NEXT
-         RETURN { cContent, cReason }
-      ENDIF
-
-      RETURN { cContent, cReason, aTools }
+   IF Empty( pArr ) .OR. Empty( arr := hb_hGetDef( pArr, "choices", Nil ) )
+      RETURN Nil
    ENDIF
 
-   RETURN Nil
+   cContent := arr[1]["message"]["content"]
+   cReason := hb_hGetDef( arr[1]["message"], "reasoning_content", "" )
+   AAdd( ::aHistory, hb_hash( "role", "assistant", "content", cContent ) )
+
+   nPos := 1
+   DO WHILE ( nPos := hb_At( "<tool_call", cContent, nPos ) ) > 0
+      nPos += 11
+      DO WHILE Substr( cContent, nPos, 1 ) == " "; nPos ++; ENDDO
+      IF Substr( cContent, nPos, 4 ) == "name"
+         nPos += 4
+         DO WHILE Substr( cContent, nPos, 1 ) $ [ ="']; nPos ++; ENDDO
+         nPos2 := nPos + 1
+         DO WHILE !(Substr( cContent, nPos2, 1 ) $ [ "']); nPos2 ++; ENDDO
+         cToolName := SubStr( cContent, nPos, nPos2-nPos )
+         nPos := hb_At( ">", cContent, nPos2 )
+         nPos ++
+         arr1 := Nil
+         hb_jsonDecode( Substr( cContent, nPos ), @arr1 )
+         AAdd( aTools, { cToolName, arr1 } )
+      ENDIF
+   ENDDO
+
+   IF !Empty( pArr1 := hb_hGetDef( pArr, "usage", Nil ) )
+      nComplTokens := pArr1["completion_tokens"]
+      nPromptTokens := pArr1["prompt_tokens"]
+      IF !File( ::cProjPath + "stat.dbf" )
+         dbCreate( ::cProjPath + "stat.dbf", { {"URL","C",32,0}, {"DT","D",8,0}, {"TM","C",8,0}, {"TOK_TO","N",7,0}, {"TOK_FROM","N",7,0} } )
+      ENDIF
+      USE (::cProjPath + "stat.dbf") NEW SHARED
+      APPEND BLANK
+      REPLACE URL WITH Left(::cUrl,32), DT WITH Date(), TM WITH Time(), ;
+         TOK_TO WITH nPromptTokens, TOK_FROM WITH nComplTokens
+      USE
+   ENDIF
+
+   IF ::lToolsAutoRun
+      FOR i := 1 TO Len( aTools )
+         ::RunTool( aTools[i,1], aTools[i,2] )
+      NEXT
+      RETURN { cContent, cReason }
+   ENDIF
+
+   RETURN { cContent, cReason, aTools }
 
 METHOD SetSystemPrompt( cText, lAddTools ) CLASS LLM_Service
 

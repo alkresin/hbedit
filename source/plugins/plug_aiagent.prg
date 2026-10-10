@@ -21,14 +21,22 @@ FUNCTION plug_aiagent( oEdit, cPath )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       DevPos( y, o:x1 )
-      DevOut( "AI Agent   F2: Menu" )
+      DevOut( "AI Agent   F2: Menu  F3: New prompt" )
 
       DevPos( nRow, nCol )
       RETURN Nil
    }
    LOCAL bEndEdit := {||
+      LOCAL i
       IF oClient:lClose
-         LLM_Service():ClearContext()
+         FOR i := 1 TO Len( LLM_Service():aList )
+            LLM_Service():aList[i]:ClearContext()
+            LLM_Service():aList[i]:cSystem := ""
+            LLM_Service():aList[i]:aHistory := {}
+            LLM_Service():aList[i] := Nil
+         NEXT
+         LLM_Service():aList := Nil
+         oService := Nil
       ENDIF
       RETURN Nil
    }
@@ -94,7 +102,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
 
    oClient:hCargo := hb_hash()
    oClient:hCargo["help"] := "AI Agent hot keys" + Chr(10) + ;
-      "  F2 - Menu" + Chr(10) + ;
+      "  F2 - Menu" + Chr(10) + "  F3 - New prompt" + Chr(10) + ;
       "  Ctrl-Tab - Switch Buffer" + Chr(10) + "  F10 - Exit" + Chr(10)
 
    ag_Textout( oService:id + ": " + oService:cUrl )
@@ -118,18 +126,6 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
       oService:ClearContext()
       ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
 
-   ELSEIF nKey == K_CTRL_S
-
-      IF Empty( oService:aHistory )
-         ag_SystemPrompt( .F. )
-      ENDIF
-
-   ELSEIF nKey == K_CTRL_T
-
-      IF Empty( oService:aHistory )
-         ag_SystemPrompt( .T. )
-      ENDIF
-
    ELSEIF nKey == K_F1
 
       mnu_Help( oClient )
@@ -142,25 +138,22 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION ag_Menu()
 
-   LOCAL aMenu := { {"Run cycle",,}, {"Send new prompt",,,"F3"}, {"Set system prompt",,,"Ctrl-S"}, ;
+   LOCAL aMenu := { {"Send new prompt",,,"F3"}, {"Run cycle",,}, ;
    {"Clear context",,,"Ctrl-N"}, {"Change model",,}, {"Exit",,,"F10"} }
    LOCAL i, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
    IF i == 1
-      ag_Cycle()
-
-   ELSEIF i == 2
       ag_Ask()
 
-   ELSEIF i == 3
-      ag_SystemPrompt( .F. )
+   ELSEIF i == 2
+      ag_Cycle()
 
-   ELSEIF i == 4
+   ELSEIF i == 3
       oService:ClearContext()
       ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
 
-   ELSEIF i == 5
+   ELSEIF i == 4
       IF !Empty( xVal := ag_SelectModel() )
          oService := xVal
          ag_Textout( Chr(10) + oService:id + ": " + oService:cUrl )
@@ -175,6 +168,7 @@ STATIC FUNCTION ag_Ask()
    LOCAL cPrompt := "", aAnswer, cPath
 
    IF Empty( oService:aHistory )
+      ag_SystemPrompt()
       IF File( cPath :=  ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + ;
          hb_ps() + "tick_init_prompt.txt" ) )
          cPrompt := Memoread( cPath )
@@ -182,7 +176,8 @@ STATIC FUNCTION ag_Ask()
    ELSE
       cPrompt := oService:cPrompt
    ENDIF
-   IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
+   IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, ;
+      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) )
       ag_Textout( "------ Prompt ------" )
       ag_Textout( oService:ParsePrompt( cPrompt ) )
       ag_Textout( "------ Answer ------" )
@@ -203,15 +198,15 @@ STATIC FUNCTION ag_Cycle()
 
    LOCAL cPath, cInitPrompt := "", n := 0
 
-   IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "system.txt" ) )
-      oService:SetSystemPrompt( Memoread( cPath ) )
+   IF Empty( oService:aHistory )
+      ag_SystemPrompt()
    ENDIF
    IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "tick_init_prompt.txt" ) )
       cInitPrompt := Memoread( cPath )
    ENDIF
 
    IF !Empty( cInitPrompt := edi_MsgGet_ext( cInitPrompt, oClient:y1+2, oClient:x1+4, ;
-      oClient:y1+10, oClient:x2-12, oClient:cp ) ) .OR. !Empty( oService:cSystem )
+      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) ) .OR. !Empty( oService:cSystem )
 
       oService:cPrompt := cInitPrompt
       edi_Wait( "Wait (1)" )
@@ -243,17 +238,15 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
 
    RETURN Nil
 
-STATIC FUNCTION ag_SystemPrompt( lAddTools )
+STATIC FUNCTION ag_SystemPrompt()
 
    LOCAL cQue, cPath
 
    IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "system.txt" ) )
       oService:SetSystemPrompt( Memoread( cPath ) )
    ENDIF
-   IF lAddTools
-      oService:cSystem += oService:AddTools()
-   ENDIF
-   IF !Empty( cQue := edi_MsgGet_ext( oService:cSystem, oClient:y1+2, oClient:x1+4, oClient:y1+10, oClient:x2-12, oClient:cp ) )
+   IF !Empty( cQue := edi_MsgGet_ext( oService:cSystem, oClient:y1+2, oClient:x1+4, ;
+      oClient:y1+10, oClient:x2-12, oClient:cp,,, "System_prompt" ) )
       oService:cSystem := cQue
    ENDIF
 
@@ -271,6 +264,7 @@ STATIC FUNCTION ag_Textout( cLine )
    ENDIF
 
    oClient:TextOut()
+   edi_Move( oClient, 71 )   // Go to end
    IF hb_isFunction( "HWINDOW" )
       HWindow():GetMain():Refresh()
       hwg_ProcessMessage()
@@ -342,3 +336,76 @@ STATIC FUNCTION WriteIni( cIni )
    hb_MemoWrit( cIni, s )
 
    RETURN Nil
+
+FUNCTION ag_GetHtml( cUrl )
+
+   LOCAL cResult
+
+   cedi_RunConsoleApp( "curl -s -L " + cUrl,, @cResult )
+
+   RETURN cResult
+
+FUNCTION ag_CleanHTML( cText )
+
+   // 1. Удаляем блоки <head>...</head>, <script>...</script> и <style>...</style>
+   //    (?is): i - игнорировать регистр, s - точка соответствует переводу строки.
+   cText := ag_regexReplace( "(?is)<head.*?>.*?</head>", cText, "", .F. )
+   cText := ag_regexReplace( "(?is)<script.*?>.*?</script>", cText, "", .F. )
+   cText := ag_regexReplace( "(?is)<style.*?>.*?</style>", cText, "", .F. )
+
+   // 2. Удаляем HTML-комментарии <!-- ? -->.
+   cText := ag_regexReplace( "(?s)<!--.*?-->", cText, "", .F. )
+
+   // 3. Удаляем <img...>
+   cText := ag_regexReplace( "(?is)<img.*?>", cText, "", .F. )
+
+   // 4. Удаляем все оставшиеся теги (включая <img>, <h1>-<h6>, <a> и т.д.).
+   //cText := ag_regexReplace( "<[^>]+>", cText, "", .F. )
+
+   // 5. Декодируем основные HTML-сущности.
+   cText := StrTran( cText, "&nbsp;", " " )
+   cText := StrTran( cText, "&amp;",  "&" )
+   cText := StrTran( cText, "&lt;",   "<" )
+   cText := StrTran( cText, "&gt;",   ">" )
+   cText := StrTran( cText, "&quot;", '"' )
+   cText := StrTran( cText, "&#39;",  "'" )
+   cText := StrTran( cText, "&apos;", "'" )
+
+   // 6. Нормализация пробелов: множественные пробелы, табы и переводы строк - в один пробел.
+   cText := ag_regexReplace( "\s+", cText, " ", .F. )
+
+   RETURN cText
+
+#define MATCH_STRING  1
+#define MATCH_START   2
+#define MATCH_END     3
+
+FUNCTION ag_regexReplace( cRegex, cString, cReplace, lCaseSensitive, lNewLine, nMaxMatches, nGetMatch )
+
+   LOCAL aMatches, aMatch
+   LOCAL cReturn
+   LOCAL nOffSet := 0
+   LOCAL cSearch, nStart, nLenSearch, nLenReplace
+
+   aMatches := hb_regexAll( cRegEx, cString, lCaseSensitive, lNewLine, nMaxMatches, ;
+      Iif( nGetMatch==Nil, 0, nGetMatch ), .F. )
+   cReturn := cString
+
+   IF ! Empty( aMatches )
+      FOR EACH aMatch IN aMatches
+         IF HB_ISARRAY( aMatch ) .AND. Len( aMatch ) >= 1 .AND. ;
+            HB_ISARRAY( aMatch[ 1 ] )
+            aMatch := aMatch[ 1 ]
+            IF Len( aMatch ) == 3 // if regex matches I must have an array of 3 elements
+               cSearch := aMatch[ MATCH_STRING ]
+               nStart  := aMatch[ MATCH_START ]
+               nLenSearch  := Len( cSearch )
+               nLenReplace := Len( cReplace )
+               cReturn := Stuff( cReturn, nStart - nOffSet, nLenSearch, cReplace )
+               nOffSet += nLenSearch - nLenReplace
+            ENDIF
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN cReturn

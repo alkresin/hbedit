@@ -683,7 +683,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       ENDIF
 
    ELSEIF nKey == K_INS
-      IF 'D' $ aDir[5] .AND. oPaneCurr:nPanelMod != 0
+      IF ( 'D' $ aDir[5] .AND. oPaneCurr:nPanelMod != 0 ) .OR. aDir[1] == ".."
          RETURN -1
       ENDIF
       IF ( nPos := Ascan( oPaneCurr:aSelected, oPaneCurr:nCurrent+oPaneCurr:nShift ) ) == 0
@@ -2486,6 +2486,9 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
       RETURN .T.
    }
 
+   IF oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
+      RETURN Nil
+   ENDIF
    IF oPaneCurr:nPanelMod > 0
       RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
