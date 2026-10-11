@@ -58,7 +58,7 @@ CLASS LLM_Service
    METHOD AddMsgFromMan()
    METHOD AddSkills()
    METHOD ClearContext()
-   METHOD MainCycle( pFunc )
+   METHOD MainCycle( pFunc, nCycles )
    METHOD Log( cText )
 
 ENDCLASS
@@ -366,13 +366,15 @@ METHOD ClearContext() CLASS LLM_Service
 
    RETURN Nil
 
-METHOD MainCycle( pFunc ) CLASS LLM_Service
+METHOD MainCycle( pFunc, nCycles ) CLASS LLM_Service
 
    LOCAL n := 1, aAns, cUserPrompt := "", pArr
 
    ::lFinish := .F.
    ::aHistory := {}
-   DO WHILE n < ::nCyclesMax .AND. !::lFinish
+   IF Empty( nCycles ); nCycles := ::nCyclesMax; ENDIF
+
+   DO WHILE n <= nCycles .AND. !::lFinish
       ::AddMsgFromMan()
       aAns := ::Send()
       IF Empty( aAns )
@@ -383,7 +385,7 @@ METHOD MainCycle( pFunc ) CLASS LLM_Service
          IF hb_hGetDef( pArr, "role", "" ) == "user"
             cUserPrompt := hb_hGetDef( pArr, "content", "" )
          ENDIF
-         pFunc:exec( cUserPrompt, aAns, n )
+         pFunc:exec( cUserPrompt, aAns, Iif( n==nCycles, -1, n ) )
       ENDIF
       n ++
    ENDDO

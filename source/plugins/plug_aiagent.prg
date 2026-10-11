@@ -13,6 +13,7 @@ DYNAMIC HWINDOW, HWG_PROCESSMESSAGE
 
 STATIC oClient, cPlugPath
 STATIC oService
+STATIC nDelayInCycle := 1
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
@@ -166,8 +167,10 @@ STATIC FUNCTION ag_Menu()
 STATIC FUNCTION ag_Ask()
 
    LOCAL cPrompt := "", aAnswer, cPath
+   STATIC nPrompt := 1
 
    IF Empty( oService:aHistory )
+      nPrompt := 1
       ag_SystemPrompt()
       IF File( cPath :=  ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + ;
          hb_ps() + "tick_init_prompt.txt" ) )
@@ -178,7 +181,8 @@ STATIC FUNCTION ag_Ask()
    ENDIF
    IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, ;
       oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) )
-      ag_Textout( "------ Prompt ------" )
+      ag_Textout( "------ Prompt " + Ltrim(Str( nPrompt )) + " ------" )
+      nPrompt ++
       ag_Textout( oService:ParsePrompt( cPrompt ) )
       ag_Textout( "------ Answer ------" )
       edi_Wait( "Wait..." )
@@ -196,7 +200,12 @@ STATIC FUNCTION ag_Ask()
 
 STATIC FUNCTION ag_Cycle()
 
-   LOCAL cPath, cInitPrompt := "", n := 0
+   LOCAL cPath, cInitPrompt := "", n := 0, aParams
+
+   IF ( aParams := ag_GetCycleParams() ) == Nil
+      RETURN Nil
+   ENDIF
+   nDelayInCycle := Max( 0.1, aParams[2] )
 
    IF Empty( oService:aHistory )
       ag_SystemPrompt()
@@ -210,7 +219,7 @@ STATIC FUNCTION ag_Cycle()
 
       oService:cPrompt := cInitPrompt
       edi_Wait( "Wait (1)" )
-      oService:MainCycle( @cbFunc() )
+      oService:MainCycle( @cbFunc(), aParams[1] )
       edi_Wait()
       oService:Log( "--------------" + Chr(10) )
 
@@ -218,7 +227,40 @@ STATIC FUNCTION ag_Cycle()
 
    RETURN Nil
 
+STATIC FUNCTION ag_GetCycleParams()
+
+   LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
+   LOCAL arr[2], aGets := { ;
+      {y1+1,x1+2, 11, "Cycles:"}, ;
+      { y1+1,x1+10, 0, Ltrim(Str(oService:nCyclesMax)), 3 }, ;
+      {y1+2,x1+2, 11, "Delay (sec):"}, ;
+      { y1+2,x1+15, 0, "1", 4 } }
+      // {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " } ;
+      // }
+
+   cBuf := Savescreen( y1, x1, y1 + 5, x2 )
+   @ y1, x1, y1 + 5, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+3, x1 SAY "Ã"
+   @ y1+3, x2 SAY "´"
+   @ y1+3, x1+1 TO y1+3, x2-1
+
+   edi_READ( aGets )
+   Restscreen( y1, x1, y1 + 5, x2, cBuf )
+   SetColor( oldc )
+   IF LastKey() == K_ESC
+      RETURN Nil
+   ENDIF
+
+   arr[1] := Val(aGets[2,4])
+   arr[2]  := Val(aGets[4,4])
+   //lSave  := aGets[5,4]
+
+   RETURN arr
+
 STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
+
+   LOCAL nSec, nKey
 
    edi_Wait()
    ag_Textout( "------ " + Ltrim(Str(n)) + " ------" )
@@ -232,9 +274,21 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
       ag_Textout( "Empty answer" )
    ENDIF
    ag_Textout( Chr(10) )
-   cedi_Sleep( 1000 )
-   Inkey( 0.2 )
-   edi_Wait( "Wait (" + Ltrim(Str(n+2)) + ")" )
+   IF n < 0
+      ag_Textout( "Finish!" )
+      RETURN Nil
+   ENDIF
+   edi_Wait( "Wait (" + Ltrim(Str(n+1)) + ")" )
+
+   nSec := Seconds()
+   DO WHILE Seconds() - nSec < nDelayInCycle
+      IF ( nKey := Inkey( 0.1 ) ) == K_SPACE
+         EXIT
+      ELSEIF nKey == K_ESC
+         oService:lFinish := .T.
+         EXIT
+      ENDIF
+   ENDDO
 
    RETURN Nil
 
@@ -264,14 +318,17 @@ STATIC FUNCTION ag_Textout( cLine )
    ENDIF
 
    oClient:TextOut()
+   oClient:lWrap := .F.
    edi_Move( oClient, 71 )   // Go to end
+   oClient:lWrap := .T.
+   edi_Move( oClient, 106 )  // Go down
    IF hb_isFunction( "HWINDOW" )
       HWindow():GetMain():Refresh()
       hwg_ProcessMessage()
-      hwg_ProcessMessage()
-      hwg_ProcessMessage()
+      //hwg_ProcessMessage()
+      //hwg_ProcessMessage()
    ENDIF
-   cedi_Sleep( 100 )
+   cedi_Sleep( 50 )
    Inkey( 0.1 )
 
    RETURN Nil

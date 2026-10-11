@@ -115,6 +115,39 @@ FUNCTION edi_MsgGet( cTitle, y1, x1, x2, lPass, cInitValue, cp )
 
    RETURN xRes
 
+/*
+FUNCTION edi_MultiGet( cTitle, y1, x1, x2, aGets, cp )
+
+   LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu ), cpold
+   LOCAL i, arr := {}
+
+   FOR i := 1 TO Len( aGets )
+   ENDIF
+
+   y1 := Iif( y1 == Nil, Int( MaxRow()/2 ) - 1, y1 )
+   x1 := Iif( x1 == Nil, Int( MaxCol()/2 ) - 15, x1 )
+   x2 := Iif( x2 == Nil, x1 + 30, x2 )
+
+   cBuf := Savescreen( y1, x1, y1 + 2, x2 )
+   @ y1, x1, y1 + 2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+
+   IF !Empty( cp )
+      cpOld := hb_cdpSelect( cp )
+   ENDIF
+   edi_READ( aGets )
+   IF LastKey() == 13
+      FOR i := 1 TO Len( aGets )
+      ENDIF
+   ENDIF
+   IF !Empty( cp )
+      hb_cdpSelect( cpold )
+   ENDIF
+   SetColor( oldc )
+   Restscreen( y1, x1, y1 + 2, x2, cBuf )
+
+   RETURN arr
+*/
+
 FUNCTION edi_MsgGet_ext( cText, y1, x1, y2, x2, cp, lF10, lReadOnly, cTitle, lNoWrap )
 
    LOCAL nCurr := TEdit():nCurr, cpOld, cBuff, cRes := ""
