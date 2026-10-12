@@ -170,7 +170,10 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
 
    ::Log( cResult, "<--" )
    hb_jsonDecode( cResult, @pArr )
-   IF Empty( pArr ) .OR. Empty( arr := hb_hGetDef( pArr, "choices", Nil ) )
+   IF Empty( pArr ) .OR. ;
+      ( Empty( arr := hb_hGetDef( pArr, "choices", Nil ) ) .AND. ;
+      ( Empty( pArr := hb_hGetDef( pArr, "result", Nil ) ) .OR. ;
+      Empty( arr := hb_hGetDef( pArr, "choices", Nil ) ) ) )
       RETURN Nil
    ENDIF
 
