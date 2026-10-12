@@ -29,13 +29,14 @@ CLASS LLM_Service
    CLASS VAR aSysTools    SHARED INIT {}
    CLASS VAR aSkills      SHARED INIT {}
    CLASS VAR nCyclesMax   SHARED INIT 7
+   CLASS VAR lFinish      SHARED INIT .F.
+   CLASS VAR lPause       SHARED INIT .F.
+   CLASS VAR pFuncMsg     SHARED
 
    DATA id         INIT ""
    DATA cSystem    INIT ""
    DATA cPrompt    INIT ""
    DATA aHistory   INIT {}
-   DATA lToolsAutoRun  INIT .T.
-   DATA lFinish    INIT .F.
 
    DATA cUrl
    DATA cEndPoint INIT ""
@@ -208,14 +209,10 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
       USE
    ENDIF
 
-   IF ::lToolsAutoRun
-      FOR i := 1 TO Len( aTools )
-         ::RunTool( aTools[i,1], aTools[i,2] )
-      NEXT
-      RETURN { cContent, cReason }
-   ENDIF
-
-   RETURN { cContent, cReason, aTools }
+   FOR i := 1 TO Len( aTools )
+      ::RunTool( aTools[i,1], aTools[i,2] )
+   NEXT
+   RETURN { cContent, cReason }
 
 METHOD SetSystemPrompt( cText, lAddTools ) CLASS LLM_Service
 
@@ -292,6 +289,8 @@ METHOD RunTool( cToolName, pParams ) CLASS LLM_Service
    ::Log( "  runtool " + cToolName + " " + Ltrim(Str(n)) + " " + hb_ValtoExp( pParams ) )
    IF n == 0
       ::Log( "    " + str(len(::aTools)) )
+      ::AddEvent( "tool_result", {"name"=>cToolName,"status"=>"error"}, ;
+         "This tool does not exist" )
       RETURN Nil
    ENDIF
    IF Valtype( ::aTools[n,3] ) == "C"
@@ -386,6 +385,10 @@ METHOD MainCycle( pFunc, nCycles ) CLASS LLM_Service
             cUserPrompt := hb_hGetDef( pArr, "content", "" )
          ENDIF
          pFunc:exec( cUserPrompt, aAns, Iif( n==nCycles, -1, n ) )
+      ENDIF
+      IF !Empty( ::pFuncMsg ) .AND. ::lPause
+         ::lPause := .F.
+         ::pFuncMsg:exec( Self )
       ENDIF
       n ++
    ENDDO

@@ -207,15 +207,21 @@ STATIC FUNCTION ag_Cycle()
    ENDIF
    nDelayInCycle := Max( 0.1, aParams[2] )
 
+   IF aParams[3]
+      oService:pFuncMsg := @cbFuncMsg()
+   ENDIF
    IF Empty( oService:aHistory )
-      ag_SystemPrompt()
+      IF !ag_SystemPrompt()
+         RETURN Nil
+      ENDIF
    ENDIF
    IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "tick_init_prompt.txt" ) )
       cInitPrompt := Memoread( cPath )
    ENDIF
 
-   IF !Empty( cInitPrompt := edi_MsgGet_ext( cInitPrompt, oClient:y1+2, oClient:x1+4, ;
-      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) ) .OR. !Empty( oService:cSystem )
+   IF ( !Empty( cInitPrompt := edi_MsgGet_ext( cInitPrompt, oClient:y1+2, oClient:x1+4, ;
+      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) ) .OR. !Empty( oService:cSystem ) ) .AND. ;
+      Lastkey() != K_ESC
 
       oService:cPrompt := cInitPrompt
       edi_Wait( "Wait (1)" )
@@ -231,13 +237,12 @@ STATIC FUNCTION ag_GetCycleParams()
 
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL arr[2], aGets := { ;
+   LOCAL arr[3], aGets := { ;
       {y1+1,x1+2, 11, "Cycles:"}, ;
       { y1+1,x1+10, 0, Ltrim(Str(oService:nCyclesMax)), 3 }, ;
       {y1+2,x1+2, 11, "Delay (sec):"}, ;
-      { y1+2,x1+15, 0, "1", 4 } }
-      // {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " } ;
-      // }
+      { y1+2,x1+15, 0, "1", 4 }, ;
+      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " } }
 
    cBuf := Savescreen( y1, x1, y1 + 5, x2 )
    @ y1, x1, y1 + 5, x2 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -253,17 +258,27 @@ STATIC FUNCTION ag_GetCycleParams()
    ENDIF
 
    arr[1] := Val(aGets[2,4])
-   arr[2]  := Val(aGets[4,4])
-   //lSave  := aGets[5,4]
+   arr[2] := Val(aGets[4,4])
+   arr[3] := aGets[5,4]
 
    RETURN arr
+
+STATIC FUNCTION cbFuncMsg( oService, pArr )
+
+   LOCAL cPrompt
+
+   IF !Empty( cPrompt := edi_MsgGet_ext( oService:cPrompt, oClient:y1+2, oClient:x1+30, ;
+      oClient:y1+9, oClient:x2-4, oClient:cp,,, "Answer_to_Message_for_man" ) )
+      oService:cPrompt := cPrompt
+   ENDIF
+   RETURN Nil
 
 STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
 
    LOCAL nSec, nKey
 
    edi_Wait()
-   ag_Textout( "------ " + Ltrim(Str(n)) + " ------" )
+   ag_Textout( "------ " + Iif( n<0, "Last", Ltrim(Str(n)) ) + " ------" )
    IF !Empty( cUserPrompt )
       ag_Textout( cUserPrompt )
    ENDIF
@@ -302,9 +317,10 @@ STATIC FUNCTION ag_SystemPrompt()
    IF !Empty( cQue := edi_MsgGet_ext( oService:cSystem, oClient:y1+2, oClient:x1+4, ;
       oClient:y1+10, oClient:x2-12, oClient:cp,,, "System_prompt" ) )
       oService:cSystem := cQue
+      RETURN .T.
    ENDIF
 
-   RETURN Nil
+   RETURN .F.
 
 STATIC FUNCTION ag_Textout( cLine )
 
@@ -351,7 +367,6 @@ STATIC FUNCTION ag_SelectModel()
       oNew:cSystem := oService:cSystem
       oNew:aHistory := oService:aHistory
       oService:aHistory := {}
-      oNew:lToolsAutoRun := oService:lToolsAutoRun
    ENDIF
 
    RETURN oNew
