@@ -22,7 +22,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       DevPos( y, o:x1 )
-      DevOut( "AI Agent   F2: Menu  F3: New prompt" )
+      DevOut( "AI Agent   F2: Menu  F3: New prompt F5: Cycle" )
 
       DevPos( nRow, nCol )
       RETURN Nil
@@ -103,7 +103,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
 
    oClient:hCargo := hb_hash()
    oClient:hCargo["help"] := "AI Agent hot keys" + Chr(10) + ;
-      "  F2 - Menu" + Chr(10) + "  F3 - New prompt" + Chr(10) + ;
+      "  F2 - Menu" + Chr(10) + "  F3 - New prompt" + Chr(10) + "  F5 - Run agent cycle" + Chr(10) + ;
       "  Ctrl-Tab - Switch Buffer" + Chr(10) + "  F10 - Exit" + Chr(10)
 
    ag_Textout( oService:id + ": " + oService:cUrl )
@@ -122,10 +122,10 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
       ag_Menu()
       RETURN -1
 
-   ELSEIF nKey == K_CTRL_N
+   ELSEIF nKey == K_F5
 
-      oService:ClearContext()
-      ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
+      ag_Cycle()
+      RETURN -1
 
    ELSEIF nKey == K_F1
 
@@ -139,8 +139,8 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
 
 STATIC FUNCTION ag_Menu()
 
-   LOCAL aMenu := { {"Send new prompt",,,"F3"}, {"Run cycle",,}, ;
-   {"Clear context",,,"Ctrl-N"}, {"Change model",,}, {"Exit",,,"F10"} }
+   LOCAL aMenu := { {"New prompt",,,"F3"}, {"Run agent cycle",,,"F5"}, ;
+   {"Clear context",,}, {"Change model",,}, {"Exit",,,"F10"} }
    LOCAL i, xVal
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
@@ -171,7 +171,10 @@ STATIC FUNCTION ag_Ask()
 
    IF Empty( oService:aHistory )
       nPrompt := 1
-      ag_SystemPrompt()
+      IF ag_SystemPrompt()
+         ag_Textout( "--- System prompt ---" )
+         ag_Textout( oService:ParsePrompt( oService:cSystem ) )
+      ENDIF
       IF File( cPath :=  ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + ;
          hb_ps() + "tick_init_prompt.txt" ) )
          cPrompt := Memoread( cPath )
@@ -211,7 +214,10 @@ STATIC FUNCTION ag_Cycle()
       oService:pFuncMsg := @cbFuncMsg()
    ENDIF
    IF Empty( oService:aHistory )
-      IF !ag_SystemPrompt()
+      IF ag_SystemPrompt()
+         ag_Textout( "--- System prompt ---" )
+         ag_Textout( oService:ParsePrompt( oService:cSystem ) )
+      ELSE
          RETURN Nil
       ENDIF
    ENDIF
@@ -225,7 +231,7 @@ STATIC FUNCTION ag_Cycle()
 
       oService:cPrompt := cInitPrompt
       edi_Wait( "Wait (1)" )
-      oService:MainCycle( @cbFunc(), aParams[1] )
+      oService:MainCycle( @cbFunc(), aParams[1], aParams[4] )
       edi_Wait()
       oService:Log( "--------------" + Chr(10) )
 
@@ -237,31 +243,28 @@ STATIC FUNCTION ag_GetCycleParams()
 
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
-   LOCAL arr[3], aGets := { ;
+   LOCAL aGets := { ;
       {y1+1,x1+2, 11, "Cycles:"}, ;
       { y1+1,x1+10, 0, Ltrim(Str(oService:nCyclesMax)), 3 }, ;
       {y1+2,x1+2, 11, "Delay (sec):"}, ;
       { y1+2,x1+15, 0, "1", 4 }, ;
-      {y1+4,x1+3, 1, .F., 1 }, {y1+4,x1+2, 11, "[ ] " } }
+      {y1+4,x1+3, 1, .T., 1 }, {y1+4,x1+2, 11, "[x] Ask Man" }, ;
+      {y1+5,x1+3, 1, .T., 1 }, {y1+5,x1+2, 11, "[x] Clear context" } }
 
-   cBuf := Savescreen( y1, x1, y1 + 5, x2 )
-   @ y1, x1, y1 + 5, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   cBuf := Savescreen( y1, x1, y1 + 6, x2 )
+   @ y1, x1, y1 + 6, x2 BOX "ÚÄ¿³ÙÄÀ³ "
    @ y1+3, x1 SAY "Ã"
    @ y1+3, x2 SAY "´"
    @ y1+3, x1+1 TO y1+3, x2-1
 
    edi_READ( aGets )
-   Restscreen( y1, x1, y1 + 5, x2, cBuf )
+   Restscreen( y1, x1, y1 + 6, x2, cBuf )
    SetColor( oldc )
    IF LastKey() == K_ESC
       RETURN Nil
    ENDIF
 
-   arr[1] := Val(aGets[2,4])
-   arr[2] := Val(aGets[4,4])
-   arr[3] := aGets[5,4]
-
-   RETURN arr
+   RETURN { Val(aGets[2,4]), Val(aGets[4,4]), aGets[5,4], aGets[7,4] }
 
 STATIC FUNCTION cbFuncMsg( oService, pArr )
 

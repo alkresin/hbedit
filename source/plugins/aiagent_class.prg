@@ -30,7 +30,7 @@ CLASS LLM_Service
    CLASS VAR aSkills      SHARED INIT {}
    CLASS VAR nCyclesMax   SHARED INIT 7
    CLASS VAR lFinish      SHARED INIT .F.
-   CLASS VAR lPause       SHARED INIT .F.
+   CLASS VAR lAskMan      SHARED INIT .F.
    CLASS VAR pFuncMsg     SHARED
 
    DATA id         INIT ""
@@ -59,7 +59,7 @@ CLASS LLM_Service
    METHOD AddMsgFromMan()
    METHOD AddSkills()
    METHOD ClearContext()
-   METHOD MainCycle( pFunc, nCycles )
+   METHOD MainCycle( pFunc, nCycles, lClear )
    METHOD Log( cText )
 
 ENDCLASS
@@ -368,12 +368,14 @@ METHOD ClearContext() CLASS LLM_Service
 
    RETURN Nil
 
-METHOD MainCycle( pFunc, nCycles ) CLASS LLM_Service
+METHOD MainCycle( pFunc, nCycles, lClear ) CLASS LLM_Service
 
    LOCAL n := 1, aAns, cUserPrompt := "", pArr
 
    ::lFinish := .F.
-   ::aHistory := {}
+   IF lClear == Nil .OR. lClear
+      ::aHistory := {}
+   ENDIF
    IF Empty( nCycles ); nCycles := ::nCyclesMax; ENDIF
 
    DO WHILE n <= nCycles .AND. !::lFinish
@@ -389,8 +391,8 @@ METHOD MainCycle( pFunc, nCycles ) CLASS LLM_Service
          ENDIF
          pFunc:exec( cUserPrompt, aAns, Iif( n==nCycles, -1, n ) )
       ENDIF
-      IF !Empty( ::pFuncMsg ) .AND. ::lPause
-         ::lPause := .F.
+      IF !Empty( ::pFuncMsg ) .AND. ::lAskMan
+         ::lAskMan := .F.
          ::pFuncMsg:exec( Self )
       ENDIF
       n ++
