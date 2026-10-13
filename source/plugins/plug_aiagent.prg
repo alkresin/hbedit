@@ -36,7 +36,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
             LLM_Service():aList[i]:aHistory := {}
             LLM_Service():aList[i] := Nil
          NEXT
-         LLM_Service():aList := Nil
+         LLM_Service():aList := {}
          oService := Nil
       ENDIF
       RETURN Nil
