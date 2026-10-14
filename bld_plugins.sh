@@ -29,6 +29,7 @@ $HB_INS/bin/linux/gcc/harbour plug_gm_life.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess_res.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour plug_gm_zmejka.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_webservices.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_vcs.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour lisp_run.prg -n -gh -q
@@ -42,6 +43,7 @@ $HB_INS/bin/linux/gcc/harbour plug_hbc_ftp.prg -n -gh -q -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour plug_hbc_img_quick.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_hbc_latin.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_hbc_menu.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour hbc_dbf.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour hbc_gthwg_q.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour hwbuilder.prg -n -gh -q -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour plug_extllm.prg -n -gh -q

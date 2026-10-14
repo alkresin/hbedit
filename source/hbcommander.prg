@@ -2488,7 +2488,7 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    }
 
    IF oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
-      RETURN Nil
+      RETURN .F.
    ENDIF
    IF oPaneCurr:nPanelMod > 0
       RETURN edi_Alert( _I(cNotPerm) )
