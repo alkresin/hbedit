@@ -1,7 +1,7 @@
 /*
  * TEdit() class header
  *
- * Copyright 2020-2025 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2020-2026 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
@@ -18,4 +18,4 @@
    #endif
 #endif
 
-#define HBEDIT_VERSION  "v2.7-78"
+#define HBEDIT_VERSION  "v2.8-09"
