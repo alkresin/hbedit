@@ -3290,31 +3290,33 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
    IF Ascan( TEdit():aWindows, {|o|o:cFileName == cName} ) > 0
       RETURN Nil
    ENDIF
+#ifndef _NO_SQLIDYN
+   cDop += "sqlite"
+#endif
 #ifdef _USE_SSH2
-   #ifndef _NO_SQLIDYN
-      cDop += _I(", sqlite")
-   #endif
-   cDop += _I(", libssh2 support")
-#else
-   #ifndef _NO_SQLIDYN
-      cDop += _I(", sqlite support")
-   #endif
+   cDop += Iif( Empty(cDop),"","," ) + "libssh2"
+#endif
+#ifdef _RDDLETO
+   cDop += Iif( Empty(cDop),"","," ) + "rddleto"
 #endif
 #ifdef __BUILT_IN
-   cDop += _I(", built-in version")
+   cDop += Iif( Empty(cDop),"","," ) + "built-in version"
 #else
   #ifndef _FULL
-   cDop += _I(", basic version")
+   cDop += Iif( Empty(cDop),"","," ) + "basic version"
   #endif
   #ifdef _NO_HBC
-   cDop += _I(", without HbCommander")
+   cDop += Iif( Empty(cDop),"","," ) + "without HbCommander"
   #endif
 #endif
+IF !Empty( cDop )
+   cDop := "(" + cDop + ") "
+ENDIF
 #ifdef __GTHWG__
-   cDop += ", gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2)))
+   cDop += "gthwgui " + hwg_Version(1) + " b." + Ltrim(Str(hwg_Version(2)))
 #else
    #ifdef __GTWVT__
-      cDop += ", gtwvt"
+      cDop += "gtwvt"
    #endif
 #endif
    cDop += ", " + hb_Version(1)
@@ -3326,8 +3328,8 @@ FUNCTION mnu_Help( oEdit, cFullPath, cMet )
       IF !Empty( oEdit:hCargo ) .AND. !Empty( cPlugHelp := hb_hGetDef( oEdit:hCargo, "help", Nil ) )
          cHelp := Chr(10) + cPlugHelp + Chr(10) + cHelp
       ENDIF
-      cHelp := "HbEdit - " + HBEDIT_VERSION + cDop + Chr(10) + ;
-         "Copyright (C) 2019-2025  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
+      cHelp := "HbEdit - " + HBEDIT_VERSION + " " + cDop + Chr(10) + ;
+         "Copyright (C) 2019-2026  Alexander S. Kresin  http://www.kresin.ru" + Chr(10) + cHelp
       oHelp := TEdit():New( cHelp, cName, ;
          oEdit:aRectFull[1], oEdit:aRectFull[2], oEdit:aRectFull[3], oEdit:aRectFull[4] )
 

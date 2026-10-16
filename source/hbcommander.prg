@@ -3580,9 +3580,10 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    ENDIF
    //edi_writelog( "attrs-2" )
    nAttrNew := nAttr
-   hb_vfTimeGet( Iif( oPaneCurr:cIOpref == "sea:", "", ;
+   /* hb_vfTimeGet( Iif( oPaneCurr:cIOpref == "sea:", "", ;
       oPaneCurr:cIOpref + oPaneCurr:net_cAddress + oPaneCurr:net_cPort ) + ;
-      oPaneCurr:cCurrPath + arr[1], @t )
+      oPaneCurr:cCurrPath + arr[1], @t ) */
+   t := arr[3]
    //edi_writelog( "attrs-3" )
 #ifdef __PLATFORM__UNIX
    Aadd( aGets, { y1+13,x1+3, 1, .F., 1 } )
@@ -3615,7 +3616,7 @@ LOCAL aDefs := { HB_FA_READONLY, HB_FA_HIDDEN, HB_FA_SYSTEM, HB_FA_ARCHIVE, HB_F
    @ y1+11, x1+2 SAY "[ ] " + _I("Read by others")
    @ y1+12, x1+2 SAY "[ ] " + _I("Write by others")
    @ y1+13, x1+2 SAY "[ ] " + _I("Execute/search by others")
-   @ y1+15, x1+4 SAY _I("Owner") + ": " + cedi_chown( arr[1] ) + "/" + cedi_chgrp( arr[1] )
+   @ y1+15, x1+2 SAY _I("Owner") + ": " + cedi_chown( arr[1] ) + "/" + cedi_chgrp( arr[1] )
 #else
    @ y1+2, x1+2 SAY "[ ] " + _I("Readonly")
    @ y1+3, x1+2 SAY "[ ] " + _I("Hidden")

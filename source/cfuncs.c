@@ -468,14 +468,13 @@ HB_FUNC( CEDI_CHOWN )
 {
    struct stat info;
    struct passwd *pw;
-   //struct group  *gr = getgrgid(info.st_gid);
 
    stat( hb_parc(1), &info);
    pw = getpwuid( info.st_uid );
    if( pw && pw->pw_name )
-      hb_retc_buffer( pw->pw_name );
+      hb_retc( pw->pw_name );
    else
-      hb_retc_null();
+      hb_retc("");
 }
 
 HB_FUNC( CEDI_CHGRP )
@@ -486,9 +485,9 @@ HB_FUNC( CEDI_CHGRP )
    stat( hb_parc(1), &info);
    gr = getgrgid(info.st_gid);
    if( gr && gr->gr_name )
-      hb_retc_buffer( gr->gr_name );
+      hb_retc( gr->gr_name );
    else
-      hb_retc_null();
+      hb_retc("");
 }
 
 HB_FUNC( CEDI_SHELLEXECUTE )

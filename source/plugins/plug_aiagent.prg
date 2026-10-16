@@ -85,16 +85,16 @@ FUNCTION plug_aiagent( oEdit, cPath )
       ENDIF
    ENDIF
 
-   ag_RdIni( LLM_Service():cProjPath + LLM_Service():cIniFile )
+   hag_RdIni( LLM_Service():cProjPath + LLM_Service():cIniFile )
 
-   IF Empty( oService := ag_SelectModel() )
+   IF Empty( oService := hag_SelectModel() )
       RETURN Nil
    ENDIF
 
    oClient := mnu_NewBuf( oEdit )
    oClient:cFileName := cName
    oClient:bWriteTopPane := bWPane
-   oClient:bOnKey := {|o,n| ag_OnKey(o,n) }
+   oClient:bOnKey := {|o,n| hag_OnKey(o,n) }
    oClient:bEndEdit := bEndEdit
    oClient:cp := "UTF8"
    hb_cdpSelect( oClient:cp )
@@ -106,25 +106,25 @@ FUNCTION plug_aiagent( oEdit, cPath )
       "  F2 - Menu" + Chr(10) + "  F3 - New prompt" + Chr(10) + "  F5 - Run agent cycle" + Chr(10) + ;
       "  Ctrl-Tab - Switch Buffer" + Chr(10) + "  F10 - Exit" + Chr(10)
 
-   ag_Textout( oService:id + ": " + oService:cUrl )
+   hag_Textout( oService:id + ": " + oService:cUrl )
 
    RETURN Nil
 
-STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
+STATIC FUNCTION hag_OnKey( oEdit, nKeyExt )
 
    LOCAL nKey := hb_keyStd(nKeyExt)
 
    IF nKey == K_F3
-      ag_Ask()
+      hag_Ask()
 
    ELSEIF nKey == K_F2
 
-      ag_Menu()
+      hag_Menu()
       RETURN -1
 
    ELSEIF nKey == K_F5
 
-      ag_Cycle()
+      hag_Cycle()
       RETURN -1
 
    ELSEIF nKey == K_F1
@@ -137,7 +137,7 @@ STATIC FUNCTION ag_OnKey( oEdit, nKeyExt )
 
    RETURN 0
 
-STATIC FUNCTION ag_Menu()
+STATIC FUNCTION hag_Menu()
 
    LOCAL aMenu := { {"New prompt",,,"F3"}, {"Run agent cycle",,,"F5"}, ;
    {"Clear context",,}, {"Change model",,}, {"Exit",,,"F10"} }
@@ -145,35 +145,35 @@ STATIC FUNCTION ag_Menu()
 
    i := FMenu( oClient, aMenu, oClient:y1+2, oClient:x1+4 )
    IF i == 1
-      ag_Ask()
+      hag_Ask()
 
    ELSEIF i == 2
-      ag_Cycle()
+      hag_Cycle()
 
    ELSEIF i == 3
       oService:ClearContext()
-      ag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
+      hag_Textout( Chr(10) + Replicate( '-', 24 ) + Chr(10) )
 
    ELSEIF i == 4
-      IF !Empty( xVal := ag_SelectModel() )
+      IF !Empty( xVal := hag_SelectModel() )
          oService := xVal
-         ag_Textout( Chr(10) + oService:id + ": " + oService:cUrl )
+         hag_Textout( Chr(10) + oService:id + ": " + oService:cUrl )
       ENDIF
 
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION ag_Ask()
+STATIC FUNCTION hag_Ask()
 
    LOCAL cPrompt := "", aAnswer, cPath
    STATIC nPrompt := 1
 
    IF Empty( oService:aHistory )
       nPrompt := 1
-      IF ag_SystemPrompt()
-         ag_Textout( "--- System prompt ---" )
-         ag_Textout( oService:ParsePrompt( oService:cSystem ) )
+      IF hag_SystemPrompt()
+         hag_Textout( "--- System prompt ---" )
+         hag_Textout( oService:ParsePrompt( oService:cSystem ) )
       ENDIF
       IF File( cPath :=  ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + ;
          hb_ps() + "tick_init_prompt.txt" ) )
@@ -184,28 +184,28 @@ STATIC FUNCTION ag_Ask()
    ENDIF
    IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, ;
       oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) )
-      ag_Textout( "------ Prompt " + Ltrim(Str( nPrompt )) + " ------" )
+      hag_Textout( "------ Prompt " + Ltrim(Str( nPrompt )) + " ------" )
       nPrompt ++
-      ag_Textout( oService:ParsePrompt( cPrompt ) )
-      ag_Textout( "------ Answer ------" )
+      hag_Textout( oService:ParsePrompt( cPrompt ) )
+      hag_Textout( "------ Answer ------" )
       edi_Wait( "Wait..." )
       oService:cPrompt := cPrompt
       aAnswer := oService:Send()
       edi_Wait()
       IF !Empty( aAnswer )
-         ag_Textout( aAnswer[1] )
+         hag_Textout( aAnswer[1] )
       ELSE
-         ag_Textout( "No answer" )
+         hag_Textout( "No answer" )
       ENDIF
    ENDIF
 
    RETURN Nil
 
-STATIC FUNCTION ag_Cycle()
+STATIC FUNCTION hag_Cycle()
 
    LOCAL cPath, cInitPrompt := "", n := 0, aParams
 
-   IF ( aParams := ag_GetCycleParams() ) == Nil
+   IF ( aParams := hag_GetCycleParams() ) == Nil
       RETURN Nil
    ENDIF
    nDelayInCycle := Max( 0.1, aParams[2] )
@@ -214,9 +214,9 @@ STATIC FUNCTION ag_Cycle()
       oService:pFuncMsg := @cbFuncMsg()
    ENDIF
    IF Empty( oService:aHistory )
-      IF ag_SystemPrompt()
-         ag_Textout( "--- System prompt ---" )
-         ag_Textout( oService:ParsePrompt( oService:cSystem ) )
+      IF hag_SystemPrompt()
+         hag_Textout( "--- System prompt ---" )
+         hag_Textout( oService:ParsePrompt( oService:cSystem ) )
       ELSE
          RETURN Nil
       ENDIF
@@ -239,7 +239,7 @@ STATIC FUNCTION ag_Cycle()
 
    RETURN Nil
 
-STATIC FUNCTION ag_GetCycleParams()
+STATIC FUNCTION hag_GetCycleParams()
 
    LOCAL y1 := 5, x1 := Int(MaxCol()/2)-15, x2 := x1+30
    LOCAL cBuf, oldc := SetColor( TEdit():cColorSel + "," + TEdit():cColorMenu )
@@ -281,19 +281,19 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
    LOCAL nSec, nKey
 
    edi_Wait()
-   ag_Textout( "------ " + Iif( n<0, "Last", Ltrim(Str(n)) ) + " ------" )
+   hag_Textout( "------ " + Iif( n<0, "Last", Ltrim(Str(n)) ) + " ------" )
    IF !Empty( cUserPrompt )
-      ag_Textout( cUserPrompt )
+      hag_Textout( cUserPrompt )
    ENDIF
-   ag_Textout( Replicate( "=", 15 ) )
+   hag_Textout( Replicate( "=", 15 ) )
    IF !Empty( aAnswer )
-      ag_Textout( aAnswer[1] )
+      hag_Textout( aAnswer[1] )
    ELSE
-      ag_Textout( "Empty answer" )
+      hag_Textout( "Empty answer" )
    ENDIF
-   ag_Textout( Chr(10) )
+   hag_Textout( Chr(10) )
    IF n < 0
-      ag_Textout( "Finish!" )
+      hag_Textout( "Finish!" )
       RETURN Nil
    ENDIF
    edi_Wait( "Wait (" + Ltrim(Str(n+1)) + ")" )
@@ -310,7 +310,7 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
 
    RETURN Nil
 
-STATIC FUNCTION ag_SystemPrompt()
+STATIC FUNCTION hag_SystemPrompt()
 
    LOCAL cQue, cPath
 
@@ -325,7 +325,7 @@ STATIC FUNCTION ag_SystemPrompt()
 
    RETURN .F.
 
-STATIC FUNCTION ag_Textout( cLine )
+STATIC FUNCTION hag_Textout( cLine )
 
    LOCAL n := Len( oClient:aText )
 
@@ -352,7 +352,7 @@ STATIC FUNCTION ag_Textout( cLine )
 
    RETURN Nil
 
-STATIC FUNCTION ag_SelectModel()
+STATIC FUNCTION hag_SelectModel()
 
    LOCAL aList := {}, i, oNew
 
@@ -374,7 +374,7 @@ STATIC FUNCTION ag_SelectModel()
 
    RETURN oNew
 
-STATIC FUNCTION ag_RdIni( cIni )
+STATIC FUNCTION hag_RdIni( cIni )
 
    LOCAL hIni, aIni, aSect, nSect, cTmp
 
@@ -412,7 +412,7 @@ STATIC FUNCTION WriteIni( cIni )
 
    RETURN Nil
 
-FUNCTION ag_GetHtml( cUrl )
+FUNCTION hag_GetHtml( cUrl )
 
    LOCAL cResult
 
@@ -420,22 +420,22 @@ FUNCTION ag_GetHtml( cUrl )
 
    RETURN cResult
 
-FUNCTION ag_CleanHTML( cText )
+FUNCTION hag_CleanHTML( cText )
 
    // 1. Удаляем блоки <head>...</head>, <script>...</script> и <style>...</style>
    //    (?is): i - игнорировать регистр, s - точка соответствует переводу строки.
-   cText := ag_regexReplace( "(?is)<head.*?>.*?</head>", cText, "", .F. )
-   cText := ag_regexReplace( "(?is)<script.*?>.*?</script>", cText, "", .F. )
-   cText := ag_regexReplace( "(?is)<style.*?>.*?</style>", cText, "", .F. )
+   cText := hb_regexReplace( "(?is)<head.*?>.*?</head>", cText, "", .F. )
+   cText := hb_regexReplace( "(?is)<script.*?>.*?</script>", cText, "", .F. )
+   cText := hb_regexReplace( "(?is)<style.*?>.*?</style>", cText, "", .F. )
 
    // 2. Удаляем HTML-комментарии <!-- ? -->.
-   cText := ag_regexReplace( "(?s)<!--.*?-->", cText, "", .F. )
+   cText := hb_regexReplace( "(?s)<!--.*?-->", cText, "", .F. )
 
    // 3. Удаляем <img...>
-   cText := ag_regexReplace( "(?is)<img.*?>", cText, "", .F. )
+   cText := hb_regexReplace( "(?is)<img.*?>", cText, "", .F. )
 
    // 4. Удаляем все оставшиеся теги (включая <img>, <h1>-<h6>, <a> и т.д.).
-   //cText := ag_regexReplace( "<[^>]+>", cText, "", .F. )
+   //cText := hb_regexReplace( "<[^>]+>", cText, "", .F. )
 
    // 5. Декодируем основные HTML-сущности.
    cText := StrTran( cText, "&nbsp;", " " )
@@ -447,7 +447,7 @@ FUNCTION ag_CleanHTML( cText )
    cText := StrTran( cText, "&apos;", "'" )
 
    // 6. Нормализация пробелов: множественные пробелы, табы и переводы строк - в один пробел.
-   cText := ag_regexReplace( "\s+", cText, " ", .F. )
+   cText := hb_regexReplace( "\s+", cText, " ", .F. )
 
    RETURN cText
 
@@ -455,7 +455,7 @@ FUNCTION ag_CleanHTML( cText )
 #define MATCH_START   2
 #define MATCH_END     3
 
-FUNCTION ag_regexReplace( cRegex, cString, cReplace, lCaseSensitive, lNewLine, nMaxMatches, nGetMatch )
+FUNCTION hb_regexReplace( cRegex, cString, cReplace, lCaseSensitive, lNewLine, nMaxMatches, nGetMatch )
 
    LOCAL aMatches, aMatch
    LOCAL cReturn
