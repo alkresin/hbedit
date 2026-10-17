@@ -4286,13 +4286,18 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
 #ifdef _USE_SSH2
 STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
 
-   LOCAL xRes, nKeyExt, nKey, l10 := .F.
+   LOCAL cPath, xRes, nKeyExt, nKey, l10 := .F.
 
    ssh2_Channel_Pty( pSess, "xterm" )
    IF cCommand == "shell"
       ssh2_Channel_Shell( pSess )
    ELSE
-      ssh2_Exec( pSess, "cd " + oPaneCurr:cCurrPath + "; " + cCommand )
+      IF ':' $ oPaneCurr:cCurrPath
+         cPath := Substr( oPaneCurr:cCurrPath, 2 )
+         ssh2_Exec( pSess, "cd " + cPath + ' & ' + cCommand )
+      ELSE
+         ssh2_Exec( pSess, "cd " + oPaneCurr:cCurrPath + "; " + cCommand )
+      ENDIF
    ENDIF
    IF ssh2_LastRes( pSess ) != 0
       ? "Exec failed"

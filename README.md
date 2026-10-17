@@ -46,10 +46,13 @@ A fullscreen console multiplatform text editor with built-in file manager
   + source/ssh2/*       - a subsystem, implementing libssh2 support
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
+    + hbc_dbf.prg           - Dbf viewer plugin
+    + hbc_gthwg_q.prg       - Quick image view plugin
     + hwg_funcs.txt         - HwGUI functions list for plug_prg_init
-    + hwbuilder.hrb         - HwBuilder plugin
+    + hwbuilder.prg         - HwBuilder plugin
     + plug_android_project.prg - creating and maintaining java android projects
     + plug_1c_spis.prg      - 1C functions list
+    + plug_aiagent.prg      - AI agent plugin
     + plug_bat_init.prg     - a start plugin for .bat files
     + plug_c_init.prg       - a start plugin for .c files
     + plug_calculator.prg   - Calculator
@@ -63,17 +66,20 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_gm_sudoku.prg    - A Sudoku game
     + plug_gm_tetris.prg    - A Tetris game
     + plug_gm_ugolki.hrb    - An ugolki game
+    + plug_gm_zmejka.prg    - Zmejka (snake) game
     + plug_go_build.prg     - Golang build project
     + plug_go_init.prg      - a start plugin for .go files
     + plug_hbc_ext_all.hrb  - For internal use
     + plug_hbc_ext_fb2.prg    - file commander plugin, simple fb2 reader (.fb2)
     + plug_hbc_ext_fb2zip.prg - file commander plugin, simple fb2 reader (.fb2.zip)
     + plug_hbc_fb2_quick.prg  - file commander plugin, fb2 quick view
+    + plug_hbc_filelist.prg   - file commander plugin, files list to editor window
     + plug_hbc_files_compare.prg   - file commander plugin, compares files
     + plug_hbc_folders_compare.prg - file commander plugin, compares folders
     + plug_hbc_ftp.prg      - file commander plugin for ftp access
     + plug_hbc_img_quick.hrb - Images quick view
     + plug_hbc_latin.prg    - file commander plugin, converts file names
+    + plug_hbc_leto.prg     - file commander plugin for letodb access
     + plug_hbc_menu.prg     - a plugin, which complements file commander context menu
     + plug_hbp_init.prg     - a start plugin for .hbp files
     + plug_hugclient.hrb    - Hugging chat client
@@ -88,7 +94,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_prg_run1c.prg    - Harbour for 1c
     + plug_selection.prg    - Additional operations on selected region
     + plug_sh_init.prg      - a start plugin for .sh files
-    + plug_topython.hrb     - a middleware for python based plugins
+    + plug_topython.prg     - a middleware for python based plugins
     + plug_vcs.prg          - a plugin to work with Git and Fossil
     + plug_webservices.prg  - Some web services access
   + source/plugins/python   - python plugins source files

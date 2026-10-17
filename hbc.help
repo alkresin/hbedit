@@ -35,7 +35,7 @@ HbCommander - built-in file manager
    A|a        - Quick access to apps, declared in hbc.ini in [APPLIST] section
    Shift-F1   - Add file/folder to a zip
    Shift-F2   - Extract files from a zip
-   Ctrl-O     - Open console
+   Ctrl-O|o   - Open console
    =          - Open console and puts '=' to a command line
                 ( = allows to calculate expressions, using operators
                   and Harbour functions, for example:
