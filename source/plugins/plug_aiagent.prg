@@ -270,6 +270,7 @@ STATIC FUNCTION cbFuncMsg( oService, pArr )
 
    LOCAL cPrompt
 
+   edi_Alert( "Message_for_man: " + oService:cAskMan )
    IF !Empty( cPrompt := edi_MsgGet_ext( oService:cPrompt, oClient:y1+2, oClient:x1+30, ;
       oClient:y1+9, oClient:x2-4, oClient:cp,,, "Answer_to_Message_for_man" ) )
       oService:cPrompt := cPrompt
