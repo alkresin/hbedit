@@ -61,6 +61,7 @@ A fullscreen console multiplatform text editor with built-in file manager
     + plug_games.prg        - A list of games
     + plug_gm_chess.prg     - A Chess game
     + plug_gm_life.prg      - A Life game
+    + plug_gm_lines.prg     - Lines game
     + plug_gm_sokoban.prg   - A Sokoban game
     + plug_gm_strek.prg     - A Star Trek game
     + plug_gm_sudoku.prg    - A Sudoku game

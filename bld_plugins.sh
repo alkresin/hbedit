@@ -21,6 +21,7 @@ $HB_INS/bin/linux/gcc/harbour plug_chartable.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_calculator.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_palette.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_games.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour plug_gm_lines.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_tetris.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_sokoban.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_strek.prg -n -gh -q
