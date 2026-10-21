@@ -106,34 +106,40 @@ STATIC FUNCTION _Lines_OnKey( oEdit, nKeyExt )
                nGameState := GM_STATE_2
                aPosFrom[1] := i; aPosFrom[2] := j
                DrawFig( i, j, .T. )
-            ELSEIF nGameState == GM_STATE_2 .AND. Empty( aBoard[i,j] )
-               nf := aBoard[aPosFrom[1], aPosFrom[2]]
-               IF FindPath( aBoard, aPosFrom[1], aPosFrom[2], i, j )
-                  DrawBoard()
-                  Inkey( 0.4 )
-                  aBoard[aPosFrom[1], aPosFrom[2]] := 0
-                  aBoard[i,j] := nf
-                  DrawBoard()
-                  IF !Empty( aLine := CheckLineOfFive( aBoard ) )
-                     FOR i := 1 TO Len( aLine )
-                        aBoard[aLine[i,1], aLine[i,2]] := 0
-                        nScores += 2
-                     NEXT
-                     @ y1t + 4, x2t + 16 SAY LTrim( Str( nScores ) )
-                     Inkey( 0.4 )
+            ELSEIF nGameState == GM_STATE_2
+               IF Empty( aBoard[i,j] )
+                  nf := aBoard[aPosFrom[1], aPosFrom[2]]
+                  IF FindPath( aBoard, aPosFrom[1], aPosFrom[2], i, j )
                      DrawBoard()
-                  ELSE
-                     AddBalls()
+                     Inkey( 0.3 )
+                     aBoard[aPosFrom[1], aPosFrom[2]] := 0
+                     aBoard[i,j] := nf
                      DrawBoard()
                      IF !Empty( aLine := CheckLineOfFive( aBoard ) )
                         FOR i := 1 TO Len( aLine )
                            aBoard[aLine[i,1], aLine[i,2]] := 0
+                           nScores += 2
                         NEXT
-                        Inkey( 0.4 )
+                        @ y1t + 4, x2t + 16 SAY LTrim( Str( nScores ) )
+                        Inkey( 0.3 )
                         DrawBoard()
+                     ELSE
+                        AddBalls()
+                        DrawBoard()
+                        IF !Empty( aLine := CheckLineOfFive( aBoard ) )
+                           FOR i := 1 TO Len( aLine )
+                              aBoard[aLine[i,1], aLine[i,2]] := 0
+                           NEXT
+                           Inkey( 0.3 )
+                           DrawBoard()
+                        ENDIF
                      ENDIF
+                     nGameState := GM_STATE_1
                   ENDIF
-                  nGameState := GM_STATE_1
+               ELSE
+                  DrawFig( aPosFrom[1], aPosFrom[2] )
+                  aPosFrom[1] := i; aPosFrom[2] := j
+                  DrawFig( i, j, .T. )
                ENDIF
             ENDIF
          ENDIF

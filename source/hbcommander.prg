@@ -2196,7 +2196,7 @@ STATIC FUNCTION hbc_FCopyFile( aDir, cFileTo, nStart, aWnd )
       RETURN .T.
    }
 
-   IF oPaneTo:nPanelMod == 1
+   IF oPaneTo:nPanelMod == 1 .OR. aDir[1] == ".."
       edi_Alert( _I(cNotPerm) )
       RETURN 2
    ENDIF
@@ -2340,7 +2340,7 @@ STATIC FUNCTION hbc_FRename( lRename )
    LOCAL cNewName, lDir, lCopyDel := .F., lRes := .F., aWnd
 
    lDir := ( 'D' $ aDir[5] )
-   IF oPaneCurr:nPanelMod > 0
+   IF oPaneCurr:nPanelMod > 0 .OR. cFileName == ".."
       RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
    IF oPaneTo:nPanelMod > 0
@@ -2487,9 +2487,6 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
       RETURN .T.
    }
 
-   IF oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1] == ".."
-      RETURN .F.
-   ENDIF
    IF oPaneCurr:nPanelMod > 0
       RETURN edi_Alert( _I(cNotPerm) )
    ENDIF
@@ -2497,6 +2494,9 @@ STATIC FUNCTION hbc_FDelete( lSilent, cFileName, lDir )
    IF Empty( cFileName )
       cFileName := oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,1]
       lDir := ('D' $ oPaneCurr:aDir[oPaneCurr:nCurrent + oPaneCurr:nShift,5])
+   ENDIF
+   IF cFileName == ".."
+      RETURN .F.
    ENDIF
    lSilent := !Empty( lSilent )
 
