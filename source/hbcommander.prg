@@ -2144,8 +2144,14 @@ STATIC FUNCTION FCopy( aDir, cFileTo, nFirst, aWnd )
          edi_Alert( cNotPerm )
       ENDIF
    ELSEIF oPaneCurr:nPanelMod == 1 // Current pane in Search mode
-      IF ( nRes := edi_CopyFile( oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
-            oPaneCurr:cCurrPath + aDir[1], cFileTo, aWnd ) ) != 0
+      cTemp := oPaneCurr:cIOpref_bak + oPaneCurr:net_cAddress_bak + ;
+            oPaneCurr:cCurrPath + aDir[1]
+      IF !Empty( oPaneCurr:cIOpref_bak ) .AND. ;
+         ( nRes := PlugFunc( oPaneCurr, oPaneCurr:cIOpref_bak, "COPYFROM", ;
+         {cTemp, cFileTo, .F., 0, aDir[2],aDir[3],aDir[4]} ) ) != Nil
+         RETURN nRes
+      ENDIF
+      IF ( nRes := edi_CopyFile( cTemp, cFileTo, aWnd ) ) != 0
          nRes := Iif( nRes == -3, 3, 2 )
       ENDIF
    ELSE
