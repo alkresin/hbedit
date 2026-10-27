@@ -197,13 +197,13 @@ FUNCTION edi_Which( cFile )
 
 #ifndef __PLATFORM__UNIX
    IF File( cFile )
-      RETURN Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir()
+      RETURN Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir() + hb_ps() + cFile
    ENDIF
 #endif
 
    FOR EACH cPath IN aEnv
       IF File( Iif( Right(cPath,1) $ "/\", hb_strShrink(cPath,1), cPath ) + hb_ps() + cFile )
-         RETURN Iif( Right(cPath,1) $ "/\", hb_strShrink(cPath,1), cPath )
+         RETURN Iif( Right(cPath,1) $ "/\", hb_strShrink(cPath,1), cPath ) + hb_ps() + cFile
       ENDIF
    NEXT
 

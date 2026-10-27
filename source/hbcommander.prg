@@ -471,7 +471,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                ENDIF
             ELSEIF cExt == ".exe"
                IF cedi_Check_ExeType( cTemp ) == 1
-                  hbc_Console( cTemp )
+                  hbc_Console( cTemp,, .F. )
                ELSE
                   cedi_ShellExecute( cTemp )
                ENDIF
@@ -3769,7 +3769,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
  */
 FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
 
-   LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s
+   LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s, arr, cExt
    LOCAL xRes, bOldError
    LOCAL lHbc := ( Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander" )
    LOCAL bKeys := {|nKeyExt,cmd,nColInit|
@@ -3939,10 +3939,35 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
                ssh2_Channel_Close( oPaneCurr:pSess )
             ENDIF
 #endif
-         /* ELSEIF Valtype( lShowWin ) == "L" .AND. lShowWin
-            cedi_RunApp( cCommand, .T. ) */
          ELSE
+#ifndef __PLATFORM__UNIX
+            arr := hb_ATokens( cCommand, ' ', .T. )
+            IF Left( s := arr[1], 1 ) == '"'
+               s := Substr( s, 2, Len(s)-2 )
+            ENDIF
+            cExt := Lower( hb_fnameExt( s ) )
+            IF cExt == ".bat"
+               Cons_My( cCommand, lShowWin, bKeys4cmd )
+            ELSEIF Empty( cExt )
+               IF !Empty( edi_Which( s + ".bat" ) )
+                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+               ELSEIF !Empty( s := edi_Which( s + ".exe" ) ) .AND. cedi_Check_ExeType( s ) > 1
+                  cedi_RunApp( cCommand, .T. )
+               ELSE
+                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+               ENDIF
+            ELSEIF Empty( hb_fnameDir( s ) )
+               IF !Empty( s := edi_Which( s ) ) .AND. cedi_Check_ExeType( s ) > 1
+                  cedi_RunApp( cCommand, .T. )
+               ELSE
+                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+               ENDIF
+            ELSE
+               Cons_My( cCommand, lShowWin, bKeys4cmd )
+            ENDIF
+#else
             Cons_My( cCommand, lShowWin, bKeys4cmd )
+#endif
          ENDIF
          cCommand := ""
       ELSEIF Lastkey() == K_ESC
