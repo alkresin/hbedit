@@ -191,6 +191,24 @@ FUNCTION edi_FindPath( cFile )
 
    RETURN Nil
 
+FUNCTION edi_Which( cFile )
+
+   LOCAL aEnv := hb_ATokens( getenv("PATH"), hb_osPathListSeparator() ), cPath
+
+#ifndef __PLATFORM__UNIX
+   IF File( cFile )
+      RETURN Iif( hb_Version(20), "/", hb_curDrive() + ":\" ) + CurDir()
+   ENDIF
+#endif
+
+   FOR EACH cPath IN aEnv
+      IF File( Iif( Right(cPath,1) $ "/\", hb_strShrink(cPath,1), cPath ) + hb_ps() + cFile )
+         RETURN Iif( Right(cPath,1) $ "/\", hb_strShrink(cPath,1), cPath )
+      ENDIF
+   NEXT
+
+   RETURN Nil
+
 #define  BUFFSIZE  32768
 
 FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )

@@ -1324,6 +1324,82 @@ HB_FUNC( CEDI_GETDRIVETYPE )
 #endif
    hb_retni( i );
 }
+
+HB_FUNC( CEDI_CHECK_EXETYPE )
+{
+   FILE* f;
+   IMAGE_DOS_HEADER dosHeader;
+   DWORD peOffset;
+   IMAGE_NT_HEADERS ntHeaders;
+   WORD subsystem;
+   int iRes;
+
+   f = fopen( hb_parc(1), "rb" );
+   if( !f ) {
+      hb_retni( -1 );
+      return;
+   }
+
+   // Читаем IMAGE_DOS_HEADER (64 байта)
+   if( fread( &dosHeader, sizeof(dosHeader), 1, f) != 1 ) {
+      fclose( f );
+      // Не удалось прочитать DOS-заголовок
+      hb_retni( -2 );
+      return;
+   }
+
+   if( dosHeader.e_magic != IMAGE_DOS_SIGNATURE ) { // MZ = 0x5A4D
+      fclose(f);
+      // Не PE-файл (нет MZ);
+      hb_retni( -3 );
+      return;
+   }
+
+   peOffset = dosHeader.e_lfanew;
+
+   // Переходим к PE-заголовку (IMAGE_NT_HEADERS)
+   if( fseek(f, (long)peOffset, SEEK_SET) != 0 ) {
+      fclose(f);
+      hb_retni( -4 );
+      return;
+   }
+
+   // Для PE32 OptionalHeader.SizeOfOptionalHeader = 224, всего IMAGE_NT_HEADERS ~424 байта.
+   // Но достаточно прочитать фиксированный минимальный кусок, чтобы получить Subsystem.
+   if( fread(&ntHeaders, sizeof(ntHeaders), 1, f) != 1 ) {
+      fclose(f);
+      // Не удалось прочитать NT-заголовок
+      hb_retni( -5 );
+      return;
+   }
+
+   if( ntHeaders.Signature != IMAGE_NT_SIGNATURE ) {
+      fclose(f);
+      // Не корректный PE-заголовок
+      hb_retni( -6 );
+      return;
+   }
+
+   subsystem = ntHeaders.OptionalHeader.Subsystem;
+
+   switch (subsystem) {
+      case IMAGE_SUBSYSTEM_WINDOWS_CUI:
+         iRes = 1;
+         break;
+      case IMAGE_SUBSYSTEM_WINDOWS_GUI:
+         iRes = 2;
+         break;
+      default:
+         iRes = 3;
+         break;
+   }
+
+   fclose(f);
+   hb_retni( iRes );
+   return;
+
+}
+
 #endif
 
 typedef struct _bitarr_ {

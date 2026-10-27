@@ -459,9 +459,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                   IF oPaneCurr:cpPane == "RU866"
                      cTemp := hb_Translate( cTemp, "RU866", "RU1251" )
                   ENDIF
-                  /* IF !( oPaneCurr:cpPane == "UTF8" )
-                     cTemp := hb_strToUtf8( cTemp, oPaneCurr:cpPane )
-                  ENDIF */
 #endif
                   cedi_RunApp( oPaneCurr:aExtEnter[nPos,2] + " " + cTemp, .T. )
                ENDIF
@@ -473,7 +470,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                   hbc_Console( cTemp )
                ENDIF
             ELSEIF cExt == ".exe"
-               cedi_ShellExecute( cTemp )
+               IF cedi_Check_ExeType( cTemp ) == 1
+                  hbc_Console( cTemp )
+               ELSE
+                  cedi_ShellExecute( cTemp )
+               ENDIF
 #endif
 #ifdef __PLATFORM__UNIX
             ELSEIF cExt == ".sh" .OR. 'X' $ aDir[5]
@@ -4088,49 +4089,6 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
 
    RETURN cRes
 
-/*
-STATIC FUNCTION Cons_Hrb( cCommand )
-
-   LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
-   LOCAL oCons := RCons():New( cCommand )
-
-   IF oCons:hProcess < 0
-      ? "Error starting app"
-      RETURN Nil
-   ENDIF
-   FilePane():cConsOut += Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10)
-   DevPos( Maxrow(), nColInit := 0 )
-   ?
-   DO WHILE ( xRes := oCons:Read() ) != Nil
-      IF !Empty( xRes )
-         IF Chr(9) $ xRes
-            xRes := StrTran( xRes, Chr(9), Space(8) )
-         ENDIF
-         SetColor( "W/N" )
-         Add2Consout( xRes )
-         ?? xRes
-         nColInit := Col()
-         cmd := ""
-      ENDIF
-      nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
-      IF nKeyExt == 0
-         LOOP
-      ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
-            ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
-         EXIT
-      ELSEIF hb_keyStd( nKeyExt ) == K_ENTER
-         IF !oCons:Write( cmd + hb_Eol() )
-            ? "Pipe write error"
-         ENDIF
-      ELSE
-         cmd := ProcessKey( nColInit, cmd, nKeyExt )
-      ENDIF
-   ENDDO
-   oCons:End()
-
-   RETURN Nil
-*/
-
 STATIC FUNCTION Add2Consout( cText )
 
    LOCAL i
@@ -4147,7 +4105,6 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
-   //LOCAL pApp := cedi_StartConsoleApp( cCommand, !Empty(lShowWin) ), nSecInit, hWnd
    LOCAL pApp, nSecInit, hWnd, hSelf
    LOCAL nHis := 0, aCmdHis := {}
 
@@ -4163,19 +4120,17 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
    Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
    DevPos( Maxrow(), nColInit := 0 )
    ?
+/* #ifndef __PLATFORM__UNIX
    nSecInit := Seconds()
-#ifndef __PLATFORM__UNIX
    cedi_Sleep( 20 )
    IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
       cedi_HideWindow( hWnd )
       cedi_Sleep( 1 )
       cedi_SetActive( hSelf )
-      //edi_Writelog( "Hide1" )
    ENDIF
-#endif
+#endif */
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
       IF !Empty( xRes := removeEscapeCodes( xRes ) )
-         //edi_writelog( xRes, "cons.log" )
          IF Chr(9) $ xRes
             xRes := StrTran( xRes, Chr(9), Space(4) )
          ENDIF
@@ -4187,25 +4142,22 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
          ?? xRes
          nColInit := Col()
          cmd := ""
-         //nSecInit := 0
       ENDIF
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
       IF nKeyExt == Nil
          RETURN Nil
       ENDIF
       IF nKeyExt == 0
-#ifndef __PLATFORM__UNIX
+/* #ifndef __PLATFORM__UNIX
          IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.2
             IF Empty( hWnd )
                IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
                   cedi_HideWindow( hWnd )
                   cedi_Sleep( 1 )
                   cedi_SetActive( hSelf )
-                  //edi_Writelog( "Hide2" )
                   hWnd := Nil
                ENDIF
             ENDIF
-            //edi_Writelog( "1" )
             nSecInit := 0
             IF !Empty( aNoWin ) .AND. Ascan( aNoWin, hb_ATokens( cCommand )[1] ) > 0
                lShowWin := .F.
@@ -4219,7 +4171,7 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
                ENDIF
             ENDIF
          ENDIF
-#endif
+#endif */
          LOOP
       ELSEIF !Empty( bKeys ) .AND. Valtype( nKey := Eval( bKeys,nKeyExt ) ) == "L" .AND. nKey
          LOOP
