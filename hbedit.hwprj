@@ -53,6 +53,10 @@ srcpath=source\trie
 trie.c
 hbtrie.c
 
+{unix}srcpath=source\terminal
+{unix}terminal.c
+{unix}tmt.c
+
 {!nossh}srcpath=source\ssh2
 {!nossh}hbcssh2.prg
 {!nossh}hb_ssh2.c

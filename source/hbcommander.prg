@@ -3721,20 +3721,19 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
-   LOCAL aMenu := { {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
+   LOCAL aMenu := { {_I("Shell"),,}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
       {_I("Set autocompletion") + " "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, ;
       {_I("Close"),,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic, lShell := .F.
 
-#ifdef _USE_SSH2
-   IF oPaneCurr:cIOpref == "sftp:"
-      aMenu := hb_AIns( aMenu, Len(aMenu)-1, {_I("Shell"),,}, .T. )
-      lShell := .T.
-   ENDIF
-#endif
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
       oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
+#ifdef _USE_SSH2
+      KEYBOARD Chr(K_ENTER)
+      RETURN "shell"
+#endif
+   ELSEIF nChoic == 2
       IF !Empty( FilePane():aCmdHis )
          KEYBOARD Chr(K_END)
          n := FMenu( oHbc, FilePane():aCmdHis, oPaneCurr:vy1+2, oPaneCurr:vx1+10, ;
@@ -3743,15 +3742,17 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
             RETURN FilePane():aCmdHis[n]
          ENDIF
       ENDIF
-   ELSEIF nChoic == 2
-      KEYBOARD Chr(K_CTRL_W)
    ELSEIF nChoic == 3
+      KEYBOARD Chr(K_CTRL_W)
+   ELSEIF nChoic == 4
       FilePane():lConsAuto := !FilePane():lConsAuto
+/*
 #ifdef _USE_SSH2
    ELSEIF lShell .AND. nChoic == 4
       KEYBOARD Chr(K_ENTER)
       RETURN "shell"
 #endif
+*/
    ELSEIF nChoic == Len( aMenu )
       FilePane():nLastKey := 0
       FilePane():cConsCmd := cmd
@@ -4130,12 +4131,13 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
-   LOCAL pApp, nSecInit, hWnd, hSelf
+   LOCAL pApp
    LOCAL nHis := 0, aCmdHis := {}
 
-#ifndef __PLATFORM__UNIX
-   hSelf := cedi_GetActiveWindow()
-#endif
+   IF cCommand == "shell"
+      RETURN Cons_My_Shell()
+   ENDIF
+
    pApp := cedi_StartConsoleApp( cCommand, 2 )
    IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
       ? _I("Error starting app"), xRes
@@ -4145,15 +4147,6 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
    Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
    DevPos( Maxrow(), nColInit := 0 )
    ?
-/* #ifndef __PLATFORM__UNIX
-   nSecInit := Seconds()
-   cedi_Sleep( 20 )
-   IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
-      cedi_HideWindow( hWnd )
-      cedi_Sleep( 1 )
-      cedi_SetActive( hSelf )
-   ENDIF
-#endif */
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
       IF !Empty( xRes := removeEscapeCodes( xRes ) )
          IF Chr(9) $ xRes
@@ -4173,30 +4166,6 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
          RETURN Nil
       ENDIF
       IF nKeyExt == 0
-/* #ifndef __PLATFORM__UNIX
-         IF nSecInit > 0 .AND. Seconds() - nSecInit > 0.2
-            IF Empty( hWnd )
-               IF !Empty( hWnd := cedi_GETHWNDVISIBLEBYPID( pApp ) )
-                  cedi_HideWindow( hWnd )
-                  cedi_Sleep( 1 )
-                  cedi_SetActive( hSelf )
-                  hWnd := Nil
-               ENDIF
-            ENDIF
-            nSecInit := 0
-            IF !Empty( aNoWin ) .AND. Ascan( aNoWin, hb_ATokens( cCommand )[1] ) > 0
-               lShowWin := .F.
-            ENDIF
-            IF !Empty( hWnd ) .AND. ( lShowWin == Nil .OR. lShowWin )
-               IF !Empty(lShowWin) .OR. ( edi_Alert( _I("Application has a window"), _I("Show it"), _I("Ignore") ) ) == 1
-                  cedi_ShowWindow( hWnd )
-                  cedi_EndConsoleApp( pApp, .T. )
-                  pApp := Nil
-                  EXIT
-               ENDIF
-            ENDIF
-         ENDIF
-#endif */
          LOOP
       ELSEIF !Empty( bKeys ) .AND. Valtype( nKey := Eval( bKeys,nKeyExt ) ) == "L" .AND. nKey
          LOOP
@@ -4259,13 +4228,117 @@ STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
          ELSE
             cmd := ProcessKey( nColInit, cmd, nKeyExt )
          ENDIF
-         //cedi_WriteToConsoleApp( pApp, Chr(nKey) )
       ENDIF
    ENDDO
    cedi_EndConsoleApp( pApp )
 
    RETURN Nil
 
+STATIC FUNCTION Cons_My_Shell()
+#ifdef __PLATFORM__UNIX
+   LOCAL pPty, nKey, cKey
+
+   pPty := pty_Run( "/bin/bash", Maxrow()-1, Maxcol() )
+   IF Empty( pPty )
+      ? "Can't run bash"
+      RETURN Nil
+   ENDIF
+
+   DO WHILE .T.
+      IF pty_Check( pPty ) < 0
+         EXIT
+      ENDIF
+      IF ( nKey := Inkey( 0.01 ) ) == 27
+         EXIT
+      ELSEIF nKey > 0
+         cKey := KeyToStr( nKey )
+         pty_SendKey( pPty, cKey )
+      ENDIF
+   ENDDO
+
+   pty_Close( pPty )
+
+#endif
+   RETURN Nil
+
+#ifdef __PLATFORM__UNIX
+STATIC FUNCTION KeyToStr( nKey )
+
+   LOCAL cKey
+
+   SWITCH nKey
+   CASE K_UP
+      cKey := e"\x1b[A"
+      EXIT
+   CASE K_DOWN
+      cKey := e"\x1b[B"
+      EXIT
+   CASE K_RIGHT
+      cKey := e"\x1b[C"
+      EXIT
+   CASE K_LEFT
+      cKey := e"\x1b[D"
+      EXIT
+   CASE K_HOME
+      cKey := e"\x1b[H"
+      EXIT
+   CASE K_END
+      cKey := e"\x1b[F"
+      EXIT
+   CASE K_PGUP
+      cKey := e"\x1b[5~"
+      EXIT
+   CASE K_PGDN
+      cKey := e"\x1b[6~"
+      EXIT
+   CASE K_INS
+      cKey := e"\x1b[2~"
+      EXIT
+   CASE K_DEL
+      cKey := e"\x1b[3~"
+      EXIT
+   CASE K_F1
+      cKey := e"\x1b[11~"
+      EXIT
+   CASE K_F2
+      cKey := e"\x1b[12~"
+      EXIT
+   CASE K_F3
+      cKey := e"\x1b[13~"
+      EXIT
+   CASE K_F4
+      cKey := e"\x1b[14~"
+      EXIT
+   CASE K_F5
+      cKey := e"\x1b[15~"
+      EXIT
+   CASE K_F6
+      cKey := e"\x1b[17~"
+      EXIT
+   CASE K_F7
+      cKey := e"\x1b[18~"
+      EXIT
+   CASE K_F8
+      cKey := e"\x1b[19~"
+      EXIT
+   CASE K_F9
+      cKey := e"\x1b[20~"
+      EXIT
+   CASE K_F10
+      cKey := e"\x1b[21~"
+      EXIT
+   CASE K_F11
+      cKey := e"\x1b[23~"
+      EXIT
+   CASE K_F12
+      cKey := e"\x1b[24~"
+      EXIT
+   OTHERWISE
+      cKey := hb_utf8Chr( nKey )
+   END
+
+   RETURN cKey
+#endif
 #ifdef _USE_SSH2
 STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
 
