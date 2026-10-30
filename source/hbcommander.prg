@@ -4249,8 +4249,17 @@ STATIC FUNCTION Cons_My_Shell()
          EXIT
       ENDIF
       IF ( nKey := Inkey( 0.01 ) ) == 27
-         EXIT
-      ELSEIF nKey > 0
+         IF edi_Alert( _I("Send to app") + "?", _I("No"), _I("Yes") ) == 1
+            EXIT
+         ELSE
+            pty_SendKey( pPty, Chr( nKey ) )
+         ENDIF
+      ELSEIF nKey == K_CTRL_O
+         IF edi_Alert( _I("Send to app") + "?", _I("No"), _I("Yes") ) == 1
+         ELSE
+            pty_SendKey( pPty, Chr( nKey ) )
+         ENDIF
+      ELSEIF nKey != 0
          cKey := KeyToStr( nKey )
          pty_SendKey( pPty, cKey )
       ENDIF
