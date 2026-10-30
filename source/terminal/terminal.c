@@ -120,6 +120,7 @@ static void htty_render_update(TMT *vt, void *user_data) {
    const TMTSCREEN *screen = tmt_screen(vt);
    TMTATTRS attr;
    int iColorFG, iColorBG;
+   bool iAdd = 0;
 
    //fprintf(stderr, "[htty] Render update: %zu rows, %zu cols, cursor at (%zu, %zu), %zu char size\n",
    //        screen->nline, screen->ncol, cursor->r, cursor->c, sizeof(wchar_t) );
@@ -130,12 +131,14 @@ static void htty_render_update(TMT *vt, void *user_data) {
 
          attr = screen->lines[r]->chars[c].a;
          iColorFG = attr.fg - 1;
-         if( iColorFG < 0 )
-            iColorFG = 0;
+         if( iColorFG < 0 ) {
+            iAdd = ( iColorFG == -1 || attr.bold );
+            iColorFG = 7;
+         }
          else if( iColorFG > 7 )
             iColorFG = 7;
          iColorFG = сolors[iColorFG];
-         if( attr.bold )
+         if( iAdd )
             iColorFG += 8;
 
          iColorBG = attr.bg - 1;
@@ -152,8 +155,7 @@ static void htty_render_update(TMT *vt, void *user_data) {
          } else {
             HB_PUT_LE_UINT16( pbyBuffer, utf32_to_utf16( ch ) );
             pbyBuffer += 2;
-            //*pbyBuffer++ = ( HB_BYTE ) iColorFG + iColorBG;
-            *pbyBuffer++ = ( HB_BYTE ) 15 + iColorBG;
+            *pbyBuffer++ = ( HB_BYTE ) iColorFG + iColorBG;
             *pbyBuffer++ = 0;
          }
 

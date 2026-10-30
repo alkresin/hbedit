@@ -222,6 +222,9 @@ FUNCTION plug_hbc_ftp_mkdir( oPane, aParams )
 
 STATIC FUNCTION _plug_Refresh( oPane )
 
+   IF oPane:nPanelMod > 0
+      RETURN 0
+   ENDIF
    oPane:aDir := FtpList( oPane:pSess, oPane:cCurrPath )
    IF Empty( oPane:aDir )
       AAdd( oPane:aDir, { "..", 0, Date(), "", "D" } )

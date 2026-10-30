@@ -4282,56 +4282,11 @@ STATIC FUNCTION KeyToStr( nKey )
    CASE K_HOME
       cKey := e"\x1b[H"
       EXIT
-   CASE K_END
-      cKey := e"\x1b[F"
-      EXIT
-   CASE K_PGUP
-      cKey := e"\x1b[5~"
-      EXIT
-   CASE K_PGDN
-      cKey := e"\x1b[6~"
-      EXIT
    CASE K_INS
       cKey := e"\x1b[2~"
       EXIT
    CASE K_DEL
       cKey := e"\x1b[3~"
-      EXIT
-   CASE K_F1
-      cKey := e"\x1b[11~"
-      EXIT
-   CASE K_F2
-      cKey := e"\x1b[12~"
-      EXIT
-   CASE K_F3
-      cKey := e"\x1b[13~"
-      EXIT
-   CASE K_F4
-      cKey := e"\x1b[14~"
-      EXIT
-   CASE K_F5
-      cKey := e"\x1b[15~"
-      EXIT
-   CASE K_F6
-      cKey := e"\x1b[17~"
-      EXIT
-   CASE K_F7
-      cKey := e"\x1b[18~"
-      EXIT
-   CASE K_F8
-      cKey := e"\x1b[19~"
-      EXIT
-   CASE K_F9
-      cKey := e"\x1b[20~"
-      EXIT
-   CASE K_F10
-      cKey := e"\x1b[21~"
-      EXIT
-   CASE K_F11
-      cKey := e"\x1b[23~"
-      EXIT
-   CASE K_F12
-      cKey := e"\x1b[24~"
       EXIT
    OTHERWISE
       cKey := hb_utf8Chr( nKey )
