@@ -453,7 +453,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
             ENDIF
             IF nPos > 0
                IF Left( oPaneCurr:aExtEnter[nPos,2], 1 ) == '@'
-                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T., .F. )
+                  hbc_Console( Substr(oPaneCurr:aExtEnter[nPos,2],2) + " " + cTemp, .T. )
                ELSE
 #ifdef __PLATFORM__WINDOWS
                   IF oPaneCurr:cpPane == "RU866"
@@ -471,7 +471,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                ENDIF
             ELSEIF cExt == ".exe"
                IF cedi_Check_ExeType( cTemp ) == 1
-                  hbc_Console( cTemp,, .F. )
+                  hbc_Console( cTemp )
                ELSE
                   cedi_ShellExecute( cTemp )
                ENDIF
@@ -3763,12 +3763,9 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
    RETURN Nil
 
 /*
-  lShowWin = .F. - don't show window
-  lShowWin = .T. - show window
-  lShowWin = Nil - ask, show window or not
   bKeys4cmd - Keys handler for Cons_My(), may be used for specific command
  */
-FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
+FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
 
    LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s, arr, cExt
    LOCAL xRes, bOldError
@@ -3948,26 +3945,26 @@ FUNCTION hbc_Console( xCommand, lSetOnly, lShowWin, bKeys4cmd )
             ENDIF
             cExt := Lower( hb_fnameExt( s ) )
             IF cExt == ".bat"
-               Cons_My( cCommand, lShowWin, bKeys4cmd )
+               Cons_My( cCommand, bKeys4cmd )
             ELSEIF Empty( cExt )
                IF !Empty( edi_Which( s + ".bat" ) )
-                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+                  Cons_My( cCommand, bKeys4cmd )
                ELSEIF !Empty( s := edi_Which( s + ".exe" ) ) .AND. cedi_Check_ExeType( s ) > 1
                   cedi_RunApp( cCommand, .T. )
                ELSE
-                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+                  Cons_My( cCommand, bKeys4cmd )
                ENDIF
             ELSEIF Empty( hb_fnameDir( s ) )
                IF !Empty( s := edi_Which( s ) ) .AND. cedi_Check_ExeType( s ) > 1
                   cedi_RunApp( cCommand, .T. )
                ELSE
-                  Cons_My( cCommand, lShowWin, bKeys4cmd )
+                  Cons_My( cCommand, bKeys4cmd )
                ENDIF
             ELSE
-               Cons_My( cCommand, lShowWin, bKeys4cmd )
+               Cons_My( cCommand, bKeys4cmd )
             ENDIF
 #else
-            Cons_My( cCommand, lShowWin, bKeys4cmd )
+            Cons_My( cCommand, bKeys4cmd )
 #endif
          ENDIF
          cCommand := ""
@@ -4127,7 +4124,7 @@ STATIC FUNCTION Add2Consout( cText )
 
    RETURN Nil
 
-STATIC FUNCTION Cons_My( cCommand, lShowWin, bKeys )
+STATIC FUNCTION Cons_My( cCommand, bKeys )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr

@@ -202,18 +202,18 @@ STATIC FUNCTION _hbc_menu_exec( n,oPane )
    ELSEIF !Empty( aCmds ) .AND. n > 200 .AND. n < 230
       cCmd := aCmds[1,n-200,2]
       IF Left( cCmd,1 ) == "@"
-         hbc_Console( Substr(cCmd,2),, .F. )
+         hbc_Console( Substr(cCmd,2) )
        ELSE
-         hbc_Console( cCmd,, .T. )
+         hbc_Console( cCmd )
       ENDIF
    ELSEIF !Empty( aCmds ) .AND. n > 230
       cExt := hb_fnameExt( oPane:aDir[oPane:nCurrent + oPane:nShift,1] )
       IF ( i := Ascan(aExt, {|a|hb_Ascan(a,cExt,,,.T.)>0}) ) > 0
          cCmd := aCmds[i,n-230,2]
          IF Left( cCmd,1 ) == "@"
-             hbc_Console( Substr(cCmd,2),, .F. )
+             hbc_Console( Substr(cCmd,2) )
           ELSE
-             hbc_Console( cCmd,, .T. )
+             hbc_Console( cCmd )
          ENDIF
       ENDIF
    ENDIF

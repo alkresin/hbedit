@@ -230,7 +230,7 @@ STATIC FUNCTION _py_Run( oEdit )
    nScreenH := FilePane():vy2 + 1
    nScreenW := FilePane():vx2 + 1
    bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-   hbc_Console( cCmd,, .F., Iif( i==2, bKeys, Nil ) )
+   hbc_Console( cCmd,, Iif( i==2, bKeys, Nil ) )
    Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
 
    RETURN Nil

@@ -158,7 +158,7 @@ STATIC FUNCTION _go_Run()
       nScreenH := FilePane():vy2 + 1
       nScreenW := FilePane():vx2 + 1
       bufsc := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
-      hbc_Console( cCmd,, .F. )
+      hbc_Console( cCmd )
       Restscreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
    ELSE
       edi_Alert( "Go is not installed!" )
