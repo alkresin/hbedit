@@ -4405,6 +4405,61 @@ STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
    RETURN Nil
 #endif
 
+FUNCTION hbc_ReadScreen()
+
+   LOCAL nRows := Maxrow()+1, nCols := MaxCol()+1, nFirst, nLast
+   LOCAL cBuff := SaveScreen( 0, 0, nRows-1, nCols-1 ), i, j
+   LOCAL cRes := ""
+
+   IF Len( SaveScreen( 0,0,0,0 ) ) == 4
+      FOR i := 1 TO nRows
+         j := i * nCols * 4
+         nFirst := j - nCols * 4 + 1
+         DO WHILE j >= nFirst
+            j -= 3
+            IF !( hb_bPeek( cBuff, j ) == 32 .AND. hb_bPeek( cBuff, j+1 ) == 0 )
+               EXIT
+            ENDIF
+            j --
+         ENDDO
+         IF j > nFirst
+            nLast := j
+            j := nFirst
+            DO WHILE j <= nLast
+               cRes += cedi_Wchar_to_utf8( hb_bPeek(cBuff,j) + hb_bPeek(cBuff,j+1) * 256 )
+               j += 4
+            ENDDO
+            cRes += Chr( 10 )
+         ELSEIF !Empty( cRes )
+            cRes += Chr( 10 )
+         ENDIF
+      NEXT
+   ELSE
+      FOR i := 1 TO nRows
+         j := i * nCols * 2
+         nFirst := j - nCols * 2 + 1
+         DO WHILE j >= nFirst
+            j --
+            IF !( hb_bPeek( cBuff, j ) == 32 )
+               EXIT
+            ENDIF
+         ENDDO
+         IF j > nFirst
+            nLast := j
+            j := nFirst
+            DO WHILE j <= nLast
+               cRes += Chr( hb_bPeek(cBuff,j) )
+               j += 2
+            ENDDO
+            cRes += Chr( 10 )
+         ELSEIF !Empty( cRes )
+            cRes += Chr( 10 )
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN cRes
+
 STATIC FUNCTION removeEscapeCodes( cText, lProcess )
 
    LOCAL nPos, nPos2 := 1, n, nLen

@@ -85,34 +85,6 @@ char utf32_to_char( wchar_t cp ) {
     return (char) cp;
 }
 
-// Конвертирует один wchar_t в UTF-8 строку
-// Возвращает количество записанных байт (1-4), или 0 при ошибке
-size_t wchar_to_utf8(wchar_t wc, char *out) {
-    if (wc < 0x80) {
-        out[0] = (char)wc;
-        return 1;
-    } else if (wc < 0x800) {
-        out[0] = 0xC0 | (wc >> 6);
-        out[1] = 0x80 | (wc & 0x3F);
-        return 2;
-    } else if (wc < 0x10000) {
-        out[0] = 0xE0 | (wc >> 12);
-        out[1] = 0x80 | ((wc >> 6) & 0x3F);
-        out[2] = 0x80 | (wc & 0x3F);
-        return 3;
-    } else if (wc <= 0x10FFFF) {
-        out[0] = 0xF0 | (wc >> 18);
-        out[1] = 0x80 | ((wc >> 12) & 0x3F);
-        out[2] = 0x80 | ((wc >> 6) & 0x3F);
-        out[3] = 0x80 | (wc & 0x3F);
-        return 4;
-    }
-    return 0; // Невалидный символ
-}
-
-/* Вызывается, когда libtmt сообщает об изменении экрана.
- * Здесь вы должны прочитать состояние из vt (tmt_screen, tmt_cursor)
- * и перерисовать соответствующую область в интерфейсе менеджера. */
 static void htty_render_update(TMT *vt, void *user_data) {
 
    htty_ctx_t * ctx = (htty_ctx_t *) user_data;
@@ -121,9 +93,6 @@ static void htty_render_update(TMT *vt, void *user_data) {
    TMTATTRS attr;
    int iColorFG, iColorBG;
    bool iAdd = 0;
-
-   //fprintf(stderr, "[htty] Render update: %zu rows, %zu cols, cursor at (%zu, %zu), %zu char size\n",
-   //        screen->nline, screen->ncol, cursor->r, cursor->c, sizeof(wchar_t) );
 
    for (size_t r = 0; r < screen->nline; r++) {
       for (size_t c = 0; c < screen->ncol; c++) {
@@ -158,14 +127,8 @@ static void htty_render_update(TMT *vt, void *user_data) {
             *pbyBuffer++ = ( HB_BYTE ) iColorFG + iColorBG;
             *pbyBuffer++ = 0;
          }
-
-         //memset( out, 0, 8 );
-         //wchar_to_utf8( ch, out );
-         //c_writelog( NULL, 0, "%s", out );
       }
-      //c_writelog( NULL, 0, "\n" );
    }
-   //c_writelog( NULL, 7, "------" );
    hb_gtRest( 0, 0, screen->nline-1, screen->ncol-1, ctx->pBuffer );
 }
 

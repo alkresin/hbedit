@@ -2385,3 +2385,37 @@ HB_FUNC( CEDI_UTF8_UPPER )
    hb_retclen( szDst, iDstLen );
    free( szDst );
 }
+
+// Конвертирует один wchar_t в UTF-8 строку
+// Возвращает количество записанных байт (1-4), или 0 при ошибке
+short int wchar_to_utf8( wchar_t wc, char *out ) {
+    if (wc < 0x80) {
+        out[0] = (char)wc;
+        return 1;
+    } else if (wc < 0x800) {
+        out[0] = 0xC0 | (wc >> 6);
+        out[1] = 0x80 | (wc & 0x3F);
+        return 2;
+    } else if (wc < 0x10000) {
+        out[0] = 0xE0 | (wc >> 12);
+        out[1] = 0x80 | ((wc >> 6) & 0x3F);
+        out[2] = 0x80 | (wc & 0x3F);
+        return 3;
+    } else if (wc <= 0x10FFFF) {
+        out[0] = 0xF0 | (wc >> 18);
+        out[1] = 0x80 | ((wc >> 12) & 0x3F);
+        out[2] = 0x80 | ((wc >> 6) & 0x3F);
+        out[3] = 0x80 | (wc & 0x3F);
+        return 4;
+    }
+    return 0; // Невалидный символ
+}
+
+HB_FUNC( CEDI_WCHAR_TO_UTF8 )
+{
+   char szBuff[5];
+   int n;
+
+   n = wchar_to_utf8( hb_parnl(1), szBuff );
+   hb_retclen( szBuff, n );
+}
