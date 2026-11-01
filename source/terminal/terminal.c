@@ -31,7 +31,7 @@
 
 #include "tmt.h"
 
-static int сolors[8] = { 0, 4, 2, 6, 1, 5, 3, 7 };
+static int colors[8] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 typedef struct {
     int fVgaCell;
     TMT *vt;              /* Экземпляр виртуального терминала libtmt */
@@ -137,7 +137,7 @@ static void htty_render_update(TMT *vt, void *user_data) {
          }
          else if( iColorFG > 7 )
             iColorFG = 7;
-         iColorFG = сolors[iColorFG];
+         iColorFG = colors[iColorFG];
          if( iAdd )
             iColorFG += 8;
 
@@ -146,7 +146,7 @@ static void htty_render_update(TMT *vt, void *user_data) {
             iColorBG = 0;
          else if( iColorBG > 7 )
             iColorBG = 7;
-         iColorBG = сolors[iColorBG];
+         iColorBG = colors[iColorBG];
          iColorBG <<= 4;
 
          if( ctx->fVgaCell ) {

@@ -1174,6 +1174,8 @@ CLASS FilePane
    CLASS VAR nLastKey SHARED INIT 0
    CLASS VAR n7z SHARED INIT 0
    CLASS VAR cConsCmd SHARED INIT ""
+   CLASS VAR cConsScrBuf SHARED INIT Nil
+   CLASS VAR lShellPause SHARED INIT .F.
    CLASS VAR cDateFormat SHARED INIT "dd.mm.yy"
    CLASS VAR hMisc SHARED
 
@@ -3768,7 +3770,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
 
    LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s, arr, cExt
-   LOCAL xRes, bOldError
+   LOCAL xRes, bOldError, nConsRes := 0
    LOCAL lHbc := ( Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander" )
    LOCAL bKeys := {|nKeyExt,cmd,nColInit|
       LOCAL nKey := hb_keyStd( nKeyExt ), cTmp, n
@@ -3844,26 +3846,28 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
    ENDIF
 
    DO WHILE .T.
-      nHis := Len( FilePane():aCmdHis ) + 1
-      ?
-      @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
-      DevPos( Maxrow(), 0 )
-      SetColor( "+W/N" )
-      IF Valtype( xCommand ) == "C"
-         cCommand := xCommand
-         xCommand := Nil
-      ELSEIF Valtype( xCommand ) == "A"
-         cCommand := Iif( nCommand < Len( xCommand ), xCommand[++nCommand], "" )
-      ENDIF
-      IF !Empty( cCommand )
-         IF Empty( lSetOnly )
-            KEYBOARD Chr( K_ENTER )
+      IF Empty( FilePane():cConsScrBuf )
+         nHis := Len( FilePane():aCmdHis ) + 1
+         ?
+         @ Maxrow(), 0 CLEAR TO Maxrow(), MaxCol()
+         DevPos( Maxrow(), 0 )
+         SetColor( "+W/N" )
+         IF Valtype( xCommand ) == "C"
+            cCommand := xCommand
+            xCommand := Nil
+         ELSEIF Valtype( xCommand ) == "A"
+            cCommand := Iif( nCommand < Len( xCommand ), xCommand[++nCommand], "" )
          ENDIF
-      ELSEIF !Empty( FilePane():cConsCmd )
-         cCommand := FilePane():cConsCmd
+         IF !Empty( cCommand )
+            IF Empty( lSetOnly )
+               KEYBOARD Chr( K_ENTER )
+            ENDIF
+         ELSEIF !Empty( FilePane():cConsCmd )
+            cCommand := FilePane():cConsCmd
+         ENDIF
+         cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,oPaneCurr:cIOpref+">", ;
+             Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) + ">" ), cCommand, bKeys )
       ENDIF
-      cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,oPaneCurr:cIOpref+">", ;
-          Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) + ">" ), cCommand, bKeys )
       IF !Empty( cCommand )
          IF cCommand == "exit"
             IF FilePane():nLastKey == 0
@@ -3938,6 +3942,7 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
             ENDIF
 #endif
          ELSE
+            nConsRes := 0
 #ifndef __PLATFORM__UNIX
             arr := hb_ATokens( cCommand, ' ', .T. )
             IF Left( s := arr[1], 1 ) == '"'
@@ -3945,35 +3950,46 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
             ENDIF
             cExt := Lower( hb_fnameExt( s ) )
             IF cExt == ".bat"
-               Cons_My( cCommand, bKeys4cmd )
+               nConsRes := Cons_My( cCommand, bKeys4cmd )
             ELSEIF Empty( cExt )
                IF !Empty( edi_Which( s + ".bat" ) )
-                  Cons_My( cCommand, bKeys4cmd )
+                  nConsRes := Cons_My( cCommand, bKeys4cmd )
                ELSEIF !Empty( s := edi_Which( s + ".exe" ) ) .AND. cedi_Check_ExeType( s ) > 1
                   cedi_RunApp( cCommand, .T. )
                ELSE
-                  Cons_My( cCommand, bKeys4cmd )
+                  nConsRes := Cons_My( cCommand, bKeys4cmd )
                ENDIF
             ELSEIF Empty( hb_fnameDir( s ) )
                IF !Empty( s := edi_Which( s ) ) .AND. cedi_Check_ExeType( s ) > 1
                   cedi_RunApp( cCommand, .T. )
                ELSE
-                  Cons_My( cCommand, bKeys4cmd )
+                  nConsRes := Cons_My( cCommand, bKeys4cmd )
                ENDIF
             ELSE
-               Cons_My( cCommand, bKeys4cmd )
+               nConsRes := Cons_My( cCommand, bKeys4cmd )
             ENDIF
 #else
-            Cons_My( cCommand, bKeys4cmd )
+            nConsRes := Cons_My( cCommand, bKeys4cmd )
 #endif
          ENDIF
          cCommand := ""
+      ELSEIF !Empty( FilePane():cConsScrBuf )  // Return to console after Ctrl-o
+         RestScreen( 0, 0, nScreenH-1, nScreenW-1, FilePane():cConsScrBuf )
+         nConsRes := Cons_My( cCommand, bKeys4cmd )
+         FilePane():cConsScrBuf := Nil
       ELSEIF Lastkey() == K_ESC
          FilePane():lConsMode := .F.
          FilePane():cConsCmd := ""
          EXIT
       ENDIF
+      IF nConsRes == 1   // If Ctrl-o was pressed
+         FilePane():cConsScrBuf := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
+         FilePane():lConsMode := .F.
+         FilePane():cConsCmd  := ""
+         EXIT
+      ENDIF
    ENDDO
+
    cOutBuff := Savescreen( 0, 0, nScreenH-1, nScreenW-1 )
    SetColor( clr )
    RestScreen( 0, 0, nScreenH-1, nScreenW-1, bufsc )
@@ -4128,22 +4144,33 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
 
    LOCAL cmd := "", xRes, i, nColInit, nKeyExt, nKey
    LOCAL nRow, nCol, clr, s, arr
-   LOCAL pApp
    LOCAL nHis := 0, aCmdHis := {}
+   STATIC pApp, bKeysSav, nRowSav, nColSav, nColInitSav, cmdSav
 
-   IF cCommand == "shell"
+   IF Empty( FilePane():cConsScrBuf )
+      IF cCommand == "shell"
+         RETURN Cons_My_Shell()
+      ENDIF
+
+      pApp := cedi_StartConsoleApp( cCommand, 2 )
+      IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
+         ? _I("Error starting app"), xRes
+         cedi_EndConsoleApp( pApp )
+         pApp := Nil
+         RETURN -1
+      ENDIF
+      Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
+      DevPos( Maxrow(), nColInit := 0 )
+      bKeysSav := Nil
+      ?
+   ELSEIF FilePane():lShellPause
       RETURN Cons_My_Shell()
+   ELSE
+      DevPos( nRowSav, nColSav )
+      nColInit := nColInitSav
+      cmd := cmdSav
+      bKeys := bKeysSav
    ENDIF
-
-   pApp := cedi_StartConsoleApp( cCommand, 2 )
-   IF ( xRes :=  cedi_ReturnErrCode( pApp ) ) > 0
-      ? _I("Error starting app"), xRes
-      cedi_EndConsoleApp( pApp )
-      RETURN Nil
-   ENDIF
-   Add2Consout( Chr(13)+Chr(10) + "> " + cCommand + Chr(13)+Chr(10) )
-   DevPos( Maxrow(), nColInit := 0 )
-   ?
    DO WHILE ( xRes := cedi_ReadFromConsoleApp(pApp) ) != Nil
       IF !Empty( xRes := removeEscapeCodes( xRes ) )
          IF Chr(9) $ xRes
@@ -4160,14 +4187,20 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
       ENDIF
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
       IF nKeyExt == Nil
-         RETURN Nil
+         RETURN 0
       ENDIF
       IF nKeyExt == 0
          LOOP
-      ELSEIF !Empty( bKeys ) .AND. Valtype( nKey := Eval( bKeys,nKeyExt ) ) == "L" .AND. nKey
+      ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_CTRL_O .AND. hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+         bKeysSav := bKeys
+         nRowSav := Row()
+         nColSav := Col()
+         nColInitSav := nColInit
+         cmdSav := cmd
+         RETURN 1
+      ELSEIF !Empty( bKeys ) .AND. Valtype( xRes := Eval( bKeys,nKeyExt ) ) == "L" .AND. xRes
          LOOP
-      ELSEIF (nKey := hb_keyStd( nKeyExt )) == K_ESC .OR. ;
-            ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
+      ELSEIF nKey == K_ESC .OR. ( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == K_CTRL_C )
          EXIT
       ELSEIF nKey == K_UP
          IF nHis > 1
@@ -4228,17 +4261,24 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
       ENDIF
    ENDDO
    cedi_EndConsoleApp( pApp )
+   pApp := Nil
 
-   RETURN Nil
+   RETURN 0
 
 STATIC FUNCTION Cons_My_Shell()
 #ifdef __PLATFORM__UNIX
-   LOCAL pPty, nKey, cKey
+   LOCAL nKey, cKey
+   STATIC pPty, nRowSav, nColSav
 
-   pPty := pty_Run( "/bin/bash", Maxrow()-1, Maxcol() )
-   IF Empty( pPty )
-      ? "Can't run bash"
-      RETURN Nil
+   IF FilePane():lShellPause
+      FilePane():lShellPause := .F.
+      DevPos( nRowSav, nColSav )
+   ELSE
+      pPty := pty_Run( "/bin/bash", Maxrow()-1, Maxcol() )
+      IF Empty( pPty )
+         ? "Can't run bash"
+         RETURN -1
+      ENDIF
    ENDIF
 
    DO WHILE .T.
@@ -4251,11 +4291,13 @@ STATIC FUNCTION Cons_My_Shell()
          ELSE
             pty_SendKey( pPty, Chr( nKey ) )
          ENDIF
+
       ELSEIF nKey == K_CTRL_O
-         IF edi_Alert( _I("Send to app") + "?", _I("No"), _I("Yes") ) == 1
-         ELSE
-            pty_SendKey( pPty, Chr( nKey ) )
-         ENDIF
+         FilePane():lShellPause := .T.
+         nRowSav := Row()
+         nColSav := Col()
+         RETURN 1
+
       ELSEIF nKey != 0
          cKey := KeyToStr( nKey )
          pty_SendKey( pPty, cKey )
@@ -4263,9 +4305,10 @@ STATIC FUNCTION Cons_My_Shell()
    ENDDO
 
    pty_Close( pPty )
+   pPty := Nil
 
 #endif
-   RETURN Nil
+   RETURN 0
 
 #ifdef __PLATFORM__UNIX
 STATIC FUNCTION KeyToStr( nKey )
