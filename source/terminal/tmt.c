@@ -430,6 +430,7 @@ writecharatcurs(TMT *vt, wchar_t w)
     }
 }
 
+#if defined(__linux__) || defined(__unix__)
 static inline size_t
 testmbchar(TMT *vt)
 {
@@ -445,6 +446,72 @@ getmbchar(TMT *vt)
     vt->nmb = 0;
     return (n == (size_t)-1 || n == (size_t)-2)? TMT_INVALID_CHAR : c;
 }
+#else
+// Собственный UTF-8 декодер, не зависящий от локали
+static size_t decode_utf8(wchar_t *out, const char *s, size_t n, mbstate_t *state) {
+    if (n == 0) return (size_t)-2;
+
+    unsigned char c = (unsigned char)s[0];
+
+    if (c < 0x80) {
+        // 1-byte (ASCII)
+        *out = c;
+        return 1;
+    } else if ((c & 0xE0) == 0xC0) {
+        // 2-byte
+        if (n < 2) return (size_t)-2;
+        *out = ((c & 0x1F) << 6) | (s[1] & 0x3F);
+        return 2;
+    } else if ((c & 0xF0) == 0xE0) {
+        // 3-byte
+        if (n < 3) return (size_t)-2;
+        *out = ((c & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+        return 3;
+    } else if ((c & 0xF8) == 0xF0) {
+        // 4-byte (surrogate pair на Windows)
+        if (n < 4) return (size_t)-2;
+        uint32_t codepoint = ((c & 0x07) << 18) | ((s[1] & 0x3F) << 12) |
+                             ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+
+        // Конвертируем в UTF-16 surrogate pair
+        if (codepoint <= 0xFFFF) {
+            *out = (wchar_t)codepoint;
+        } else {
+            // Для символов > 0xFFFF нужен surrogate pair
+            // Но libtmt хранит только один wchar_t, поэтому заменяем на TMT_INVALID_CHAR
+            *out = TMT_INVALID_CHAR;
+        }
+        return 4;
+    }
+
+    return (size_t)-1; // Invalid UTF-8
+}
+
+static inline size_t
+testmbchar(TMT *vt)
+{
+    if (vt->nmb == 0) return (size_t)-2;
+
+    wchar_t dummy;
+    size_t result = decode_utf8(&dummy, vt->mb, vt->nmb, &vt->ms);
+
+    // Если нужно больше байт, возвращаем -2
+    if (result == (size_t)-2) return (size_t)-2;
+    // Если ошибка, возвращаем -1
+    if (result == (size_t)-1) return (size_t)-1;
+    // Успех, возвращаем длину
+    return result;
+}
+
+static inline wchar_t
+getmbchar(TMT *vt)
+{
+    wchar_t c = 0;
+    size_t n = decode_utf8(&c, vt->mb, vt->nmb, &vt->ms);
+    vt->nmb = 0;
+    return (n == (size_t)-1 || n == (size_t)-2)? TMT_INVALID_CHAR : c;
+}
+#endif
 
 void
 tmt_write(TMT *vt, const char *s, size_t n)

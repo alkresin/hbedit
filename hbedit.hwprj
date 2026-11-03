@@ -19,6 +19,7 @@ cflags=-D_USE_HB
 prgflags=-d_FULL
 {!nossh}prgflags=-d_USE_SSH2
 {rddleto}prgflags=-d_RDDLETO
+{nopty}prgflags=-d__NOPTY
 
 libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
@@ -56,6 +57,10 @@ hbtrie.c
 {unix}srcpath=source\terminal
 {unix}terminal.c
 {unix}tmt.c
+
+{win}{!nopty}srcpath=source\terminal
+{win}{!nopty}termwin.c
+{win}{!nopty}tmt.c
 
 {!nossh}srcpath=source\ssh2
 {!nossh}hbcssh2.prg

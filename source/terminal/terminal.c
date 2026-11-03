@@ -298,3 +298,9 @@ HB_FUNC( PTY_SENDKEY )
 
    return;
 }
+
+HB_FUNC( PTY_ISEXISTS )
+{
+   hb_retl( 1 );
+   return;
+}

@@ -4266,7 +4266,7 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
    RETURN 0
 
 STATIC FUNCTION Cons_My_Shell()
-#ifdef __PLATFORM__UNIX
+#ifndef __NOPTY
    LOCAL nKey, cKey
    STATIC pPty, nRowSav, nColSav
 
@@ -4274,9 +4274,13 @@ STATIC FUNCTION Cons_My_Shell()
       FilePane():lShellPause := .F.
       DevPos( nRowSav, nColSav )
    ELSE
+#ifdef __PLATFORM__UNIX
       pPty := pty_Run( "/bin/bash", Maxrow()-1, Maxcol() )
+#else
+      pPty := pty_Run( "cmd", Maxrow()-1, Maxcol() )
+#endif
       IF Empty( pPty )
-         ? "Can't run bash"
+         ? "Can't run shell"
          RETURN -1
       ENDIF
    ENDIF
@@ -4306,11 +4310,12 @@ STATIC FUNCTION Cons_My_Shell()
 
    pty_Close( pPty )
    pPty := Nil
+   Add2Consout( hbc_ReadScreen() )
 
 #endif
    RETURN 0
 
-#ifdef __PLATFORM__UNIX
+#ifndef __NOPTY
 STATIC FUNCTION KeyToStr( nKey )
 
    LOCAL cKey
@@ -4337,12 +4342,63 @@ STATIC FUNCTION KeyToStr( nKey )
    CASE K_DEL
       cKey := e"\x1b[3~"
       EXIT
+#ifdef __PLATFORM__UNIX
    OTHERWISE
       cKey := hb_utf8Chr( nKey )
+#else
+   CASE K_END
+      cKey := e"\x1b[Y"
+      EXIT
+   CASE K_PGUP
+      cKey := e"\x1b[V"
+      EXIT
+   CASE K_PGDN
+      cKey := e"\x1b[U"
+      EXIT
+   CASE K_F1
+      cKey := e"\x1b[11~"
+      EXIT
+   CASE K_F2
+      cKey := e"\x1b[12~"
+      EXIT
+   CASE K_F3
+      cKey := e"\x1b[13~"
+      EXIT
+   CASE K_F4
+      cKey := e"\x1b[14~"
+      EXIT
+   CASE K_F5
+      cKey := e"\x1bOT"
+      EXIT
+   CASE K_F6
+      cKey := e"\x1b[17~"
+      EXIT
+   CASE K_F7
+      cKey := e"\x1b[18~"
+      EXIT
+   CASE K_F8
+      cKey := e"\x1b[19~"
+      EXIT
+   CASE K_F9
+      cKey := e"\x1b[20~"
+      EXIT
+   CASE K_F10
+      cKey := e"\x1b[21~"
+      EXIT
+   CASE K_F11
+      cKey := e"\x1b[23~"
+      EXIT
+   CASE K_F12
+      cKey := e"\x1b[24~"
+      EXIT
+   OTHERWISE
+      cKey := Chr( nKey )
+#endif
    END
 
    RETURN cKey
 #endif
+
 #ifdef _USE_SSH2
 STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
 
