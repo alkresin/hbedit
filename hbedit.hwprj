@@ -54,13 +54,18 @@ srcpath=source\trie
 trie.c
 hbtrie.c
 
-{unix}srcpath=source\terminal
-{unix}terminal.c
-{unix}tmt.c
-
-{win}{!nopty}srcpath=source\terminal
-{win}{!nopty}termwin.c
-{win}{!nopty}tmt.c
+{!nopty}srcpath=source\terminal
+{!nopty}{unix}terminal.c
+{!nopty}{win}termwin.c
+{!nopty}encoding.c
+{!nopty}keyboard.c
+{!nopty}mouse.c
+{!nopty}parser.c
+{!nopty}pen.c
+{!nopty}screen.c
+{!nopty}state.c
+{!nopty}unicode.c
+{!nopty}vterm.c
 
 {!nossh}srcpath=source\ssh2
 {!nossh}hbcssh2.prg

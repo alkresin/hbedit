@@ -4267,7 +4267,7 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
 
 STATIC FUNCTION Cons_My_Shell()
 #ifndef __NOPTY
-   LOCAL nKey, cKey
+   LOCAL nKey
    STATIC pPty, nRowSav, nColSav
 
    IF FilePane():lShellPause
@@ -4275,9 +4275,9 @@ STATIC FUNCTION Cons_My_Shell()
       DevPos( nRowSav, nColSav )
    ELSE
 #ifdef __PLATFORM__UNIX
-      pPty := pty_Run( "/bin/bash", Maxrow()-1, Maxcol() )
+      pPty := pty_Run( "/bin/bash", Maxrow(), Maxcol() )
 #else
-      pPty := pty_Run( "cmd", Maxrow()-1, Maxcol() )
+      pPty := pty_Run( "cmd", Maxrow(), Maxcol() )
 #endif
       IF Empty( pPty )
          ? "Can't run shell"
@@ -4303,8 +4303,7 @@ STATIC FUNCTION Cons_My_Shell()
          RETURN 1
 
       ELSEIF nKey != 0
-         cKey := KeyToStr( nKey )
-         pty_SendKey( pPty, cKey )
+         pty_SendKey( pPty, nKey )
       ENDIF
    ENDDO
 
@@ -4314,90 +4313,6 @@ STATIC FUNCTION Cons_My_Shell()
 
 #endif
    RETURN 0
-
-#ifndef __NOPTY
-STATIC FUNCTION KeyToStr( nKey )
-
-   LOCAL cKey
-
-   SWITCH nKey
-   CASE K_UP
-      cKey := e"\x1b[A"
-      EXIT
-   CASE K_DOWN
-      cKey := e"\x1b[B"
-      EXIT
-   CASE K_RIGHT
-      cKey := e"\x1b[C"
-      EXIT
-   CASE K_LEFT
-      cKey := e"\x1b[D"
-      EXIT
-   CASE K_HOME
-      cKey := e"\x1b[H"
-      EXIT
-   CASE K_INS
-      cKey := e"\x1b[2~"
-      EXIT
-   CASE K_DEL
-      cKey := e"\x1b[3~"
-      EXIT
-#ifdef __PLATFORM__UNIX
-   OTHERWISE
-      cKey := hb_utf8Chr( nKey )
-#else
-   CASE K_END
-      cKey := e"\x1b[Y"
-      EXIT
-   CASE K_PGUP
-      cKey := e"\x1b[V"
-      EXIT
-   CASE K_PGDN
-      cKey := e"\x1b[U"
-      EXIT
-   CASE K_F1
-      cKey := e"\x1b[11~"
-      EXIT
-   CASE K_F2
-      cKey := e"\x1b[12~"
-      EXIT
-   CASE K_F3
-      cKey := e"\x1b[13~"
-      EXIT
-   CASE K_F4
-      cKey := e"\x1b[14~"
-      EXIT
-   CASE K_F5
-      cKey := e"\x1bOT"
-      EXIT
-   CASE K_F6
-      cKey := e"\x1b[17~"
-      EXIT
-   CASE K_F7
-      cKey := e"\x1b[18~"
-      EXIT
-   CASE K_F8
-      cKey := e"\x1b[19~"
-      EXIT
-   CASE K_F9
-      cKey := e"\x1b[20~"
-      EXIT
-   CASE K_F10
-      cKey := e"\x1b[21~"
-      EXIT
-   CASE K_F11
-      cKey := e"\x1b[23~"
-      EXIT
-   CASE K_F12
-      cKey := e"\x1b[24~"
-      EXIT
-   OTHERWISE
-      cKey := Chr( nKey )
-#endif
-   END
-
-   RETURN cKey
-#endif
 
 #ifdef _USE_SSH2
 STATIC FUNCTION Cons_ssh2_My( pSess, cCommand )
