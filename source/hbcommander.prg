@@ -117,6 +117,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i, aDir
    LOCAL bufsc, cRes
+   LOCAL aMenuRun := { {_I("Run in external window"),,}, {_I("Run in terminal"),,} }
 
    IF !Empty( oPaneCurr:bOnKey )
       i := Eval( oPaneCurr:bOnKey, oPaneCurr, nKeyExt )
@@ -465,7 +466,11 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-                  cedi_ShellExecute( cTemp )
+                  IF ( i := FMenu( oHbc, aMenuRun ) ) == 1
+                     cedi_ShellExecute( cTemp )
+                  ELSE
+                     hbc_Console( "shell[" + cTemp + "]" )
+                  ENDIF
                ELSE
                   hbc_Console( cTemp )
                ENDIF
@@ -477,9 +482,13 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
                ENDIF
 #endif
 #ifdef __PLATFORM__UNIX
-            ELSEIF cExt == ".sh" .OR. 'X' $ aDir[5]
+            ELSEIF 'X' $ aDir[5]
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-                  cedi_RunApp( cTermApp + " " + cTemp )
+                  IF ( i := FMenu( oHbc, aMenuRun ) ) == 1
+                     cedi_RunApp( cTermApp + " " + cTemp )
+                  ELSEIF i == 2
+                     hbc_Console( "shell[" + cTemp + "]" )
+                  ENDIF
                ELSE
                   hbc_Console( cTemp )
                ENDIF
@@ -1956,6 +1965,11 @@ METHOD RedrawAll() CLASS FilePane
 
    RETURN Nil
 
+METHOD TextOut() CLASS FilePane
+
+   ::RedrawAll()
+   RETURN Nil
+
 METHOD onExit() CLASS FilePane
 
    LOCAL cHisDir := hb_DirBase(), s := "", i, j, nLen
@@ -2838,8 +2852,12 @@ STATIC FUNCTION hbc_PaneOpt()
    FOR nChoic := 1 TO Len( aCpInUse )
       AAdd( aMenu1, aCpInUse[nChoic] + Iif( aCpInUse[nChoic]==oPaneCurr:cpPane, "   x", "" ) )
    NEXT
+   //AAdd( aMenu1, "----" )
+   //AAdd( aMenu1, _I("Palette") )
    nChoic := FMenu( oHbc, aMenu1, oPaneCurr:y1+2, oPaneCurr:x1+14, ;
       oPaneCurr:y1+Len(aMenu1)+3, oPaneCurr:x1+38, oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
+   //IF nChoic == Len( aMenu1 )
+   //   mnu_Palettes( oHbc, { 10, oPaneCurr:x2-8 } )
    IF nChoic > 0
       oPaneCurr:ChangeMode( Iif(nChoic<=4,nChoic,Nil), Iif(nChoic>4.AND.nChoic<8,nChoic-5,Nil), ;
          Iif(nChoic>=9,nChoic-8,Nil) )
@@ -4149,7 +4167,7 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
 
    IF Empty( FilePane():cConsScrBuf )
       IF Left( cCommand,6 ) == "shell["
-         RETURN Cons_My_Shell( Substr( cCommand, 7, Len(cCommand)-8 ) )
+         RETURN Cons_My_Shell( Substr( cCommand, 7, Len(cCommand)-7 ) )
       ENDIF
 
       pApp := cedi_StartConsoleApp( cCommand, 2 )
