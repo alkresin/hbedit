@@ -4295,9 +4295,9 @@ STATIC FUNCTION Cons_My_Shell( cCmd )
       pPty := pty_Run( cCmd, Maxrow(), Maxcol() )
    ELSE
 #ifdef __PLATFORM__UNIX
-      pPty := pty_Run( "/bin/bash", Maxrow(), Maxcol() )
+      pPty := pty_Run( "/bin/bash", Maxrow(), Maxcol()+1 )
 #else
-      pPty := pty_Run( "cmd", Maxrow(), Maxcol() )
+      pPty := pty_Run( "cmd", Maxrow(), Maxcol()+1 )
 #endif
       IF Empty( pPty )
          ? "Can't run shell"

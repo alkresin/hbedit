@@ -298,7 +298,8 @@ static int spawn_in_pty( char *const argv[], int rows, int cols ) {
     }
 
     if (pid == 0) {
-        setenv("TERM", "xterm-256color", 1);
+        //setenv("TERM", "xterm-256color", 1);
+        setenv("TERM", "xterm", 1);
         //c_writelog( NULL, 0, "cmd: %s\n", argv[0] );
         execvp( argv[0], argv );
         perror( "execvp" );
