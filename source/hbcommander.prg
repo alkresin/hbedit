@@ -705,6 +705,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
       hbc_Console()
    ELSEIF nKey == K_CTRL_O
       hbc_Console()
+   ELSEIF nKey == K_CTRL_T
+      hbc_Console( "shell[]" )
    ELSEIF nKey == K_CTRL_W
       ShowStdout()
    ELSEIF nKey == K_CTRL_P
@@ -750,6 +752,8 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
          oPaneCurr:ChangeDir()
       ELSEIF nKey == 111 .OR. nKey == 79   // o O
          hbc_Console()
+      ELSEIF nKey == 116 .OR. nKey == 84   // t T
+         hbc_Console( "shell[]" )
       ELSEIF nKey == 72 .OR. nKey == 104  // H h
          hbc_HistMnu()
       ELSEIF nKey == 65 .OR. nKey == 97  // A a
@@ -3723,7 +3727,7 @@ STATIC FUNCTION hbc_Cons_Auto( cmd )
 STATIC FUNCTION hbc_Cons_Menu( cmd )
 
    LOCAL cSep := "---"
-   LOCAL aMenu := { {_I("Shell"),,}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
+   LOCAL aMenu := { {_I("Shell"),,,"Ctrl-T"}, {_I("Commands history"),,,"Ctrl-F8"}, {_I("Stdout window"),,,"Ctrl-W"}, ;
       {_I("Set autocompletion") + " "+Iif(FilePane():lConsAuto,"Off","On"),,}, {cSep,,}, ;
       {_I("Close"),,,"Ctrl-O,Esc"} }
    LOCAL n, nChoic, lShell := .F.
@@ -3731,10 +3735,8 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
    nChoic := FMenu( oHbc, aMenu, oPaneCurr:y1+5, Int(MaxCol()/2-16),,, ;
       oPaneCurr:aClrMenu[1], oPaneCurr:aClrMenu[2] )
    IF nChoic == 1
-#ifdef _USE_SSH2
       KEYBOARD Chr(K_ENTER)
-      RETURN "shell"
-#endif
+      RETURN "shell[]"
    ELSEIF nChoic == 2
       IF !Empty( FilePane():aCmdHis )
          KEYBOARD Chr(K_END)
@@ -3748,13 +3750,6 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
       KEYBOARD Chr(K_CTRL_W)
    ELSEIF nChoic == 4
       FilePane():lConsAuto := !FilePane():lConsAuto
-/*
-#ifdef _USE_SSH2
-   ELSEIF lShell .AND. nChoic == 4
-      KEYBOARD Chr(K_ENTER)
-      RETURN "shell"
-#endif
-*/
    ELSEIF nChoic == Len( aMenu )
       FilePane():nLastKey := 0
       FilePane():cConsCmd := cmd
@@ -3789,6 +3784,11 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
          FilePane():cConsCmd := cmd
          KEYBOARD Chr(K_ENTER)
          RETURN "exit"
+      ELSEIF nKey == K_CTRL_T
+         FilePane():nLastKey := 0
+         FilePane():cConsCmd := cmd
+         KEYBOARD Chr(K_ENTER)
+         RETURN "shell[]"
       ELSEIF nKey == K_CTRL_TAB .OR. nKey == K_CTRL_TAB
          FilePane():nLastKey := nKeyExt
          FilePane():cConsCmd := cmd
@@ -4148,8 +4148,8 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
    STATIC pApp, bKeysSav, nRowSav, nColSav, nColInitSav, cmdSav
 
    IF Empty( FilePane():cConsScrBuf )
-      IF cCommand == "shell"
-         RETURN Cons_My_Shell()
+      IF Left( cCommand,6 ) == "shell["
+         RETURN Cons_My_Shell( Substr( cCommand, 7, Len(cCommand)-8 ) )
       ENDIF
 
       pApp := cedi_StartConsoleApp( cCommand, 2 )
@@ -4265,7 +4265,7 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
 
    RETURN 0
 
-STATIC FUNCTION Cons_My_Shell()
+STATIC FUNCTION Cons_My_Shell( cCmd )
 #ifndef __NOPTY
    LOCAL nKey
    STATIC pPty, nRowSav, nColSav
@@ -4273,6 +4273,8 @@ STATIC FUNCTION Cons_My_Shell()
    IF FilePane():lShellPause
       FilePane():lShellPause := .F.
       DevPos( nRowSav, nColSav )
+   ELSEIF !Empty( cCmd )
+      pPty := pty_Run( cCmd, Maxrow(), Maxcol() )
    ELSE
 #ifdef __PLATFORM__UNIX
       pPty := pty_Run( "/bin/bash", Maxrow(), Maxcol() )
