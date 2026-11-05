@@ -57,6 +57,97 @@ static void _writelog( const char * sFile, int n, const char * s, ... )
 }
 */
 
+static int is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+int argv_split(const char *s, char ***out_argv)
+{
+    size_t argc = 0;        /* число фрагментов */
+    size_t total = 0;       /* суммарная длина фрагментов с '\0' */
+    const char *p;
+    size_t i;
+    char *data, *d;
+    char **argv;
+
+    if (!s || !out_argv)
+        return -1;
+
+    /* ---- проход 1: считаем фрагменты и объём данных ---- */
+    p = s;
+    while (*p) {
+        char quote = 0;
+        while (is_space(*p)) p++;
+        if (!*p) break;
+        argc++;
+        while (*p) {
+            if (quote) {
+                if (*p == '\\' && quote == '"' && (p[1] == '"' || p[1] == '\\'))
+                    total++, p += 2;          /* экранированный байт: \X -> X */
+                else if (*p == quote)
+                    { quote = 0; p++; }
+                else
+                    total++, p++;
+            } else if (*p == '\'' || *p == '"') {
+                quote = *p++;
+            } else if (*p == '\\' && (p[1] == '"' || p[1] == '\'' || p[1] == '\\')) {
+                total++, p += 2;
+            } else if (is_space(*p)) {
+                break;
+            } else {
+                total++, p++;
+            }
+        }
+        if (quote)
+            return -1;                        /* незакрытая кавычка */
+        total++;                              /* резерв под '\0' фрагмента */
+    }
+
+    /* ---- один блок: указатели [argc+1], затем данные ---- */
+    argv = (char **)malloc((argc + 1) * sizeof(char *) + total);
+    if (!argv)
+        return -1;
+
+    data = (char *)(argv + argc + 1);
+    d = data;
+    i = 0;
+
+    /* ---- проход 2: копируем фрагменты ---- */
+    p = s;
+    while (*p) {
+        char quote = 0;
+        char *start = d;
+        while (is_space(*p)) p++;
+        if (!*p) break;
+        while (*p) {
+            if (quote) {
+                if (*p == '\\' && quote == '"' && (p[1] == '"' || p[1] == '\\')) {
+                    *d++ = p[1]; p += 2;
+                } else if (*p == quote) {
+                    quote = 0; p++;
+                } else {
+                    *d++ = *p++;
+                }
+            } else if (*p == '\'' || *p == '"') {
+                quote = *p++;
+            } else if (*p == '\\' && (p[1] == '"' || p[1] == '\'' || p[1] == '\\')) {
+                *d++ = p[1]; p += 2;
+            } else if (is_space(*p)) {
+                break;
+            } else {
+                *d++ = *p++;
+            }
+        }
+        *d++ = '\0';
+        argv[i++] = start;
+    }
+    argv[i] = NULL;
+
+    *out_argv = argv;
+    return (int)i;
+}
+
 static int cedi_Utf8CharLen( unsigned char ucChar )
 {
    int n;

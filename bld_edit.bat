@@ -15,7 +15,7 @@ set HB_LIBS=hbdebug.lib hbrtl.lib gtwvt.lib gtgui.lib hbvm.lib hbpp.lib hbcommon
 %HB_INSTALL%\bin\harbour %SRC_PATH%\hilight.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fautoc.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\errorsys.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
-%HB_INSTALL%\bin\harbour %SRC_PATH%\hbcommander.prg /n /q /dGTWVT -I%HB_INSTALL%\include %1 2>>harbour.out
+%HB_INSTALL%\bin\harbour %SRC_PATH%\hbcommander.prg /n /q /dGTWVT -d__NOPTY -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\fview.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 %HB_INSTALL%\bin\harbour %SRC_PATH%\hbextcli.prg /n /q -I%HB_INSTALL%\include %1 2>>harbour.out
 

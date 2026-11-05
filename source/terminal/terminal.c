@@ -31,6 +31,8 @@
 #include "hbapigt.h"
 #include "inkey.ch"
 
+extern int argv_split(const char *s, char ***out_argv);
+
 static int colors[8] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 
 typedef struct {
@@ -338,8 +340,10 @@ HB_FUNC( PTY_RUN )
    /* merge выставляем ПОСЛЕ reset: reset внутри трогает это поле */
    vterm_screen_set_damage_merge(ctx->screen, VTERM_DAMAGE_SCREEN);
 
-   char *argv[] = { szCmd, NULL };
-   ctx->pty_master_fd = spawn_in_pty(argv, nRows, nCols );
+   char **argv;
+   argv_split( szCmd, &argv );
+   ctx->pty_master_fd = spawn_in_pty( argv, nRows, nCols );
+   free( argv );
    if (ctx->pty_master_fd < 0) {
       vterm_free(ctx->vt);
       hb_xfree( ctx );
