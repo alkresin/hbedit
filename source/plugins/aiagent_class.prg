@@ -394,6 +394,7 @@ METHOD MainCycle( pFunc, nCycles, lClear ) CLASS LLM_Service
       IF !Empty( ::pFuncMsg ) .AND. !Empty( ::cAskMan )
          ::pFuncMsg:exec( Self )
          ::cAskMan := ""
+         EXIT
       ENDIF
       n ++
    ENDDO

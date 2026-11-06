@@ -1237,6 +1237,7 @@ CLASS FilePane
    METHOD PaneCurr()  INLINE oPaneCurr
    METHOD ContextMenu()
    METHOD RedrawAll()
+   METHOD TextOut()
    METHOD onExit()
 
 ENDCLASS
@@ -3885,6 +3886,12 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
          ENDIF
          cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,oPaneCurr:cIOpref+">", ;
              Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) + ">" ), cCommand, bKeys )
+      ELSEIF Valtype( xCommand ) == "C" .AND. Left( xCommand,6 ) == "shell["
+         IF Len( xCommand ) > 7
+            edi_Alert( _I("Terminal is busy!") )
+         ENDIF
+         xCommand := Nil
+         cCommand := ""
       ENDIF
       IF !Empty( cCommand )
          IF cCommand == "exit"
@@ -4285,14 +4292,14 @@ STATIC FUNCTION Cons_My( cCommand, bKeys )
 
 STATIC FUNCTION Cons_My_Shell( cCmd )
 #ifndef __NOPTY
-   LOCAL nKey
+   LOCAL nKey, nKeyExt, nExt
    STATIC pPty, nRowSav, nColSav
 
    IF FilePane():lShellPause
       FilePane():lShellPause := .F.
       DevPos( nRowSav, nColSav )
    ELSEIF !Empty( cCmd )
-      pPty := pty_Run( cCmd, Maxrow(), Maxcol() )
+      pPty := pty_Run( cCmd, Maxrow(), Maxcol()+1 )
    ELSE
 #ifdef __PLATFORM__UNIX
       pPty := pty_Run( "/bin/bash", Maxrow(), Maxcol()+1 )
@@ -4309,11 +4316,22 @@ STATIC FUNCTION Cons_My_Shell( cCmd )
       IF pty_Check( pPty ) < 0
          EXIT
       ENDIF
-      IF ( nKey := Inkey( 0.01 ) ) == 27
+
+      nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
+      nKey := hb_keyStd( nKeyExt )
+      nExt := 0
+      IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
+         nExt := 1
+         /* IF hb_BitAnd( nKeyExt, 0xff ) >= 64
+            nKeyExt += 32
+         ENDIF */
+         //nKey := hb_keyStd( hb_BitXor( nKeyExt, CTRL_PRESSED ) )
+      ENDIF
+      IF nKey == 27
          IF edi_Alert( _I("Send to app") + "?", _I("No"), _I("Yes") ) == 1
             EXIT
          ELSE
-            pty_SendKey( pPty, Chr( nKey ) )
+            pty_SendKey( pPty, Chr( nKey ), nExt )
          ENDIF
 
       ELSEIF nKey == K_CTRL_O
