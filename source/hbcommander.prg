@@ -4059,7 +4059,11 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
          LOOP
       ENDIF
       IF nKey == K_ENTER
-         RETURN cRes
+         IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
+            RETURN "shell[" + cRes + "]"
+         ELSE
+            RETURN cRes
+         ENDIF
       ELSEIF nKey == K_ESC
          IF Empty( cRes )
             RETURN ""

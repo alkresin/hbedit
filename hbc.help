@@ -64,6 +64,7 @@ HbCommander - built-in file manager
 Console mode
    F1         - Help
    F9         - Menu
+   Shift-Enter- Run command in terminal
    Ctrl-O     - Close console
    ESC        - Close console
    Up,Down    - browse commands history
