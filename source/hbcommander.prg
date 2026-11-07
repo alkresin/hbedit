@@ -4335,14 +4335,7 @@ STATIC FUNCTION Cons_My_Shell( cCmd )
 
       nKeyExt := Inkey( 0.05, INKEY_KEYBOARD + HB_INKEY_EXT )
       nKey := hb_keyStd( nKeyExt )
-      nExt := 0
-      IF hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0
-         nExt := 1
-         /* IF hb_BitAnd( nKeyExt, 0xff ) >= 64
-            nKeyExt += 32
-         ENDIF */
-         //nKey := hb_keyStd( hb_BitXor( nKeyExt, CTRL_PRESSED ) )
-      ENDIF
+      nExt := Iif( hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0, 1, 0 )
       IF nKey == 27
          IF edi_Alert( _I("Send to app") + "?", _I("No"), _I("Yes") ) == 1
             EXIT
@@ -4357,7 +4350,7 @@ STATIC FUNCTION Cons_My_Shell( cCmd )
          RETURN 1
 
       ELSEIF nKey != 0
-         pty_SendKey( pPty, nKey )
+         pty_SendKey( pPty, nKey, nExt )
       ENDIF
    ENDDO
 

@@ -531,8 +531,10 @@ HB_FUNC( PTY_SENDKEY )
    int iKey = hb_parni(2), iExt = hb_parni(3);
    char key_buf[16];
    int n = -1;
-   DWORD written;
+   ssize_t written;
 
+   //c_writelog( NULL, 0, "send key 0: %d %d\n", iKey, iExt );
+   if( !iExt ) {
    switch( iKey ) {
       case K_UP:
          n = VTERM_KEY_UP;
@@ -558,57 +560,75 @@ HB_FUNC( PTY_SENDKEY )
       case K_PGUP:
          n = VTERM_KEY_PAGEUP;
          break;
-      case K_F1:
-         n = VTERM_KEY_FUNCTION(1);
-         break;
-      case K_F2:
-         n = VTERM_KEY_FUNCTION(2);
-         break;
-      case K_F3:
-         n = VTERM_KEY_FUNCTION(3);
-         break;
-      case K_F4:
-         n = VTERM_KEY_FUNCTION(4);
-         break;
-      case K_F5:
-         n = VTERM_KEY_FUNCTION(5);
-         break;
-      case K_F6:
-         n = VTERM_KEY_FUNCTION(6);
-         break;
-      case K_F7:
-         n = VTERM_KEY_FUNCTION(7);
-         break;
-      case K_F8:
-         n = VTERM_KEY_FUNCTION(8);
-         break;
-      case K_F9:
-         n = VTERM_KEY_FUNCTION(9);
-         break;
-      case K_F10:
-         n = VTERM_KEY_FUNCTION(10);
-         break;
-      case K_F11:
-         n = VTERM_KEY_FUNCTION(11);
-         break;
-      case K_F12:
-         n = VTERM_KEY_FUNCTION(12);
-         break;
+      }
    }
-
+   if( n < 0 ) {
+      switch( iKey ) {
+         case K_F1:
+            n = VTERM_KEY_FUNCTION(1);
+            break;
+         case K_F2:
+            n = VTERM_KEY_FUNCTION(2);
+            break;
+         case K_F3:
+            n = VTERM_KEY_FUNCTION(3);
+            break;
+         case K_F4:
+            n = VTERM_KEY_FUNCTION(4);
+            break;
+         case K_F5:
+            n = VTERM_KEY_FUNCTION(5);
+            break;
+         case K_F6:
+            n = VTERM_KEY_FUNCTION(6);
+            break;
+         case K_F7:
+            n = VTERM_KEY_FUNCTION(7);
+            break;
+         case K_F8:
+            n = VTERM_KEY_FUNCTION(8);
+            break;
+         case K_F9:
+            n = VTERM_KEY_FUNCTION(9);
+            break;
+         case K_F10:
+            n = VTERM_KEY_FUNCTION(10);
+            break;
+         case K_F11:
+            n = VTERM_KEY_FUNCTION(11);
+            break;
+         case K_F12:
+            n = VTERM_KEY_FUNCTION(12);
+            break;
+      }
+   }
+   //c_writelog( NULL, 0, "send key 1: %d\n", n );
    if( n >= 0 ) {
       vterm_keyboard_key( ctx->vt, n, (iExt)? VTERM_MOD_CTRL : VTERM_MOD_NONE );
       n = vterm_output_read( ctx->vt, key_buf, 16 );
    } else if( iExt ) {
-      vterm_keyboard_unichar( ctx->vt, n, VTERM_MOD_CTRL );
-      n = vterm_output_read( ctx->vt, key_buf, 16 );
+      if( iKey >= 1 && iKey <= 26 ) {
+         char code = (char) iKey;
+         //c_writelog( NULL, 0, "send key 3: %d\n", iKey );
+
+         WriteFile( ctx->hPtyInputWrite, &code, 1, &written, NULL );
+         if (written < 0 && errno != EINTR)
+            hb_retni( -2 );
+         else
+            hb_retni( 0 );
+
+         return;
+      } else {
+          vterm_keyboard_unichar( ctx->vt, n, VTERM_MOD_CTRL );
+          n = vterm_output_read( ctx->vt, key_buf, 16 );
+      }
    } else {
       n = hb_cdpU16CharToUTF8( key_buf, ( HB_WCHAR ) iKey );
    }
 
    //c_writelog( NULL, 0, "sendkey: %s\n", key_buf );
    WriteFile( ctx->hPtyInputWrite, key_buf, n, &written, NULL );
-   if( written < 0 )
+   if (written < 0 && errno != EINTR)
       hb_retni( -2 );
    else
       hb_retni( 0 );
