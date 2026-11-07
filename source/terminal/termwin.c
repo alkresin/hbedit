@@ -528,7 +528,7 @@ HB_FUNC( PTY_CHECK )
 HB_FUNC( PTY_SENDKEY )
 {
    htty_ctx_t * ctx = (htty_ctx_t *) hb_parptr( 1 );
-   int iKey = hb_parni(2);
+   int iKey = hb_parni(2), iExt = hb_parni(3);
    char key_buf[16];
    int n = -1;
    DWORD written;
@@ -595,8 +595,12 @@ HB_FUNC( PTY_SENDKEY )
          n = VTERM_KEY_FUNCTION(12);
          break;
    }
+
    if( n >= 0 ) {
-      vterm_keyboard_key( ctx->vt, n, VTERM_MOD_NONE );
+      vterm_keyboard_key( ctx->vt, n, (iExt)? VTERM_MOD_CTRL : VTERM_MOD_NONE );
+      n = vterm_output_read( ctx->vt, key_buf, 16 );
+   } else if( iExt ) {
+      vterm_keyboard_unichar( ctx->vt, n, VTERM_MOD_CTRL );
       n = vterm_output_read( ctx->vt, key_buf, 16 );
    } else {
       n = hb_cdpU16CharToUTF8( key_buf, ( HB_WCHAR ) iKey );

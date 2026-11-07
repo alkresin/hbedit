@@ -117,7 +117,6 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 
    LOCAL nKey, cPath, nPos, lRedraw, cExt, cExtFull, cTemp, o, nRow, nCol, i, aDir
    LOCAL bufsc, cRes
-   LOCAL aMenuRun := { {_I("Run in external window"),,}, {_I("Run in terminal"),,} }
 
    IF !Empty( oPaneCurr:bOnKey )
       i := Eval( oPaneCurr:bOnKey, oPaneCurr, nKeyExt )
@@ -466,9 +465,9 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 #ifdef __PLATFORM__WINDOWS
             ELSEIF cExt == ".bat"
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-                  IF ( i := FMenu( oHbc, aMenuRun ) ) == 1
+                  IF ( i := onShiftEnter() ) == 1
                      cedi_ShellExecute( cTemp )
-                  ELSE
+                  ELSEIF i == 2
                      hbc_Console( "shell[" + cTemp + "]" )
                   ENDIF
                ELSE
@@ -484,7 +483,7 @@ STATIC FUNCTION _Hbc_OnKey( oEdit_Hbc, nKeyExt )
 #ifdef __PLATFORM__UNIX
             ELSEIF 'X' $ aDir[5]
                IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-                  IF ( i := FMenu( oHbc, aMenuRun ) ) == 1
+                  IF ( i := onShiftEnter() ) == 1
                      cedi_RunApp( cTermApp + " " + cTemp )
                   ELSEIF i == 2
                      hbc_Console( "shell[" + cTemp + "]" )
@@ -3784,7 +3783,7 @@ STATIC FUNCTION hbc_Cons_Menu( cmd )
 FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
 
    LOCAL bufsc, clr, nRow, nCol, i, nHis := 0, cCommand := "", nCommand := 0, s, arr, cExt
-   LOCAL xRes, bOldError, nConsRes := 0
+   LOCAL xRes, bOldError, nConsRes := 0, lShift
    LOCAL lHbc := ( Lower( TEdit():aWindows[TEdit():nCurr]:cFileName ) == "$hbcommander" )
    LOCAL bKeys := {|nKeyExt,cmd,nColInit|
       LOCAL nKey := hb_keyStd( nKeyExt ), cTmp, n
@@ -3885,7 +3884,21 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
             cCommand := FilePane():cConsCmd
          ENDIF
          cCommand := GetLine( Iif( oPaneCurr:nPanelMod>0,oPaneCurr:cIOpref+">", ;
-             Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) + ">" ), cCommand, bKeys )
+             Iif( !Empty(oPaneCurr:cIOpref), oPaneCurr:cIOpref,NameShortcut(Curdir(),28,'~' ) ) ;
+             + ">" ), cCommand, bKeys, @lShift )
+         IF lShift .AND. !Empty( cCommand )
+            IF ( i := onShiftEnter() ) == 1
+               Add2Consout( cCommand + Chr(13)+Chr(10) )
+#ifdef __PLATFORM__UNIX
+               cedi_RunApp( cTermApp + " " + cCommand )
+#else
+               cedi_RunApp( cCommand )
+#endif
+               cCommand := ""
+            ELSEIF i == 2
+               cCommand := "shell[" + cCommand + "]"
+            ENDIF
+         ENDIF
       ELSEIF Valtype( xCommand ) == "C" .AND. Left( xCommand,6 ) == "shell["
          IF Len( xCommand ) > 7
             edi_Alert( _I("Terminal is busy!") )
@@ -4039,10 +4052,11 @@ FUNCTION hbc_Console( xCommand, lSetOnly, bKeys4cmd )
 
    RETURN Nil
 
-STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
+STATIC FUNCTION GetLine( cMsg, cRes, bKeys, lShift )
 
    LOCAL nRow := Row(), nColInit, nCol, nKeyExt, nKey, clr, s
 
+   lShift := .F.
    DevOut( Iif( cMsg==Nil, "", cMsg ) )
    nColInit := Col()
    IF cRes == Nil
@@ -4059,11 +4073,9 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys )
          LOOP
       ENDIF
       IF nKey == K_ENTER
-         IF hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0
-            RETURN "shell[" + cRes + "]"
-         ELSE
-            RETURN cRes
-         ENDIF
+         lShift := ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 )
+         RETURN cRes
+
       ELSEIF nKey == K_ESC
          IF Empty( cRes )
             RETURN ""
@@ -4471,6 +4483,15 @@ FUNCTION hbc_ReadScreen()
       NEXT
    ENDIF
 
+   FOR i := Len( cRes ) TO 2 STEP -1
+      IF hb_bPeek( cRes,i-1 ) != 10
+         EXIT
+      ENDIF
+   NEXT
+   IF i < Len( cRes )
+      cRes := Left( cRes, i )
+   ENDIF
+
    RETURN cRes
 
 STATIC FUNCTION removeEscapeCodes( cText, lProcess )
@@ -4642,6 +4663,12 @@ STATIC FUNCTION PlugFunc( oPane, cIOpref, cName, aParams )
       RETURN Eval( &( "{|o,a|" + cFunc + "(o,a)}" ), oPane, aParams )
    ENDIF
    RETURN Nil
+
+STATIC FUNCTION onShiftEnter()
+
+   LOCAL aMenuRun := { {_I("Run in external window"),,}, {_I("Run in terminal"),,} }
+
+   RETURN FMenu( oHbc, aMenuRun )
 
 FUNCTION hbc_RunPlugin( cSection, cHrb, p1, p2, p3, p4 )
 
