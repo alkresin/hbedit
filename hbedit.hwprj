@@ -23,7 +23,7 @@ prgflags=-d_FULL
 
 libs=hbzlib hbmzip minizip hbnetio
 {win}libs=hbwin
-{unix}libs=rt
+{unix}libs=rt util
 {!nossh}libs=ssh2
 {rddleto}libs=rddleto
 

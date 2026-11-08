@@ -19,6 +19,7 @@ A fullscreen console multiplatform text editor with built-in file manager
   + hbc.ini             - HbCommander (built-in file manager) ini file.
   + hbedit.ini          - Hbedit ini file.
 
+  + i18n/*              - internationalization files
   + source/
     + hbfuncsfull.ch    - header file.
 
@@ -44,6 +45,8 @@ A fullscreen console multiplatform text editor with built-in file manager
 
   + source/trie/*       - a subsystem, implementing prefix tree subsystem
   + source/ssh2/*       - a subsystem, implementing libssh2 support
+  + source/sqlidyn/*    - a subsystem, implementing sqlite support
+  + source/terminal/*   - a subsystem, implementing pseudoterminal support
   + source/plugins/     - plugins source files
     + hb_funcs.txt          - Harbour functions list for plug_prg_init
     + hbc_dbf.prg           - Dbf viewer plugin
