@@ -1,0 +1,3811 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<init lang="python">
+  <chapter name="Введение" >
+    <comment>
+      <![CDATA[Основано на материалах https://codechick.io/tutorials/python/]]>
+    </comment>
+    <module name="Ключевые слова и идентификаторы">
+      <![CDATA["""
+Ключевые слова в Python чувствительны к регистру. Все, кроме True, False и None, пишутся в нижнем регистре.
+В версии 3.7. всего 33 ключевых слова, но это число может незначительно меняться с течением времени. Вот их список:
+
+False    await    else    import    pass
+None     break    except  in        raise
+True     class    finally is        return
+and      continue for     lambda    try
+as       def      from    nonlocal  while
+assert   del      global  not       with
+async    elif     if      or        yield
+"""
+"""
+Идентификатор — это имя, которое вы даете таким объектам, как переменные, функции, классы и так далее.
+В записи идентификаторов можно использовать латинские буквы в нижнем регистре (от a до z), в верхнем регистре (от A до Z), цифры (от 0 до 9) и символ подчеркивания _. Например, допустимыми будут такие идентификаторы: myClass, var_1 и print_this_to_screen.
+Идентификатор не может начинаться с цифры. 1variable не может быть идентификатором, а вот variable1 — допустимое имя.
+Ключевые слова нельзя использовать в качестве идентификаторов.
+"""
+Var_x = 1
+var_x = 2
+print(Var_x + var_x)
+]]>
+    </module>
+    <module name="Инструкции, отступы и комментарии">
+      <![CDATA["""
+В Python для окончания инструкции используют символ новой строки.
+Но можно разбить инструкцию на несколько строк символом продолжения строки (\). Например:
+"""
+a = 1 + 2 + 3 + \
+    4 + 5 + 6 + \
+    7 + 8 + 9
+print(a)
+
+"""
+Это явное продолжение строки. В Python продолжение строки выполняется внутри круглых ( ),
+квадратных [ ] и фигурных скобок { }. Например, так мы можем реализовать показанную выше многострочность:
+"""
+b = (1 + 2 + 3 +
+    4 + 5 + 6 +
+    7 + 8 + 9)
+print(b)
+
+# Здесь круглые скобки ( ) неявно продолжают строку. То же самое с [ ] и { }. Например:
+colors = ['red',
+          'blue',
+          'green']
+print(colors)
+
+# Мы также можем поместить несколько выражений в одну строку с помощью точки с запятой, как показано ниже:
+x = 1; y = 2; z = 3
+print(x + y + z)
+
+'''
+Большинство языков программирования, таких как C, C ++ и Java, используют фигурные скобки { }
+ для определения блока кода. Однако Python использует отступы.
+Блок кода (тело функции, цикла и т. д.) начинается с отступа и заканчивается первой строкой без отступа.
+ Размер отступа зависит от вас, но он должен быть одинаковым на протяжении всего блока.
+Как правило, для отступов используют четыре пробела или табуляцию. Вот пример:
+'''
+for i in range(1,11):
+    print(i)
+    if i == 5:
+        break
+
+# В Python для однострочных комментариев используется символ решетки (#), для многострочных - тройные кавычки.]]>
+    </module>
+    <module name="Переменные, константы и литералы">
+      <![CDATA[# Python — динамический (нетипизированный) язык программирования, поэтому определять тип переменных не нужно.
+x = "rossaprimavera.ru"
+print(x)
+
+# присваиваем новое значение переменной x
+x = 100
+print(100)
+
+# В литерал числа можно вставлять знак подчеркивания - для удобства чтения:
+x = 128_765
+print(x)
+
+# Присваиваем несколько значений нескольким переменным
+a, b, c = 5, 3.2, "Hello"
+print (a)
+print (b)
+print (c)
+
+#Если мы хотим присвоить одно и то же значение нескольким переменным одновременно, можно сделать это следующим образом:
+x = y = z = "the same"
+print (x)
+print (y)
+print (z)
+
+"""
+В Python нет неизменяемых переменных (констант), поэтому на самом деле мы объявляем не константы.
+Мы просто записываем переменные заглавными буквами, чтобы отличать их от обычных,
+«изменяемых» переменных. Но это не значит, что переназначить «константу» не получится.
+"""
+PI = 3.14
+PI = 11
+print(PI)
+
+# Числовые литералы неизменяемы (в Python это называется immutable).
+# Они могут принадлежать к 3 числовым типам: Integer, Float, и Complex.
+
+# Целочисленные (integer) литералы
+a = 0b1010 #двоичный литерал
+b = 100 #десятичный литерал
+c = 0o310 #восьмеричный литерал
+d = 0x12c #шестнадцатеричный литерал
+
+# Вещественные (float) литералы
+float_1 = 10.5
+float_2 = 1.5e2
+
+# Комплексные (complex) литералы
+x = 3.14j
+print(a, b, c, d)
+print(float_1, float_2)
+print(x, x.imag, x.real)
+
+"""
+Строковый литерал — это последовательность символов, заключенная в кавычки.
+ Мы можем использовать как одинарные, так и двойные или тройные кавычки для строки.
+ Есть еще символьный литерал — это одиночный символ, который тоже заключен в кавычки.
+"""
+strings = "This is Python"
+char = "C"
+multiline_str = """This is a multiline string."""
+unicode = u"\u00dcnic\u00f6de"
+raw_str = r"raw \n string"
+print(strings)
+print(char)
+print(multiline_str)
+#print(unicode)
+print(raw_str)
+
+"""
+Логический литерал может иметь одно из двух значений: True или False.
+В Python True равно значению 1, а False — 0. Значение переменной x — True, потому что 1 равно True.
+А значение y — False, поскольку 1 не равно False.
+"""
+x = (1 == True)
+y = (1 == False)
+a = True + 4
+b = False + 10
+print("x:", x)
+print("y:", y)
+print("a:", a)
+print("b:", b)
+
+# В Python есть только один специальный литерал — None. Он указывает на отсутствие значения.
+food = None
+print(food)
+
+# В Python четыре различных литералов-коллекций: литералы списка, литералы кортежа,
+# литералы словаря и литералы множества.
+
+fruits = ["apple", "pineapple"] #список (list)
+numbers = (1, 2, 3) #кортеж (tuple)
+alphabets = {'a' : 'angry', 'b' : 'beard', 'c' : 'cotton'} #словарь (dictionary)
+vowels = {'a', 'g', 'e' , 'c', 'p', 'y', 'q', 'z', 'o' } #множество (set)
+
+print(fruits)
+print(numbers)
+print(alphabets)
+print(vowels)]]>
+    </module>
+    <module name="Типы данных">
+      <![CDATA["""
+В Python множество различных типов данных, мы поговорим о самых важных из них.
+
+Числа
+К этому классу относятся: целые, комплексные и числа с плавающей точкой.
+ Определены они в Python так: int, complex и float соответственно.
+Целые числа могут быть любой длины — ограничивает их лишь память вашего компьютера.
+Число с плавающей точкой имеет точность до 15 знаков после запятой.
+ Целая и десятичная части разделяются точками. 1 — целое число, 1.0 — число с плавающей точкой.
+Комплексные числа записываются так: x + yj. Здесь x — действительная часть, а y — мнимая.
+
+С помощью функции type() можно узнать класс, к которому принадлежит переменная.
+ А функция isinstance() проверяет принадлежность объекта к определенному классу.
+"""
+a = 5
+print(a, "is of type", type(a))
+a = 2.0
+print(a, "is of type", type(a))
+a = 1+2j
+print(a, "coplex number?", isinstance(1+2j,complex))
+
+# -----------------------------
+# Строка — последовательность символов Юникода. Для объявления строк можно использовать двойные или
+# одинарные кавычки. Многострочные блоки текста объявляются так — ''' или """.
+s = "A string"
+print(s)
+s = '''Multiline
+string'''
+print(s)
+
+# Со строками можно использовать срезы, но сами строки изменять нельзя.
+s = 'Hello, world!'
+print("s[4] =", s[4])
+print("s[8:11] =", s[8:11])
+
+# Ошибка: Строки неизменяемы
+try:
+    s[5] ='r'
+except:
+    print( "Error! The string is immutable" )
+print()
+
+""" -----------------------------
+ Binary Types: bytes, bytearray, memoryview """
+x_bytes = b"Hello"
+x_barr = bytearray(5)
+x_memv = memoryview(bytes(5))
+print( type(x_bytes), type(x_barr), type(x_memv) )
+print()
+
+""" -----------------------------
+Список — это упорядоченная последовательность элементов. Это наиболее часто используемый
+ тип данных в Python. И это не просто так: список — очень гибкий тип данных.
+ Хотя бы потому, что элементы списка не обязательно должно быть одного типа.
+Объявить список довольно просто — элементы в нем разделяются запятыми и заключены в квадратные скобки [ ]. """
+a = [1, 2.2, 'python']
+print(a)
+
+# Чтобы получить элемент или ряд элементов из списка, воспользуйтесь срезами. Индексация начинается с 0.
+a = [5,10,15,20,25,30,35,40]
+print("a[2] = ", a[2])
+print("a[0:3] = ", a[0:3])
+print("a[5:] = ", a[5:])
+
+# Списки изменяемы. Это значит, что вы можете изменить значение элемента списка.
+a[2] = 4
+print(a)
+
+""" -----------------------------
+Кортеж — это упорядоченная последовательность элементов, похожая на список. Единственное отличие — кортежи неизменяемы. После их объявления вы не сможете изменить значения внутри кортежа.
+Кортежи гарантируют, что данные в нем не будут изменяться. Благодаря этому кортежи быстрее списков.
+Объявляются кортежи с помощью круглых скобок — (), а его элементы разделяются запятыми. """
+t = (5, 'programm', 1+3j)
+
+# Чтобы извлечь элемент из кортежа, вы можете использовать оператор среза — [].
+# Но не забывайте — значения кортежа менять нельзя.
+print("t[1] = ", t[1])
+print("t[0:3] = ", t[0:3])
+
+"""  -----------------------------
+Множество — неупорядоченный набор уникальных элементов. Множество объявляется с помощью
+ фигурных скобок — { }. Элементы внутри множества разделяются запятыми. Элементы в списке не упорядочены. """
+a = {5,2,3,1,4}
+
+print("a = ", a)
+print(type(a))
+
+# Множества можно объединять и пересекать. Также в множествах удаляются все дубликаты — все элементы в них уникальны.
+# Множества не упорядочены. Оператор среза с ними не работает.
+a = {1, 2, 2, 3, 3, 3}
+print(a)
+
+""" -----------------------------
+Словарь — это неупорядоченный набор пар «ключ-значение».
+В Python словари объявляются с помощью фигурных скобок — { }.
+ Каждый элемент словаря представляет собой пару в виде ключ:значение.
+ Ключ и значение могут быть любого типа. """
+d = {1:'value', 'key':2}
+print(type(d))
+print("d[1] = ", d[1])
+print("d['key'] = ", d['key'])
+
+# -----------------------------
+# Для преобразования значений переменных можно использовать следующие функции: int(), float(), str() и т. д.
+print( float('2.5') )
+print( str(25) )
+
+# Можно преобразовывать одну последовательность в другую.
+print( set([1,2,3]) )
+print( tuple({5,6,7}) )
+print( list('hello') )]]>
+    </module>
+    <module name="Операторы">
+      <![CDATA[# Арифметические: + - * / % // **
+x = 15
+y = 4
+print('x + y =', x+y)
+print('x - y =', x-y)
+print('x * y =', x*y)
+print('x / y =', x/y)
+print('x // y =', x//y)
+print('x ** y =', x**y)
+
+# Операторы сравнения: > < == != <= >=
+x = 10
+y = 12
+print('x > y —', x>y)
+print('x < y —', x<y)
+print('x == y —', x==y)
+print('x != y —', x!=y)
+print('x >= y —', x>=y)
+print('x <= y —', x<=y)
+
+# Логические операторы: and or not
+x = True
+y = False
+print('x and y —', x and y)
+print('x or y —', x or y)
+print('not x —', not x)
+
+# Побитовые операторы: & | ~ ^ << >>
+
+# Операторы присваивания = += -= *= /= %= //= **= &= |= ^= >>= <<=
+
+# Операторы тождественности: is, is not
+# Они проверяют, находятся ли два значения (или две переменные) по одному адресу в памяти.
+# То, что две переменные равны еще не значит, что они идентичны.
+x1 = 5
+y1 = 5
+x2 = 'Hello'
+y2 = 'Hello'
+x3 = [1,2,3]
+y3 = [1,2,3]
+print(x1 is not y1)
+print(x2 is y2)
+print(x3 is y3)
+
+# Операторы принадлежности: in, not in
+# Они проверяют, есть ли значение или переменная в последовательности (строке, списке, кортеже, множестве или словаре).
+x = 'Hello, world'
+y = {1:'a',2:'b'}
+print('H' in x)
+print('hello' not in x)
+print(1 in y)
+print('б' in y)]]>
+    </module>
+    <module name="Ввод, вывод">
+      <![CDATA["""
+Функция print() используется для вывода данных на экран.
+Синтаксис:
+print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
+    objects — то, что мы хотим вывести.
+    sep — разделитель между переменными. По умолчанию это пробел.
+    end — то, чем кончается строка. По умолчанию это переход на новую строку.
+    file — объект, указывающий, куда нужно производить вывод.
+           По умолчанию данные выводятся на экран — sys.stdout.
+"""
+print(1, 2, 3, 4)
+print(1, 2, 3, 4, sep='*')
+print(1, 2, 3, 4, sep='#', end='&')
+
+"""
+Форматирование вывода
+Для этого есть метод str.format(). Его можно использовать с любым строковым объектом.
+"""
+x = 5; y = 10
+print(' Value of x = {}, and y = {}'.format(x,y))
+
+# Фигурные скобки {} здесь выступают в виде заполнителей.
+# Порядок их вывода можно изменять с помощью индексов (индексов кортежа).
+
+print('I like {0} and {1}'.format('bread', 'butter'))
+print('I like {1} and {0}'.format('bread', 'butter'))
+
+# Для форматирования строк можно использовать именованные аргументы.
+
+print('Hello, {name}, {wishes}'.format(wishes = 'good morning', name = 'Ivan'))
+
+# Можно также использовать оператор %:
+x = 12.3456789
+print('Значение x = %3.2f' %x)
+
+"""
+Функция input() используется для ввода данных
+"""
+num = input('Input number: ')
+print( num )
+# введенное значение — строка, а не число.
+# Преобразовать это значение в число можно с помощью функции int() или float()]]>
+    </module>
+    <module name="Модули, пакеты, импорт">
+      <![CDATA["""
+Модуль — это файл, содержащий функции и операторы. У всех модулей в Python есть имя,
+ которое заканчивается расширением .py.
+Операторы внутри модуля могут быть импортированы в другой модуль или в интерпретатор Python.
+ Для этого мы используем ключевое слово import.
+Например, мы можем импортировать модуль sys. Делается это следующим образом:
+"""
+
+import sys
+"""
+Теперь все переменные и функции внутри модуля sys доступны в нашей программе. К ним можно
+  обращаться, используя имя модуля и точку.
+В sys.path, например, содержатся каталоги, которые Python просматривает при импорте модуля
+"""
+print(sys.path)
+# В этот список можно включать и свои каталоги:
+sys.path.append('./')
+
+# Модулю можно присвоить произвольное имя. Например:
+import random as r
+print(r.randint(10,20))
+
+# Можно импортировать и только определенные функции и переменные из модуля.
+from math import pi, sin
+print( pi )
+print( sin(pi) )
+
+"""
+Чтобы Python воспринимал каталог как пакет, в нем должен содержаться файл __init__.py.
+ Он может быть пустым, но обычно в нем содержится инициализационный код этого пакета.
+ Пакет может содержать подпакеты - вложенные каталоги.
+ Импортируются они следующим образом:
+ import Game.Level.start
+ или
+ from Game.Level import start
+"""]]>
+    </module>
+  </chapter>
+  <chapter name="Управление потоком выполнения" >
+    <module name="if ... else">
+      <![CDATA[
+num = 3
+if num > 0:
+    print(num, "- positive number")
+print("Next line")
+
+num = -1
+if num > 0:
+    print(num, "- positive number")
+else:
+    print(num, "- negative number or zero")
+print("Next line")
+
+num = 0
+if num > 0:
+    print(num, "- positive number")
+elif num == 0:
+    print(num, "- zero")
+else:
+    print(num, "- negative number")
+print("Next line")]]>
+    </module>
+    <module name="for ...">
+      <![CDATA[# Цикл for в Python используется для перебора последовательностей (списков, кортежей, строк) и других итерируемых объектов
+numbers = [6, 5, 3, 8, 4, 2, 5, 4, 11]
+
+# Переменная, в которой хранится сумма
+sum = 0
+
+# Итерация цикла
+for value in numbers:
+    sum = sum+value
+
+print("The summ is", sum)
+
+"""
+С помощью функции range() мы можем сгенерировать последовательность чисел. range(10),
+ к примеру, сгенерирует числа от 0 до 9 (всего 10 чисел).
+Мы также можем определить начало, конец и размер шага —range(начало, конец, размер_шага).
+ Если не указать шаг (размер_шага), то по умолчанию он будет равен 1.
+Объект range в некотором смысле «ленивый». Когда мы вызываем этот объект, он не генерирует все числа,
+ которые он «содержит». Но это и не итератор — он поддерживает операции in, len и __getitem__.
+Эта функция не хранит все значения в памяти — это неэффективно. Для нее важны лишь начало,
+ конец и размер шага — генерация следующего числа происходит на ходу.
+Для вывода всех элементов следует воспользоваться функцией list().
+"""
+
+print(range(10))
+print(list(range(10)))
+print(list(range(2, 8)))
+print(list(range(2, 20, 3)))
+
+# Функцию range() можно использовать для перебора последовательности чисел в цикле for.
+# Индексация реализуется при комбинации с функцией len().
+genre = ['classic', 'pop', 'rock', 'jazz']
+
+for i in range(len(genre)):
+	print("I like", genre[i])
+
+"""	
+В цикле for может быть дополнительный блок else.
+ Блок else выполняется, если элементы последовательности закончились.
+Для остановки цикла for используется ключевое слово break. В этом случае выполнение цикла останавливается.
+Следовательно, блок else выполняется только в том случае,
+ если выполнение цикла не было прервано оператором break.	
+"""
+student_name = 'Artem'
+
+marks = {'Roman': 90, 'Maksim': 55, 'Artur': 77}
+
+for student in marks:
+    if student == student_name:
+        print(marks[student])
+        break
+else:
+    print('Is not found.')]]>
+    </module>
+    <module name="while ...">
+      <![CDATA[n = 10
+sum = 0
+i = 1
+
+while i <= n:
+    sum = sum + i
+    i = i+1
+
+print("The summ of numbers from 1 to n:", sum)
+
+"""
+Так же, как и с циклами for, с циклами while можно использовать дополнительный блок else.
+Блок else начнет выполняться, когда условие цикла while станет равно False.
+Цикл while можно принудительно завершить с помощью инструкции break.
+ В таких случаях блок else игнорируется. Иначе говоря, блок else выполняется только
+ в том случае, если внутри тела while не использовался оператор break, а условие цикла while ложно.
+"""
+counter = 0
+
+while counter < 3:
+    print("Inside while")
+    counter = counter + 1
+else:
+    print("Inside else")]]>
+    </module>
+    <module name="break, continue, pass">
+      <![CDATA[# Инструкция break прерывает цикл, в котором он объявлен.
+for val in "stroka":
+    if val == "o":
+        break
+    print(val)
+
+print("End")
+
+# Инструкция continue используется для того, чтобы пропустить оставшееся тело цикла текущей итерации.
+# Цикл не завершается, а продолжается со следующей итерации.
+
+for val in "stroka":
+    if val == "o":
+        continue
+    print(val)
+
+print("End")
+
+# Инструкция pass — «пустой» оператор. В Python у циклов и функций не может быть «пустого» тела
+# — интерпретатор выведет ошибку. Поэтому в тело можно поместить инструкцию pass, и все заработает.
+
+sequence = {'p', 'a', 's', 's'}
+for val in sequence:
+    pass
+
+# Точно так же можно делать с пустой функцией или классом:
+
+def function(args):
+    pass
+
+class Example:
+    pass]]>
+    </module>
+  </chapter>
+  <chapter name="Функции" >
+    <module name="Функции">
+      <![CDATA[# def имя_функции(аргументы):
+#    """строка документации"""
+#    операторы
+def greet(name):
+    """
+    This function
+    prints a greeting
+    for a person, which name is passed
+    """
+    print("Hello, " + name + ". Good morning!")
+
+greet('Ivan')
+
+"""
+Первая строка после заголовка функции называется строкой документации, она описывает, что делает функция.
+В приведенном выше примере у нас есть строка документации сразу под заголовком функции.
+ Обычно используют тройные кавычки, чтобы документация могла занимать несколько строк.
+ Получить доступ к строке документации можно через атрибут __doc__.
+"""
+print(greet.__doc__)
+
+# Оператор return используется для выхода из функции и возврата в то место, откуда она была вызвана.
+
+def absolute_value(num):
+    """ returns an absolute value of a number"""
+    if num >= 0:
+        return num
+    else:
+        return -num
+
+print(absolute_value(2))
+print(absolute_value(-4))
+
+"""
+Параметры и переменные, определенные в теле функции, доступны только внутри нее.
+ Это значит, что они находятся в локальной области видимости.
+Время жизни переменной — это период, в течение которого переменная находится в памяти.
+ Время жизни переменной внутри функции длится до тех пор, пока функция выполняется.
+ Переменные «уничтожаются», когда мы выходим из функции.
+"""
+def my_func():
+    x = 10
+    print("Value inside function:", x)
+
+x = 20
+my_func()
+print("Value outside function:", x)
+
+"""
+Если переменная определена вне функции, то внутри функции мы можем прочитать ее значение.
+ Однако мы не сможем его изменить. Для того, чтобы изменить ее значение,
+  нужно объявить ее как глобальную с помощью ключевого слова global.
+"""]]>
+    </module>
+    <module name="Аргументы функции">
+      <![CDATA["""
+Аргументы по умолчанию
+В функции можно использовать любое количество параметров со значением по умолчанию.
+ Однако, если в функции указан хотя бы один такой параметр, то все аргументы,
+ указанные дальше, тоже должны иметь значения по умолчанию.
+"""
+def greet(name, msg="Good morning!"):
+    """
+    Эта функция выводит для человека с именем name
+    сообщение msg.
+    Если текст сообщения не передан,
+    по умолчанию используется "Good morning!"
+    """
+
+    print("Hello, ", name + '. ' + msg)
+
+greet("Kate")
+greet("Boris", "How are you?")
+
+"""
+Именованные аргументы
+Когда мы вызываем функцию с некоторыми значениями, эти значения присваиваются аргументам
+ в соответствии с их позицией. Python позволяет вызывать функции с использованием
+ именованных аргументов. Когда мы вызываем функции таким образом, порядок аргументов можно изменять
+"""
+# 2 именованных аргумента
+greet(name = "Boris", msg = "How are you?")
+
+# 2 именованных аргумента (идут не по порядку)
+greet(msg = "How are you?", name = "Boris")
+
+# 1 позиционный, 1 именованный аргумент
+# Cначала длжны быть позиционные, потом — именованные
+greet("Boris", msg = "How are you?")
+
+"""
+Произвольный список аргументов
+"""
+def greet(*names):
+    """Эта функция выводит приветствие для всех
+    людей, перечисленных в кортеже names."""
+
+    # names — кортеж с именами
+    for name in names:
+        print("Hello, ", name)
+
+
+greet("Kate", "Ivan", "Boris")]]>
+    </module>
+    <module name="Области видимости переменных">
+      <![CDATA["""
+Переменная, объявленная вне функции или в глобальной области видимости, называется глобальной.
+"""
+x = 10
+def foo():
+    print("x inside function:", x)
+
+foo()
+print("x outside function:", x)
+
+def foo2():
+    try:
+        x = x * 2
+        print(x)
+    except:
+        print("Error")
+
+foo2()
+"""
+ Здесь Python выдает ошибку, потому что он обрабатывает x как локальную переменную,
+ но x при этом не определена внутри функции foo2().
+ Чтобы можно было изменить глобальную переменную внутри функции, ее надо объявить в ней как global
+"""
+def foo3():
+    global x
+    x = x * 2
+    print(x)
+
+foo3()
+
+"""
+Переменная, объявленная внутри тела функции или в локальной области видимости,
+ называется локальной переменной. Доступ к ней есть только внутри этой функции
+"""
+def foo4():
+    x = 15
+    print("local var x:", x)
+
+foo4()
+print("global var x:", x)
+
+"""
+Нелокальные переменные используются во вложенных функциях,
+"""
+def outer():
+    x = "local var"
+
+    def inner():
+        nonlocal x
+        y = "local var y"
+        x = "nonlocal var x"
+        print("inner func:", x)
+        print(y)
+
+    inner()
+    print(":", x)
+
+outer()]]>
+    </module>
+    <module name="Анонимные функции">
+      <![CDATA["""
+Анонимная функция (лямбда-функция) — функция, которая объявляется без имени.
+ Они объявляются с помощью lambda:
+
+ lambda аргументы: выражение
+
+У лямбда-функций может быть любое число аргументов, но лишь одно выражение.
+ Функция вычисляется и возвращается ее результат.
+ Их часто используют в комбинации со следующими встроенными функциями: filter(), map() и т. д.
+"""
+double = lambda x: x * 2
+print(double(5))
+
+"""
+filter() принимает в виде аргументов итерируемый объект и другую функцию.
+Сначала функция проверяет каждый элемент итерируемого объекта.
+ После этого она возвращает новый список, в котором содержатся только те элементы,
+ для которых функция вернула True.
+"""
+my_list = [1, 5, 4, 6, 8, 11, 3, 12]
+new_list = list(filter(lambda x: (x%2 == 0) , my_list))
+print(new_list)
+
+"""
+map(), как и filter(), принимает в качестве аргументов итерируемый объект и другую функцию.
+Функция map() позволяет применить функцию к каждому элементу итерируемого объекта.
+ После этого она возвращает новый список с преобразованными элементами.
+"""
+my_list = [1, 5, 4, 6, 8, 11, 3, 12]
+new_list = list(map(lambda x: x * 2 , my_list))
+print(new_list)]]>
+    </module>
+  </chapter>
+  <chapter name="Типы данных" >
+    <module name="Числа">
+      <![CDATA["""
+Python поддерживает комплексные (complex), целые числа (integer) и числа с плавающей точкой (float).
+Целые числа могут быть любой длины. Точность чисел с плавающей точкой обеспечивается только до 15 знака.
+"""
+
+"""
+Модуль Decimal используется, когда нужно держать уровень точности на определенном уровне,
+ когда нужно реализовать дробь с определенным числом цифр после точки.
+"""
+from decimal import Decimal as D
+print(D(0.1))
+print(D('1.1') + D('2.2'))
+print(D('1.2') * D('2.5'))
+print(1.2 == 1.1+0.1)
+print(D('1.2') == D('1.1')+D('0.1'))
+
+"""
+модуль fractions производит операции с дробными числами, используя числитель и знаменатель
+"""
+import fractions
+print(fractions.Fraction(1.5))
+print(fractions.Fraction(5))
+print(fractions.Fraction(1,3))
+
+print(fractions.Fraction(1.1))
+print(fractions.Fraction('1.1'))
+
+"""
+Для решения тригонометрических, логарифмических, вероятностных и статистических задач
+ Python располагает встроенными модулями math и random.
+"""
+import math
+
+print(math.pi)
+print(math.cos(math.pi))
+print(math.exp(10))
+print(math.log10(1000))
+print(math.sinh(1))
+print(math.factorial(6))
+
+import random
+
+print(random.randrange(10, 20))
+
+x = ['а', 'б', 'в', 'г', 'д']
+
+# Получаем случайный набор из х
+print(random.choice(x))
+
+# Перемешиваем x
+random.shuffle(x)
+
+# Выводим в консоль перемешанный список x
+print(x)
+
+# Выводим в консоль случайный элемент
+print(random.random())]]>
+    </module>
+    <chapter name="Строки" >
+      <module name="Обзор">
+        <![CDATA["""
+В Python каждая строка — это последовательность символов Юникода.
+Строки заключаются в одинарные '' или двойные "" кавычки
+"""
+my_string = 'Hello'
+print(my_string)
+
+my_string = "Hello"
+print(my_string)
+
+# тройные кавычки позволяют создавать многострочные строки
+my_string = '''Hello, good
+           morning'''
+print(my_string)
+
+my_string = """Hello, good
+           morning"""
+print(my_string)
+
+"""
+Доступ к отдельным символам в строке можно по индексу, к нескольким - по срезу.
+Первый элемент в строке имеет индекс 0.
+Если вы попытаетесь получить доступ к символу с индексом, который больше длины строки,
+ Python выдаст ошибку IndexError.
+Python поддерживает и «отрицательную индексацию». Индекс -1 ссылается на последний символ,
+ -2 — на предпоследний и так далее.
+Срезы задаются с помощью квадратных скобов [] и 2-3 аргументов через двоеточие:
+my_collection[старт:стоп:шаг]
+"""
+string = 'codechick'
+print('string = ', string)
+
+#первый символ
+print('string[0] = ', string[0])
+
+#последний символ
+print('string[-1] = ', string[-1])
+
+#срез от 2 до 5 символа
+print('string[1:5] = ', string[1:5])
+
+#срез от 6 до предпоследнего символа
+print('string[5:-2] = ', string[5:-2])
+
+# Строка — неизменяемый тип данных, но можно полностью удалить строку:
+del string
+
+"""
+Конкатенация строк
+Эту операцию выполняет оператор +. А с помощью оператора * можно повторить строку
+ заданное количество раз — «умножить» строку на число.
+"""
+string1 = 'Hello, '
+string2 ='world!'
+
+# используем +
+print('string1 + string2 = ', string1 + string2)
+
+# используем *
+print('string1 * 3 =', string1 * 3)
+
+# Если просто написать рядом два строковых литерала, они тоже объединятся в одну строку.
+# Еще можно использовать круглые скобки.
+s = 'Hello, ''world!'
+print(s)
+s = ('Hello, '
+    'world' )
+print(s)
+
+"""
+Итерирование по строке
+В Python можно «пройтись» по строке, то есть перебрать все символы в ней.
+ Для этого нужно использовать цикл for.
+"""
+count = 0
+for letter in 'Hello, world!':
+    if (letter == 'l'):
+        count += 1
+print(count, '«l» in string')
+
+"""
+Проверка на вхождение
+В Python можно проверить, находится ли данная подстрока в строке или нет с помощью операторов
+ членства in и not in.
+"""
+print('chick' in 'codechick')
+print('code' not in 'codechick')
+
+"""
+Практически все встроенные функции, которые работают с последовательностями, точно так же работают со строками.
+    enumerate() —  позволяет перебирать строку, отслеживая индекс текущего элемента.
+    len() — возвращает длину строки.
+"""
+string = 'flower'
+
+# enumerate()
+list_enumerate = list(enumerate(string))
+print('list(enumerate(string) = ', list_enumerate)
+
+# считаем количество символов
+print('len(string) = ', len(string))]]>
+      </module>
+      <module name="Методы строк">
+        <![CDATA[# Below is a list of methods that you can use on strings.
+s1 = "hello, World!"
+
+#capitalize()  Converts the first character to upper case
+print( s1.capitalize() )
+#lower()       Converts a string into lower case
+print( s1.lower() )
+#upper()       Converts a string into upper case
+print ( s1.upper() )
+#swapcase()    Swaps cases, lower case becomes upper case and vice versa
+print ( s1.swapcase() )
+#title()       Converts the first character of each word to upper case
+print ( s1.title() )
+#casefold()       Converts string into lower case
+print( s1.casefold() )
+#center()      Returns a centered string
+print( s1.center( 30 ) )
+
+# -------------------------
+#startswith()  Returns true if the string starts with the specified value
+print( s1.startswith( "h" ) )
+#endswith()    Returns true if the string ends with the specified value
+print( s1.endswith( "!" ) )
+
+# -------------------------
+#find()        Searches the string for a specified value and returns the position of where it was found
+print( s1.find( "ll" ) )
+  # If the value is not found, the find() method returns -1:
+print( s1.find( "ll",8 ) )
+#index()       Searches the string for a specified value and returns the position of where it was found
+print( s1.index( "ll" ) )
+# If the value is not found, index() method will raise an exception:
+try:
+    print( s1.index( "ll",8 ) )
+except:
+    print("Not found")
+#rfind()       Searches the string for a specified value and returns the last position of where it was found
+#rindex()      Searches the string for a specified value and returns the last position of where it was found
+  # The same as find() and index(), but searches for a last matched position.
+#count()       Returns the number of times a specified value occurs in a string
+print( s1.count( "l" ) )
+]]>
+      </module>
+      <module name="Методы строк - 2">
+        <![CDATA[# -------------------------
+s1 = "hello, World!"
+#isalnum()     Returns True if all characters in the string are alphanumeric
+print( s1.isalnum() )
+#isalpha()     Returns True if all characters in the string are in the alphabet
+#isascii()     Returns True if all characters in the string are ascii characters
+print( s1.isascii() )
+#isdecimal()   Returns True if all characters in the string are decimals
+#isdigit()     Returns True if all characters in the string are digits
+print( s1.isdigit() )
+#isidentifier()Returns True if the string is an identifier
+#islower()     Returns True if all characters in the string are lower case
+#isnumeric()   Returns True if all characters in the string are numeric
+#isprintable() Returns True if all characters in the string are printable
+#isspace()     Returns True if all characters in the string are whitespaces
+#istitle()     Returns True if the string follows the rules of a title
+#isupper()     Returns True if all characters in the string are upper case
+
+# -------------------------
+#join()        Converts the elements of an iterable into a string
+myTuple = ("John", "Peter", "Vicky")
+print( "#".join(myTuple) )
+#rsplit()      Splits the string at the specified separator, and returns a list
+#split()       Splits the string at the specified separator, and returns a list
+print( s1.split() )
+print( "1, 2, 3".split( "," ) )
+#partition()   Returns a tuple where the string is parted into three parts
+print( s1.partition( " " ) )
+#rpartition()  Returns a tuple where the string is parted into three parts
+  # The same as partition(), but searches for a last occurence of a given string.
+#splitlines()  Splits the string at line breaks and returns a list
+]]>
+      </module>
+      <module name="Методы строк - 3">
+        <![CDATA[s1 = "hello, World!"
+#ljust()       Returns a left justified version of the string
+s2 = "1000"
+print( s2.ljust( 10 ), "pieces" )
+print( s2.ljust( 8, "0" ) )
+#rjust()       Returns a right justified version of the string
+s2 = "1000"
+print( "value:", s2.ljust( 10 ) )
+print( s2.ljust( 8, "0" ) )
+
+#lstrip()      Returns a left trim version of the string
+print( "/" + "  xxx  ".strip() + "/" )
+#rstrip()      Returns a right trim version of the string
+print( "/" + "  xxx  ".strip() + "/" )
+#strip()       Returns a trimmed version of the string
+print( "/" + "  xxx  ".strip() + "/" )
+
+# -------------------------
+#replace()     Returns a string where a specified value is replaced with a specified value
+print( s1.replace( "!", " !!!" ) )
+
+#zfill()       Fills the string with a specified number of 0 values at the beginning
+print ( s1.zfill( 20 ) )
+
+#maketrans()   Returns a translation table to be used in translations
+#translate()   Returns a translated string
+mytable = s1.maketrans( "l", "L", "!" )
+print( s1.translate(mytable) )
+
+#encode()      Returns an encoded version of the string
+print( s1.encode() )
+#expandtabs()  Sets the tab size of the string
+#format()      Formats specified values in a string
+#format_map()  Formats specified values in a string]]>
+      </module>
+      <module name="Escape последовательности">
+        <![CDATA[# Если строка включает в себя кавычки, можно
+# использовать тройные кавычки или escape-последовательности:
+# с помощью тройных кавычке
+print('''He said, "What's there?"''')
+
+# escape-последовательность и одинарные кавычки
+print('He said, "What\'s there?"')
+
+# escape-последовательность и двойные кавычки
+print("He said, \"What's there?\"")
+
+"""
+Список escape-последовательностей
+\\	 Экранирование обратного слэша
+\'   Экранирование одинарной кавычки
+\"   Экранирование двойной кавычки
+\a   Звуковой сигнал или предупреждение
+\b   Возврат на одну позицию
+\n   Перенос строки на новую
+\r   Возврат каретки
+\t   Горизонтальный Tab
+\v   Вертикальный Tab
+\ooo Восьмеричное значение
+\xHH Шестнадцатеричное значение
+
+Чтобы Python проигнорировал escape-последовательность в строке, можно написать перед этой строкой r или R.
+"""
+print("This is \nan answer")
+print(r"This is \nan answer")]]>
+      </module>
+      <module name="Форматирование">
+        <![CDATA[# Метод format()
+# порядок по умолчанию
+default_order = "{}, {} и {}".format('Petr','Ivan','Kate')
+print('\n--- Default order ---')
+print(default_order)
+
+# порядок с позиционными аргументами
+positional_order = "{1}, {0} и {2}".format('Petr','Ivan','Kate')
+print('\n--- positional_order ---')
+print(positional_order)
+
+# порядок по ключевым словам
+keyword_order = "{s}, {b} и {j}".format(j='Petr',b='Petr',s='Kate')
+print('\n--- keyword_order ---')
+print(keyword_order)
+
+"""
+У метода format() есть дополнительные настройки. Они отделяются от имени поля двоеточием :.
+ Например, строку можно выровнять по левому краю <, по правому краю > или центрировать ее ^.
+Точно так же можно форматировать целые числа в их двоичные, шестнадцатеричные записи и т. д.
+ А числа с плавающей точкой можно округлять или отображать в экспоненциальной записи.
+"""
+# форматирование целых чисел
+print("Binary format of a number {0} = {0:b}".format(12))
+# форматирование чисел с плавающей точкой
+print("Exponential representation: {0:e}".format(1566.345))
+
+# округление
+print("One third = {0:.3f}".format(1/3))
+
+# выравнивание строк
+print('One third = 0.333'"|{:<10}|{:^10}|{:>10}|".format('butter', 'bread', 'meat'))]]>
+      </module>
+    </chapter>
+    <chapter name="Списки" >
+      <module name="Обзор">
+        <![CDATA["""
+В Python есть множество комплексных типов данных, называемых последовательностями.
+ Список — один из часто используемых и универсальных типов данных.
+ Это аналог массивов в других языках программирования.
+Список можно создать, записав его будущие элементы в квадратные скобки [] через запятую.
+В списке допускается любое количество элементов разных типов (целые числа, числа с плавающей точкой,
+ строки, другие списки и т. д.).
+"""
+my_list = ["mouse", [8, 4, 6], ['a']]
+
+""" Чтобы получить доступ к элементу списка, можно воспользоваться оператором индекса [],
+  индексирование начинается с 0. Вложенные списки можно получить с помощью вложенной индексации.
+Python поддерживает отрицательные индексы в последовательностях.
+  Индекс -1 указывает на последний элемент, -2 — на предпоследний и т. д.
+"""
+print(my_list[0])
+print(my_list[1][2])
+print(my_list[-1])
+
+# С помощью оператора среза : можно получить диапазон элементов в списке.
+my_list = ['c', 'o' , 'd', 'e', 'c', 'h', 'i']
+# элементы с 3 по 5
+print(my_list[2:5])
+# элементы с 1 по 4
+print(my_list[:-5])
+# элементы с 6 по последний
+print(my_list[5:])
+# элементы с первого по последний
+print(my_list[:])
+
+# Список — изменяемый тип данных, его элементы можно изменять в отличие от строки или кортежа.
+my_list[1] = 'u'
+print(my_list)
+
+# Один элемент в список добавляется с помощью метода append(), а несколько — с помощью метода extend().
+my_list.append(7)
+print(my_list)
+
+my_list.extend([9, 11, 13])
+print(my_list)
+
+# Для объединения двух списков используется оператор +. Это называется конкатенацией списков.
+# Оператор * повторяет список заданное количество раз.
+odd = [1, 3, 5]
+print(odd + [9, 7, 5])
+print(["re"] * 3)
+
+# С помощью метода insert() можно вставить один элемент по данному индексу,
+# а присвоив их пустому срезу — несколько.
+
+odd = [1, 9]
+odd.insert(1,3)
+print(odd)
+
+odd[2:2] = [5, 7]
+print(odd)
+
+# Один или несколько элементов списка можно удалить с помощью ключевого слова del.
+# С помощью него можно удалить и весь список.
+# удаление одного элемента
+my_list = ['c', 'o' , 'd', 'e', 'c', 'h', 'i']
+del my_list[2]
+print(my_list)
+
+# удаление среза элементов
+del my_list[1:5]
+print(my_list)
+
+# удаление всего списка
+del my_list
+
+""" Чтобы удалить элемент по значению, можно использовать метод remove(),
+ а для удаления по индексу — метод pop().
+Метод pop() удаляет и возвращает последний элемент из списка, если не указан индекс.
+ Это помогает применять списки как стек (структура данных, которая подчиняется принципу LIFO:
+ «последним пришел — первым вышел»). Для очистки списка используется метод clear().
+"""
+my_list = ['b', 'e', 'c', 'o', 'u', 's', 'e']
+my_list.remove('c')
+print(my_list)
+print(my_list.pop(1))
+print(my_list)
+print(my_list.pop())
+print(my_list)
+my_list.clear()
+print(my_list)]]>
+      </module>
+      <module name="Методы списков">
+        <![CDATA["""
+append()     Добавляет элемент в конец списка
+extend()     Добавляет все элементы списка в другой список
+insert()     Вставляет элемент по данному в качестве аргумента индексу
+remove()     Удаляет элемент из списка
+pop()        Удаляет элемент из списка и возвращает его
+clear()      Удаляет все элементы из списка
+index()      Возвращает индекс первого совпавшего элемента
+count()      Считает количество элементов в списке, совпадающих с переданным аргументом
+sort()       Сортирует элементы в списке в порядке возрастания
+reverse()    Переворачивает список
+copy()       Возвращает неглубокую копию списка
+"""
+my_list = [3, 8, 1, 6, 0, 8, 4]
+print(my_list.index(8))
+print(my_list.count(8))
+my_list.sort()
+print(my_list)
+my_list.reverse()
+print(my_list)
+]]>
+      </module>
+      <module name="Другие операции">
+        <![CDATA[""" Представление списков — способ создать новый список из существующего.
+Представление списков состоит из выражения, за которым следует оператор for,
+ и эта конструкция заключается в квадратные скобки [].
+"""
+pow2 = [2 ** x for x in range(10)]
+print(pow2)
+
+""" В представлениях списков может быть больше операторов for и if. Оператор if
+ позволяет отфильтровать элементы для нового списка.
+"""
+pow2 = [2 ** x for x in range(10) if x > 5]
+print(pow2)
+
+# С помощью ключевого слова in можно узнать, есть элемент в списке или нет.
+
+my_list = ['п', 'р', 'o', 'б', 'л', 'е', 'м', 'а']
+print('п' in my_list)
+print('у' in my_list)
+print('с' not in my_list)
+
+# С помощью цикла for можно пройтись по каждому элементу в списке.
+
+for fruit in ['appls','bananas']:
+    print("I like",fruit)]]>
+      </module>
+    </chapter>
+    <chapter name="Кортежи" >
+      <module name="Обзор">
+        <![CDATA["""
+Кортеж в Python похож на список. Только в отличие от списка кортеж — неизменяемый, то есть менять его элементы после создания нельзя.
+Чтобы создать кортеж, нужно поместить все элементы, разделенные запятыми, в круглые скобки (). Скобки не обязательны, но рекомендуем их использовать.
+"""
+# Пустой кортеж
+my_tuple = ()
+print(my_tuple)
+
+# Кортеж с разными типами данных
+my_tuple = (1, "Привет", 3.4)
+print(my_tuple)
+
+# Вложенный кортеж
+my_tuple = ("мышь", [8, 4, 6], (1, 2, 3))
+print(my_tuple)
+
+# Кортеж можно создать и без использования скобок. Это называется упаковкой кортежа.
+my_tuple = 3, 4.6, "a dog"
+print(my_tuple)
+
+# точно так же можно распаковать кортеж
+a, b, c = my_tuple
+print(a)
+print(b)
+print(c)
+
+""" Если нужно создать кортеж с одним элементом, все немного сложнее.
+ Дело в том, что одного элемента в круглых скобках недостаточно.
+ Понадобится добавить в конец запятую — иначе Python не поймет, что это кортеж.
+"""
+# Так получается строка
+my_tuple = ("привет")
+print(type(my_tuple))
+
+# Создаем кортеж с одним элементом
+my_tuple = ("привет",)
+print(type(my_tuple))
+
+# Можно и без скобок
+my_tuple = "привет",
+print(type(my_tuple))
+
+# Доступ к элементам кортежа осуществляется точно также как и для списков:
+my_tuple = ('c', 'o', 'd', 'e', 'c', 'h', 'i', 'c', 'k')
+
+print(my_tuple[0])
+print(my_tuple[-1])
+print(my_tuple[1:4])
+print(my_tuple[:-7])
+print(my_tuple[7:])
+print(my_tuple[:])
+
+""" Как и списки, кортежи можно объединить с помощью оператора +.
+С помощью оператора * можно повторить элементы в кортеже заданное количество раз.
+Оба оператора + и * приводят к созданию нового кортежа.
+"""
+print((1, 2, 3) + (4, 5, 6))
+print(("Re",) * 3)
+
+# Удалить или изменить элементы кортежа нельзя,
+# можно только полностью удалить кортеж — с помощью ключевого слова del.
+
+# Проверка на вхождение (in, not in), итерирование (for) - как и в списках
+
+# Для кортежа существует только два метода: .count() и .index().
+
+print(my_tuple.count('c'))
+print(my_tuple.index('d'))]]>
+      </module>
+    </chapter>
+    <chapter name="Словари" >
+      <module name="Обзор">
+        <![CDATA["""
+Словарь — это неупорядоченный набор элементов. Элемент словаря представляет собой пару ключ: значение.
+В словарях значения могут повторяться и быть любого типа.
+ Ключи же повторяться не могут и должны быть неизменяемым типом (строками, числовыми типами и
+ кортежами с неизменяемыми элементами).
+"""
+# пустой словарь
+my_dict = {}
+
+# словарь с ключами — целочисленными значениями
+my_dict = {1: 'apple', 2: 'ball'}
+
+# словарь с ключами разных типов
+my_dict = {'name': 'Petr', 1: [2, 4, 3]}
+
+# используем dict()
+my_dict = dict({1:'apple', 2:'ball'})
+
+# словарь из последовательности, где элементы являются парами
+my_dict = dict([(1,'apple'), (2,'ball')])
+print(my_dict)
+
+"""
+Для доступа к элементам в словаре используются ключи.
+ Они используются внутри квадратных скобок или в качестве аргумента метода get().
+При использовании квадратных скобок и отсутствии элемента в словаре вызывается ошибка KeyError.
+ При использовании метода get() и отсутствии элемента возвращается None.
+"""
+# get vs. [] для получения элементов
+my_dict = {'name': 'Ivan', 'Age': 26}
+
+# Вывод: Jack
+print(my_dict['name'])
+
+# Вывод: 26
+print(my_dict.get('Age'))
+
+# Попытка получить ключ, которого не существует, приводит к ошибке
+# Вывод: None
+print(my_dict.get('Address'))
+
+# KeyError
+try:
+    print(my_dict['Address'])
+except:
+    print('Error')
+
+# обновляем значение
+my_dict['Age'] = 27
+
+# Вывод: {'Возраст': 27, 'Имя': 'Ваня'}
+print(my_dict)
+
+# добавляем элемент
+my_dict['Address'] = 'Michurin st., 104'
+print(my_dict)
+
+"""
+Удалить нужный элемент словаря по ключу можно с помощью метода pop().
+ Этот метод удаляет элемент с соответствующим ключом и возвращает значение.
+Удалить произвольную пару (ключ, значение) можно с помощью метода popitem().
+ Очистить весь словарь за один раз можно с помощью метода clear().
+Также можно использовать ключевое слово del для удаления отдельных элементов или же всего словаря.
+"""
+squares = {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
+
+# удаляет определенный элемент, возвращает его значение
+print(squares.pop(4))
+print(squares)
+
+# удаляет произвольный элемент, возвращает (ключ, эзначение)
+print(squares.popitem())
+print(squares)
+
+# удаляет все элементы
+squares.clear()
+print(squares)
+
+# удаляет весь словарь
+del squares]]>
+      </module>
+      <module name="Методы и встроенные функции">
+        <![CDATA["""
+clear()     Удаляет все элементы из словаря
+copy()      Возвращает неглубокую копию словаря
+fromkeys(seq[, v])  Возвращает словарь с ключами из seq и значениями, равными v (по умолчанию None)
+get(key[,d])        Возвращает значение ключа key. Если key не существует, возвращает d (по умолчанию None)
+items()     Возвращает новый объект элементов словаря в формате (ключ, значение)
+keys()      Возвращает новый объект с ключами словаря
+pop(key[,d])        Удаляет элемент с ключом key и возвращает его значение или d, если key не найден.
+                    Если d не было обозначено и key не найден, вызывает ошибку KeyError.
+popitem()   Удаляет и возвращает произвольную пару (ключ, значение).
+            Вызывае ошибку KeyError, если словарь пустой.
+setdefault(key[,d]) Если ключ key есть в словаре, возвращает соответствующее ему значение.
+                    Если нет, добавляет в словарь элемент с ключом key и значением d и возвращает d (по умолчанию None)
+update([other])     Обновляет словарь имеющимися парами ключ/значение из other, перезаписывая существующие ключи
+values()    Возвращает новый объект со значениями словаря
+"""
+marks = {}.fromkeys(['mathematics', 'Russian language', 'physics'], 0)
+print(marks)
+
+for item in marks.items():
+    print(item)
+print(list(sorted(marks.keys())))
+
+"""
+all()    Возвращает True, если все ключи словаря = True (или если словарь пуст)
+any()    Возвращает True, если хотя бы один ключ словаря = True. Если словарь пуст, возвращает False.
+len()    Возвращает длину (количество элементов) словаря
+cmp()    Сравнивает элементы двух словарей (не работает в Python 3)
+sorted() Возвращает новый список с отсортированными ключами словаря
+"""
+squares = {0: 0, 1: 1, 3: 9, 5: 25, 7: 49, 9: 81}
+
+print(all(squares))
+print(any(squares))
+print(len(squares))
+print(sorted(squares))]]>
+      </module>
+      <module name="Другие операции">
+        <![CDATA["""
+Представление словарей — лаконичный способ создать новый словарь из итерируемого объекта.
+Представление словарей состоит из выражения ключ: значение, за которым следует for,
+ и всё это — внутри фигурных скобок {}.
+"""
+squares = {x: x*x for x in range(6)}
+print(squares)
+
+# Необязательное выражение if поможет отфильтровать элементы для создания нового словаря.
+# Давайте создадим словарь только с квадратами только нечетных чисел:
+
+odd_squares = {x: x*x for x in range(11) if x % 2 == 1}
+print(odd_squares)
+
+"""
+Проверить, есть ли ключ в словаре, можно с помощью ключевого слова in.
+ Проверку на вхождение можно провести только над ключами, не над значениями
+"""
+squares = {1: 1, 3: 9, 5: 25, 7: 49, 9: 81}
+
+print(1 in squares)
+print(2 not in squares)
+
+# Итерирование по словарю
+squares = {1: 1, 3: 9, 5: 25, 7: 49, 9: 81}
+for i in squares:
+    print(squares[i])]]>
+      </module>
+    </chapter>
+    <chapter name="Множества" >
+      <module name="Обзор">
+        <![CDATA["""
+Множество — неупорядоченный набор элементов. Каждый элемент в множестве уникален
+  (т. е. повторяющихся элементов нет) и неизменяем.
+Само по себе множество можно изменять, то есть удалять или добавлять элементы.
+Множество объявляется так: элементы помещаются в фигурные скобки {} и разделяются запятыми.
+ Сделать это можно и с помощью встроенной функции set().
+Внутри множества может быть любое количество элементов любого неизменяемого типа
+ (числа, кортежи, строки и т. д.).
+ Внутрь множества нельзя помещать элементы изменяемых типов: списки, другие множества или словари.
+"""
+my_set = {1.0, "Привет", (1, 2, 3)}
+print(my_set)
+
+# Внутри множества не может быть одинаковых элементов
+my_set = {1, 2, 3, 4, 3, 2}
+print(my_set)
+
+# Аргументом функции set() может быть список
+my_set = set([1, 2, 3, 2])
+print(my_set)
+
+""" Пустые фигурные скобки {} — это словарь. Чтобы объявить пустое множество,
+ нужно использовать функцию set() без аргументов.
+"""
+a = set()
+print(type(a))
+
+""" Множества изменяемы и не упорядочены, поэтому получить доступ к элементам с помощью
+ индексов или срезов не получится. Множества просто не поддерживают эти операции.
+Чтобы добавить один элемент, нужно использовать метод add().
+ Если нужно добавить несколько элементов — метод update().
+ Метод update() принимает в качестве аргументов кортежи, списки или другие множества.
+"""
+my_set = {1, 3}
+print(my_set)
+
+# добавляем элемент
+my_set.add(2)
+print(my_set)
+
+# добавляем несколько элементов
+my_set.update([2, 3, 4])
+print(my_set)
+
+# добавляем список и множество
+my_set.update([4, 5], {1, 6, 8})
+print(my_set)
+
+""" Определенный элемент множества можно удалить с помощью методов discard() и remove().
+ Если элемент, который вы хотите удалить с помощью discard(), отсутствует в множестве —
+  оно не изменится. А вот remove() вызовет ошибку, если элемента нет в множестве.
+"""
+my_set = {1, 3, 4, 5, 6}
+print(my_set)
+
+# удаление элемента # с помощью discard
+my_set.discard(4)
+print(my_set)
+
+# удаление элемента # с помощью remove
+my_set.remove(6)
+print(my_set)
+
+# удаление элемента, # отсутствующего в my_set, # с помощью discard
+my_set.discard(2)
+print(my_set)
+
+# При удалении элемента, # отсутствующего в my_set, # с помощью remove # вы получите ошибку.
+try:
+    my_set.remove(2)
+except:
+    print('Error')
+print()
+"""
+Удалить и вернуть элемент мы можем с помощью метода pop().
+Так как множество — неупорядоченный тип данных, невозможно определить,
+ какой из элементов будет удален. Это произойдет случайным образом.
+Удалить все элементы из множества можно с помощью метода clear().
+"""
+
+# Вывод: множество уникальных элементов
+my_set = set("Helloworld")
+print(my_set)
+
+# pop элемента
+print(my_set.pop())
+
+# pop еще одного элемента
+my_set.pop()
+print(my_set)
+
+# очищаем my_set
+my_set.clear()
+print(my_set)
+]]>
+      </module>
+      <module name="Операции с множествами">
+        <![CDATA["""
+Множества можно использовать для выполнения математических операций вроде объединения,
+ пересечения, симметрической разности и т. д. Сделать это можно с помощью операторов и методов.
+"""
+# Результат бъединения A и B — множество, содержащее в себе все элементы множеств A и B.
+A = {1, 2, 3, 4, 5}
+B = {4, 5, 6, 7, 8}
+
+print(A | B)
+print(A.union(B))
+print(B.union(A))
+
+# Результат пересечения A и B — множество, которому принадлежат те и только те элементы,
+# которые одновременно принадлежат всем данным множествам
+print(A & B)
+print(A.intersection(B))
+print(B.intersection(A))
+
+# Результат разности множеств B и A — множество элементов, содержащихся только в A.
+# Следовательно, B-A = множество элементов, содержащихся только в B.
+print(A - B)
+print(B.difference(A))
+
+# Результат симметрической разности множеств A и B — множество элементов, содержащихся и в A,
+# и в B, но не в обоих сразу. Иначе говоря, исключается только пересечение множеств.
+print(A ^ B)
+print(A.symmetric_difference(B))
+print(B.symmetric_difference(A))
+
+""" Проверка на вхождение
+Мы можем проверить, есть ли элемент в множестве. Сделать это можно с помощью ключевого слова in.
+"""
+my_set = set("apple")
+
+print('p' in my_set)
+print('c' not in my_set)
+
+# Итерирование по множеству
+for letter in set("apple"):
+    print(letter)]]>
+      </module>
+      <module name="Методы и встроенные функции">
+        <![CDATA["""
+add()          Добавляет элемент в множество
+clear()        Удаляет все элементы из множества
+copy()         Возвращает копию множества
+difference()   Возвращает новое множество — разность двух или более множеств
+difference_update()    Удаляет все элементы одного набора из другого
+discard()      Удаляет элемент, если он содержится в множестве
+               (если элемента в множестве нет, то ничего не происходит)
+intersection() Возвращает новое множество — пересечение двух множеств
+intersection_update()  Добавляет в множество пересечение с другим множеством или с самим собой
+isdisjoint()   Возвращает True, если два множества не имеют пересечения
+issubset()     Возвращает True, если определенное множество содержится в другом множестве
+issuperset()   Возвращает True, если в множестве есть другое множество
+pop()          Удаляет и возвращает случайный элемент множества.
+               Если множество пусто, то возвращает ошибку KeyError
+remove()       Удаляет определенный элемент множества. Если элемент отсутствует в множестве,
+               то возвращает ошибку KeyError
+symmetric_difference() Возвращает новое множество — симметрическую разность двух множеств
+symmetric_difference_update() Добавляет в множество симметрическую разницу с другим множеством
+                              или с самим собой
+union()        Возвращает новое множество — объединение множеств
+update()       Добавляет в множество объединение с другим множеством или с самим собой
+"""
+
+""" Встроенные функции
+all()       Возвращает True, если все элементы множества истинны или множество пустое
+any()       Возвращает True, если хоть один элемент множества истинен.
+            Если множество пустое, возвращает False
+enumerate() Возвращает перечисляемый объект. В нем в виде пар содержатся значения и индексы
+            всех элементов множества
+len()       Возвращает длину (количество элементов) множества
+max()       Возвращает наибольший элемент множества
+min()       Возвращает наименьший элемент множества
+sorted()    Возвращает отсортированный список, в котором находятся элементы множества
+            (само множество не сортируется)
+sum()       Возвращает сумму всех элементов множества
+"""]]>
+      </module>
+      <module name="Frozenset">
+        <![CDATA["""
+Frozenset — класс, имеющий характеристики множества. Отличие состоит в том, что frozenset
+ после объявления неизменяем.
+Множества изменяемы, поэтому не могут использоваться в качестве ключей словаря.
+ Frozenset же неизменяемы — их можно использовать в качестве ключей словаря.
+Этот тип данных поддерживает следующие методы:
+ copy(), difference(), intersection(), isdisjoint(), issubset(), issuperset(), symmetric_difference() и union().
+ Так как он неизменяем, методы add() и remove() с ним не работают.
+"""
+A = frozenset([1, 2, 3, 4])
+B = frozenset([3, 4, 5, 6])
+
+print(A.isdisjoint(B))
+print(A.difference(B))
+print(A | B)
+print(A.add(3))]]>
+      </module>
+    </chapter>
+  </chapter>
+  <chapter name="ООП" >
+    <module name="Обзор">
+      <![CDATA[# Создаем класс и его объекты
+class Parrot:
+
+    # атрибуты класса
+    species = "bird"
+
+    # атрибуты экземпляра
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+# создаем экземпляра класса
+kesha = Parrot("Kesha", 10)
+cookie = Parrot("Kuki", 15)
+
+# получаем доступ к атрибутам класса
+print("Kesha - {}".format(kesha.__class__.species))
+print("Kuki also {}".format(cookie.__class__.species))
+
+# получаем доступ к атрибутам экземпляра
+print("{} - {}-years old parrot".format(kesha.name, kesha.age))
+print("{} - {}-years old parrot".format(cookie.name, cookie.age))
+
+""" Мы создали класс Parrot. После этого мы объявили атрибуты — характеристики объекта.
+Атрибуты объявлены внутри класса — в методе __init__. Это метод-инициализатор,
+ который запускается сразу же после создания объекта.
+После этого мы создаем экземпляры класса Parrot. kesha и cookie — ссылки на (значения) наши новые объекты.
+Получить доступ к атрибуту класса можно так — __class__.species.
+Атрибуты класса для всех экземпляров класса одинаковы. Точно так же мы можем получить доступ к
+  атрибутам экземпляра — kesha.name и kesha.age. Но вот атрибуты каждого экземпляра класса уникальны.
+"""
+
+# Создаем метод
+class Parrot:
+
+    # атрибуты экземпляра
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # метод экземпляра
+    def sing(self, song):
+        return "{} sing {}".format(self.name, song)
+
+    def dance(self):
+        return "{} dance".format(self.name)
+
+# создаем экземпляр класса
+kesha = Parrot("Kesha", 10)
+
+# вызываем методы экземпляра
+print(kesha.sing("songs"))
+print(kesha.dance())
+
+""" Наследование — способ создания класса. Его суть заключается в том, что функциональность
+  нового класса наследуются от уже существующего класса. Новый класс называется
+  производным (дочерним). Существующий — базовым (родительским).
+"""
+# родительский класс
+class Bird:
+
+    def __init__(self):
+        print("The bird is ready")
+
+    def whoisThis(self):
+        print("Bird")
+
+    def swim(self):
+        print("Swim faster")
+
+# дочерний класс
+class Penguin(Bird):
+
+    def __init__(self):
+        # вызов функции super()
+        super().__init__()
+        print("The penguin is ready")
+
+    def whoisThis(self):
+        print("Penguin")
+
+    def run(self):
+        print("Run fuster")
+
+peggy = Penguin()
+peggy.whoisThis()
+peggy.swim()
+peggy.run()
+
+"""
+Инкапсуляция
+Мы можем ограничить доступ к методам и переменным, что предотвратит модификацию данных —
+ это и есть инкапсуляция. Приватные атрибуты выделяются нижним подчеркиванием: одинарным _ или двойным __.
+"""
+class Computer:
+
+    def __init__(self):
+        self.__maxprice = 900
+
+    def sell(self):
+        print("Sale price: {}".format(self.__maxprice))
+
+    def setMaxPrice(self, price):
+        self.__maxprice = price
+
+c = Computer()
+c.sell()
+
+# изменение цены
+c.__maxprice = 1000
+c.sell()
+
+# используем функцию изменения цены
+c.setMaxPrice(1000)
+c.sell()
+
+""" Мы использовали метод __init__() для хранения максимальной цены компьютера.
+ Затем мы попытались изменить цену — безуспешно: Python воспринимает __maxprice как приватный атрибут.
+Как видите, для изменения цены нам нужно использовать специальную функцию — setMaxPrice(),
+ которая принимает цену в качестве параметра.
+"""
+
+""" Полиморфизм — особенность ООП, позволяющая использовать одну функцию для разных форм (типов данных).
+Допустим, нам нужно закрасить фигуру. Их форма может быть любой: прямоугольник, квадрат, круг.
+ Одним и тем же методом мы можем раскрасить любую фигуру. Такой принцип и называется полиморфизмом.
+"""
+class Parrot:
+
+    def fly(self):
+        print("Parrot can fly")
+
+    def swim(self):
+        print("Parrot can not swim")
+
+class Penguin:
+
+    def fly(self):
+        print("Penguin can not fly")
+
+    def swim(self):
+        print("Penguin can swim")
+
+# общий интерфейс
+def flying_test(bird):
+    bird.fly()
+
+# создаем экземпляров класса
+kesha = Parrot()
+peggy = Penguin()
+
+# передача объектов в качестве аргумента
+flying_test(kesha)
+flying_test(peggy)
+]]>
+    </module>
+    <module name="Классы и объекты">
+      <![CDATA["""
+Первая строка внутри класса называется строкой документации, в ней содержится
+ краткое описание класса. Писать ее рекомендуется, но не обязательно.
+"""
+class MyNewClass:
+    '''This is a class documentation string'''
+    pass
+
+""" Класс создает новое локальное пространство имен, где определяются все атрибуты.
+ Атрибутами могут быть и переменные, и функции.
+Есть и специальные атрибуты, которые начинаются с двойного нижнего подчеркивания __.
+ Например, __doc__ — строка документации класса.
+После объявления класса создается объект этого класса с тем же именем.
+ Этот объект класса позволяет нам как получить доступ к различным его атрибутам,
+ так и инстанцировать новые объекты этого класса.
+"""
+class Person:
+    "This is a class, describing a human"
+    age = 10
+
+    def greet(self):
+        print('Hello')
+
+print(Person.age)
+print(Person.greet)
+print(Person.__doc__)
+
+# Создание объекта:
+harry = Person()
+
+print(Person.greet)
+print(harry.greet)
+
+# Вызов метода greet() объекта
+harry.greet()
+
+""" Конструкторы
+Функции класса, начинающиеся с двойного нижнего подчеркивания, называются специальными функциями.
+Специальная функция __init__() вызывается каждый раз, когда вы создаете новый объект класса.
+В ООП этот вид функций называют конструкторами. Обычно они используются для инициализации всех переменных класса.
+"""
+class ComplexNumber:
+    def __init__(self, r=0, i=0):
+        self.real = r
+        self.imag = i
+
+    def get_data(self):
+        print(f'{self.real}+{self.imag}j')
+
+# Создаем новый объект ComplexNumber
+num1 = ComplexNumber(2, 3)
+
+# Вызываем метод get_data()
+num1.get_data()
+
+# Создаем еще один объект ComplexNumber и новый атрибут 'attr'
+num2 = ComplexNumber(5)
+num2.attr = 10
+
+# Вывод: (5, 0, 10)
+print((num2.real, num2.imag, num2.attr))
+
+# У объекта c1 нет атрибута 'attr', поэтому вызывается ошибка
+# AttributeError: 'ComplexNumber' object has no attribute 'attr'
+try:
+   print(num1.attr)
+except:
+   print('Error')
+
+""" В этом примере мы объявили класс, представляющий комплексные числа.
+  В нем две функции. Первая, __init__(), инициализирует переменные (по умолчанию это нули).
+  Вторая, get_data(), позволяет правильно отображать числа в консоли.
+Стоит отметить, что атрибуты объекта могут создаваться «на лету». Мы и создали,
+ и считали атрибут attr объекта num2. Но это не значит, что этот атрибут будет доступен num1.
+"""
+
+# Любой атрибут объекта можно в любой момент удалить. Сделать это можно с помощью оператора del.
+# С помощью del можно удалить даже объект
+num1 = ComplexNumber(2,3)
+del num1.imag
+num1.get_data()]]>
+    </module>
+    <module name="Наследование">
+      <![CDATA["""
+Синтаксис:
+
+class BaseClass:
+    Тело родительского класса
+class DerivedClass(BaseClass):
+    Тело дочернего класса
+"""
+class Polygon:
+    def __init__(self, no_of_sides):
+        self.n = no_of_sides
+        self.sides = [0 for i in range(no_of_sides)]
+
+
+    def inputSides(self):
+        self.sides = [float(input("Input side " + str(i+1)+ " : ")) for i in range(self.n)]
+
+
+    def dispSides(self):
+        for i in range(self.n):
+            print("Side", i+1, " — ", self.sides[i])
+
+""" В этом классе объявлено несколько переменных. Одна хранит количество сторон — n.
+ Вторая, sides — это список, в нём находятся размеры сторон.
+Метод inputSides() принимает размер каждой стороны, а dispSides() выводит их на экран.
+Треугольник — это полигон с 3 сторонами. Теперь мы можем создать класс Triangle,
+ который наследует весь функционал Polygon. Благодаря этому все атрибуты класса Polygon
+ становятся доступны в Triangle.
+"""
+class Triangle(Polygon):
+    def __init__(self):
+        Polygon.__init__(self,3)
+
+
+    def findArea(self):
+        a, b, c = self.sides
+        # Вычисляем полупериметр
+        s = (a + b + c) / 2
+        area = (s*(s-a)*(s-b)*(s-c)) ** 0.5
+        print('The area of the triangle is equal to %0.2f' %area)
+
+# В классе есть и собственный метод findArea(). Он вычисляет площадь треугольника и выводит ее на экран.
+t = Triangle()
+t.inputSides()
+t.dispSides()
+t.findArea()
+
+""" В примере метод __init__() был объявлен в обоих классах — и в Triangle, и в Polygon.
+ Здесь и происходит переопределение классов. То есть, метод в дочернем классе переопределяет
+ тот же самый метод из родительского класса.
+ Это значит, что __init__() в Triangle становится предпочтительнее __init__() в Polygon.
+ Gри вызове метода в родительском классе из дочернего (вызов Polygon.__init__() из __init__() в Triangle)
+ лучше всего использовать встроенную функцию super().
+ Например, super().__init__(3) эквивалентно вызову Polygon.__init__(self, 3)
+"""
+
+""" Для проверки наследования можно использовать две функции: isinstance() и issubclass().
+Функция isinstance() возвращает True, если объект является экземпляром класса или других
+ производных от него классов. Каждый класс в Python является дочерним для какого-либо базового класса.
+"""
+print(isinstance(t, Triangle))
+print(isinstance(t, Polygon))
+print(isinstance(t, int))
+print(isinstance(t, object))
+
+# subclass() же используется для проверки, наследуется ли какой-либо класс от другого.
+print(issubclass(Polygon, Triangle))
+print(issubclass(Triangle, Polygon))
+print(issubclass(bool, int))
+]]>
+    </module>
+    <module name="Множественное наследование">
+      <![CDATA["""
+Множественное наследование — это возможность класса иметь более одного родительского класса.
+При множественном наследовании дочерний класс наследует все свойства родительских классов.
+"""
+class Base1:
+    pass
+
+class Base2:
+    pass
+
+# этот класс наследует сразу от двух родительских классов: Base1 и Base2
+class MultiDerived(Base1, Base2):
+    pass
+
+""" Все классы в Python наследуются от класса object. Это базовый класс языка.
+И поэтому технически все классы, встроенные или определенные пользователем, являются наследуемыми,
+ а все объекты — экземплярами класса object.
+"""
+print(issubclass(list,object))
+print(isinstance(5.5,object))
+print(isinstance("Привет",object))
+
+""" По порядку разрешения методов любой указанный атрибут сначала ищется в объявленном классе.
+ Если его там нет, поиск продолжается в родительских классах на максимальную глубину
+ слева направо без прохода по одному классу дважды.
+Например, в случае с классом MultiDerived порядок поиска будет следующим:
+ [MultiDerived, Base1, Base2, object].
+ Такой порядок еще называется линеаризацией класса MultiDerived, а список правил,
+ по которому мы находим такой порядок, называется Method Resolution Order (порядок разрешения методов).
+MRO должен сохранять локальный порядок старшинства, а также обеспечивать монотонность.
+ Он гарантирует, что класс всегда будет появляться до родителей.
+ В случае нескольких родителей порядок будет таким же, как у кортежей в базовом классе.
+ MRO класса можно просмотреть в атрибуте __mro__ или с помощью метода mro().
+ Вызов атрибута возвращает кортеж, а вызов метода — список.
+"""
+print(MultiDerived.__mro__)
+print(MultiDerived.mro())]]>
+    </module>
+    <module name="Перегрузка операторов">
+      <![CDATA["""
+Перегрузка оператора — это возможность переопределять различные операторы в классах,
+ то есть менять операции, которые они выполняют, в зависимости от контекста.
+Давайте рассмотрим пользовательский класс Point. Он должен моделировать точку в двумерной системе координат.
+"""
+class Point:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+# задаем координаты точек p1, p2
+p1 = Point(1, 2)
+p2 = Point(2, 3)
+
+print(p1)
+
+# пытаемся вывести сумму точек
+try:
+   print(p1+p2)
+except:
+   print('Error')
+""" Здесь получаем ошибку, потому что для нашего класса Point не пределен оператор '+'.
+Чтобы решить эту проблему, нужны специальные методы класса.
+Они начинаются с двойного подчеркивания __, один из них - уже знакомый нам __init__().
+Мы можем определить метод __str__() в нашем классе, который будет контролировать нужный вывод объекта:
+"""
+class Point:
+    def __init__(self, x = 0, y = 0):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return "({0},{1})".format(self.x,self.y)
+
+p1 = Point(2, 3)
+# выводим точку — ее координаты
+print(p1)
+# когда мы используем встроенные функции str() или format(), вызывается этот же метод:
+print(str(p1))
+print(format(p1))
+
+""" Чтобы перегрузить оператор +, нам нужно реализовать специальный метод __add__() в нашем классе.
+ Внутри него мы можем делать все, что захотим. Но разумнее будет вернуть объект Point в виде суммы координат.
+"""
+class Point:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return "({0},{1})".format(self.x, self.y)
+
+    def __add__(self, other):
+        x = self.x + other.x
+        y = self.y + other.y
+        return Point(x, y)
+
+# задаем координаты точек p1, p2
+p1 = Point(1, 2)
+p2 = Point(2, 3)
+
+print(p1+p2)
+
+""" Когда мы используем p1 + p2, Python вызывает p1.__add__(p2), а тот, в свою очередь,
+ вызывает Point.__add__(p1,p2). После этого операция сложения выполняется указанным нами способом.
+Точно так же мы можем перегрузить и другие операторы. Вот, какие для этого понадобятся специальные функции:
+
+Оператор           Выражение     Специальная функция
+
+Сложение              p1 + p2      p1.__add__(p2)
+Вычитание             p1 - p2      p1.__sub__(p2)
+Умножение             p1 * p2      p1.__mul__(p2)
+Возведение в степень  p1 ** p2     p1.__pow__(p2)
+Деление               p1 / p2      p1.__truediv__(p2)
+Целочисленное деление p1 // p2     p1.__floordiv__(p2)
+Взятие остатка        p1 % p2      p1.__mod__(p2)
+Побитовый сдвиг влево p1 << p2     p1.__lshift__(p2)
+Побитовый сдвиг вправоp1 >> p2     p1.__rshift__(p2)
+Побитовое И (AND)     p1 & p2      p1.__and__(p2)
+Побитовое ИЛИ (OR)    p1 | p2      p1.__or__(p2)
+Побитовое исключающее
+            ИЛИ (XOR) p1 ^ p2      p1.__xor__(p2)
+Побитовое НЕ (NOT)    ~p1          p1.__invert__()
+"""
+
+""" Перегружать можно и операторы сравнения.
+Допустим, нам надо реализовать оператор «меньше чем» < в классе Point.
+Мы будем сравнивать, какая из точек дальше от начала координат. Реализовать это можно вот так.
+"""
+class Point:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+    def __str__(self):
+        return "({0},{1})".format(self.x, self.y)
+
+    def __lt__(self, other):
+        self_mag = (self.x ** 2) + (self.y ** 2)
+        other_mag = (other.x ** 2) + (other.y ** 2)
+        return self_mag < other_mag
+
+# задаем значения точек p1, p2, p3
+p1 = Point(1,1)
+p2 = Point(-2,-3)
+p3 = Point(1,-1)
+
+# используем «меньше чем»
+print(p1<p2)
+print(p2<p3)
+print(p1<p3)
+
+""" Специальные функции для операторов сравнения:
+Оператор         Выражение     Специальная функция
+Меньше чем       p1 < p2     p1.__lt__(p2)
+Меньше или равно p1 <= p2    p1.__le__(p2)
+Равно            p1 == p2    p1.__eq__(p2)
+Не равно         p1 != p2    p1.__ne__(p2)
+Больше чем       p1 > p2     p1.__gt__(p2)
+Больше или равно p1 >= p2    p1.__ge__(p2)
+"""
+]]>
+    </module>
+    <module name="Методы класса и статические">
+      <![CDATA[#
+
+class Pizza:
+    def __init__(self, ingredients):
+        self.ingredients = ingredients
+    def __repr__(self):
+        return f'Pizza({self.ingredients!r})'
+    @classmethod
+    def margherita(cls):
+        return cls(['моцарелла', 'помидоры'])
+    @classmethod
+    def prosciutto(cls):
+        return cls(['моцарелла', 'помидоры', 'ветчина'])
+
+    @staticmethod
+    def some_method():
+        return 'Static'
+
+print( Pizza.margherita() )
+print( Pizza.prosciutto() )
+print( Pizza.some_method() )]]>
+    </module>
+  </chapter>
+  <chapter name="Дополнительная информация" >
+    <module name="Замыкания">
+      <![CDATA["""
+Замыкание (closure) — это вложенная функция, которая ссылается на одну или
+ более переменных из объемлющей (enclosing) области видимости.
+"""
+def say():
+    greeting = "Hello"
+
+    def display():
+        print(greeting)
+
+    return display
+# Когда say() возвращает display(), на самом деле возвращается замыкание
+fn = say()
+fn()
+""" Функция say() выполняется и возвращает функцию fn(). Когда выполняется fn(),
+ функция say() уже завершила выполнение.
+Это значит, что область видимости функции say() уже не существует к тому моменту, когда выполняется fn().
+Поскольку переменная greeting принадлежит области видимости функции say(),
+ она, по идеи, тоже должна уничтожаться после выполнения say().
+Однако fn() все равно как-то выводит значение переменной greeting.
+
+Переменная greeting «разделяется» между двумя областями видимости:
+    Функции say().
+    Замыкания.
+То есть greeting находится одновременно в двух областях видимости.
+ Тем не менее, она всегда ссылается на один и тот же строковый объект "Hello".
+Для этого Python создает промежуточный объект — ячейку (cell).
+Узнать адрес ячейки в памяти можно через свойство __closure__, как показано ниже:
+"""
+print(fn.__closure__)
+
+""" __closure__ возвращает кортеж ячеек.
+На основе этого механизма можно определить замыкание по-другому:
+    Замыкание — это функция и расширенная область видимости, в которой содержатся свободные переменные.
+Чтобы узнать, какие свободные переменные содержатся в замыкание, можно использовать __code__.co_freevars.
+"""
+print(fn.__code__.co_freevars)
+
+def multiplier(x):
+    def multiply(y):
+        return x * y
+    return multiply
+
+""" Функция multiplier() возвращает произведение двух аргументов.
+ Но возвращается не само произведение, а замыкание.
+ Теперь вызовем функцию multiplier() три раза:
+"""
+m1 = multiplier(1)
+m2 = multiplier(2)
+m3 = multiplier(3)
+
+""" Вызовы функция создадут три замыкания. Каждая функция умножает число на 1, 2, и 3 соответсвенно.
+ А теперь выполним функции замыканий:
+"""
+print(m1(10))
+print(m2(10))
+print(m3(10))
+# Как вы видите, у m1, m2 и m3 разные инстансы замыкания.
+
+"""
+Предположим, что нам нужно создать все три вышеуказанные замыкания одновременно.
+ Это можно сделать, например, так:
+"""
+print()
+multipliers = []
+for x in range(1, 4):
+    multipliers.append(lambda y: x * y)
+
+m1, m2, m3 = multipliers
+
+print(m1(10))
+print(m2(10))
+print(m3(10))
+"""
+Что мы здесь делаем
+
+    Объявляем список, в котором будем хранить замыкания.
+    Используем лямбда-выражение, чтобы создать замыкание, и добавляем его в список на каждой итерации.
+    «Распоковываем» замыкания из списка и присваиваем их переменным m1, m2 и m3 соответсвенно.
+    Передаем значения 10, 20 и 30 в каждое замыкание и выполняем их.
+Работает не так, как мы ожидали. Почему?
+В цикле for x меняет значения от 1 до 3. Когда цикл завершается, значение x — 3.
+Каждый элемент списка — соответсвующее замыкание lambda y: x*y.
+Python использует значение x для вычислений каждый раз, когда вы вызываются m1(1), m2(10) и m3(10).
+ И поскольку в момент выполнения замыкания x всегда 3, результат всех замыканий одинаковый — 30.
+Чтобы исправить эту проблему, нужно объяснить Python, что значение x для вычислений нужно использовать в цикле.
+"""
+print()
+def multiplier(x):
+    def multiply(y):
+        return x * y
+    return multiply
+
+
+multipliers = []
+for x in range(1, 4):
+    multipliers.append(multiplier(x))
+
+m1, m2, m3 = multipliers
+
+print(m1(10))
+print(m2(10))
+print(m3(10))]]>
+    </module>
+    <module name="Декораторы">
+      <![CDATA["""
+Декоратор — это функция, которая принимает в качестве аргумента другую (оригинальную) функцию
+ и изменяет ее поведение, не изменяя саму функцию. Возвращает другую функцию — замыкание.
+Замыкание обычно принимает любой набор позиционных и именованных аргументов.
+Замыкание вызывает оригинальную функцию с помощью переданных аргументов и возвращает результат в декоратор.
+"""
+def net_price(price, tax):
+    return price * (1 + tax)
+
+def currency(fn):
+    def wrapper(*args, **kwargs):
+        result = fn(*args, **kwargs)
+        return f'${result}'
+    return wrapper
+
+"""  Функция currency() — декоратор.
+currency() принимает в качестве аргумента любую другую функцию и возвращает
+ результат этой функции со знаком $ перед ним.
+Чтобы использовать декоратор currency(), нужно передать функцию net_price,
+ чтобы получить новую функцию и выполнть ее, как если бы это была исходная функция:
+"""
+net_price = currency(net_price)
+print(net_price(100, 0.05))
+
+""" В Python есть более короткий способ декорирования — с помощью символа @:
+
+@декоратор
+def функция():
+    тело функции
+В этом случае получится такой код:
+"""
+# декоратор
+def currency2(fn):
+    def wrapper(*args, **kwargs):
+        result = fn(*args, **kwargs)
+        return f'${result}'
+    return wrapper
+
+# декорируемая функция
+@currency2
+def net_price2(price, tax):
+    return price * (1 + tax)
+
+print(net_price2(100, 0.05))
+
+""" Если вы воспользуетесь встроенной функци help() для вывода документации новых функций,
+ вы не увидите документации для оригинальной функции. Например:
+"""
+help(net_price2)
+
+""" А если вы попытаесь вывести свойство __name__ новой функции,
+ Python вернет имя внутренней функции, которую возвращает декоратор:
+"""
+print(net_price2.__name__)
+
+""" Когда вы декорируете функцию, вы теряете сигнатуру и документацию оригинальной функции.
+Чтобы исправить это, можэно использовать функцию wraps() из стандартного модуля functools.
+ На самом деле wraps — тоже декоратор.
+"""
+from functools import wraps
+
+def currency3(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        result = fn(*args, **kwargs)
+        return f'${result}'
+    return wrapper
+
+
+@currency3
+def net_price3(price, tax):
+    return price * (1 + tax)
+
+
+help(net_price3)
+print(net_price3.__name__)]]>
+    </module>
+    <module name="Декораторы с аргументами">
+      <![CDATA["""
+Предположим, у нас есть функция say(), которая выводит какое-то сообщение,
+и мы хотим выполнять эту функцию 2 раза, каждый раз когда вызываем ее.
+Это можно сделать с помощью простого декоратора:
+"""
+def repeat(fn):
+    def wrapper(*args, **kwargs):
+        for _ in range(2):
+            result = fn(*args, **kwargs)
+        return result
+
+    return wrapper
+
+@repeat
+def say(message):
+    print(message)
+
+say("Hello")
+print()
+
+""" Если же вы захотите использовать декоратор repeat для выполнения функции 2 раза, а потом — 3 раза,
+  нужно изменить декоратор repeat так, чтобы он принимал аргумент, задающий количество раз,
+  которое должна выполниться функция, следующим образом:
+"""
+def repeat(times):
+    ''' вызывает функцию количество раз, равное times '''
+    def decorate(fn):
+        def wrapper(*args, **kwargs):
+            for _ in range(times):
+                result = fn(*args, **kwargs)
+            return result
+        return wrapper
+    return decorate
+
+@repeat(3)
+def say(message):
+    print(message)
+
+say('Hello')
+""" В этом коде функция decorate() является декоратором. Она эквивалентна оригинальному декоратору repeat.
+Обратите внимание, что новая функция repeat() не является декоратором.
+ Это фабрика декораторов, которая возвращает декоратор.
+"""]]>
+    </module>
+    <module name="Классы-декораторы">
+      <![CDATA[# Следующая функция выводит количество символов * до и после вызова декорированной функции:
+def star(n):
+    def decorate(fn):
+        def wrapper(*args, **kwargs):
+            print(n*'*')
+            result = fn(*args, **kwargs)
+            print(result)
+            print(n*'*')
+            return result
+        return wrapper
+    return decorate
+""" Функция star() — это так называемая фабрика декораторов, которая возвращает декоратор.
+ Фабрика принимает аргумент, задающий количество * символов, которые нужно вывести.
+Вот, как используется эта фабрика декораторов:
+"""
+@star(5)
+def add(a, b):
+    return a + b
+
+add(10, 20)
+
+""" Фабрика декоратора star() принимает аргумент и возвращает callable-объект.
+ Callable-объект принимает аргумент — некую функцию fn(), которая будет декорирована.
+  Также callable-объект может получить доступ к аргументу n, переданному фабрике декораторов.
+Экземпляр класса может быть callable, если он реализует метод __call__.
+ Поэтому метод __call__ можно сделать декоратором.
+В следующем примере перепишем фабрика декораторов star с использованием класса:
+"""
+class Star:
+    def __init__(self, n):
+        self.n = n
+
+    def __call__(self, fn):
+        def wrapper(*args, **kwargs):
+            print(self.n*'*')
+            result = fn(*args, **kwargs)
+            print(result)
+            print(self.n*'*')
+            return result
+        return wrapper
+
+@Star(5)
+def add(a, b):
+    return a + b
+
+add(10, 20)]]>
+    </module>
+    <module name="Последовательности">
+      <![CDATA[""" В Python есть встроенные типы последовательностей,
+изменяемые: списки и байтовые массивы
+и неизменяемые: строки, кортежи, диапазоны и байты.
+Индексы последовательности начинаются с 0, а не с 1. Поэтому первый элемент — s[0], а второй — s[1]. Если последовательность s состоит из n элементов, то последним элементом будет s[n-1].
+"""
+cities = ['Belgorod', 'Kursk', 'Bryansk']
+# Количество элементов последовательности
+print(len(cities))
+
+# Проверка вхождения элемента в последовательность
+print('Kursk' in cities)
+print('Belgorod' not in cities)
+
+# Поиска индекса элемента в последовательности
+numbers = [1, 4, 5, 3, 5, 7, 8, 5]
+print(numbers.index(5))
+print(numbers.index(5, 3))     # Начиная с 3
+print(numbers.index(5, 3, 5))  # Начиная с 3 и до 5
+
+# Срез от индекса i до индекса j [i:j] (не включая его)
+print(numbers[2:6])
+print(numbers[2:6:2])  # С шагом 2
+
+# Получение максимального и минимального значений из последовательности
+print(min(numbers))
+print(max(numbers))
+
+# Объединение (конкатенация) последовательностей
+east = ['Vladivistok', 'Habarovsk']
+west = ['Pskov', 'Novgorod']
+
+cities = east + west
+print(cities)
+
+# Повторение последовательности
+s = 'ха'
+print(s*3)]]>
+    </module>
+    <module name="Срезы">
+      <![CDATA[""" Для изменяемых типов последовательностей, таких как списки,
+ можно использовать срезы для извлечения и присвоения данных:
+ Для неизменяемых срезы можно использовать только для извлечения
+"""
+colors = ['red', 'green', 'blue', 'orange']
+
+# извлекаем данные
+print(colors[1:3])
+# если верхняя граница больше длины последовательности, то используется длина последовательности:
+print(colors[1:100])
+
+# присваиваем новые значения
+colors[1:3] = ['yellow', 'black']
+print(colors)
+
+# Можно использовать отрицательные значения:
+print(colors[-4:-2])
+
+# Срезы поддерживают третий аргумент — шаг. Если его не указывать, по умолчанию значение шага равно 1.
+print(colors[0:4:2])
+
+""" Срез — это объект
+ начало:конец — объект класса slice.
+ slice(начало, конец)
+"""
+s = slice(1, 3)
+
+print(type(s))
+print(s.start, s.stop)
+
+# Это позволяет использовать этот объект вместо стандартной конструкции (colors[1:3])
+print(colors[s])
+print()
+""" Чтобы сделать выбор элементов более удобным, у класса slice есть метод indices(),
+ который возвращает эквивалентный диапазон (начало, конец, шаг) для любого среза
+ последовательности с заданной длиной:
+
+slice(начало, конец, шаг).indices(длина) # вернется кортеж (i, j, k)
+
+Вы можете использовать значения кортежа, который возвращает indices() для создания
+ списка индексов с помощью функции range(). Например:
+"""
+s = slice(0, 4, 2)
+t = s.indices(len(colors))
+
+for index in range(*t):
+    print(colors[index])
+""" Здесь
+    Создается объект slice со следующими параметрами: начало — 0, конец — 4, шаг — 2.
+    Возвращается кортеж индексов среза последовательности, длина которого равна длине списка colors.
+    Кортеж передается в функцию range() для выбора элементов из списка colors.
+"""]]>
+    </module>
+    <module name="Пользовательский тип последовательности">
+      <![CDATA["""
+Последовательность Фибоначчи примерно в 1170 году открыл Леонардо Фибоначчи, итальянский математик.
+В последовательности Фибоначчи каждое число является суммой двух предшествующих ему чисел.
+"""
+def fib(n):
+    print(f'Calculate {n} Fibonacci number')
+    if n < 2:
+        return 1
+    return fib(n-2) + fib(n-1)
+
+fib(6)
+print()
+""" Декоратор lru_cache из модуля functools позволяет кэшировать результат работы функции.
+  Когда вы передаете тот же аргумент функции,
+  функция просто получает результат из кэша вместо того, чтобы пересчитывать его.
+"""
+from functools import lru_cache
+
+
+@lru_cache
+def fib(n):
+    print(f'Calculate {n} Fibonacci number')
+    if n < 2:
+        return 1
+    return fib(n-2) + fib(n-1)
+
+fib(6)
+print()
+
+""" У неизменяемой последовательность должно быть две основные возможности:
+    Возвращать количество элементов последовательности.
+    Возвращать элемент по заданному индексу или вызывать ошибку IndexError,
+     если индекс выходит за границы последовательности.
+
+Если объект удовлетворяет вышеуказанным требованиям, получится производить следующие действия:
+    Использовать синтаксис квадратных скобок [] для получения элемента по индексу.
+    Перебирать элементы последовательности: например, с помощью цикла for.
+Чтобы реализовать перечисленные выше возможности, нужно создать следующие методы:
+    __getitem__ — возвращает элемент по заданному индексу.
+    __len__ — возвращает длину последовательности.
+1) Метод __getitem__
+У метода __getitem__ должен быть аргумент index, который является целым числом.
+ Метод __getitem__ должен вернуть элемент из последовательности на основе указанного индекса.
+Диапазон значений index: от нуля до length - 1.
+ Если индекс выходит за границы, метод __getitem__ должен выдать исключение IndexError.
+Метод __getitem__ может принимать объект среза для слайсинга.
+
+2) The __len__ method
+Если у пользовательской последовательности есть метод __len__, вы можете использовать
+ встроенную функцию len(), чтобы получить количество элементов последовательности.
+
+Теперь определим класс, реализующий последовательность Фибоначчи:
+"""
+from functools import lru_cache
+
+
+class Fibonacci:
+    # Метод __init__ принимает целое число n, которое задает длину последовательности.
+    def __init__(self, n):
+        self.n = n
+
+    def __len__(self):
+        return self.n
+
+    def __getitem__(self, index):
+        """ Метод __getitem__ принимает целое число index. Метод __getitem__ проверяет,
+              является ли индекс целым числом, используя функцию isinstance().
+            Если index выходит за границы последовательности, __getitem__ вызовет исключение IndexError.
+            В противном случае он вернет число Фибоначчи индекса. """
+        if isinstance(index, int):
+            if index < 0 or index > self.n - 1:
+                raise IndexError
+
+            return Fibonacci.fib(index)
+        else:
+            """ логика, которая будет обрабатывать объект среза.
+            Используем метод indices() объекта среза, чтобы получить индексы элементов
+            для возврата из последовательности: """
+            indices = index.indices(self.n)
+            """ Чтобы вернуть список Фибоначчи из среза, вы можете передать индексы
+                в функцию range() и сделать вот так: """
+            return [Fibonacci.fib(k) for k in range(*indices)]
+
+    # статический метод, который вычисляет значение определенного числа Фибоначчи:
+    @staticmethod
+    @lru_cache(2**16)
+    def fib(n):
+        if n < 2:
+            return 1
+        return Fibonacci.fib(n-2) + Fibonacci.fib(n-1)
+
+fibonacci = Fibonacci(10)
+
+# используем []
+print(fibonacci[0])
+print(fibonacci[1])
+print(fibonacci[2])
+
+# используем for
+for f in fibonacci:
+    print(f)
+
+print(fibonacci[1:5])]]>
+    </module>
+    <module name="Итераторы">
+      <![CDATA["""
+Итератор — это объект, у которого есть:
+        метод __iter__ , который возвращает сам объект;
+        метод __next__, который возвращает следующий элемент.
+          Если все элементы уже возвращены, метод вызывает исключение StopIteration.
+Методы __iter__ и __next__ называются протоколом итератора.
+Python позволяет использовать итераторы в циклах for, списковых включениях и других
+  встроенных функциях, в том числе map, filter, reduce и zip.
+
+Ниже — пример класса-итератора Square, который возвращает квадраты чисел.
+"""
+class Square:
+    def __init__(self, length):
+        self.length = length
+        self.current = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.current >= self.length:
+            raise StopIteration
+
+        self.current += 1
+        return self.current ** 2
+""" Здесь мы
+    Инициализируем атрибуты length и current в методе __init__.
+       Атрибут length определяет количество квадратных чисел, которые должен вернуть класс.
+       А атрибут current отслеживает текущее целое число.
+    Создаем метод __iter__, который возвращает объект self.
+    Создаем метод __next__, который возвращает квадрат следующего числа.
+       Если количество возвращенных квадратов чисел больше length,
+       метод __next__ вызывает исключение StopIteration. """
+square = Square(5)
+
+for sq in square:
+    print(sq)
+""" Как только вы переберете все элементы, итератор будет «исчерпан».
+  Это означает, что вам нужно создать новый итератор для повторного перебора элементов.
+Если вы попытаетесь использовать итератор, который уже исчерпан, вы получите исключение StopIteration.
+Кроме того, итератор нельзя перезапустить, потому что у него есть только метод __next__,
+  который возвращает следующий элемент из коллекции. """]]>
+    </module>
+    <module name="Итерируемые объекты">
+      <![CDATA["""
+Итератор — это объект, с помощью которого можно перебирать коллекции. Для этого у итератора должны быть следующие методы:
+    __iter__ — возвращает сам объект итератора.
+    __next__ — возвращает следующий элемент.
+Когда вы завершаете перебор коллекции с помощью итератора, он «исчерпывается».
+ Это означает, что больше тот итератор использовать нельзя.
+
+Итерируемый объект — это объект, который можно перебирать.
+Объект является итерируемым, если он реализует метод __iter__, который возвращает новый итератор.
+
+Cписок — это упорядоченная коллекция элементов. Он является итерируемым объектов,
+ поскольку у него есть метод __iter__, который возвращает итератор.
+"""
+numbers = [1, 2, 3]
+
+number_iterator = numbers.__iter__()
+print(type(number_iterator))
+# Поскольку у list_iterator также есть метод __next__,
+# вы можете использовать встроенную функцию next() для перебора списка:
+print(next(number_iterator))
+print(next(number_iterator))
+print(next(number_iterator))
+
+# Если вызвать эту функцию еще раз, вы получите ошибку StopIteration.
+try:
+   next(number_iterator)
+except:
+   print('Error')
+print()
+
+# Давайте создадим класс Colors:
+class Colors:
+    def __init__(self):
+        self.rgb = ['red', 'green', 'blue']
+        self.__index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.__index >= len(self.rgb):
+            raise StopIteration
+
+        # возвращаем следующий цвет
+        color = self.rgb[self.__index]
+        self.__index += 1
+        return color
+
+""" В этом примере класс Colors играет две роли. Он одновременно является итератором и итерируемым объектом.
+Класс Colors является итератором, поскольку в нем реализованы методы __iter__ и __next__.
+ Метод __iter__ возвращает сам объект, а __next__ возвращает следующий элемент из списка.
+Класс Colors является итерабельным, поскольку реализует метод __iter__,
+ который возвращает сам объект, являющийся итератором.
+
+Давайте создадим новый экземпляр класса Colors и выполним перебор его элементов с помощью цикла for: """
+colors = Colors()
+for color in colors:
+    print(color)
+
+# После завершения перебора объект colors становится бесполезным.
+# Если вы попытаетесь повторить итерацию, вы получите исключение StopIteration:
+#next(colors) # ошибка StopIteration
+
+# Если вы по новой запустите цикл for, вы ничего не получите, потому что итератор исчерпан:
+for color in colors:
+    print(color)
+print()
+
+""" Чтобы повторить перебор, необходимо создать новый объект colors с атрибутом rgb. Но это неэффективно.
+Давайте отделим итератор color от итерабельного объекта color,
+ как это делает Python с итератором списка и списком. """
+class Colors:
+    def __init__(self):
+        self.rgb = ['red', 'green', 'blue']
+
+    def __len__(self):
+        return len(self.rgb)
+
+# Теперь создадим класс ColorsIterator:
+class ColorIterator:
+    def __init__(self, colors):
+        self.__colors = colors
+        self.__index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.__index >= len(self.__colors):
+            raise StopIteration
+
+        # возвращаем следующий цвет
+        color = self.__colors.rgb[self.__index]
+        self.__index += 1
+        return color
+#    Метод __init__ принимает итератор, который является экземпляром класса Colors.
+#    Метод __iter__ возвращает сам итератор.
+#    Метод __next__ возвращает следующий элемент из объекта Colors.
+
+colors = Colors()
+color_iterator = ColorIterator(colors)
+
+for color in color_iterator:
+    print(color)
+print()
+
+""" Для повторного перебора объекта Colors достаточно создать новый экземпляр ColorIterator.
+Но когда вы хотите перебрать объект Colors, вам нужно вручную создать новый объект ColorIterator.
+ При этом нужно запомнить имя итератора ColorIterator.
+Было бы здорово автоматизировать этот процесс.
+ Для этого можно сделать класс Colors итерируемым объектом, реализовав метод __iter__. """
+
+class Colors:
+    def __init__(self):
+        self.rgb = ['red', 'green', 'blue']
+
+    def __len__(self):
+        return len(self.rgb)
+
+    def __iter__(self):
+        return ColorIterator(self)
+
+# Метод __iter__ возвращает новый экземпляр класса ColorIterator.
+# Теперь вы можете выполнять перебор объекта Colors без явного создания объекта ColorIterator:
+colors = Colors()
+for color in colors:
+    print(color)
+
+""" Внутри цикла for вызывается метод __iter__ объекта colors для получения итератора.
+ Он используется для перебора элементов объекта colors.
+Давайте поместим класс ColorIterator в класса Colors, чтобы инкапсулировать их в один класс: """
+class Colors:
+    def __init__(self):
+        self.rgb = ['red', 'green', 'blue']
+
+    def __len__(self):
+        return len(self.rgb)
+
+    def __iter__(self):
+        return self.ColorIterator(self)
+
+    class ColorIterator:
+        def __init__(self, colors):
+            self.__colors = colors
+            self.__index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            if self.__index >= len(self.__colors):
+                raise StopIteration
+
+            # возвращаем следующий цвет
+            color = self.__colors.rgb[self.__index]
+            self.__index += 1
+            return color
+""" Итак,
+    Итерируемый объект — это объект с методом __iter__, который возвращает итератор.
+    Итератор — это объект с методом __iter__, который возвращает самого себя, и методом __next__, который возвращает следующий элемент.
+    Итераторы также являются итерируемыми объектами. Однако они «исчерпываются», а итерируемые объекты — нет.
+"""]]>
+    </module>
+    <module name="Функция iter()">
+      <![CDATA["""
+Функция iter() возвращает итератор заданного объекта:
+    iter(объект)
+Аргументом функции iter() должен быть итерируемый объект или последовательность.
+ В общем случае аргументом может быть любой объект, поддерживающий протокол итерации или последовательности.
+Когда вы вызываете функцию iter() для определенного объекта,
+ функция сначала ищет метод __iter__() этого объекта.
+
+    Если метод __iter__() существует, функция iter() вызывает его для получения итератора.
+      В противном случае функция iter() будет искать метод __getitem__().
+    Если метод __getitem__() существует, функция iter() создаст объект итератора и вернет этот объект.
+    В противном случае возникает исключение TypeError.
+"""
+class Counter:
+    def __init__(self):
+        self.current = 0
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            self.current += 1
+            return self.current
+
+""" Поскольку в Counter есть метод __getitem__(), который возвращает элемент на основе индекса,
+ он является последовательностью.
+Теперь вы можете использовать функцию iter(), чтобы получить итератор counter: """
+counter = Counter()
+iterator = iter(counter)
+print(type(iterator))
+for _ in range(1, 4):
+    print(next(iterator))
+
+# Теперь давайте класс CounterIterator к классу Counter и реализуем протокол итерируемого объекта:
+class Counter:
+    def __init__(self):
+        self.current = 0
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            self.current += 1
+            return self.current
+
+    def __iter__(self):
+        return self.CounterIterator(self)
+
+    class CounterIterator:
+        def __init__(self, counter):
+            self.__counter = counter
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            self.__counter.current += 1
+            return self.__counter.current
+""" В классе Counter есть метод __iter__(), который возвращает итератор.
+ Возвращаемый итератор является новым экземпляром CounterIterator.
+ Класс CounterIterator поддерживает протокол итераторов, реализуя методы __iter__() и __next__().
+Когда существуют оба метода __iter__() и __getitem__(), функция iter() всегда использует метод __iter__(): """
+counter = Counter()
+iterator = iter(counter)
+print(type(iterator))
+
+""" Функцию iter() можно использовать и так:
+    iter(callable, sentinel)
+
+    callable — вызываемый объект,
+    sentinel — специальное значение, которое используется для представления конца последовательности.
+
+Функция iter(callable, sentinel) вызовет callable-переменную, когда будет вызван метод next().
+Функция вернет значение, возвращенное вызываемой переменной,
+ или вызовет исключение StopIteration, если результат будет равен значению sentinel.
+"""
+
+# создадим функцию, которая возвращает замыкание:
+
+def counter():
+    count = 0
+
+    def increase():
+        nonlocal count
+        count += 1
+        return count
+
+    return increase
+
+""" Функция counter() возвращает замыкание. А замыкание при вызове возвращает новое целое число,
+ начиная с единицы.
+Используем функцию counter(), чтобы показать числа от 1 до 3: """
+cnt = counter()
+
+while True:
+    current = cnt()
+    print(current)
+    if current == 3:
+        break
+print()
+# Чтобы сделать ее более общей, вместо нее можно использовать итератор.
+# Определим новый итератор счетчика:
+
+class CounterIterator:
+    def __init__(self, fn, sentinel):
+        self.fn = fn
+        self.sentinel = sentinel
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        current = self.fn()
+        if current == self.sentinel:
+            raise StopIteration
+
+        return current
+
+""" Конструктор CounterIterator принимает вызываемую fn и sentinel.
+Метод __next__() возвращает значение, возвращаемое вызываемой переменной fn,
+ или вызывает исключение StopIteration, если возвращаемое значение равно sentinel. """
+
+cnt = counter()
+iterator = CounterIterator(cnt, 4)
+for count in iterator:
+    print(count)
+print()
+# Вместо того чтобы определять новый итератор каждый раз, когда вы хотите перебрать значения,
+# возвращаемые вызываемой переменной, вы можете использовать функцию iter(callable, sentinel):
+cnt = counter()
+iterator = iter(cnt, 4)
+
+for count in iterator:
+    print(count)
+print()
+
+# Можно использовать функцию iter(), чтобы проверить, является ли объект итерируемым:
+
+def is_iterable(object):
+    try:
+        iter(object)
+    except TypeError:
+        return False
+    else:
+        return True
+
+# Если у объекта нет ни метода __iter__(), ни метода __getitem__(), функция iter() вызывает исключение TypeError.
+print(is_iterable([1, 2, 3]))
+print(is_iterable('Итератор Python'))
+print(is_iterable(100))
+]]>
+    </module>
+    <module name="Генераторы">
+      <![CDATA["""
+Генераторная функция — любая функция в Python, в теле которой встречается ключевое слово yield.
+yield используется, чтобы приостановить функцию на середине пути и
+ возобновить ее с того места, где она была приостановлена.
+Когда вы вызываете функцию-генератор, она возвращает новый объект-генератор.
+ Но этот объект не запускает функцию.
+Объекты-генераторы (или генераторы) реализуют протокол итератора.
+ Так что чтобы выполнить функцию-генератор, нужно вызвать встроенную функцию next().
+"""
+def greeting():
+    print('Hello!!')
+    yield 1
+    print('How are you?')
+    yield 2
+    print('Here you are')
+    yield 3
+"""
+Поскольку в функции greeting() содержится оператор yield, она является генераторной функцией.
+Оператор yield похож на оператор return в функция, но со следующим отличием.
+Когда Python встречает оператор yield, он возвращает значение, указанное в операторе yield.
+ Затем он приостанавливает выполнение функции.
+Если вы снова «вызовете» ту же функцию, Python продолжит выполнение с того места,
+ где он встретил предыдущий оператор yield.
+Когда вы вызываете функцию генератора, она возвращает объект генератора. Например:
+"""
+messenger = greeting()
+
+""" Здесь messenger — это объект-генератор, который также является итератором.
+Чтобы фактически выполнить тело функции greeting(), необходимо использовать встроенную функцию next(): """
+result = next(messenger)
+print(result)
+
+""" Когда функция greeting() начнет выполняться, она сначала покажет первое сообщение и вернет 1.
+ При этом функция приостанавится прямо на первом операторе yield.
+ Если вы снова «вызовете» функцию greeting(), она возобновит выполнение с последнего оператора yield: """
+result = next(messenger)
+print(result)
+
+""" Если «вызвать» функцию в третий раз, она возобновит работу со второго yield:
+ выведет соответсвующее сообщение и вернет 3: """
+result = next(messenger)
+print(result)
+
+""" Если вы попробуете выполнить генератор еще раз, он вызовет исключение StopIteration,
+ поскольку является итератором: """
+try:
+   next(messenger)
+except:
+   print('Error')
+print()
+
+# Создание итераторов с помощью генераторов
+# Давайте создадим итератор Squares, который будет возвращать квадрат целого числа.
+class Squares:
+    def __init__(self, length):
+        self.length = length
+        self.current = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        result = self.current ** 2
+
+        self.current += 1
+
+        if self.current > self.length:
+            raise StopIteration
+
+        return result
+
+# Итератор Squares можно использовать для генерации квадратов первых 5 целых чисел от 0 до 5:
+length = 5
+square = Squares(length)
+for s in square:
+    print(s)
+print()
+
+""" Этот код работает так, как ожидалось. Но в нем есть одна проблема — много шаблонов.
+Давайте теперь перепишем итератор Squares как функцию-генератор: """
+def squares(length):
+    for n in range(length):
+        yield n ** 2
+
+""" Как видите, она намного короче и выразительнее.
+ Использовать функцию-генератор squares() можно так же, как мы использовали итератор выше. """
+length = 5
+square = squares(length)
+for s in square:
+    print(s)
+
+""" Итак:
+    Генератор — это функция, в которой содержится хотя бы один оператор yield.
+    Функция-генератор возвращает объект-генератор.
+    Объект генератор — это итератор. Поэтому он становится «исчерпывается»,
+      когда не остается ни одного элемента, который можно вернуть.
+"""]]>
+    </module>
+    <module name="Генераторные выражения">
+      <![CDATA["""
+Генераторное выражение — это выражение, которое возвращает объект-генератор.
+Напомним, что генераторная функция — это функция, которая содержит оператор yield
+ и возвращает объект-генератор. """
+def squares(length):
+    for n in range(length):
+        yield n ** 2
+
+# Поскольку объект-генератор является итератором, вы можете использовать цикл for для перебора его элементов:
+for square in squares(5):
+    print(square)
+print()
+# Генераторное выражение предоставляет более простой способ возвращать объект-генератор.
+squares = (n** 2 for n in range(5))
+
+for square in squares:
+    print(square)
+
+""" Генераторное выражение по синтаксису похоже на списковое включение.
+ Например, генераторное выражение тоже поддерживает такие сложные синтаксисы, как:
+    операторы if;
+    многократные вложенные циклы;
+    вложенные включения.
+Однако в генераторном выражении вместо квадратных скобок [] используются круглые скобки (). """
+
+# Отличия генераторных выражений от списковых включений
+# Давайте используем списковое включение для генерации квадратов от 0 до 4:
+square_list = [n** 2 for n in range(5)]
+
+# Сделаем то же самое с помощью генераторного выражения:
+square_generator = (n** 2 for n in range(5))
+
+""" А теперь разберем, в чем отличия.
+1) Синтаксис
+Здесь все просто: в генераторном выражении используются квадратные скобки [], а при списковом включении — круглые скобки ().
+2) Работа с памятью
+Списковое включение возвращает список, а генераторное выражение возвращает объект-генератор.
+Это означает, что списковое включение возвращает полный список элементов сразу.
+ А генераторное выражение возвращает список элементов, по одному за раз, на основе запроса.
+3) Итерируемые объекты vs итераторы
+Списковое включение возвращает итерируемый объект. Это означает, что вы можете
+ повторять итерации над результатом спискового включения снова и снова.
+А вот генераторное выражение возвращает «ленивый» итератор.
+ Он «исчерпываетс», когда вы завершаете над ним итерацию.
+"""]]>
+    </module>
+    <module name="Контекстный менеджер">
+      <![CDATA["""
+Менеджер контекста — это объект, определяющий контекст выполнения в операторе with:
+Например, так можно автоматически закрыть файл после завершения его обработкиЖ """
+with open("aaa.aaa", "w") as f:
+   f.write("100")
+print(f.closed)
+
+""" Контекстные менеджеры Python работают на основе протокола контекстного менеджера.
+Протокол менеджера контекста включает следующие методы:
+    __enter__() — устанавливает контекст и, по желанию, возвращать некоторый объект.
+    __exit__() — очищает объект.
+Чтобы класс поддерживал протокол контекстного менеджера, вам необходимо реализовать эти два метода.
+Предположим, что у нас есть некий классContextManager, поддерживающий протокол контекстного менеджера.
+Вот, как можно использовать этот класс:
+with ContextManager() as ctx:
+    # что-то делаем
+# закончили с контекстом
+Когда Python встречает оператор with, он создает новый контекст.
+  При желании контекст может возвращать объект.
+После блока with Python автоматически очищает контекст.
+Область видимости сеч имеет ту же область видимости, что и оператор with.
+  Это означает, что вы можете обращаться к сеч как внутри оператора with, так и после него.
+
+Когда вы используете класс ContextManager с оператором with, Python неявно создает
+ экземпляр класса — instance — и автоматически вызывает метод __enter__() на этом экземпляре.
+Метод __enter__() может по желанию возвращать объект.
+ Если это так, Python присваивает возвращаемый объект ctx.
+Обратите внимание, что ctx ссылается на объект, возвращаемый методом __enter__().
+ Он не ссылается на экземпляр класса ContextManager.
+Если внутри блока with или после блока with возникает исключение,
+ Python вызывает метод __exit__() на объекте экземпляра.
+
+Функционально оператор with эквивалентен конструкции try...finally:
+
+instance = ContextManager()
+ctx = instance.__enter__()
+
+try:
+    # что-то делаем с txt
+finally:
+    # закончили с контекстом
+    instance.__exit__()
+
+Метод __enter__()
+В методе __enter__() можно выполнить необходимые действия по настройке контекста.
+При необходимости вы можете вернуть объект из метода __enter__().
+
+Метод __exit__()
+Python всегда выполняет метод __exit__(), даже если в блоке with возникает исключение.
+Метод __exit__() принимает три аргумента: тип исключения, значение исключения и объект трассировки. Все эти аргументы будут равны None, если исключение не произошло.
+def __exit__(self, ex_type, ex_value, ex_traceback):
+    ...
+
+Метод __exit__() возвращает логическое значение: True или False.
+Если возвращаемое значение равно True, Python заглушит исключение.
+
+Возможное использование:
+1) Закрытие — открытие
+Если вы хотите открывать и закрывать ресурс автоматически, вы можете использовать контекстный менеджер.
+Например, вы можете открыть сокет и закрыть его с помощью контекстного менеджера.
+
+2) Заблокировать — разблокировать
+Контекстные менеджеры помогут вам более эффективно управлять блокировками объектов.
+
+3) Запустить — остановить
+Контекстные менеджеры помогут вам работать со сценариями, требующими запуска и остановки.
+Например, можно использовать контекстный менеджер для запуска таймера и его автоматической остановки.
+
+4) Изменить — сбросить
+Контекстные менеджеры могут работать со сценариями изменения и сброса.
+Например, вашему приложению необходимо подключиться к нескольким источникам данных,
+ и у него есть соединение по умолчанию.
+    Используйте контекстный менеджер для изменения соединения по умолчанию на новое.
+    Работайте с новым соединением.
+    После завершения работы с новым соединением верните его обратно к соединению по умолчанию.
+
+Ниже показана простая реализация функции open() с использованием протокола контекстного менеджера: """
+class File:
+    def __init__(self, filename, mode):
+        self.filename = filename
+        self.mode = mode
+
+    def __enter__(self):
+        print(f'Opening the file {self.filename}.')
+        self.__file = open(self.filename, self.mode)
+        return self.__file
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        print(f'Closing the file {self.filename}.')
+        if not self.__file.closed:
+            self.__file.close()
+
+        return False
+
+with File('aaa.aaa', 'r') as f:
+    print(int(next(f)))
+
+# создадим класс Timer, который поддерживает протокол контекстного менеджера:
+
+from time import perf_counter
+
+class Timer:
+    def __init__(self):
+        self.elapsed = 0
+
+    def __enter__(self):
+        self.start = perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.stop = perf_counter()
+        self.elapsed = self.stop - self.start
+        return False
+
+# Теперь вы можете использовать класс Timer для измерения времени,
+# необходимого для вычисления числа Фибоначчи, равного 1000, один миллион раз:
+
+def fibonacci(n):
+    f1 = 1
+    f2 = 1
+    for i in range(n-1):
+        f1, f2 = f2, f1 + f2
+
+    return f1
+
+with Timer() as timer:
+    for _ in range(1, 1000000):
+        fibonacci(1000)
+
+print(timer.elapsed)]]>
+    </module>
+  </chapter>
+  <chapter name="Параллелизм" >
+    <module name="Потоки">
+      <![CDATA["""
+Чтобы создать многопоточную программу, необходимо использовать Python-модуль threading.
+
+1. Импортируем класс Thread из модуля threading:
+    from threading import Thread
+2. Создадим новый поток, инстанцировав экземпляр класса Thread:
+    new_thread = Thread(target=fn,args=args_tuple)
+
+Thread() принимает множество параметров. Мы использовали основные из них:
+    target: указывает функцию (fn) для выполнения в новом потоке.
+    args: указывает аргументы функции (fn). Аргумент args представляет собой кортеж.
+3. Запустим поток, вызвав метод start() экземпляра Thread:
+    new_thread.start()
+
+Если вы хотите дождаться завершения потока в главном потоке, вы можете вызвать метод join():
+    new_thread.join()
+
+После вызова метода join() главный поток будет ждать завершения второго потока. """
+from time import sleep, perf_counter
+from threading import Thread
+
+def task():
+    print('Start the task...')
+    sleep(1)
+    print('Ready')
+
+start_time = perf_counter()
+
+# создаем два новых потока
+t1 = Thread(target=task)
+t2 = Thread(target=task)
+
+# запускаем потоки
+t1.start()
+t2.start()
+
+# ждем, когда потоки выполнятся
+t1.join()
+t2.join()
+
+end_time = perf_counter()
+print(f'{end_time- start_time: 0.2f} seconds.')
+print()
+
+# Следующая программа показывает, как передать аргументы в функцию, назначенную потоку:
+def task(id):
+    print(f'Start the task {id}...')
+    sleep(1)
+    print(f'The task {id} is finished')
+
+start_time = perf_counter()
+
+# создаем и запускаем 10 потоков
+threads = []
+for n in range(1, 11):
+    t = Thread(target=task, args=(n,))
+    threads.append(t)
+    t.start()
+
+# ждем, когда потоки выполнятся
+for t in threads:
+    t.join()
+
+end_time = perf_counter()
+print(f'{end_time- start_time: 0.2f} seconds.')
+]]>
+    </module>
+    <module name="Потоки-демоны">
+      <![CDATA["""
+В Python у каждой программы есть как минимум один поток — главный поток.
+  Чтобы создать программу, у которой будет больше одного потока, используется модуль threading.
+  Используя несколько потоков в программе, вы можете выполнять задачи параллельно.
+
+Потоки-демоны — это потоки, которые выполняют задачи в фоновом режиме.
+Они полезны для таких выполнения задач:
+    Запись информации в файл в фоновом режиме.
+    Скраппинг содержимого веб-сайта в фоновом режиме.
+    Автоматическое сохранение данных в базе данных в фоновом режиме.
+
+Чтобы создать поток-демон, в конструкторе Thread нужно указать аргумент daemon=True:
+    t = Thread(target=f, deamon=True)
+
+Это также можно сделать после создания экземпляра Thread — достаточно установить свойство daemon равным True.
+    t = Thread(target=f)
+    t.deamon = True """
+from threading import Thread
+import time
+
+def show_timer():
+    count = 0
+    while True:
+        count += 1
+        time.sleep(1)
+        print(f'{count} seconds...')
+
+t = Thread(target=show_timer, daemon=True)
+t.start()
+
+answer = input('Do you want to exit?\n')]]>
+    </module>
+    <module name="Очередь">
+      <![CDATA["""
+Встроенный модуль queue позволяет безопасно обмениваться данными между несколькими потоками.
+Класс Queue из модуля queue реализует всю необходимую семантику блокировки.
+Чтобы создать новую очередь, нужно использовать конструктор Queue следующим образом:
+    from queue import Queue
+    queue = Queue()
+"""
+""" Чтобы создать очередь с ограничением по размеру, можно использовать параметр maxsize.
+ Например, ниже создается очередь, которая может хранить до 10 элементов:
+    queue = Queue(maxsize=10) """
+
+""" Чтобы добавить элемент в очередь, нужно использовать метод put() следующим образом:
+    queue.put(item)
+Как только очередь заполнится, вы не сможете добавить в нее элемент.
+ Вызов метода put() будет блокироваться до тех пор, пока в очереди не освободится место.
+
+Если вы не хотите, чтобы метод put() блокировался, если очередь переполнена,
+ вы можете передать аргумент block=False:
+    queue.put(item, block=False)
+
+В примере ниже метод put() вызовет исключение queue.Full, если очередь переполнена:
+    try:
+       queue.put(item, block=False)
+    except queue.Full as e:
+       # обработка исключения
+
+Чтобы добавить элемент в ограниченную по размеру очередь и заблокировать его по таймауту,
+ вы можете использовать параметр таймаута следующим образом:
+    try:
+       queue.put(item, timeout=3)
+    except queue.Full as e:
+       # обработка исключения """
+
+""" Чтобы получить элемент из очереди, вы можете использовать метод get():
+    item = queue.get()
+
+Метод get() будет блокироваться до тех пор, пока элемент не будет доступен для получения из очереди.
+Чтобы получить элемент из очереди без блокировки, можно передать аргумент block=False:
+    try:
+       queue.get(block=False)
+    except queue.Empty:
+       # обработка исключения
+
+Чтобы получить элемент из очереди и блокировать его с ограничением по времени, можно использовать метод get() с таймаутом:
+    try:
+       item = queue.get(timeout=10)
+    except queue.Empty:
+       # ... """
+
+"""Метод qsize() возвращает количество элементов в очереди:
+    size = queue.size()
+
+Кроме того, метод empty() возвращает True, если очередь пуста, или False в противном случае.
+ С другой стороны, метод full() возвращает True, если очередь заполнена, или False в противном случае. """
+
+""" Элемент, который вы добавляете в очередь, представляет собой единицу работы или задачу.
+Когда поток вызывает метод get() для получения элемента из очереди,
+ ему может потребоваться обработать его, прежде чем задача будет считаться выполненной.
+После завершения поток может вызвать метод task_done(), чтобы указать, что он полностью обработал задачу:
+
+    item = queue.get()
+
+    # обработка элемента
+    # ...
+    # помечаем элемент как выполненный
+    queue.task_done() """
+
+""" Чтобы дождаться завершения всех задач в очереди, можно вызвать метод join() на объекте очереди:
+    queue.join()
+
+Следующий пример демонстрирует использование потокобезопасной очереди
+ для обмена данными между двумя потоками: """
+import time
+from queue import Empty, Queue
+from threading import Thread
+
+def producer(queue):
+    for i in range(1, 6):
+        print(f'Inserting item {i} to queue')
+        time.sleep(1)
+        queue.put(i)
+
+
+def consumer(queue):
+    while True:
+        try:
+            item = queue.get()
+        except Empty:
+            continue
+        else:
+            print(f'Handling item {item}')
+            time.sleep(2)
+            queue.task_done()
+
+
+def main():
+    queue = Queue()
+
+    # создаем поток-производитель и запускаем его
+    producer_thread = Thread(target=producer, args=(queue,))
+    producer_thread.start()
+
+    # создаем поток-потребитель и запускаем его
+    consumer_thread = Thread(target=consumer, args=(queue,), daemon=True)
+    consumer_thread.start()
+
+    # дожидаемся, пока все задачи добавятся в очередь
+    producer_thread.join()
+
+    # дожидаемся, пока все задачи в очереди будут завершены
+    queue.join()
+
+if __name__ == '__main__':
+    main()]]>
+    </module>
+    <module name="Пул потоков">
+      <![CDATA["""
+ручное управление потоками неэффективно, поскольку частое создание и уничтожение
+ множества потоков требует больших вычислительных затрат.
+Вместо ручного управления можно повторно использовать потоки, если предполагается,
+ что в программе будет выполняться много специальных задач. Пул потоков позволяет этого добиться.
+
+Пул потоков (Thread Pool) — это шаблон для автоматического эффективного управления потоками в программе.
+Каждый поток в пуле называется рабочим потоком или просто рабочим (worker).
+ Пул потоков позволяет повторно использовать рабочие потоки после выполнения задач.
+ Он также защищает от неожиданных сбоев — например, исключений.
+
+Обычно пул потоков позволяет настраивать количество рабочих потоков и предоставляет
+ определенное соглашение об именовании для каждого рабочего потока.
+
+Для создания пулов потоков используется класс ThreadPoolExecutor из модуля concurrent.futures.
+Класс ThreadPoolExecutor расширяет класс Executor и возвращает объект Future.
+
+У класса Executor есть три метода для управления пулом потоков:
+    submit() — отправляет функцию на выполнение и возвращает объект Future. Метод submit() принимает функцию и выполняет ее асинхронно.
+    map() — асинхронно выполняет функции для каждого элемента итерабельной таблицы.
+    shutdown() — завершает работу исполнителя.
+
+Когда вы создаете новый экземпляр класса ThreadPoolExecutor, Python запускает исполнителя.
+
+После завершения работы с исполнителем вы должны явно вызвать метод shutdown(),
+ чтобы освободить ресурс, удерживаемый исполнителем.
+ Чтобы явно не вызывать метод shutdown(), можно воспользоваться менеджером контекста.
+
+Future — это объект, который представляет собой конечный результат асинхронной операции.
+ У класса Future есть два полезных метода:
+    result() — возвращает результат асинхронной операции.
+    exception() — возвращает исключение асинхронной операции в случае возникновения исключения.
+
+"""
+# Используем метод submit()
+from time import sleep, perf_counter
+from concurrent.futures import ThreadPoolExecutor
+
+def task(id):
+    print(f'Start task {id}...')
+    sleep(1)
+    return f'Finish task {id}'
+
+start = perf_counter()
+
+with ThreadPoolExecutor() as executor:
+    f1 = executor.submit(task, 1)
+    f2 = executor.submit(task, 2)
+
+    print(f1.result())
+    print(f2.result())
+
+finish = perf_counter()
+print(f"{finish-start} seconds elapsed.")
+
+# Используем метод map()
+from concurrent.futures import ThreadPoolExecutor
+
+def task(id):
+    print(f'Start task {id}...')
+    sleep(1)
+    return f'Finish task {id}'
+
+start = perf_counter()
+
+with ThreadPoolExecutor() as executor:
+    """ Вызываем метод map() объекта-исполнителя, чтобы выполнить функцию задачи для каждого
+     идентификатора в списке [1,2]. Метод map() возвращает итератор, содержащий результат вызова функции. """
+    results = executor.map(task, [1,2])
+    for result in results:
+        print(result)
+
+finish = perf_counter()
+print(f"{finish-start} seconds elapsed.")
+
+# напишем программу, которая загружает несколько изображений из Википедии с помощью пула потоков.
+from concurrent.futures import ThreadPoolExecutor
+from urllib.request import urlopen
+import time
+import os
+
+def download_image(url):
+    image_data = None
+    with urlopen(url) as f:
+        image_data = f.read()
+
+    if not image_data:
+        raise Exception(f"Error: can not download {url}")
+
+    filename = os.path.basename(url)
+    with open(filename, 'wb') as image_file:
+        image_file.write(image_data)
+        print(f'{filename} downloaded...')
+
+start = time.perf_counter()
+
+urls = ['https://upload.wikimedia.org/wikipedia/commons/9/9d/Python_bivittatus_1701.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/4/48/Python_Regius.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/d/d3/Baby_carpet_python_caudal_luring.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/f/f0/Rock_python_pratik.JPG',
+        'https://upload.wikimedia.org/wikipedia/commons/0/07/Dulip_Wilpattu_Python1.jpg']
+
+with ThreadPoolExecutor() as executor:
+      executor.map(download_image, urls)
+
+finish = time.perf_counter()
+
+print(f'{finish-start} seconds.')]]>
+    </module>
+    <module name="Доступ к общей переменной">
+      <![CDATA["""
+Состояние гонки (race condition) возникает, когда два потока одновременно
+ пытаются получить доступ к общей переменной.
+Представьте, что у нас есть два потока. Один поток считывает значение из некой общей переменной,
+ а потом то же самое делает второй поток.
+Затем оба потока пытаются изменить значение общей переменной.
+ Они начинаются соревоваться в том, какой поток запишет значение в переменную последним.
+Сохранится только значение от потока, который записывает значение в общую переменную последним,
+ потому что он перезапишет предыдущее значение.
+Следующий код демонстрирует состояние гонки:
+"""
+from threading import Thread
+from time import sleep
+
+counter = 0
+
+def increase(by):
+    global counter
+
+    local_counter = counter
+    local_counter += by
+
+    sleep(0.1)
+
+    counter = local_counter
+    print(f'Counter: {counter}')
+
+# создаем потоки
+t1 = Thread(target=increase, args=(10,))
+t2 = Thread(target=increase, args=(20,))
+
+# запускаем потоки
+t1.start()
+t2.start()
+
+# ждем завершения потоков
+t1.join()
+t2.join()
+print(f'The final counter value: {counter}')
+
+""" Для предотвращения условий гонки можно использовать класс Lock из модуля threading.
+ У экземпляра класса Lock есть два состояния: он может быть заблокирован и разблокирован.
+Для начала нужно создать экземпляр класса Lock:
+    lock = Lock()
+По умолчанию lock разблокирован — пока вы прямо не укажете обратного.
+Чтобы заблокировать lock, нужно использовать метод acquire().
+Когда поток завершит изменение общей переменной, lock нужно разблокировать — с помощью метода release(). """
+from threading import Thread, Lock
+from time import sleep
+
+counter = 0
+
+def increase(by, lock):
+    global counter
+
+    lock.acquire()
+
+    local_counter = counter
+    local_counter += by
+
+    sleep(0.1)
+
+    counter = local_counter
+    print(f'Counter: {counter}')
+
+    lock.release()
+
+lock = Lock()
+
+# создаем потоки
+t1 = Thread(target=increase, args=(10, lock))
+t2 = Thread(target=increase, args=(20, lock))
+
+# запускаем потоки
+t1.start()
+t2.start()
+
+# ждем завершения потоков
+t1.join()
+t2.join()
+print(f'The final counter value: {counter}')
+
+# класс Counter, который использует объект класса Lock:
+from threading import Thread, Lock
+from time import sleep
+
+class Counter:
+    def __init__(self):
+        self.value = 0
+        self.lock = Lock()
+
+    def increase(self, by):
+        self.lock.acquire()
+
+        current_value = self.value
+        current_value += by
+
+        sleep(0.1)
+
+        self.value = current_value
+        print(f'Counter: {counter}')
+
+        self.lock.release()
+
+counter = Counter()
+
+# создаем потоки
+t1 = Thread(target=counter.increase, args=(10, ))
+t2 = Thread(target=counter.increase, args=(20, ))
+
+# запускаем потоки
+t1.start()
+t2.start()
+
+# ждем завершения потоков
+t1.join()
+t2.join()
+print(f'The final counter value: {counter}')]]>
+    </module>
+    <module name="Мультипроцессорность">
+      <![CDATA["""
+Многопроцессорность позволяет двум или более процессорам одновременно обрабатывать
+  две или более различных частей программы.
+  В Python для реализации мультипроцессинга используется модуль multiprocessing.
+"""
+import time
+import multiprocessing
+
+def task(n=100_000_000):
+    while n:
+        n -= 1
+
+if __name__  ==  '__main__':
+    start = time.perf_counter()
+
+    p1 = multiprocessing.Process(target=task)
+    p2 = multiprocessing.Process(target=task)
+
+    p1.start()
+    p2.start()
+
+    p1.join()
+    p2.join()
+
+    finish = time.perf_counter()
+    print(f'{finish-start: .2f} seconds elapsed.')]]>
+    </module>
+    <module name="Пул процессов">
+      <![CDATA["""
+Для более эффективного управления процессами можно использовать пул процессов.
+Пул процессов — это шаблон для автоматического эффективного управления процессами.
+
+Класс ProcessPoolExecutor из модуля concurrent.futures позволяет создавать и управлять пулом процессов.
+Например, класс ProcessPoolExecutor может использовать несколько ядер процессора для создания оптимизированного числа процессов.
+
+ProcessPoolExecutor расширяет класс Executor, у которого есть три метода:
+    submit() — отправляет функцию для выполнения процессом и возвращает объект Future.
+    map() — вызывает функцию для итерируемых объектов.
+    shutdown() — завершает работу исполнителя.
+
+Чтобы освободить ресурсы, удерживаемые исполнителем, необходимо явно вызвать метод shutdown().
+ Для автоматического отключения исполнителя можно использовать менеджер контекста.
+
+Объект Future представляет собой результат асинхронной операции.
+ У него есть два основных метода для получения результата:
+    result() — возвращает результат асинхронной операции.
+    exception() — возвращает исключение, возникшее во время выполнения асинхронной операции.
+
+В следующей программе используется пул процессов для создания миниатюр изображений из папки images и сохранения их в папке thumbs.
+Примечание. Убедитесь, что у вас установлена библиотека для обработки изображений Pillow. Установить библиотеку можно так: pip install Pillow.
+"""
+import time
+import os
+from concurrent.futures import ProcessPoolExecutor
+from PIL import Image, ImageFilter
+
+filenames = [
+    'images/1.jpg',
+    'images/2.jpg',
+    'images/3.jpg',
+    'images/4.jpg',
+    'images/5.jpg',
+]
+
+def create_thumbnail(filename, size=(50,50),thumb_dir ='thumbs'):
+    img = Image.open(filename)
+    img = img.filter(ImageFilter.GaussianBlur())
+    img.thumbnail(size)
+    img.save(f'{thumb_dir}/{os.path.basename(filename)}')
+    print(f'Файл {filename} обработан...')
+
+
+if __name__ == '__main__':
+    start = time.perf_counter()
+
+    with ProcessPoolExecutor() as executor:
+        executor.map(create_thumbnail, filenames)
+
+    finish = time.perf_counter()
+
+    print(f'{finish-start: .2f} seconds elapsed.')]]>
+    </module>
+  </chapter>
+</init>

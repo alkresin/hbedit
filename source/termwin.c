@@ -1,29 +1,21 @@
 /*
+ * A set of C functions for a pseudoterminal, Windows version
+ *
+ * Copyright 2026 Alexander S.Kresin <alex@kresin.ru>
+ * www - http://www.kresin.ru
  */
 
-#include "vterm.h"
+#define NTDDI_VERSION 0x0A000006  // NTDDI_WIN10_RS5 (Windows 10 1809+)
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00       // Windows 10
 
-#if defined(__linux__) || defined(__unix__)
-   #include <unistd.h>
-#else
-   #include <io.h>
-#endif
-
-#define _XOPEN_SOURCE 700
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <pty.h>
-#include <poll.h>
-#include <sys/wait.h>
-#include <termios.h>
-#include <locale.h>
-#include <wchar.h>
-#include <ctype.h>
+#include <io.h>
+
+#include "terminal\vterm.h"
 
 #include "hbapi.h"
 #include "hbapiitm.h"
@@ -32,20 +24,42 @@
 #include "hbapigt.h"
 #include "inkey.ch"
 
-extern int argv_split(const char *s, char ***out_argv);
+#define CMDLENGTH  4096
 
 static int colors[8] = { 0, 4, 2, 6, 1, 5, 3, 7 };
+
+typedef HRESULT (WINAPI *PFN_CREATE_PSEUDOCONSOLE)(
+    COORD size, HANDLE hInput, HANDLE hOutput, DWORD dwFlags, HPCON* phPC);
+
+typedef void (WINAPI *PFN_RESIZE_PSEUDOCONSOLE)(HPCON hPC, COORD size);
+
+typedef void (WINAPI *PFN_CLOSE_PSEUDOCONSOLE)(HPCON hPC);
+
+/* Структура с указателями на функции */
+typedef struct {
+    PFN_CREATE_PSEUDOCONSOLE Create;
+    PFN_RESIZE_PSEUDOCONSOLE Resize;
+    PFN_CLOSE_PSEUDOCONSOLE  Close;
+} ConPtyApi;
+
+static ConPtyApi g_conpty = { NULL, NULL, NULL };
 
 typedef struct {
     VTerm       *vt;
     VTermScreen *screen;
+
+    HANDLE hPtyInputWrite;
+    HANDLE hPtyOutputRead;
+    STARTUPINFOEX siEx;
+    PROCESS_INFORMATION pi;
+    HPCON hPC;
+    HANDLE waitHandles[1];
+
     int          rows, cols;
     int          cursor_row, cursor_col, cursor_visible;
     VTermRect    dirty;
     int          have_dirty;
     int          fVgaCell;
-    int          pty_master_fd;  /* Мастер-дескриптор псевдотерминала */
-    struct       pollfd fds[1];
     void *       pBuffer;
 } htty_ctx_t;
 
@@ -76,6 +90,26 @@ static void c_writelog( const char * sFile, int n, const char * sTraceMsg, ... )
       }
       fclose( hFile );
    }
+}
+
+static BOOL LoadConPty(void)
+{
+    HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+    if (!hKernel32) return FALSE;
+
+    g_conpty.Create = (PFN_CREATE_PSEUDOCONSOLE)
+        GetProcAddress(hKernel32, "CreatePseudoConsole");
+    g_conpty.Resize = (PFN_RESIZE_PSEUDOCONSOLE)
+        GetProcAddress(hKernel32, "ResizePseudoConsole");
+    g_conpty.Close  = (PFN_CLOSE_PSEUDOCONSOLE)
+        GetProcAddress(hKernel32, "ClosePseudoConsole");
+
+    return (g_conpty.Create != NULL);
+}
+
+static BOOL IsConPtyAvailable(void)
+{
+    return g_conpty.Create != NULL;
 }
 
 uint16_t utf32_to_utf16( wchar_t cp ) {
@@ -115,8 +149,10 @@ static void dirty_add(htty_ctx_t *ctx, VTermRect r) {
 }
 
 /* ---------- рендер только грязного региона ---------- */
-
 static void htty_render_flush(htty_ctx_t *ctx) {
+
+   PHB_CODEPAGE cdp = hb_vmCDP();
+
    if (!ctx->have_dirty)
        return;
 
@@ -140,6 +176,7 @@ static void htty_render_flush(htty_ctx_t *ctx) {
                continue;
 
            uint32_t cp = cell.chars[0];
+           /* 0 и (uint32_t)-1 ? лхвост╗ широкого символа */
            if (cp == 0 || cp == (uint32_t)-1)
                cp = ' ';
 
@@ -180,8 +217,10 @@ static void htty_render_flush(htty_ctx_t *ctx) {
               bg_idx = colors[bg_idx];
 
            if( ctx->fVgaCell ) {
+              //c_writelog( NULL, 0, "%d %d: %x %x %x %x\n", row, col, cp, utf32_to_char( cp ), hb_cdpGetChar(cdp,cp), hb_cdpGetU16(cdp,cp) );
               pbyBuffer = ((HB_BYTE *) (ctx->pBuffer)) + (row * iCols + col) * 2;
-              *pbyBuffer++ = utf32_to_char( cp );
+              //*pbyBuffer++ = utf32_to_char( cp );
+              *pbyBuffer++ = hb_cdpGetChar( cdp,cp );
               *pbyBuffer = ( HB_BYTE ) fg_idx + (bg_idx << 4);
            } else {
               pbyBuffer = ((HB_BYTE *) (ctx->pBuffer)) + (row * iCols + col) * 4;
@@ -271,10 +310,12 @@ static const VTermScreenCallbacks screen_cbs = {
 static void cb_output(const char *s, size_t len, void *user) {
     htty_ctx_t *ctx = user;
     size_t off = 0;
+    DWORD written;
+
     while (off < len) {
-        ssize_t w = write(ctx->pty_master_fd, s + off, len - off);
-        if (w > 0) { off += (size_t)w; continue; }
-        if (w < 0 && errno == EINTR) continue;
+        WriteFile( ctx->hPtyInputWrite, s+off, len-off, &written, NULL );
+        if (written > 0) { off += (size_t)written; continue; }
+        if (written < 0 && errno == EINTR) continue;
         break;
     }
 }
@@ -283,32 +324,67 @@ static void cb_output(const char *s, size_t len, void *user) {
  * Запуск шелла (или другой программы) в псевдотерминале.
  * Возвращает мастер-дескриптор PTY или -1 при ошибке.
  */
-static int spawn_in_pty( char *const argv[], int rows, int cols ) {
-    int master_fd;
-    struct winsize ws = {
-        .ws_row = (unsigned short)rows,
-        .ws_col = (unsigned short)cols,
-        .ws_xpixel = 0,
-        .ws_ypixel = 0
-    };
+static int spawn_in_pty( htty_ctx_t * ctx, char *szCmd, int rows, int cols ) {
 
-    pid_t pid = forkpty(&master_fd, NULL, NULL, &ws);
-    if (pid < 0) {
-        perror("forkpty");
-        return -1;
-    }
+   // 1. Создаем пайпы для ConPTY
+   HANDLE hPtyInputRead, hPtyInputWrite;
+   HANDLE hPtyOutputRead, hPtyOutputWrite;
+   TCHAR wc1[CMDLENGTH];
 
-    if (pid == 0) {
-        //setenv("TERM", "xterm-256color", 1);
-        setenv("TERM", "xterm", 1);
-        //c_writelog( NULL, 0, "cmd: %s\n", argv[0] );
-        execvp( argv[0], argv );
-        perror( "execvp" );
-        _exit( 127 );
-    }
+   if (!CreatePipe(&hPtyInputRead, &hPtyInputWrite, NULL, 0) ||
+       !CreatePipe(&hPtyOutputRead, &hPtyOutputWrite, NULL, 0)) {
+       printf("Failed to create pipes.\n");
+       return 1;
+   }
 
-    /* Родительский процесс: возвращаем мастер-дескриптор. */
-    return master_fd;
+   // 2. Инициализируем Pseudo Console (ConPTY)
+   COORD consoleSize = { 80, 24 };
+   HPCON hPC = NULL;
+   HRESULT hr = g_conpty.Create(consoleSize, hPtyInputRead, hPtyOutputWrite, 0, &hPC);
+   if (FAILED(hr)) {
+       printf("Failed to create pseudo console. Error: %lx\n", hr);
+       return 1;
+   }
+
+   // 3. Настраиваем STARTUPINFOEX для передачи ConPTY дочернему процессу
+   memset( &(ctx->siEx), 0, sizeof(STARTUPINFOEX) );
+   ctx->siEx.StartupInfo.cb = sizeof(STARTUPINFOEX);
+
+   SIZE_T attrListSize = 0;
+   InitializeProcThreadAttributeList(NULL, 1, 0, &attrListSize);
+   ctx->siEx.lpAttributeList = (PPROC_THREAD_ATTRIBUTE_LIST)malloc(attrListSize);
+
+   if (!InitializeProcThreadAttributeList(ctx->siEx.lpAttributeList, 1, 0, &attrListSize)) {
+       printf("Failed to init attribute list.\n");
+       return 1;
+   }
+
+   UpdateProcThreadAttribute(ctx->siEx.lpAttributeList, 0,
+                             PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+                             hPC, sizeof(hPC), NULL, NULL);
+
+   // 4. Запускаем дочерний процесс (PowerShell)
+   MultiByteToWideChar( GetACP(), 0, szCmd, -1, wc1, CMDLENGTH );
+   BOOL success = CreateProcessW(
+       NULL, wc1, NULL, NULL, FALSE,
+       EXTENDED_STARTUPINFO_PRESENT, // Флаг для использования STARTUPINFOEX
+       NULL, NULL, &(ctx->siEx), &(ctx->pi) );
+
+   if (!success) {
+       printf("Failed to create process. Error: %lu\n", GetLastError());
+       return 1;
+   }
+
+   // Закрываем ненужные концы пайпов в нашем процессе (они теперь у ConPTY)
+   CloseHandle( hPtyInputRead );
+   CloseHandle( hPtyOutputWrite );
+
+   ctx->hPC = hPC;
+   ctx->hPtyInputWrite = hPtyInputWrite;
+   ctx->hPtyOutputRead = hPtyOutputRead;
+   ctx->waitHandles[0] = hPtyOutputRead;
+
+   return 0;
 }
 
 HB_FUNC( PTY_RUN )
@@ -321,12 +397,16 @@ HB_FUNC( PTY_RUN )
    char *ptr;
    htty_ctx_t * ctx;
 
+   if( !IsConPtyAvailable() && !LoadConPty() ) {
+       printf("Failed to load conPTY\n");
+       hb_ret();
+       return;
+   }
+
    ctx = hb_xgrab( sizeof(htty_ctx_t) );
    ctx->rows = nRows;
    ctx->cols = nCols;
    ctx->cursor_visible = 1;
-
-   setlocale(LC_ALL, "");
 
    ctx->vt = vterm_new( nRows, nCols );
    if (!ctx->vt) {
@@ -343,11 +423,7 @@ HB_FUNC( PTY_RUN )
    /* merge выставляем ПОСЛЕ reset: reset внутри трогает это поле */
    vterm_screen_set_damage_merge(ctx->screen, VTERM_DAMAGE_SCREEN);
 
-   char **argv;
-   argv_split( szCmd, &argv );
-   ctx->pty_master_fd = spawn_in_pty( argv, nRows, nCols );
-   free( argv );
-   if (ctx->pty_master_fd < 0) {
+   if( spawn_in_pty( ctx, szCmd, nRows, nCols ) ) {
       vterm_free(ctx->vt);
       hb_xfree( ctx );
       hb_ret();
@@ -355,9 +431,6 @@ HB_FUNC( PTY_RUN )
    }
 
    vterm_output_set_callback(ctx->vt, cb_output, ctx);
-
-   ctx->fds[0].fd = ctx->pty_master_fd;
-   ctx->fds[0].events = POLLIN;
 
    ctx->fVgaCell = hb_gt_Base()->fVgaCell;
    //c_writelog( NULL, 0, "pty_run.vgacell: %d rows: %d cols: %d\n", (ctx->fVgaCell)? 1:0, nRows, nCols );
@@ -388,11 +461,20 @@ HB_FUNC( PTY_CLOSE )
 {
    htty_ctx_t * ctx = (htty_ctx_t *) hb_parptr( 1 );
 
+   CloseHandle( ctx->hPtyInputWrite );
+   CloseHandle( ctx->hPtyOutputRead );
+   CloseHandle( ctx->pi.hProcess );
+   CloseHandle( ctx->pi.hThread );
+
+   g_conpty.Close( ctx->hPC );
+   DeleteProcThreadAttributeList( ctx->siEx.lpAttributeList );
+   free( ctx->siEx.lpAttributeList );
+
    if( ctx->pBuffer ) {
       free( ctx->pBuffer );
       ctx->pBuffer = NULL;
    }
-   close(ctx->pty_master_fd);
+
    vterm_free(ctx->vt);
    hb_xfree( ctx );
 }
@@ -402,51 +484,49 @@ HB_FUNC( PTY_CHECK )
 
    htty_ctx_t * ctx = (htty_ctx_t *) hb_parptr( 1 );
    char pty_buf[4096];
+   DWORD bytesRead = 0;
+   DWORD bytesAvailable = 0;
 
-   int poll_ret = poll( ctx->fds, 1, 5 ); /* -1 = ждать бесконечно */
-   if( poll_ret < 0 ) {
-      if( errno == EINTR ) {
-         /* Прервано сигналом — просто повторяем */
-         hb_retni( 0 );
-         return;
-      }
+   if( WaitForSingleObject( ctx->pi.hProcess, 0 ) == WAIT_OBJECT_0 ) {
       hb_retni( -1 );
       return;
    }
+   DWORD waitResult = WaitForMultipleObjects( 1, ctx->waitHandles, FALSE, 10 );
+   //c_writelog( NULL, "-- 1 --\n" );
 
-   /* 1. Данные от vim (PTY) */
-   if( ctx->fds[0].revents & POLLIN ) {
-       ssize_t n = read( ctx->pty_master_fd, pty_buf, sizeof(pty_buf) );
-       if( n > 0 ) {
-           size_t consumed = vterm_input_write(ctx->vt, pty_buf, (size_t)n);
-           (void)consumed;
-           /* БЕЗ ЭТОГО при DAMAGE_SCREEN не придёт ни одного damage */
-           vterm_screen_flush_damage(ctx->screen);
-           htty_render_flush( ctx );
+   if( PeekNamedPipe( ctx->hPtyOutputRead, NULL, 0, NULL, &bytesAvailable, NULL ) ) {
+      if( bytesAvailable > 0 ) {
+         if( waitResult == WAIT_OBJECT_0 ) {
+            // Пришли данные из PTY (вывод консоли)
+            if( ReadFile( ctx->hPtyOutputRead, pty_buf, sizeof(pty_buf), &bytesRead, NULL) && bytesRead > 0 ) {
+                size_t consumed = vterm_input_write(ctx->vt, pty_buf, (size_t)bytesRead);
+                (void)consumed;
+                /* БЕЗ ЭТОГО при DAMAGE_SCREEN не придёт ни одного damage */
+                vterm_screen_flush_damage(ctx->screen);
+                htty_render_flush( ctx );
 
-           hb_retni( 0 );
-           return;
-       } else if( n == 0 ) {
-           hb_retni( -3 );
-           return;
-       } else if( errno != EINTR && errno != EIO ) {
-           hb_retni( -4 );
-           return;
-       } else if (errno == EIO) {   /* Linux: EIO вместо EOF при закрытии slave */
-           hb_retni( -5 );
-           return;
-       }
+                hb_retni( 0 );
+                return;
+            } else {
+               if( GetLastError() == ERROR_BROKEN_PIPE ) {
+                  hb_retni( -2 );
+                  return;
+               }
+            }
+         }
+      }
+   } else {
+      if( GetLastError() == ERROR_BROKEN_PIPE ) {
+         hb_retni( -3 );
+         return;
+      }
    }
-
-   /* Проверка на завершение дочернего процесса (опционально) */
-   if( ctx->fds[0].revents & (POLLHUP | POLLERR) ) {
-      hb_retni( -2 );
-      return;
+   if (waitResult == WAIT_TIMEOUT || bytesAvailable == 0) {
+       Sleep(1);
    }
 
    hb_retni( 0 );
    return;
-
 }
 
 HB_FUNC( PTY_SENDKEY )
@@ -455,7 +535,7 @@ HB_FUNC( PTY_SENDKEY )
    int iKey = hb_parni(2), iExt = hb_parni(3);
    char key_buf[16];
    int n = -1;
-   ssize_t written;
+   DWORD written;
 
    //c_writelog( NULL, 0, "send key 0: %d %d\n", iKey, iExt );
    if( !iExt ) {
@@ -535,7 +615,7 @@ HB_FUNC( PTY_SENDKEY )
          char code = (char) iKey;
          //c_writelog( NULL, 0, "send key 3: %d\n", iKey );
 
-         written = write( ctx->pty_master_fd, &code, 1 );
+         WriteFile( ctx->hPtyInputWrite, &code, 1, &written, NULL );
          if (written < 0 && errno != EINTR)
             hb_retni( -2 );
          else
@@ -551,7 +631,7 @@ HB_FUNC( PTY_SENDKEY )
    }
 
    //c_writelog( NULL, 0, "sendkey: %s\n", key_buf );
-   written = write( ctx->pty_master_fd, key_buf, (size_t)n );
+   WriteFile( ctx->hPtyInputWrite, key_buf, n, &written, NULL );
    if (written < 0 && errno != EINTR)
       hb_retni( -2 );
    else
@@ -562,6 +642,9 @@ HB_FUNC( PTY_SENDKEY )
 
 HB_FUNC( PTY_ISEXISTS )
 {
-   hb_retl( 1 );
+   if( !IsConPtyAvailable() )
+      hb_retl( LoadConPty() );
+   else
+      hb_retl( 1 );
    return;
 }

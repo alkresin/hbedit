@@ -49,14 +49,14 @@ fview.prg
 {!nossh}hbcvf.prg
 hbextcli.prg
 cfuncs.c
+{!nopty}{unix}terminal.c
+{!nopty}{win}termwin.c
 
 srcpath=source\trie
 trie.c
 hbtrie.c
 
 {!nopty}srcpath=source\terminal
-{!nopty}{unix}terminal.c
-{!nopty}{win}termwin.c
 {!nopty}encoding.c
 {!nopty}keyboard.c
 {!nopty}mouse.c
