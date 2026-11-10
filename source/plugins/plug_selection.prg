@@ -1,7 +1,7 @@
 /*
  * HbEdit plugin - Operations on selected text
  *
- * Copyright 2020-2024 Alexander S.Kresin <alex@kresin.ru>
+ * Copyright 2020-2026 Alexander S.Kresin <alex@kresin.ru>
  * www - http://www.kresin.ru
  */
 
@@ -9,11 +9,17 @@
 #define UNDO_OP_START   5
 #define UNDO_OP_END     6
 
+STATIC cPython := Nil, cDdgr := Nil, lDdgr
 STATIC cTextSurr := ""
 
 FUNCTION plug_Selection( oEdit, aMenu )
 
    LOCAL s
+
+   IF lDdgr == Nil
+      lDdgr := File( cDdgr := edi_FindPath( "plugins" + hb_ps() + "python" + hb_ps() + "ddgr.py" ) )
+      cPython := edi_CheckPython( .F. )
+   ENDIF
 
    Aadd( aMenu, {"Surround",@_plug_sele_surround(),Nil} )
    IF oEdit:nSeleMode == 2
@@ -24,6 +30,9 @@ FUNCTION plug_Selection( oEdit, aMenu )
          Empty( TEdit():aCBoards[1,3] ) .AND. ( Chr(10) $ TEdit():aCBoards[1,1] )
          Aadd( aMenu, {"Compare",@_plug_sele_diff(),Nil} )
       ENDIF
+   ENDIF
+   IF lDdgr .AND. !Empty( cPython )
+      Aadd( aMenu, {"Search in DDG",@_plug_sele_websearch(),Nil} )
    ENDIF
    s := edi_GetSelected( oEdit )
    IF Left( s, 4 ) == "http"
@@ -171,6 +180,19 @@ FUNCTION _plug_sele_diff( oEdit )
       o1:cFileName := cAddw1
       mnu_ToBuf( oEdit, o1 )
    ENDIF
+
+   RETURN Nil
+
+FUNCTION _plug_sele_websearch( oEdit )
+
+   LOCAL s, oNew
+
+   s := CRun( cPython + " " + cDdgr + " --noua --np -x " + edi_GetSelected( oEdit ) )
+
+   oNew := mnu_NewBuf( oEdit, "$Search_Result", s )
+   oNew:cp := "UTF8"
+   hb_cdpSelect( oNew:cp )
+   oNew:lUtf8 := .T.
 
    RETURN Nil
 

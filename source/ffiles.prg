@@ -261,7 +261,7 @@ FUNCTION edi_CopyFile( cFileSrc, cFileDst, aWnd )
 
    RETURN 0
 
-FUNCTION edi_CheckPython()
+FUNCTION edi_CheckPython( lAlert )
 
    LOCAL cRes := cRun( 'python --version' )
 
@@ -273,7 +273,10 @@ FUNCTION edi_CheckPython()
       ENDIF
    ENDIF
 
-   edi_Alert( "You need to install Python to use this" )
+   IF lAlert == Nil .OR. lAlert
+      edi_Alert( "You need to install Python to use this" )
+   ENDIF
+
    RETURN ""
 
 FUNCTION edi_CheckCurl()
