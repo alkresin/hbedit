@@ -18,4 +18,4 @@
    #endif
 #endif
 
-#define HBEDIT_VERSION  "v2.8-27"
+#define HBEDIT_VERSION  "v2.9-00"
