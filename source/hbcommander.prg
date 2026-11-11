@@ -4107,28 +4107,29 @@ STATIC FUNCTION GetLine( cMsg, cRes, bKeys, lShift )
 
 STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
 
-   LOCAL nRow := Row(), lChg, cTemp, nResLen := Len( cRes ), nPos := Col() - nColInit + 1
-   LOCAL nKey := hb_keyStd( nKeyExt )
+   LOCAL nRow := Row(), lChg, cTemp, nPos := Col() - nColInit + 1
+   LOCAL nKey := hb_keyStd( nKeyExt ), lUtf8 := ( hb_cdpSelect() == "UTF8" )
+   LOCAL nResLen := cp_Len( lUtf8, cRes )
    STATIC lIns := .T.
 
    lChg := .F.
    IF nKey >= 32 .AND. nKey <= 250
-      cRes := Left( cRes, nPos-1 ) + Chr(nKey) + Substr( cRes, Iif(lIns,nPos,nPos+1) )
+      cRes := cp_Left( lUtf8, cRes, nPos-1 ) + Chr(nKey) + cp_Substr( lUtf8, cRes, Iif(lIns,nPos,nPos+1) )
       nPos ++
       lChg := .T.
    ELSEIF nKey == K_DEL
-      IF nPos <= Len( cRes )
-         cRes := Left( cRes, nPos-1 ) + Substr( cRes, nPos+1 )
+      IF nPos <= cp_Len( lUtf8, cRes )
+         cRes := cp_Left( lUtf8, cRes, nPos-1 ) + cp_Substr( lUtf8, cRes, nPos+1 )
          lChg := .T.
       ENDIF
    ELSEIF nKey == K_BS
       IF nPos > 1
-         cRes := Left( cRes, nPos-2 ) + Substr( cRes, nPos )
+         cRes := cp_Left( lUtf8, cRes, nPos-2 ) + cp_Substr( lUtf8, cRes, nPos )
          nPos --
          lChg := .T.
       ENDIF
    ELSEIF nKey == K_RIGHT
-      IF nPos <= Len( cRes )
+      IF nPos <= cp_Len( lUtf8, cRes )
          nPos ++
       ENDIF
    ELSEIF nKey == K_LEFT
@@ -4138,13 +4139,13 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    ELSEIF nKey == K_HOME
       nPos := 1
    ELSEIF nKey == K_END
-      nPos := Len( cRes ) + 1
+      nPos := cp_Len( lUtf8, cRes ) + 1
    ELSEIF nKey == K_ENTER
       RETURN cRes
    ELSEIF (hb_BitAnd( nKeyExt, CTRL_PRESSED ) != 0 .AND. nKey == 22) .OR. ;
       ( hb_BitAnd( nKeyExt, SHIFT_PRESSED ) != 0 .AND. nKey == K_INS )
       cTemp := s_cb2t()
-      cRes := Left( cRes, nPos-1 ) + cTemp + Substr( cRes, Iif(lIns,nPos,nPos+1) )
+      cRes := cp_Left( lUtf8, cRes, nPos-1 ) + cTemp + cp_Substr( lUtf8, cRes, Iif(lIns,nPos,nPos+1) )
       nPos := nPos + Len( cTemp )
       lChg := .T.
    ELSEIF nKey == K_INS
@@ -4152,6 +4153,10 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    ELSEIF nKey == K_ESC
       cRes := ""
       RETURN cRes
+   ELSEIF nKey > 0x400 .AND. lUtf8
+      cRes := hb_utf8Left( cRes, nPos-1 ) + hb_utf8Chr(nKey) + hb_utf8Substr( cRes, Iif(lIns,nPos,nPos+1) )
+      nPos ++
+      lChg := .T.
    ENDIF
    IF !Empty( bKeys ) .AND. Valtype( cTemp := Eval( bKeys,nKeyExt,cRes,nColInit ) ) == "C"
       cRes := cTemp
@@ -4161,8 +4166,8 @@ STATIC FUNCTION ProcessKey( nColInit, cRes, nKeyExt, bKeys )
    IF lChg
       DevPos( nRow, nColInit )
       DevOut( cRes )
-      IF nResLen > Len( cRes )
-         DevOut( Space(nResLen - Len( cRes )) )
+      IF nResLen > cp_Len( lUtf8, cRes )
+         DevOut( Space(nResLen - cp_Len( lUtf8, cRes )) )
       ENDIF
    ENDIF
    DevPos( nRow, nColInit + nPos - 1 )

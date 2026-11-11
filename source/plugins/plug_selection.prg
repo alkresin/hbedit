@@ -39,7 +39,7 @@ FUNCTION plug_Selection( oEdit, aMenu )
       Aadd( aMenu, {"Search in DDG",@_plug_sele_websearch(),Nil} )
    ENDIF
    s := edi_GetSelected( oEdit )
-   IF Left( s, 4 ) == "http"
+   IF Left( s, 4 ) == "http" .OR. Left( s, 5 ) == '"http'
       Aadd( aMenu, {"Open url",@_plug_sele_url(),Nil} )
    ELSEIF Left( s,4 ) == "{XX|"
       IF Right( s,2 ) == "}}" .AND. hb_At( "{",s,4 ) > 0
@@ -253,6 +253,9 @@ FUNCTION _plug_sele_url( oEdit )
       ENDDO
       s += Substr( oEdit:aText[nl], nbx2+1, i-nbx2-1 )
       //edi_writelog(s)
+   ENDIF
+   IF Left( s, 1 ) == '"'
+      s := Substr( s, 2, Len( s ) - 2 )
    ENDIF
 
    cf := Iif( hb_Version(20) .AND. hb_gtVersion()=="HWGUI", 'hwg_ShellExecute("', 'cedi_ShellExecute("' )
