@@ -8,6 +8,10 @@
 #define HB_GTI_CLIPBOARDDATA    15
 #define UNDO_OP_START   5
 #define UNDO_OP_END     6
+#define K_ENTER        13
+#define K_ESC          27
+
+#xtranslate _I( <x,...> ) => TrnMsg( hb_i18n_gettext( <x> ) )
 
 STATIC cPython := Nil, cDdgr := Nil, lDdgr
 STATIC cTextSurr := ""
@@ -185,9 +189,47 @@ FUNCTION _plug_sele_diff( oEdit )
 
 FUNCTION _plug_sele_websearch( oEdit )
 
-   LOCAL s, oNew
+   LOCAL s, oNew, cItems := "10", lJson := .F., cTime := " ", lUnSafe := .F.
+   LOCAL oldc := SetColor( oEdit:cColorSel + "," + oEdit:cColorMenu ), bufc, n
+   LOCAL y1 := 8, y2 := 16, x1 := Int( (oEdit:x2-oEdit:x1)/2 ) - 24, x2 := x1 + 48
+   LOCAL aGets := { {y1+1,x1+2,0,edi_GetSelected(oEdit),44}, ;
+      {y1+2,x1+2, 0, cItems, 3,,,"999"}, {y1+2,x1+6, 11, "- number of items",,oEdit:cColorSel,oEdit:cColorMenu}, ;
+      {y1+3,x1+2, 0, cTime, 1,,,"X"}, {y1+3,x1+6, 11, "- time filter (d|w|m|y)",,oEdit:cColorSel,oEdit:cColorMenu}, ;
+      {y1+4,x1+3, 1, lJson, 1 }, {y1+4,x1+2, 11, "[ ] json format",,oEdit:cColorSel,oEdit:cColorMenu }, ;
+      {y1+5,x1+3, 1, lUnSafe, 1 }, {y1+5,x1+2, 11, "[ ] disable safe search",,oEdit:cColorSel,oEdit:cColorMenu }, ;
+      {y2-1,x1+8,2,_I("[Ok]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ENTER))}}, ;
+      {y2-1,x2-12,2,_I("[Cancel]"),,oEdit:cColorSel,oEdit:cColorMenu,{||__KeyBoard(Chr(K_ESC))}} ;
+    }
 
-   s := CRun( cPython + " " + cDdgr + " --noua --np -x " + edi_GetSelected( oEdit ) )
+   bufc := SaveScreen( y1, x1, y2, x2 )
+   hb_cdpSelect( "RU866" )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1, x1+2 SAY "Search in DuckDuckGo"
+   @ y2-2, x1 SAY "Ã"
+   @ y2-2, x2 SAY "´"
+   @ y2-2, x1+1 TO y2-2, x2-1
+   hb_cdpSelect( oEdit:cp )
+
+   n := edi_READ( aGets )
+   RestScreen( y1, x1, y2, x2, bufc )
+   SetColor( oldc )
+   edi_SetPos( oEdit )
+
+   IF n == 0
+      RETURN Nil
+   ENDIF
+
+   cItems := aGets[2,4]
+   cTime  := aGets[4,4]
+   lJson  := aGets[6,4]
+   lUnSafe := aGets[8,4]
+
+   edi_Wait( "Wait..." )
+   s := CRun( cPython + " " + cDdgr + " -n " + Iif( Empty(cItems), "10", cItems ) + ;
+      Iif( lJson, " --json ", "" ) + Iif( lUnSafe, " --unsafe ", "" ) + ;
+      Iif( Empty(cTime) .OR. !(cTime $ "dwmy"), "", " -t " + cTime ) + ;
+      " --noua --np -x " + Trim( aGets[1,4] ) )
+   edi_Wait()
 
    oNew := mnu_NewBuf( oEdit, "$Search_Result", s )
    oNew:cp := "UTF8"
