@@ -4005,7 +4005,7 @@ FUNCTION mnu_SeaAndRepl( oEdit )
                EXIT
             ENDIF
          ELSE
-            edi_Alert( _I("String is not found:;") + cSearch )
+            edi_Alert( _I("String is not found")  + ":;" + cSearch )
             oEdit:lTextOut := .T.
             EXIT
          ENDIF

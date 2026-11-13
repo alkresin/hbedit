@@ -231,7 +231,7 @@ FUNCTION _plug_sele_websearch( oEdit )
       " --noua --np -x " + Trim( aGets[1,4] ) )
    edi_Wait()
 
-   oNew := mnu_NewBuf( oEdit, "$Search_Result", s )
+   oNew := mnu_NewBuf( oEdit, "$Search_Result" + Iif( lJson,".json","" ), s )
    oNew:cp := "UTF8"
    hb_cdpSelect( oNew:cp )
    oNew:lUtf8 := .T.
