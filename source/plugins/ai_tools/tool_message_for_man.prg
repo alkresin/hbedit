@@ -16,11 +16,7 @@
 FUNCTION tool_message_for_man( oService, pArr )
 
    IF Valtype( pArr ) == "H" .AND. hb_hHasKey( pArr, "text" )
-      IF !Empty( oService:pFuncMsg )
-         oService:cAskMan := pArr["text"]
-      ELSE
-         oService:AddEvent( "tool_result", {"name"=>"message_for_man"}, "Сообщение отправлено" )
-      ENDIF
+      oService:cAskMan := pArr["text"]
    ELSE
       oService:AddEvent( "tool_result", {"name"=>"message_for_man","status"=>"error"}, "Сообщение отсутствует" )
    ENDIF

@@ -47,6 +47,7 @@ static ConPtyApi g_conpty = { NULL, NULL, NULL };
 typedef struct {
     VTerm       *vt;
     VTermScreen *screen;
+    int          iVisible;
 
     HANDLE hPtyInputWrite;
     HANDLE hPtyOutputRead;
@@ -256,7 +257,8 @@ static int cb_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user)
    ctx->cursor_row     = pos.row;
    ctx->cursor_col     = pos.col;
    ctx->cursor_visible = visible;
-   hb_gtSetPos( pos.row, pos.col );
+   if( ctx->iVisible )
+      hb_gtSetPos( pos.row, pos.col );
    //fprintf(stderr, "[htty-1] Cursor moved to (%d, %d)\n", pos.row, pos.col );
    return 1;
 }
@@ -265,7 +267,8 @@ static int cb_settermprop(VTermProp prop, VTermValue *val, void *user) {
    htty_ctx_t *ctx = user;
    if (prop == VTERM_PROP_CURSORVISIBLE) {
        ctx->cursor_visible = val->boolean;
-       hb_gtSetPos( ctx->cursor_row, ctx->cursor_col );
+       if( ctx->iVisible )
+          hb_gtSetPos( ctx->cursor_row, ctx->cursor_col );
        //fprintf(stderr, "[htty-2] Cursor moved to (%d, %d)\n", ctx->cursor_row, ctx->cursor_col );
    }
    return 1;
@@ -404,8 +407,15 @@ HB_FUNC( PTY_RUN )
    }
 
    ctx = hb_xgrab( sizeof(htty_ctx_t) );
-   ctx->rows = nRows;
-   ctx->cols = nCols;
+   if( nRows == 0 ) {
+      ctx->rows = 5;
+      ctx->cols = 30;
+      ctx->iVisible = 0;
+   } else {
+      ctx->rows = nRows;
+      ctx->cols = nCols;
+      ctx->iVisible = 1;
+   }
    ctx->cursor_visible = 1;
 
    ctx->vt = vterm_new( nRows, nCols );
@@ -501,10 +511,11 @@ HB_FUNC( PTY_CHECK )
             if( ReadFile( ctx->hPtyOutputRead, pty_buf, sizeof(pty_buf), &bytesRead, NULL) && bytesRead > 0 ) {
                 size_t consumed = vterm_input_write(ctx->vt, pty_buf, (size_t)bytesRead);
                 (void)consumed;
-                /* БЕЗ ЭТОГО при DAMAGE_SCREEN не придёт ни одного damage */
-                vterm_screen_flush_damage(ctx->screen);
-                htty_render_flush( ctx );
-
+                if( ctx->iVisible ) {
+                   /* БЕЗ ЭТОГО при DAMAGE_SCREEN не придёт ни одного damage */
+                   vterm_screen_flush_damage(ctx->screen);
+                   htty_render_flush( ctx );
+                }
                 hb_retni( 0 );
                 return;
             } else {

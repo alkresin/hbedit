@@ -8,12 +8,15 @@
 
 #include "inkey.ch"
 
+#define S_INIT            0
+#define S_WAIT            1
+
 DYNAMIC LLM_Service, LLM_OpenAI, LLM_Llama, LLM_Gigachat
 DYNAMIC HWINDOW, HWG_PROCESSMESSAGE
 
 STATIC oClient, cPlugPath
 STATIC oService
-STATIC nDelayInCycle := 1
+STATIC nStatus
 
 FUNCTION plug_aiagent( oEdit, cPath )
 
@@ -22,7 +25,11 @@ FUNCTION plug_aiagent( oEdit, cPath )
    LOCAL bWPane := {|o,l,y|
       LOCAL nCol := Col(), nRow := Row()
       DevPos( y, o:x1 )
-      DevOut( "AI Agent   F2: Menu  F3: New prompt F5: Cycle" )
+      IF nStatus == S_INIT
+         DevOut( "AI Agent   F2: Menu  F3: New prompt F5: Cycle" )
+      ELSEIF nStatus == S_WAIT
+         DevOut( "AI Agent " )
+      ENDIF
 
       DevPos( nRow, nCol )
       RETURN Nil
@@ -33,7 +40,7 @@ FUNCTION plug_aiagent( oEdit, cPath )
          FOR i := 1 TO Len( LLM_Service():aList )
             LLM_Service():aList[i]:ClearContext()
             LLM_Service():aList[i]:cSystem := ""
-            LLM_Service():aList[i]:aHistory := {}
+            LLM_Service():aList[i]:ClearContext()
             LLM_Service():aList[i] := Nil
          NEXT
          LLM_Service():aList := {}
@@ -91,10 +98,12 @@ FUNCTION plug_aiagent( oEdit, cPath )
       RETURN Nil
    ENDIF
 
+   nStatus := S_INIT
    oClient := mnu_NewBuf( oEdit )
    oClient:cFileName := cName
    oClient:bWriteTopPane := bWPane
    oClient:bOnKey := {|o,n| hag_OnKey(o,n) }
+   oClient:bStartEdit := {|| hag_Start() }
    oClient:bEndEdit := bEndEdit
    oClient:cp := "UTF8"
    hb_cdpSelect( oClient:cp )
@@ -107,6 +116,16 @@ FUNCTION plug_aiagent( oEdit, cPath )
       "  Ctrl-Tab - Switch Buffer" + Chr(10) + "  F10 - Exit" + Chr(10)
 
    hag_Textout( oService:id + ": " + oService:cUrl )
+
+   RETURN Nil
+
+STATIC FUNCTION hag_Start()
+
+   //oClient:WriteTopPane()
+   IF nStatus == S_INIT
+   ELSEIF nStatus == S_WAIT
+      edi_Wait( "Wait..." )
+   ENDIF
 
    RETURN Nil
 
@@ -124,7 +143,7 @@ STATIC FUNCTION hag_OnKey( oEdit, nKeyExt )
 
    ELSEIF nKey == K_F5
 
-      hag_Cycle()
+      hag_InitCycle()
       RETURN -1
 
    ELSEIF nKey == K_F1
@@ -148,7 +167,7 @@ STATIC FUNCTION hag_Menu()
       hag_Ask()
 
    ELSEIF i == 2
-      hag_Cycle()
+      hag_InitCycle()
 
    ELSEIF i == 3
       oService:ClearContext()
@@ -167,10 +186,8 @@ STATIC FUNCTION hag_Menu()
 STATIC FUNCTION hag_Ask()
 
    LOCAL cPrompt := "", aAnswer, cPath
-   STATIC nPrompt := 1
 
    IF Empty( oService:aHistory )
-      nPrompt := 1
       IF hag_SystemPrompt()
          hag_Textout( "--- System prompt ---" )
          hag_Textout( oService:ParsePrompt( oService:cSystem ) )
@@ -184,8 +201,7 @@ STATIC FUNCTION hag_Ask()
    ENDIF
    IF !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, ;
       oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) )
-      hag_Textout( "------ Prompt " + Ltrim(Str( nPrompt )) + " ------" )
-      nPrompt ++
+      hag_Textout( "------ Prompt " + Ltrim(Str( oService:nCyclesCurr+1 )) + " ------" )
       hag_Textout( oService:ParsePrompt( cPrompt ) )
       hag_Textout( "------ Answer ------" )
       edi_Wait( "Wait..." )
@@ -201,41 +217,80 @@ STATIC FUNCTION hag_Ask()
 
    RETURN Nil
 
-STATIC FUNCTION hag_Cycle()
+STATIC FUNCTION hag_InitCycle()
 
-   LOCAL cPath, cInitPrompt := "", n := 0, aParams
+   LOCAL cPath, cPrompt := "", n := 0, aParams, lFirst
 
    IF ( aParams := hag_GetCycleParams() ) == Nil
       RETURN Nil
    ENDIF
-   nDelayInCycle := Max( 0.1, aParams[2] )
 
-   IF aParams[3]
-      oService:pFuncMsg := @cbFuncMsg()
-   ENDIF
    IF Empty( oService:aHistory )
+      lFirst := .T.
       IF hag_SystemPrompt()
          hag_Textout( "--- System prompt ---" )
          hag_Textout( oService:ParsePrompt( oService:cSystem ) )
       ELSE
          RETURN Nil
       ENDIF
-   ENDIF
-   IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "tick_init_prompt.txt" ) )
-      cInitPrompt := Memoread( cPath )
+      IF File( cPath := ( LLM_Service():cProjPath + LLM_Service():cPromptsDir + hb_ps() + "tick_init_prompt.txt" ) )
+         cPrompt := Memoread( cPath )
+      ENDIF
+   ELSE
+      lFirst := .F.
+      cPrompt := oService:cPrompt
    ENDIF
 
-   IF ( !Empty( cInitPrompt := edi_MsgGet_ext( cInitPrompt, oClient:y1+2, oClient:x1+4, ;
-      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) ) .OR. !Empty( oService:cSystem ) ) .AND. ;
-      Lastkey() != K_ESC
+   IF ( !Empty( cPrompt := edi_MsgGet_ext( cPrompt, oClient:y1+2, oClient:x1+4, ;
+      oClient:y1+10, oClient:x2-12, oClient:cp,,, "Prompt" ) ) .OR. ;
+      !Empty( oService:cSystem ) ) .AND. Lastkey() != K_ESC
 
-      oService:cPrompt := cInitPrompt
-      edi_Wait( "Wait (1)" )
-      oService:MainCycle( @cbFunc(), aParams[1], aParams[4] )
-      edi_Wait()
+      oService:cPrompt := cPrompt
+      hag_Cycle( aParams[1], aParams[2], aParams[3], aParams[4] )
+
       oService:Log( "--------------" + Chr(10) )
 
    ENDIF
+
+   RETURN Nil
+
+STATIC FUNCTION hag_Cycle( nCycles, nDelayInCycle, lAskMan, lClear )
+
+   LOCAL n := 1, aAns, cUserPrompt := "", pArr
+
+   nDelayInCycle := Max( 0.1, nDelayInCycle )
+   oService:lFinish := .F.
+   IF lClear == Nil .OR. lClear
+      oService:ClearContext()
+   ENDIF
+   IF Empty( nCycles ); nCycles := oService:nCyclesMax; ENDIF
+
+   DO WHILE n <= nCycles .AND. !oService:lFinish
+      oService:AddMsgFromMan()
+      hag_Textout( "------ " + Iif( n<0, "Last", Ltrim(Str(oService:nCyclesCurr+1)) ) + " ------" )
+      edi_Wait( "Wait (" + Ltrim(Str(oService:nCyclesCurr+1)) + ")" )
+      aAns := oService:Send()
+      IF Empty( aAns )
+         EXIT
+      ENDIF
+
+      pArr := oService:aHistory[ Len(oService:aHistory)-1 ]
+      IF hb_hGetDef( pArr, "role", "" ) == "user"
+         cUserPrompt := hb_hGetDef( pArr, "content", "" )
+      ENDIF
+      cbFunc( cUserPrompt, aAns, Iif( n==nCycles, -1, n ), nDelayInCycle )
+
+      IF lAskMan .AND. !Empty( oService:cAskMan )
+         edi_Alert( "Message_for_man:;" + oService:cAskMan )
+         oService:cAskMan := ""
+         EXIT
+      ENDIF
+      n ++
+   ENDDO
+
+   edi_Wait()
+
+   oService:lFinish := .F.
 
    RETURN Nil
 
@@ -249,7 +304,7 @@ STATIC FUNCTION hag_GetCycleParams()
       {y1+2,x1+2, 11, "Delay (sec):"}, ;
       { y1+2,x1+15, 0, "1", 4 }, ;
       {y1+4,x1+3, 1, .T., 1 }, {y1+4,x1+2, 11, "[x] Ask Man" }, ;
-      {y1+5,x1+3, 1, .T., 1 }, {y1+5,x1+2, 11, "[x] Clear context" } }
+      {y1+5,x1+3, 1, .F., 1 }, {y1+5,x1+2, 11, "[ ] Clear context" } }
 
    cBuf := Savescreen( y1, x1, y1 + 6, x2 )
    @ y1, x1, y1 + 6, x2 BOX "ÚÄ¿³ÙÄÀ³ "
@@ -266,23 +321,12 @@ STATIC FUNCTION hag_GetCycleParams()
 
    RETURN { Val(aGets[2,4]), Val(aGets[4,4]), aGets[5,4], aGets[7,4] }
 
-STATIC FUNCTION cbFuncMsg( oService, pArr )
-
-   LOCAL cPrompt
-
-   edi_Alert( "Message_for_man:;" + oService:cAskMan )
-   /* IF !Empty( cPrompt := edi_MsgGet_ext( oService:cPrompt, oClient:y1+2, oClient:x1+30, ;
-      oClient:y1+9, oClient:x2-4, oClient:cp,,, "Answer_to_Message_for_man" ) )
-      oService:cPrompt := cPrompt
-   ENDIF */
-   RETURN Nil
-
-STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
+STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n, nDelayInCycle )
 
    LOCAL nSec, nKey
 
    edi_Wait()
-   hag_Textout( "------ " + Iif( n<0, "Last", Ltrim(Str(n)) ) + " ------" )
+
    IF !Empty( cUserPrompt )
       hag_Textout( cUserPrompt )
    ENDIF
@@ -297,7 +341,7 @@ STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n )
       hag_Textout( "Finish!" )
       RETURN Nil
    ENDIF
-   edi_Wait( "Wait (" + Ltrim(Str(n+1)) + ")" )
+   edi_Wait( "Wait (" + Ltrim(Str(oService:nCyclesCurr)) + ")" )
 
    nSec := Seconds()
    DO WHILE Seconds() - nSec < nDelayInCycle
@@ -328,7 +372,7 @@ STATIC FUNCTION hag_SystemPrompt()
 
 STATIC FUNCTION hag_Textout( cLine )
 
-   LOCAL n := Len( oClient:aText )
+   LOCAL n := Len( oClient:aText ), nLine
 
    IF n == 1 .AND. Empty( oClient:aText[1] )
       oClient:aText[1] := cLine
@@ -337,16 +381,23 @@ STATIC FUNCTION hag_Textout( cLine )
       oClient:InsText( n, 1, cLine )
    ENDIF
 
-   oClient:TextOut()
    oClient:lWrap := .F.
    edi_Move( oClient, 71 )   // Go to end
    oClient:lWrap := .T.
+   DO WHILE .T.
+      nLine := oClient:nyFirst + oClient:nLine
+      edi_Move( oClient, 106 )  // Go down
+      IF nLine == oClient:nyFirst + oClient:nLine
+         EXIT
+      ENDIF
+   ENDDO
+
    edi_Move( oClient, 106 )  // Go down
+   edi_Move( oClient, 106 )  // Go down
+   oClient:TextOut()
    IF hb_isFunction( "HWINDOW" )
       HWindow():GetMain():Refresh()
       hwg_ProcessMessage()
-      //hwg_ProcessMessage()
-      //hwg_ProcessMessage()
    ENDIF
    cedi_Sleep( 50 )
    Inkey( 0.1 )
@@ -370,7 +421,8 @@ STATIC FUNCTION hag_SelectModel()
    IF !Empty( oService ) .AND. !( oNew == oService )
       oNew:cSystem := oService:cSystem
       oNew:aHistory := oService:aHistory
-      oService:aHistory := {}
+      oNew:nCyclesCurr := oService:nCyclesCurr
+      oService:ClearContext()
    ENDIF
 
    RETURN oNew

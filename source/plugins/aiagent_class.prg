@@ -37,6 +37,7 @@ CLASS LLM_Service
    DATA cSystem    INIT ""
    DATA cPrompt    INIT ""
    DATA aHistory   INIT {}
+   DATA nCyclesCurr INIT 0
 
    DATA cUrl
    DATA cEndPoint INIT ""
@@ -126,6 +127,7 @@ METHOD SetQuery( cModel ) CLASS LLM_Service
    ENDIF
 
    IF Empty( ::aHistory )
+      ::nCyclesCurr := 0
       IF !Empty( ::cSystem )
          AAdd( ::aHistory, hb_hash( "role", "system", "content", ::ParsePrompt( ::cSystem ) ) )
       ENDIF
@@ -134,6 +136,7 @@ METHOD SetQuery( cModel ) CLASS LLM_Service
    AAdd( ::aHistory, hb_hash( "role", "user", "content", ::ParsePrompt( ::cPrompt ) ) )
    ::cPrompt := ""
    pArr["messages"] := ::aHistory
+   ::nCyclesCurr ++
 
    RETURN hb_jsonEncode( pArr )
 
@@ -365,6 +368,7 @@ METHOD AddSkills() CLASS LLM_Service
 METHOD ClearContext() CLASS LLM_Service
 
    ::aHistory := {}
+   ::nCyclesCurr := 0
 
    RETURN Nil
 
@@ -374,7 +378,7 @@ METHOD MainCycle( pFunc, nCycles, lClear ) CLASS LLM_Service
 
    ::lFinish := .F.
    IF lClear == Nil .OR. lClear
-      ::aHistory := {}
+      ::ClearContext()
    ENDIF
    IF Empty( nCycles ); nCycles := ::nCyclesMax; ENDIF
 
@@ -479,7 +483,7 @@ METHOD Send( cModel ) CLASS LLM_OpenAI
       Iif( Empty(::cSertif), '', ' --cacert ' + hb_DirBase() + ::cSertif ) + ;
       Iif( Empty(::key), '', ' -H "Authorization: Bearer ' + ::key + '"') + ;
       ' -H "Content-Type: application/json" -H "Accept: application/json" -d @body.json'
-   ::Log( cCmd, "-->" )
+   ::Log( cCmd, Replicate( "-",10 ) + " Cycle " + Ltrim(Str(::nCyclesCurr)) + "> " + Replicate( "-",10 ) )
    ::Log( "body.json: " + cContent )
    _RunConsoleApp( cCmd,, @cResult )
    FErase( "body.json" )
@@ -549,7 +553,7 @@ METHOD Send( cModel ) CLASS LLM_Llama
       ENDIF
       cCmd := "curl -s " + ::cUrl + ::cEndPoint + ;
          ' -H "Content-Type: application/json" -d @%base/' + ::leto_path + 'body.json'
-      ::Log( cCmd, "-->" )
+      ::Log( cCmd, Replicate( "-",10 ) + " Cycle " + Ltrim(Str(::nCyclesCurr)) + "> " + Replicate( "-",10 ) )
       ::Log( "body.json: " + cContent )
       cContent := leto_RunSync( cCmd )
       leto_FErase( cFile )
@@ -601,7 +605,7 @@ METHOD Send( cModel ) CLASS LLM_Gigachat
          Iif( Empty(::cSertif), '', ' --cacert ' + hb_DirBase() + ::cSertif ) + ;
          ' -H "Content-Type: application/x-www-form-urlencoded" -H "Accept: application/json" -H "RqUID: 6f0b1291-c7f3-43c6-bb2e-9f3efb2dc98e" -H "Authorization: Basic ' + ;
          ::authkey + '" -d "scope=GIGACHAT_API_PERS"'
-      ::Log( cCmd, "-->" )
+      ::Log( cCmd, Replicate( "-",10 ) + " Cycle " + Ltrim(Str(::nCyclesCurr)) + "> " + Replicate( "-",10 ) )
       _RunConsoleApp( cCmd,, @cResult )
       ::Log( cResult, "<--" )
       hb_jsonDecode( cResult, @pArr )
