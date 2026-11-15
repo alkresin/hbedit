@@ -9,6 +9,10 @@ STATIC cMessageFromMan := "message_from_man.txt"
 #ifdef _HBEDIT_PLUGIN
 #define  _LETO
 #xtranslate _RunConsoleApp([<n,...>])  => cedi_RunConsoleApp(<n>)
+#xtranslate _StartConsoleApp([<n,...>])  => cedi_StartConsoleApp(<n>)
+#xtranslate _ReadFromConsoleApp([<n,...>])  => cedi_ReadFromConsoleApp(<n>)
+#xtranslate _EndConsoleApp([<n,...>])  => cedi_EndConsoleApp(<n>)
+#xtranslate _Sleep([<n,...>])  => cedi_Sleep(<n>)
 FUNCTION Aiagent_class
    RETURN Nil
 #endif
@@ -38,6 +42,7 @@ CLASS LLM_Service
    DATA cPrompt    INIT ""
    DATA aHistory   INIT {}
    DATA nCyclesCurr INIT 0
+   DATA hOpt
 
    DATA cUrl
    DATA cEndPoint INIT ""
@@ -67,6 +72,7 @@ ENDCLASS
 
 METHOD New() CLASS LLM_Service
 
+   ::hOpt := hb_hash()
    AAdd( ::aList, Self )
 
    RETURN Self
@@ -177,7 +183,7 @@ METHOD ParseResult( cResult ) CLASS LLM_Service
       ( Empty( arr := hb_hGetDef( pArr, "choices", Nil ) ) .AND. ;
       ( Empty( pArr := hb_hGetDef( pArr, "result", Nil ) ) .OR. ;
       Empty( arr := hb_hGetDef( pArr, "choices", Nil ) ) ) )
-      RETURN Nil
+      RETURN {}
    ENDIF
 
    cContent := arr[1]["message"]["content"]
@@ -439,8 +445,13 @@ METHOD Log( cText, cTitle ) CLASS LLM_Service
  */
 CLASS LLM_OpenAI INHERIT LLM_Service
 
+   DATA   cFileAns
+   DATA   pApp
+
    METHOD New( pOptions )
    METHOD Send( cModel )
+   METHOD GetAnswer()
+   METHOD Break()
 
 ENDCLASS
 
@@ -478,28 +489,64 @@ METHOD Send( cModel ) CLASS LLM_OpenAI
 
    cContent := ::SetQuery( Iif( Empty(cModel), ::cModelDef, cModel ) )
    hb_Memowrit( "body.json", cContent )
+   ::cFileAns := hb_DirTemp() + "hag_" + Substr(DtoS(Date()),3) + "_" + Ltrim(Str(Seconds()))
 
    cCmd := "curl -s " + ::cUrl + ::cEndPoint + ;
       Iif( Empty(::cSertif), '', ' --cacert ' + hb_DirBase() + ::cSertif ) + ;
       Iif( Empty(::key), '', ' -H "Authorization: Bearer ' + ::key + '"') + ;
-      ' -H "Content-Type: application/json" -H "Accept: application/json" -d @body.json'
+      ' -H "Content-Type: application/json" -H "Accept: application/json" -d @body.json -o ' + ::cFileAns
    ::Log( cCmd, Replicate( "-",10 ) + " Cycle " + Ltrim(Str(::nCyclesCurr)) + "> " + Replicate( "-",10 ) )
    ::Log( "body.json: " + cContent )
-   _RunConsoleApp( cCmd,, @cResult )
+   //_RunConsoleApp( cCmd,, @cResult )
+   ::pApp := _StartConsoleApp( cCmd, 2 )
+   /*
+   DO WHILE _ReadFromConsoleApp( ::pApp ) != Nil
+      Inkey( 0.1 )
+   ENDDO
+   _EndConsoleApp( ::pApp )
+   ::pApp := Nil
+   cResult := Memoread( ::cFileAns )
+   */
    FErase( "body.json" )
+   //FErase( ::cFileAns )
 
-   RETURN ::ParseResult( cResult )
+   RETURN Nil  //::ParseResult( cResult )
+
+METHOD GetAnswer() CLASS LLM_OpenAI
+
+   LOCAL cResult
+
+   IF _ReadFromConsoleApp( ::pApp ) == Nil
+      _EndConsoleApp( ::pApp )
+      ::pApp := Nil
+      cResult := Memoread( ::cFileAns )
+      FErase( ::cFileAns )
+      RETURN ::ParseResult( cResult )
+   ENDIF
+
+   RETURN Nil
+
+METHOD Break() CLASS LLM_OpenAI
+
+   IF !Empty( ::pApp )
+      _EndConsoleApp( ::pApp )
+      ::pApp := Nil
+   ENDIF
+   RETURN Nil
 
 /*
  */
 CLASS LLM_Llama INHERIT LLM_OpenAI
 
-#ifdef _LETO
    DATA leto_addr
+#ifdef _LETO
    DATA leto_user, leto_pass
    DATA leto_path
+   DATA cAns
 
    METHOD Send( cModel )
+   METHOD GetAnswer()
+   METHOD Break()
 #endif
 
    METHOD New( pOptions )
@@ -515,10 +562,10 @@ METHOD New( pOptions ) CLASS LLM_Llama
    ::cModelDef := "local"
    ::Super:New( pOptions )
 
-#ifdef _LETO
    IF hb_hHaskey( pOptions, cTmp := "leto_address" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_addr := cTmp
    ENDIF
+#ifdef _LETO
    IF hb_hHaskey( pOptions, cTmp := "leto_user" ) .AND. !Empty( cTmp := pOptions[ cTmp ] )
       ::leto_user := cTmp
    ENDIF
@@ -540,6 +587,7 @@ METHOD Send( cModel ) CLASS LLM_Llama
 
    LOCAL pArr, cCmd, cContent, cReason, arr, lRes, cFile
 
+   ::cAns := ""
    IF Empty( ::leto_addr )
       RETURN ::Super:Send( cModel )
 
@@ -551,18 +599,46 @@ METHOD Send( cModel ) CLASS LLM_Llama
          ::Log( "Can't write to " + cFile, "Error" )
          RETURN Nil
       ENDIF
+      ::cFileAns := "hag_" + Substr(DtoS(Date()),3) + "_" + Ltrim(Str(Seconds()))
       cCmd := "curl -s " + ::cUrl + ::cEndPoint + ;
-         ' -H "Content-Type: application/json" -d @%base/' + ::leto_path + 'body.json'
+         ' -H "Content-Type: application/json" -d @%base/' + ::leto_path + 'body.json' + ;
+         ' -o %base/' + ::leto_path + ::cFileAns
       ::Log( cCmd, Replicate( "-",10 ) + " Cycle " + Ltrim(Str(::nCyclesCurr)) + "> " + Replicate( "-",10 ) )
       ::Log( "body.json: " + cContent )
-      cContent := leto_RunSync( cCmd )
+      cContent := leto_RunASync( cCmd )
       leto_FErase( cFile )
       leto_Disconnect()
 
-      RETURN ::ParseResult( cContent )
+      ::cAns := cContent
+      RETURN Nil
+      //RETURN ::ParseResult( cContent )
    ENDIF
 
    ::Log( "Can't connect to " + ::leto_addr, "Error" )
+   RETURN Nil
+
+METHOD GetAnswer() CLASS LLM_Llama
+
+   LOCAL cAns
+
+   IF Empty( ::leto_addr )
+      RETURN ::Super:GetAnswer()
+   ENDIF
+
+   _Sleep( 500 )
+   IF leto_Connect( ::leto_addr, ::leto_user, ::leto_pass ) > 0
+      IF leto_FileSize( ::leto_path + ::cFileAns ) > 0
+         cAns := leto_MemoRead( ::leto_path + ::cFileAns )
+         leto_FErase( ::leto_path + ::cFileAns )
+         leto_Disconnect()
+         RETURN ::ParseResult( cAns )
+      ENDIF
+      leto_Disconnect()
+      RETURN Nil
+   ENDIF
+   RETURN {}
+
+METHOD Break() CLASS LLM_Llama
    RETURN Nil
 #endif
 

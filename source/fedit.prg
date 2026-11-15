@@ -49,7 +49,6 @@ STATIC hKeyMap := Nil
 STATIC aLangExten := {}
 STATIC cLangMapCP, aLangMapUpper, aLangMapLower
 STATIC nLastReg := 1
-STATIC aLangs
 STATIC hPalettes
 STATIC lCase_Sea := .F., lWord_Sea := .F., lRegex_Sea := .F.
 STATIC cDopMode := ""
@@ -98,6 +97,7 @@ CLASS TEdit
    CLASS VAR hMacros    SHARED
    CLASS VAR hSelePlug  SHARED
    CLASS VAR cLangCP    SHARED
+   CLASS VAR aLangs     SHARED
    CLASS VAR hMisc      SHARED
 #ifdef __PLATFORM__UNIX
 #ifndef __GTHWG__
@@ -329,7 +329,7 @@ METHOD SetText( cText, cFileName ) CLASS TEdit
       cExt := Lower( hb_fnameExt(cFileName) )
       FOR i := 1 TO Len(aLangExten)
          IF ( j := At( cExt, aLangExten[i,2] ) ) > 0 .AND. !isAlpha( Substr( aLangExten[i,2],j+Len(cExt),1 ) ) ;
-            .AND. hb_hHaskey(aLangs,aLangExten[i,1])
+            .AND. hb_hHaskey(::aLangs,aLangExten[i,1])
             mnu_SyntaxOn( Self, aLangExten[i,1] )
             EXIT
          ENDIF
@@ -2509,20 +2509,13 @@ METHOD OnExit() CLASS TEdit
       hb_MemoWrit( IIf( nSaveHis==1, cHisDir, "" ) + "hbedit.his", s )
    ENDIF
 
-   IF !Empty( aLangs )
-      FOR EACH i IN aLangs
+   IF !Empty( TEdit():aLangs )
+      FOR EACH i IN TEdit():aLangs
          IF !Empty( j := hb_hGetDef( i, "htrie", Nil ) )
             trie_Close( j )
-            //edi_Alert( i:__enumkey + " trie_Close" )
          ENDIF
       NEXT
    ENDIF
-   /*
-   IF !Empty( hIdle )
-      hb_IdleDel( hIdle )
-      hIdle := Nil
-   ENDIF
-   */
 
    RETURN Nil
 
@@ -2838,7 +2831,7 @@ FUNCTION edi_ReadIni( xIni )
 
    SetBlink( .F. )
    hb_gtInfo( HB_GTI_COMPATBUFFER, .F. )
-   aLangs := hb_Hash()
+   TEdit():aLangs := hb_Hash()
    hPalettes := hb_Hash()
    hHili := hPalettes["default"] := hb_Hash()
    hHili["colors"] := hb_gtinfo( HB_GTI_PALETTE )
@@ -3096,7 +3089,7 @@ FUNCTION edi_ReadIni( xIni )
             IF !Empty( aSect := hIni[ aIni[nSect] ] )
                hb_hCaseMatch( aSect, .F. )
                cLang := Lower( Substr(aIni[nSect],6) )
-               hHili := aLangs[ cLang ] := hb_hash()
+               hHili := TEdit():aLangs[ cLang ] := hb_hash()
                hHili["colors"] := Array(Len(aHiliOpt))
                hHili["bra"] := .F.
                arr := hb_hKeys( aSect )
@@ -3395,7 +3388,7 @@ FUNCTION mnu_Palettes( oEdit, aXY )
 
 FUNCTION mnu_Syntax( oEdit, aXY )
 
-   LOCAL aMenu := { {"Syntax Off",@mnu_SyntaxOn(),Nil} }, i, arr := hb_hKeys( aLangs )
+   LOCAL aMenu := { {"Syntax Off",@mnu_SyntaxOn(),Nil} }, i, arr := hb_hKeys( TEdit():aLangs )
 
    FOR i := 1 TO Len( arr )
       AAdd( aMenu, {arr[i], @mnu_SyntaxOn(), arr[i]} )
@@ -3413,7 +3406,7 @@ FUNCTION mnu_SyntaxOn( oEdit, cLang )
 
    LOCAL cPal, xPlugin, cFullPath
 
-   oEdit:Highlighter( Iif( Empty(cLang), Nil, Hili():New( aLangs[cLang] ) ) )
+   oEdit:Highlighter( Iif( Empty(cLang), Nil, Hili():New( TEdit():aLangs[cLang] ) ) )
    oEdit:cSyntaxType := cLang
 
    IF Empty( cLang )
