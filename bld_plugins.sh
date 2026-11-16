@@ -2,7 +2,9 @@
 export HB_INS="/opt/harbour"
 
 cd source/plugins
+$HB_INS/bin/linux/gcc/harbour aiagent_class.prg -n -gh -q -I$HB_INS/include -d_HBEDIT_PLUGIN
 $HB_INS/bin/linux/gcc/harbour plug_1c_spis.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour plug_aiagent.prg -n -gh -q -I$HB_INS/include
 $HB_INS/bin/linux/gcc/harbour plug_android_project.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_bat_init.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_c_init.prg -n -gh -q
@@ -21,12 +23,12 @@ $HB_INS/bin/linux/gcc/harbour plug_chartable.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_calculator.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_palette.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_games.prg -n -gh -q
-$HB_INS/bin/linux/gcc/harbour plug_gm_lines.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_tetris.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_sokoban.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_strek.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_sudoku.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_life.prg -n -gh -q
+$HB_INS/bin/linux/gcc/harbour plug_gm_lines.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_chess_res.prg -n -gh -q
 $HB_INS/bin/linux/gcc/harbour plug_gm_ugolki.prg -n -gh -q

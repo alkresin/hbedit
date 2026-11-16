@@ -485,7 +485,7 @@ METHOD New( pOptions ) CLASS LLM_OpenAI
 
 METHOD Send( cModel ) CLASS LLM_OpenAI
 
-   LOCAL cContent, cCmd, cResult
+   LOCAL cContent, cCmd, cResult, xRes
 
    cContent := ::SetQuery( Iif( Empty(cModel), ::cModelDef, cModel ) )
    hb_Memowrit( "body.json", cContent )
@@ -499,6 +499,12 @@ METHOD Send( cModel ) CLASS LLM_OpenAI
    ::Log( "body.json: " + cContent )
    //_RunConsoleApp( cCmd,, @cResult )
    ::pApp := _StartConsoleApp( cCmd, 2 )
+   IF ( xRes :=  cedi_ReturnErrCode( ::pApp ) ) > 0
+      ::Log( "Error starting app " + str(xRes) )
+      cedi_EndConsoleApp( ::pApp )
+      ::pApp := Nil
+      RETURN .F.
+   ENDIF
    /*
    DO WHILE _ReadFromConsoleApp( ::pApp ) != Nil
       Inkey( 0.1 )
@@ -507,19 +513,24 @@ METHOD Send( cModel ) CLASS LLM_OpenAI
    ::pApp := Nil
    cResult := Memoread( ::cFileAns )
    */
-   FErase( "body.json" )
+   //_Sleep( 100 )
+   //FErase( "body.json" )
    //FErase( ::cFileAns )
 
-   RETURN Nil  //::ParseResult( cResult )
+   RETURN .T.  //::ParseResult( cResult )
 
 METHOD GetAnswer() CLASS LLM_OpenAI
 
    LOCAL cResult
 
+   IF Empty( ::pApp )
+      RETURN {}
+   ENDIF
    IF _ReadFromConsoleApp( ::pApp ) == Nil
       _EndConsoleApp( ::pApp )
       ::pApp := Nil
       cResult := Memoread( ::cFileAns )
+      FErase( "body.json" )
       FErase( ::cFileAns )
       RETURN ::ParseResult( cResult )
    ENDIF

@@ -291,7 +291,10 @@ STATIC FUNCTION hag_Cycle( lContinue )
          hag_Textout( "<hag> " + oService:ParsePrompt( oService:cPrompt ) + " </hag>" )
          edi_Wait( "Wait (" + Ltrim(Str(oService:nCyclesCurr+1)) + ")" )
 
-         oService:Send()
+         IF !oService:Send()
+            edi_Alert( "Error sending prompt" )
+            EXIT
+         ENDIF
       ELSE
          lContinue := .F.
          edi_Wait( "Wait (" + Ltrim(Str(oService:nCyclesCurr+1)) + ")" )
@@ -305,12 +308,7 @@ STATIC FUNCTION hag_Cycle( lContinue )
          EXIT
       ENDIF
 
-      /*pArr := oService:aHistory[ Len(oService:aHistory)-1 ]
-      IF hb_hGetDef( pArr, "role", "" ) == "user"
-         cUserPrompt := hb_hGetDef( pArr, "content", "" )
-      ENDIF
-      cbFunc( cUserPrompt, aAns, Iif( n==nCycles, -1, n ), nDelayInCycle ) */
-      cbFunc( , aAns, Iif( n==nCycles, -1, n ), nDelayInCycle )
+      cbFunc( aAns, Iif( n==nCycles, -1, n ), nDelayInCycle )
 
       IF lAskMan .AND. !Empty( oService:cAskMan )
          edi_Alert( "Message_for_man:;" + oService:cAskMan )
@@ -354,15 +352,12 @@ STATIC FUNCTION hag_GetCycleParams()
 
    RETURN { Val(aGets[2,4]), Max( 0.1, Val(aGets[4,4]) ), aGets[5,4], aGets[7,4] }
 
-STATIC FUNCTION cbFunc( cUserPrompt, aAnswer, n, nDelayInCycle )
+STATIC FUNCTION cbFunc( aAnswer, n, nDelayInCycle )
 
    LOCAL nSec, nKey
 
    edi_Wait()
 
-   /* IF !Empty( cUserPrompt )
-      hag_Textout( "<hag> " + cUserPrompt + " </hag>" )
-   ENDIF */
    hag_Textout( '"------ Answer ------"' )
    IF !Empty( aAnswer )
       hag_Textout( aAnswer[1] )
