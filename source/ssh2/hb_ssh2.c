@@ -497,7 +497,7 @@ int hb_ssh2_SftpReadDir( HB_SSH2_SFTP_HANDLE * pHandle, char *cName, int iLen,
    return rc;
 }
 
-int hb_ssh2_SftpRead( HB_SSH2_SFTP_HANDLE * pHandle, char *buffer, int nBufferLen )
+int hb_ssh2_SftpRead( HB_SSH2_SFTP_HANDLE * pHandle, char *buffer, int iBufferLen )
 {
 
    int iBytesRead = 0;
@@ -506,7 +506,7 @@ int hb_ssh2_SftpRead( HB_SSH2_SFTP_HANDLE * pHandle, char *buffer, int nBufferLe
    pHandle->pSess->iInfo = 56;
    do
    {
-      rc = libssh2_sftp_read( pHandle->sftp_handle, buffer+iBytesRead, BUFFSIZE-iBytesRead );
+      rc = libssh2_sftp_read( pHandle->sftp_handle, buffer+iBytesRead, iBufferLen-iBytesRead );
 
       if( rc > 0 )
          iBytesRead += rc;
@@ -519,7 +519,7 @@ int hb_ssh2_SftpRead( HB_SSH2_SFTP_HANDLE * pHandle, char *buffer, int nBufferLe
          }
    }
    while( ( pHandle->pSess->iNonBlocking && rc == LIBSSH2_ERROR_EAGAIN ) ||
-      ( rc > 0 && iBytesRead < BUFFSIZE ) );
+      ( rc > 0 && iBytesRead < iBufferLen ) );
 
    pHandle->pSess->iRes = ( rc < 0 )? -1 : 0;
    pHandle->pSess->iErr = libssh2_sftp_last_error( pHandle->pSess->sftp_session );
