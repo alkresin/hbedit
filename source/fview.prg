@@ -13,20 +13,20 @@
 
 REQUEST HB_CODEPAGE_RU866
 REQUEST HB_CODEPAGE_RU1251
-REQUEST HB_CODEPAGE_RUKOI8
+REQUEST HB_CODEPAGE_UTF8
 
-MEMVAR lShowCR, nCodePage, lHexMode
+MEMVAR lShowCR, nCodePage, lHexMode, cBuffer, nShiftBuffer
 
-STATIC aCPages := { "RU866", "RU1251", "RUKOI8" }
+STATIC aCPages := { "RU866", "RU1251" }
 
-FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
+FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
 
    LOCAL handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
-   LOCAL cScBuf, nFirst := 1, nFileLen, nShiftBuf := 0, nSize
+   LOCAL cScBuf, nFirst := 1, nFileLen, nSize, nShiftBuf := 0
    LOCAL nKey, lDraw := .T.
    LOCAL arr := {}, arrtmp, i, nLenATmp, nSizeATmp, cp
-   LOCAL nHexOff := 0, nHexOffMax, nBytesLine, nHeight, nAddrDigits
-   PRIVATE lShowCR := .F., nCodePage := 1, lHexMode := .F.
+   LOCAL nHexOff := 0, nHexOffMax, nBytesLine, nHeight, nAddrDigits, nCursY := 1, nCursX := 1
+   PRIVATE lShowCR := .F., nCodePage := 1, lHexMode := .F., cBuffer, nShiftBuffer := 0
 
    IF Empty( handle )
       edi_Alert( _I("Can't open") + " " + cFileName )
@@ -39,6 +39,10 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
    nSize  := ReadBufNext( handle, arr, nShiftBuf, RDBUFFERSIZE, x2-x1-1, (RDBUFFERSIZE>=nFileLen) )
 
    IF cColor == Nil; cColor := "W/B"; ENDIF
+   IF Empty( cColorSel )
+      i := At( "/", cColor )
+      cColorSel := Substr( cColor, i+1 ) + "/" + Left( cColor, i-1 )
+   ENDIF
 
    cScBuf := Savescreen( y1, x1, y2, x2 )
    SetColor( cColor )
@@ -57,6 +61,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
       IF lDraw
          IF lHexMode
             HexDraw( handle, nHexOff, x1, y1, x2, y2, nBytesLine, nAddrDigits )
+            SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
          ELSE
             Draw( arr, nFirst, x1, y1, x2, y2 )
          ENDIF
@@ -65,19 +70,41 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
 
       IF ( nKey := Inkey( 0 ) ) == K_F10 .OR. nKey == K_ESC
          EXIT
+      ELSEIF nKey == K_F4
+         lHexMode := !lHexMode
+         @ y1+1, x1+1 CLEAR TO  y2-1, x2-1
+         IF lHexMode
+            nHexOff := nShiftBuf
+            FOR i := 2 TO nFirst
+               nHexOff += Len( arr[i-1] )
+            NEXT
+         ENDIF
+         lDraw := .T.
+      ELSEIF nKey == K_F8
+         nCodePage := Iif( nCodePage == 1, 2, 1 )
+         @ y1, x2 - 8 SAY PAdr( aCPages[nCodePage], 6 )
+         lDraw := .T.
+         LOOP
       ENDIF
 
       IF lHexMode
-         IF nKey == K_F4
-            lHexMode := .F.
-            @ y1+1, x1+1 CLEAR TO  y2-1, x2-1
-            @ y1, x2 - 8 SAY PadR( aCPages[nCodePage], 6 )
-            lDraw := .T.
-            LOOP
-         ELSEIF nKey == K_DOWN
-            nHexOff += nBytesLine
+         IF nKey == K_DOWN
+            IF nCursY < nHeight
+               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               nCursY ++
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+               LOOP
+            ELSE
+               nHexOff += nBytesLine
+            ENDIF
          ELSEIF nKey == K_UP
-            nHexOff -= nBytesLine
+            IF nCursY > 1
+               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               nCursY --
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+            ELSE
+               nHexOff -= nBytesLine
+            ENDIF
          ELSEIF nKey == K_PGDN
             nHexOff += nBytesLine * nHeight
          ELSEIF nKey == K_PGUP
@@ -86,6 +113,20 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
             nHexOff := 0
          ELSEIF nKey == K_END
             nHexOff := nHexOffMax
+         ELSEIF nKey == K_RIGHT
+            IF nCursX < nBytesLine
+               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               nCursX ++
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+            ENDIF
+            LOOP
+         ELSEIF nKey == K_LEFT
+            IF nCursX > 1
+               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               nCursX --
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+            ENDIF
+            LOOP
          ELSE
             LOOP
          ENDIF
@@ -97,17 +138,8 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
          ENDIF
          lDraw := .T.
       ELSE
-         IF nKey == K_F4
-            lHexMode := .T.
-            @ y1+1, x1+1 CLEAR TO  y2-1, x2-1
-            @ y1, x2 - 8 SAY PadR( "HEX", 6 )
-            lDraw := .T.
-         ELSEIF nKey == K_F2
+         IF nKey == K_F2
             lShowCR := !lShowCR
-            lDraw := .T.
-         ELSEIF nKey == K_F8
-            nCodePage := Iif( nCodePage == 1, 2, 1 )
-            @ y1, x2 - 8 SAY PAdr( aCPages[nCodePage], 6 )
             lDraw := .T.
          ELSEIF nKey == K_DOWN .OR. nKey == K_PGDN
             IF nKey == K_DOWN .AND. nFirst + (y2-y1-1) - 1 < Len( arr )
@@ -120,16 +152,20 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
             ELSEIF nShiftBuf + nSize < nFileLen
                nShiftBuf += nSize
                nSize := RDBUFFERSIZE
+               nFirst := nFirst + Iif( nKey == K_DOWN, 1, y2-y1-2 ) - (Len(arr)-nLenATmp)
+
                ACopy( arr, arrtmp, Len(arr)-nLenATmp+1, nLenATmp )
+               arr := AClone( arrtmp )
                nSizeATmp := 0
                FOR i := 1 TO nLenATmp
-                  nSizeATmp += Len( arrtmp[i] )
+                  nSizeATmp += Len( arr[i] )
                NEXT
-               arr := arrtmp
+
                nSize := ReadBufNext( handle, arr, nShiftBuf, nSize, x2-x1-1, ((nShiftBuf+nSize)>=nFileLen) )
+               nShiftBuffer := nShiftBuf
                nShiftBuf -= nSizeATmp
                nSize += nSizeATmp
-               nFirst := Iif( nKey == K_DOWN, (y2-y1-1) + 2, nLenATmp + 1 )
+               //nFirst := Iif( nKey == K_DOWN, (y2-y1-1) + 2, nLenATmp + 1 )
             ENDIF
             lDraw := .T.
 
@@ -142,6 +178,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
                nShiftBuf -= nSize
                arr := ASize( arr, nLenATmp )
                i := ReadBufPrev( handle, arr, nShiftBuf, nSize, x2-x1-1, (nShiftBuf==0) )
+               nShiftBuffer := nShiftBuf
                IF i != nSize
                   nShiftBuf -= ( nSize-i )
                ENDIF
@@ -154,7 +191,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
          ELSEIF nKey == K_HOME
             IF nShiftBuf > 0
                arr := {}
-               nShiftBuf := 0
+               nShiftBuffer := nShiftBuf := 0
                nSize := RDBUFFERSIZE
                nSize := ReadBufNext( handle, arr, nShiftBuf, nSize, x2-x1-1, .F. )
             ENDIF
@@ -167,6 +204,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor )
                nSize := RDBUFFERSIZE
                nShiftBuf := nFileLen - nSize + 1
                nSize := ReadBufPrev( handle, arr, nShiftBuf, nSize, x2-x1-1, .F. )
+               nShiftBuffer := nShiftBuf
                nShiftBuf := nFileLen - nSize + 1
             ENDIF
             nFirst := Max( Len( arr ) - (y2-y1-2), 1 )
@@ -278,12 +316,16 @@ STATIC FUNCTION _HexDigits( n )
 
 STATIC FUNCTION HexDraw( handle, nOffset, x1, y1, x2, y2, nBytesLine, nAddrDigits )
 
-   LOCAL i, j, nHeight := y2 - y1 - 1
+   LOCAL i, j, nHeight := y2 - y1 - 1, nSize := nBytesLine * nHeight
    LOCAL cBuff, cBuf, cAddr, cHex, cAsc, cByte, nAbs, nLen, nVal
    LOCAL nMid := Iif( nBytesLine == HEXBYTES, Int( HEXBYTES/2 ), HEXBYTES * 2 )
 
-   hb_vfSeek( handle, nOffset )
-   cBuff := hb_vfReadLen( handle, nBytesLine * nHeight )
+   IF nOffset >= nShiftBuffer .AND. nOffset + nSize < nShiftBuffer + RDBUFFERSIZE
+      cBuff := Substr( cBuffer, nOffset - nShiftBuffer + 1, nSize )
+   ELSE
+      hb_vfSeek( handle, nOffset )
+      cBuff := hb_vfReadLen( handle, nSize )
+   ENDIF
 
    FOR i := 1 TO nHeight
 
@@ -311,11 +353,44 @@ STATIC FUNCTION HexDraw( handle, nOffset, x1, y1, x2, y2, nBytesLine, nAddrDigit
                cHex += "| "
             ENDIF
          NEXT
+         IF nCodePage != 1
+            cAsc := hb_Translate( cAsc, aCPages[nCodePage], aCPages[1] )
+         ENDIF
          @ y1 + i, x1 + 1 SAY cAddr + cHex + " " + cAsc
       ENDIF
    NEXT
 
    DevPos( y1 + 1, x1 + 1 )
+
+   RETURN Nil
+
+STATIC FUNCTION _ChangeClr( y1, x1, cColor )
+
+   LOCAL s := Savescreen( y1, x1, y1, x1 ), c
+
+   IF Len( s ) == 2
+      c := Left( s,1 )
+   ELSE
+      c := hb_Translate( cedi_Wchar_to_utf8( hb_bPeek(s,1) + hb_bPeek(s,2) * 256 ), ;
+        "UTF8", Iif( nCodePage == 1, "RU866", "RU1251" ) )
+   ENDIF
+
+   @ y1, x1 SAY c COLOR cColor
+
+   RETURN Nil
+
+STATIC FUNCTION SetCursClr( nCursY, nCursX, cColor, y1, x1, nLen )
+
+   LOCAL nY1, nX1
+
+   nY1 := y1 + nCursY - 1
+   nX1 := x1 + (nCursX-1) * 3 + Iif( nLen == HEXBYTES .AND. nCursX > HEXBYTES/2, 3, 1 )
+
+   _ChangeClr( nY1, nX1, cColor )
+   _ChangeClr( nY1, nX1+1, cColor )
+
+   nX1 := x1 + nLen * 3 + nCursX + Iif( nLen == HEXBYTES, 3, 1 )
+   _ChangeClr( nY1, nX1, cColor )
 
    RETURN Nil
 
@@ -348,11 +423,12 @@ STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
 
 STATIC FUNCTION ReadBufNext( handle, arr, nShift, nSize, nWidth, lLast )
 
-   LOCAL cBuffer, nPos := 1, nLen, nPos2
+   LOCAL nPos := 1, nLen, nPos2
 
    hb_vfSeek( handle, nShift )
    cBuffer := hb_vfReadLen( handle, nSize )
    nSize := Len( cBuffer )
+   //edi_Writelog( "Bufnext1: " + ltrim(str(nShift)) + " " + ltrim(str(nSize)) + " " + ltrim(str(len(arr))) )
    DO WHILE .T.
       nLen := Min( nWidth, nSize-nPos+1 )
       nPos2 := hb_At( Chr(10), cBuffer, nPos, nPos + nLen - 1 )
@@ -371,12 +447,13 @@ STATIC FUNCTION ReadBufNext( handle, arr, nShift, nSize, nWidth, lLast )
       Aadd( arr, Substr( cBuffer, nPos, nLen ) )
       nPos += nLen
    ENDDO
+   //edi_Writelog( "Bufnext2: " + ltrim(str(len(arr))) )
 
    RETURN nSize
 
 STATIC FUNCTION ReadBufPrev( handle, arr, nShift, nSize, nWidth, lFirst )
 
-   LOCAL cBuffer, nPos, nLen, nPos2
+   LOCAL nPos, nLen, nPos2
 
    hb_vfSeek( handle, nShift )
    cBuffer := hb_vfReadLen( handle, nSize )
