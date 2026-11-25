@@ -15,18 +15,19 @@ REQUEST HB_CODEPAGE_RU866
 REQUEST HB_CODEPAGE_RU1251
 REQUEST HB_CODEPAGE_UTF8
 
-MEMVAR lShowCR, nCodePage, lHexMode, cBuffer, nShiftBuffer
+MEMVAR lShowCR, nCodePage, lHexMode, cBuffer, nShiftBuffer, lEdited, nBytesLine, nAddrDigits
 
 STATIC aCPages := { "RU866", "RU1251" }
 
 FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
 
-   LOCAL handle := hb_vfOpen( cFileName, FO_READ+FO_SHARED )
+   LOCAL handle := hb_vfOpen( cFileName, FO_READWRITE+FO_SHARED )
    LOCAL cScBuf, nFirst := 1, nFileLen, nSize, nShiftBuf := 0
    LOCAL nKey, lDraw := .T.
    LOCAL arr := {}, arrtmp, i, nLenATmp, nSizeATmp, cp
-   LOCAL nHexOff := 0, nHexOffMax, nBytesLine, nHeight, nAddrDigits, nCursY := 1, nCursX := 1
-   PRIVATE lShowCR := .F., nCodePage := 1, lHexMode := .F., cBuffer, nShiftBuffer := 0
+   LOCAL nHexOff := 0, nHexOffMax, nHeight, nCursY := 1, nCursX := 1
+   PRIVATE lShowCR := .F., nCodePage := 1, lHexMode := .F., cBuffer, nShiftBuffer := 0, lEdited := .F., ;
+           nBytesLine, nAddrDigits
 
    IF Empty( handle )
       edi_Alert( _I("Can't open") + " " + cFileName )
@@ -54,14 +55,14 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
 
    nHeight     := y2 - y1 - 1
    nAddrDigits := Max( 8, _HexDigits( Max( 0, nFileLen - 1 ) ) )
-   nBytesLine  := HexBytesPerLine( x1, x2, nAddrDigits )
+   nBytesLine  := HexBytesPerLine( x1, x2 )
    nHexOffMax  := Int( Max( 0, (nFileLen - (nFileLen % nBytesLine)) - (nHeight-1) * nBytesLine ) )
 
    DO WHILE .T.
       IF lDraw
          IF lHexMode
-            HexDraw( handle, nHexOff, x1, y1, x2, y2, nBytesLine, nAddrDigits )
-            SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+            HexDraw( handle, nHexOff, x1, y1, x2, y2 )
+            SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
          ELSE
             Draw( arr, nFirst, x1, y1, x2, y2 )
          ENDIF
@@ -90,18 +91,18 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
       IF lHexMode
          IF nKey == K_DOWN
             IF nCursY < nHeight
-               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColor, y1+1 )
                nCursY ++
-               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
                LOOP
             ELSE
                nHexOff += nBytesLine
             ENDIF
          ELSEIF nKey == K_UP
             IF nCursY > 1
-               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColor, y1+1 )
                nCursY --
-               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
             ELSE
                nHexOff -= nBytesLine
             ENDIF
@@ -115,18 +116,24 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
             nHexOff := nHexOffMax
          ELSEIF nKey == K_RIGHT
             IF nCursX < nBytesLine
-               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColor, y1+1 )
                nCursX ++
-               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
             ENDIF
             LOOP
          ELSEIF nKey == K_LEFT
             IF nCursX > 1
-               SetCursClr( nCursY, nCursX, cColor, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColor, y1+1 )
                nCursX --
-               SetCursClr( nCursY, nCursX, cColorSel, y1+1, nAddrDigits+2, nBytesLine )
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
             ENDIF
             LOOP
+         ELSEIF nKey == K_ENTER
+            IF EditByte( handle, nCursY, nCursX, nHexOff )
+               lEdited := .T.
+               HexDraw( handle, nHexOff, x1, y1, x2, y2 )
+               SetCursClr( nCursY, nCursX, cColorSel, y1+1 )
+            ENDIF
          ELSE
             LOOP
          ENDIF
@@ -290,7 +297,7 @@ FUNCTION QFileView( cFileName, cBuff, x1, y1, x2, y2, cColor, cPage, lWords )
 
    RETURN Nil
 
-STATIC FUNCTION HexBytesPerLine( x1, x2, nAddrDigits )
+STATIC FUNCTION HexBytesPerLine( x1, x2 )
 
    LOCAL nBytes := Int( ( x2 - x1 - 1 - nAddrDigits - 5 ) / 4 )
 
@@ -314,13 +321,13 @@ STATIC FUNCTION _HexDigits( n )
 
    RETURN nDigits
 
-STATIC FUNCTION HexDraw( handle, nOffset, x1, y1, x2, y2, nBytesLine, nAddrDigits )
+STATIC FUNCTION HexDraw( handle, nOffset, x1, y1, x2, y2 )
 
    LOCAL i, j, nHeight := y2 - y1 - 1, nSize := nBytesLine * nHeight
    LOCAL cBuff, cBuf, cAddr, cHex, cAsc, cByte, nAbs, nLen, nVal
    LOCAL nMid := Iif( nBytesLine == HEXBYTES, Int( HEXBYTES/2 ), HEXBYTES * 2 )
 
-   IF nOffset >= nShiftBuffer .AND. nOffset + nSize < nShiftBuffer + RDBUFFERSIZE
+   IF !lEdited .AND. nOffset >= nShiftBuffer .AND. nOffset + nSize < nShiftBuffer + RDBUFFERSIZE
       cBuff := Substr( cBuffer, nOffset - nShiftBuffer + 1, nSize )
    ELSE
       hb_vfSeek( handle, nOffset )
@@ -379,20 +386,45 @@ STATIC FUNCTION _ChangeClr( y1, x1, cColor )
 
    RETURN Nil
 
-STATIC FUNCTION SetCursClr( nCursY, nCursX, cColor, y1, x1, nLen )
+STATIC FUNCTION SetCursClr( nCursY, nCursX, cColor, y1 )
 
-   LOCAL nY1, nX1
+   LOCAL x1 := nAddrDigits + 2, nY1, nX1
 
    nY1 := y1 + nCursY - 1
-   nX1 := x1 + (nCursX-1) * 3 + Iif( nLen == HEXBYTES .AND. nCursX > HEXBYTES/2, 3, 1 )
+   nX1 := x1 + (nCursX-1) * 3 + Iif( nBytesLine == HEXBYTES .AND. nCursX > HEXBYTES/2, 3, 1 )
 
    _ChangeClr( nY1, nX1, cColor )
    _ChangeClr( nY1, nX1+1, cColor )
 
-   nX1 := x1 + nLen * 3 + nCursX + Iif( nLen == HEXBYTES, 3, 1 )
+   nX1 := x1 + nBytesLine * 3 + nCursX + Iif( nBytesLine == HEXBYTES, 3, 1 )
    _ChangeClr( nY1, nX1, cColor )
 
    RETURN Nil
+
+STATIC FUNCTION EditByte( handle, nCursY, nCursX, nOffset )
+
+   LOCAL nBytePos := nOffset + ( nCursY-1 ) * nBytesLine + nCursX - 1
+   LOCAL cByte, cByteHex, cByteNew, nByte
+   LOCAL x1 := Int( MaxCol()/2 ) - 7
+
+   hb_vfSeek( handle, nBytePos )
+   cByte := hb_vfReadLen( handle, 1 )
+   cByteHex := hb_NumToHex( Asc(cByte) )
+
+   cByteNew := Trim( edi_MsgGet( "Edit byte",, x1, x1+14,, cByteHex ) )
+   IF !Empty( cByteNew )
+      nByte := hb_HexToNum( cByteNew )
+      IF nByte == 0 .AND. !( cByteNew == "00" )
+         edi_Alert( _I("Wrong value") )
+         RETURN .F.
+      ENDIF
+
+      hb_vfSeek( handle, nBytePos )
+      hb_vfWrite( handle, Chr(nByte), 1 )
+      RETURN .T.
+   ENDIF
+
+   RETURN .F.
 
 STATIC FUNCTION Draw( arr, nFirst, x1, y1, x2, y2 )
 
