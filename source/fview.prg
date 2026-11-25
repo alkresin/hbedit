@@ -408,7 +408,7 @@ STATIC FUNCTION _getByte( cInitValue )
    LOCAL x1 := Int( MaxCol()/2 ) - 12, x2 := x1 + 24, y1 := Int( MaxRow()/2 ) - 1, y2 := y1 + 7
    LOCAL aGets, cpold, nRes, cByte
 
-   aGets := { {y1,x1+3, 11, " Edit byte "}, { y1+1,x1+9, 0, cInitValue, 2,,,"XX" }, ;
+   aGets := { {y1+1,x1+2, 11, "Edit byte:"}, { y1+1,x1+13, 0, cInitValue, 2,,,"XX" }, ;
    {y1+3,x1+2, 11, "File will be updated",,clr1,clr2}, ;
    {y1+4,x1+2, 11, "immedeately!",,clr1,clr2}, ;
    {y1+6,x1+2,2,_I("[Save]"),10,clr1,clr2,{||__KeyBoard(Chr(K_ENTER))}}, ;
