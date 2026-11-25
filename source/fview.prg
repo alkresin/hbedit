@@ -401,23 +401,61 @@ STATIC FUNCTION SetCursClr( nCursY, nCursX, cColor, y1 )
 
    RETURN Nil
 
+STATIC FUNCTION _getByte( cInitValue )
+
+   LOCAL clr1 := TEdit():cColorSel, clr2 := TEdit():cColorMenu
+   LOCAL xRes := "", cBuf, oldc := SetColor( clr1 + "," + clr2 )
+   LOCAL x1 := Int( MaxCol()/2 ) - 12, x2 := x1 + 24, y1 := Int( MaxRow()/2 ) - 1, y2 := y1 + 7
+   LOCAL aGets, cpold, nRes, cByte
+
+   aGets := { {y1,x1+3, 11, " Edit byte "}, { y1+1,x1+9, 0, cInitValue, 2,,,"XX" }, ;
+   {y1+3,x1+2, 11, "File will be updated",,clr1,clr2}, ;
+   {y1+4,x1+2, 11, "immedeately!",,clr1,clr2}, ;
+   {y1+6,x1+2,2,_I("[Save]"),10,clr1,clr2,{||__KeyBoard(Chr(K_ENTER))}}, ;
+   {y1+6,x2-10,2,_I("[Cancel]"),10,clr1,clr2,{||__KeyBoard(Chr(K_ESC))}} }
+
+   cBuf := Savescreen( y1, x1, y2, x2 )
+   cpOld := hb_cdpSelect( "RU866" )
+   @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
+   @ y1+2, x1 SAY "Ã"
+   @ y1+2, x2 SAY "´"
+   @ y1+2, x1+1 TO y1+2, x2-1
+   @ y1+5, x1 SAY "Ã"
+   @ y1+5, x2 SAY "´"
+   @ y1+5, x1+1 TO y1+5, x2-1
+   hb_cdpSelect( cpold )
+
+   DO WHILE .T.
+      __keyboard( Chr(K_INS) )
+      IF ( nRes := edi_READ( aGets ) ) <= 0
+         EXIT
+      ENDIF
+      cByte := aGets[2,4]
+      IF hb_HexToNum( cByte ) > 0 .OR. cByte == "00"
+         EXIT
+      ENDIF
+   ENDDO
+   IF nRes > 0
+      xRes := cByte
+   ENDIF
+
+   SetColor( oldc )
+   Restscreen( y1, x1, y2, x2, cBuf )
+
+   RETURN xRes
+
 STATIC FUNCTION EditByte( handle, nCursY, nCursX, nOffset )
 
    LOCAL nBytePos := nOffset + ( nCursY-1 ) * nBytesLine + nCursX - 1
    LOCAL cByte, cByteHex, cByteNew, nByte
-   LOCAL x1 := Int( MaxCol()/2 ) - 7
 
    hb_vfSeek( handle, nBytePos )
    cByte := hb_vfReadLen( handle, 1 )
-   cByteHex := hb_NumToHex( Asc(cByte) )
+   cByteHex := hb_NumToHex( Asc(cByte), 2 )
 
-   cByteNew := Trim( edi_MsgGet( "Edit byte",, x1, x1+14,, cByteHex ) )
+   cByteNew := Trim( _getByte( cByteHex ) )
    IF !Empty( cByteNew )
       nByte := hb_HexToNum( cByteNew )
-      IF nByte == 0 .AND. !( cByteNew == "00" )
-         edi_Alert( _I("Wrong value") )
-         RETURN .F.
-      ENDIF
 
       hb_vfSeek( handle, nBytePos )
       hb_vfWrite( handle, Chr(nByte), 1 )
