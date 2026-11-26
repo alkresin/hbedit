@@ -17,7 +17,7 @@ msgstr "Полный"
 msgid "Version 'From'"
 msgstr "Версия 'Откуда'"
 
-#: ../source/fdiff.prg:330 ../source/fedit.prg:3824
+#: ../source/fdiff.prg:330 ../source/fedit.prg:3817
 #, c-format
 msgid "Next"
 msgstr "Следующий"
@@ -32,7 +32,7 @@ msgstr "Нажмите любую клавишу..."
 msgid "Differences:"
 msgstr "Различия"
 
-#: ../source/fdiff.prg:331 ../source/fedit.prg:3824
+#: ../source/fdiff.prg:331 ../source/fedit.prg:3817
 #, c-format
 msgid "Previous"
 msgstr "Предыдущий"
@@ -52,92 +52,97 @@ msgstr "Перейти на текст"
 msgid "this help screen"
 msgstr "этот экран помощи"
 
-#: ../source/fedit.prg:3824
-#, c-format
-msgid "Search"
-msgstr "Поиск"
-
-#: ../source/fedit.prg:463
-#, c-format
-msgid "GoTo"
-msgstr "Перейти"
-
-#: ../source/fedit.prg:2142 ../source/fedit.prg:3275
-#, c-format
-msgid "Save"
-msgstr "Сохранить"
-
-#: ../source/fedit.prg:461
-#, c-format
-msgid "There are child windows.;Close anyway?"
-msgstr "Остались дочерние окна. Все равно закрыть?"
-
-#: ../source/fedit.prg:461 ../source/fedit.prg:3357 ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592 ../source/hbcommander.prg:4345
-#, c-format
-msgid "Yes"
-msgstr "Да"
-
-#: ../source/fedit.prg:461 ../source/fedit.prg:3357 ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592 ../source/hbcommander.prg:4345
+#: ../source/fedit.prg:461 ../source/fedit.prg:3350 ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592 ../source/hbcommander.prg:4345
 #, c-format
 msgid "No"
 msgstr "Нет"
 
 #: ../source/fedit.prg:463
 #, c-format
+msgid "GoTo"
+msgstr "Перейти"
+
+#: ../source/fedit.prg:3817
+#, c-format
+msgid "Search"
+msgstr "Поиск"
+
+#: ../source/fedit.prg:2142 ../source/fedit.prg:3268
+#, c-format
+msgid "Save"
+msgstr "Сохранить"
+
+#: ../source/fedit.prg:461 ../source/fedit.prg:3350 ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592 ../source/hbcommander.prg:4345
+#, c-format
+msgid "Yes"
+msgstr "Да"
+
+#: ../source/fedit.prg:463
+#, c-format
 msgid "Close anyway"
 msgstr "Все равно закрыть"
+
+#: ../source/fedit.prg:461
+#, c-format
+msgid "There are child windows.;Close anyway?"
+msgstr "Остались дочерние окна. Все равно закрыть?"
 
 #: ../source/fedit.prg:463
 #, c-format
 msgid "Some files are updated"
 msgstr "Некоторые файлы изменены"
 
-#: ../source/fedit.prg:463 ../source/fedit.prg:2142 ../source/fedit.prg:3357
+#: ../source/fedit.prg:463 ../source/fedit.prg:2142 ../source/fedit.prg:3350
 #, c-format
 msgid "Cancel"
 msgstr "Отмена"
 
-#: ../source/fedit.prg:4086 ../source/hbcommander.prg:2087 ../source/hbcommander.prg:3347 ../source/hbcommander.prg:3433 ../source/hbcommander.prg:3622
-#, c-format
-msgid "[Ok]"
-msgstr ""
-
-#: ../source/fedit.prg:3707
+#: ../source/fedit.prg:3700
 #, c-format
 msgid "Diff"
 msgstr ""
 
-#: ../source/fedit.prg:3704
+#: ../source/fedit.prg:3697
 #, c-format
 msgid "In a current window"
 msgstr "В текущем окне"
 
-#: ../source/fedit.prg:3703
+#: ../source/fedit.prg:4137
 #, c-format
-msgid "Readonly"
-msgstr ""
+msgid "Sorting"
+msgstr "Сортировка"
 
-#: ../source/fedit.prg:4170
+#: ../source/fedit.prg:3946
 #, c-format
-msgid "Columns"
-msgstr "Колонки"
+msgid "Replace with"
+msgstr "Заменить на"
 
-#: ../source/fedit.prg:3715
+#: ../source/fedit.prg:3708
 #, c-format
 msgid "Diff tool not found"
 msgstr ""
 
-#: ../source/fedit.prg:3656
+#: ../source/fedit.prg:3696
 #, c-format
-msgid "File not found"
-msgstr "Файл не найден"
+msgid "Readonly"
+msgstr ""
+
+#: ../source/fedit.prg:3849 ../source/fedit.prg:3950 ../source/hbcommander.prg:3102
+#, c-format
+msgid "Regular expr."
+msgstr "Регулярное"
+
+#: ../source/fedit.prg:3848 ../source/fedit.prg:3949 ../source/hbcommander.prg:3103
+#, c-format
+msgid "Whole word"
+msgstr "Целое слово"
 
 #: ../source/fedit.prg:1051
 #, c-format
 msgid "Set file name"
 msgstr "Имя файла"
 
-#: ../source/fedit.prg:3275
+#: ../source/fedit.prg:3268
 #, c-format
 msgid "View"
 msgstr "Просмотр"
@@ -147,297 +152,287 @@ msgstr "Просмотр"
 msgid "menu"
 msgstr "меню"
 
+#: ../source/fedit.prg:3547
+#, c-format
+msgid "Vertical block"
+msgstr "Вертикальный блок"
+
 #: ../source/fedit.prg:2142
 #, c-format
 msgid "File was modified by other program!"
 msgstr "Файл был изменен другой программой!"
 
-#: ../source/fedit.prg:4247
-#, c-format
-msgid "Descending"
-msgstr "Убывание"
-
-#: ../source/fedit.prg:3554
-#, c-format
-msgid "Mark block"
-msgstr "Пометить блок"
-
-#: ../source/fedit.prg:3614
-#, c-format
-msgid "New file"
-msgstr "Новый файл"
-
-#: ../source/fedit.prg:4203
-#, c-format
-msgid "Input"
-msgstr "Ввод"
-
-#: ../source/fedit.prg:3824 ../source/fedit.prg:4069
-#, c-format
-msgid "Replace"
-msgstr "Заменить"
-
-#: ../source/fedit.prg:3554
-#, c-format
-msgid "Vertical block"
-msgstr "Вертикальный блок"
-
-#: ../source/fedit.prg:4086
-#, c-format
-msgid "Go to position"
-msgstr "Перейти на позицию"
-
-#: ../source/fedit.prg:3278
-#, c-format
-msgid "File Manager"
-msgstr "Файловый менеджер"
-
-#: ../source/fedit.prg:3275 ../source/hbcommander.prg:1851
-#, c-format
-msgid "Exit"
-msgstr "Выход"
-
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Save as"
-msgstr "Сохранить как"
-
-#: ../source/fedit.prg:3275 ../source/fedit.prg:3614 ../source/fedit.prg:3702
-#, c-format
-msgid "Open file"
-msgstr "Открыть файл"
-
-#: ../source/fedit.prg:4140
+#: ../source/fedit.prg:4133
 #, c-format
 msgid "Insert left"
 msgstr "Вставить слева"
 
-#: ../source/fedit.prg:3275
+#: ../source/fedit.prg:4196
 #, c-format
-msgid "Selection"
-msgstr "Выделение"
+msgid "Input"
+msgstr "Ввод"
 
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Search&GoTo"
-msgstr "Поиск"
-
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Codepage"
-msgstr "Кодовая страница"
-
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Palette"
-msgstr "Палитра"
-
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Syntax"
-msgstr "Синтаксис"
-
-#: ../source/fedit.prg:3275 ../source/hbcommander.prg:1851 ../source/hbcommander.prg:1851
-#, c-format
-msgid "Plugins"
-msgstr "Плагины"
-
-#: ../source/fedit.prg:3275
-#, c-format
-msgid "Windows"
-msgstr "Окна"
-
-#: ../source/fedit.prg:3275 ../source/hbcommander.prg:1851
-#, c-format
-msgid "Buffers"
-msgstr "Буферы"
-
-#: ../source/fedit.prg:3824
-#, c-format
-msgid "Go to"
-msgstr "Перейти на"
-
-#: ../source/fedit.prg:3824
-#, c-format
-msgid "Back"
-msgstr "Предыдущий"
-
-#: ../source/fedit.prg:4140
-#, c-format
-msgid "Indent right"
-msgstr "Выровнять вправо"
-
-#: ../source/fedit.prg:3856 ../source/fedit.prg:3957 ../source/hbcommander.prg:3102
-#, c-format
-msgid "Regular expr."
-msgstr "Регулярное"
-
-#: ../source/fedit.prg:3852 ../source/fedit.prg:3952 ../source/hbcommander.prg:3100
-#, c-format
-msgid "Search for"
-msgstr "Искать"
-
-#: ../source/fedit.prg:4049
-#, c-format
-msgid "[All]"
-msgstr "[Все]"
-
-#: ../source/fedit.prg:3880 ../source/fedit.prg:3923
-#, c-format
-msgid "String is not found"
-msgstr "Строка не найдена"
-
-#: ../source/fedit.prg:4140
-#, c-format
-msgid "UPPER CASE"
-msgstr "ВЕРХНИЙ РЕГИСТР"
-
-#: ../source/fedit.prg:4070
-#, c-format
-msgid "With"
-msgstr "На"
-
-#: ../source/fedit.prg:3357
-#, c-format
-msgid "File has been modified. Save?"
-msgstr "Файл был изменен. Сохранить?"
-
-#: ../source/fedit.prg:4724
-#, c-format
-msgid "in directory"
-msgstr " в каталоге"
-
-#: ../source/fedit.prg:3444
-#, c-format
-msgid "Switch window"
-msgstr "Переключить окно"
-
-#: ../source/fedit.prg:3444
-#, c-format
-msgid "To full size"
-msgstr "В полный размер"
-
-#: ../source/fedit.prg:3444 ../source/hbcommander.prg:3750
-#, c-format
-msgid "Close"
-msgstr "Закрыть"
-
-#: ../source/fedit.prg:3444
-#, c-format
-msgid "Add window horizontally"
-msgstr "Добавить окно по горизонтали"
-
-#: ../source/fedit.prg:3444
-#, c-format
-msgid "Add window vertically"
-msgstr "Добавить окно по вертикали"
-
-#: ../source/fedit.prg:3534
-#, c-format
-msgid "Wrap"
-msgstr ""
-
-#: ../source/fedit.prg:3534
-#, c-format
-msgid "Autocomplete"
-msgstr "Автозавершение"
-
-#: ../source/fedit.prg:3534
-#, c-format
-msgid "Autovertical"
-msgstr ""
-
-#: ../source/fedit.prg:3534
-#, c-format
-msgid "Autoindent"
-msgstr "Автоотступ"
-
-#: ../source/fedit.prg:4247
+#: ../source/fedit.prg:4240
 #, c-format
 msgid "Ascending"
 msgstr "Возрастание"
 
-#: ../source/fedit.prg:4140
+#: ../source/fedit.prg:4163
 #, c-format
-msgid "Indent left"
-msgstr "Выровнять влево"
+msgid "Columns"
+msgstr "Колонки"
 
-#: ../source/fedit.prg:4144
+#: ../source/fedit.prg:4079 ../source/hbcommander.prg:2087 ../source/hbcommander.prg:3347 ../source/hbcommander.prg:3433 ../source/hbcommander.prg:3622
 #, c-format
-msgid "Sorting"
-msgstr "Сортировка"
+msgid "[Ok]"
+msgstr ""
 
-#: ../source/fedit.prg:3689
+#: ../source/fedit.prg:3607
 #, c-format
-msgid "[Open]"
-msgstr "[Открыть]"
+msgid "New file"
+msgstr "Новый файл"
 
-#: ../source/fedit.prg:3689 ../source/fedit.prg:3841 ../source/fedit.prg:3941 ../source/fedit.prg:4049 ../source/fedit.prg:4086 ../source/fedit.prg:4727 ../source/hbcommander.prg:2087 ../source/hbcommander.prg:3058 ../source/hbcommander.prg:3347 ../source/hbcommander.prg:3433 ../source/hbcommander.prg:3623
+#: ../source/fedit.prg:3271
 #, c-format
-msgid "[Cancel]"
-msgstr "[Отмена]"
+msgid "File Manager"
+msgstr "Файловый менеджер"
 
-#: ../source/fedit.prg:4140
+#: ../source/fedit.prg:3268 ../source/hbcommander.prg:1851
 #, c-format
-msgid "lower case"
-msgstr "нижний регистр"
+msgid "Exit"
+msgstr "Выход"
 
-#: ../source/fedit.prg:3855 ../source/fedit.prg:3956 ../source/hbcommander.prg:3103
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "Whole word"
-msgstr "Целое слово"
+msgid "Save as"
+msgstr "Сохранить как"
 
-#: ../source/fedit.prg:3854 ../source/fedit.prg:3955
+#: ../source/fedit.prg:3268 ../source/fedit.prg:3607 ../source/fedit.prg:3695
 #, c-format
-msgid "Backward"
-msgstr "Назад"
+msgid "Open file"
+msgstr "Открыть файл"
 
-#: ../source/fedit.prg:3841 ../source/hbcommander.prg:3058
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "[Search]"
-msgstr "[Искать]"
+msgid "Selection"
+msgstr "Выделение"
 
-#: ../source/fedit.prg:3853 ../source/fedit.prg:3954 ../source/hbcommander.prg:3101
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "Case sensitive"
-msgstr "Учитывать регистр"
+msgid "Search&GoTo"
+msgstr "Поиск"
 
-#: ../source/fedit.prg:4008
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "String is not found"
-msgstr "Строка не найдена"
+msgid "Codepage"
+msgstr "Кодовая страница"
 
-#: ../source/fedit.prg:4140
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "Insert right"
-msgstr "Вставить справа"
+msgid "Palette"
+msgstr "Палитра"
 
-#: ../source/fedit.prg:3953
+#: ../source/fedit.prg:3268
 #, c-format
-msgid "Replace with"
-msgstr "Заменить на"
+msgid "Syntax"
+msgstr "Синтаксис"
 
-#: ../source/fedit.prg:4049
+#: ../source/fedit.prg:3268 ../source/hbcommander.prg:1851 ../source/hbcommander.prg:1851
+#, c-format
+msgid "Plugins"
+msgstr "Плагины"
+
+#: ../source/fedit.prg:3268
+#, c-format
+msgid "Windows"
+msgstr "Окна"
+
+#: ../source/fedit.prg:3268 ../source/hbcommander.prg:1851
+#, c-format
+msgid "Buffers"
+msgstr "Буферы"
+
+#: ../source/fedit.prg:3547
+#, c-format
+msgid "Mark block"
+msgstr "Пометить блок"
+
+#: ../source/fedit.prg:4042
+#, c-format
+msgid "[All]"
+msgstr "[Все]"
+
+#: ../source/fedit.prg:4042
 #, c-format
 msgid "[Skip]"
 msgstr "[Пропустить]"
 
-#: ../source/fedit.prg:3941 ../source/fedit.prg:4049
+#: ../source/fedit.prg:3817
+#, c-format
+msgid "Go to"
+msgstr "Перейти на"
+
+#: ../source/fedit.prg:3817 ../source/fedit.prg:4062
+#, c-format
+msgid "Replace"
+msgstr "Заменить"
+
+#: ../source/fedit.prg:3846 ../source/fedit.prg:3947 ../source/hbcommander.prg:3101
+#, c-format
+msgid "Case sensitive"
+msgstr "Учитывать регистр"
+
+#: ../source/fedit.prg:3845 ../source/fedit.prg:3945 ../source/hbcommander.prg:3100
+#, c-format
+msgid "Search for"
+msgstr "Искать"
+
+#: ../source/fedit.prg:3350
+#, c-format
+msgid "File has been modified. Save?"
+msgstr "Файл был изменен. Сохранить?"
+
+#: ../source/fedit.prg:4063
+#, c-format
+msgid "With"
+msgstr "На"
+
+#: ../source/fedit.prg:3437
+#, c-format
+msgid "Switch window"
+msgstr "Переключить окно"
+
+#: ../source/fedit.prg:3437
+#, c-format
+msgid "To full size"
+msgstr "В полный размер"
+
+#: ../source/fedit.prg:3437 ../source/hbcommander.prg:3750
+#, c-format
+msgid "Close"
+msgstr "Закрыть"
+
+#: ../source/fedit.prg:3437
+#, c-format
+msgid "Add window horizontally"
+msgstr "Добавить окно по горизонтали"
+
+#: ../source/fedit.prg:3437
+#, c-format
+msgid "Add window vertically"
+msgstr "Добавить окно по вертикали"
+
+#: ../source/fedit.prg:3817
+#, c-format
+msgid "Back"
+msgstr "Предыдущий"
+
+#: ../source/fedit.prg:3649
+#, c-format
+msgid "File not found"
+msgstr "Файл не найден"
+
+#: ../source/fedit.prg:3527
+#, c-format
+msgid "Wrap"
+msgstr ""
+
+#: ../source/fedit.prg:3527
+#, c-format
+msgid "Autocomplete"
+msgstr "Автозавершение"
+
+#: ../source/fedit.prg:3527
+#, c-format
+msgid "Autovertical"
+msgstr ""
+
+#: ../source/fedit.prg:3527
+#, c-format
+msgid "Autoindent"
+msgstr "Автоотступ"
+
+#: ../source/fedit.prg:3873 ../source/fedit.prg:3916 ../source/fedit.prg:4001
+#, c-format
+msgid "String is not found"
+msgstr "Строка не найдена"
+
+#: ../source/fedit.prg:4079
+#, c-format
+msgid "Go to position"
+msgstr "Перейти на позицию"
+
+#: ../source/fedit.prg:3682
+#, c-format
+msgid "[Open]"
+msgstr "[Открыть]"
+
+#: ../source/fedit.prg:3682 ../source/fedit.prg:3834 ../source/fedit.prg:3934 ../source/fedit.prg:4042 ../source/fedit.prg:4079 ../source/fedit.prg:4720 ../source/fview.prg:415 ../source/hbcommander.prg:2087 ../source/hbcommander.prg:3058 ../source/hbcommander.prg:3347 ../source/hbcommander.prg:3433 ../source/hbcommander.prg:3623
+#, c-format
+msgid "[Cancel]"
+msgstr "[Отмена]"
+
+#: ../source/fedit.prg:3847 ../source/fedit.prg:3948
+#, c-format
+msgid "Backward"
+msgstr "Назад"
+
+#: ../source/fedit.prg:3834 ../source/hbcommander.prg:3058
+#, c-format
+msgid "[Search]"
+msgstr "[Искать]"
+
+#: ../source/fedit.prg:4133
+#, c-format
+msgid "Insert right"
+msgstr "Вставить справа"
+
+#: ../source/fedit.prg:4240
+#, c-format
+msgid "Descending"
+msgstr "Убывание"
+
+#: ../source/fedit.prg:4133
+#, c-format
+msgid "lower case"
+msgstr "нижний регистр"
+
+#: ../source/fedit.prg:4133
+#, c-format
+msgid "Indent left"
+msgstr "Выровнять влево"
+
+#: ../source/fedit.prg:4717
+#, c-format
+msgid "in directory"
+msgstr " в каталоге"
+
+#: ../source/fedit.prg:3934 ../source/fedit.prg:4042
 #, c-format
 msgid "[Replace]"
 msgstr "[Заменить]"
 
-#: ../source/fedit.prg:4726
+#: ../source/fedit.prg:4133
+#, c-format
+msgid "UPPER CASE"
+msgstr "ВЕРХНИЙ РЕГИСТР"
+
+#: ../source/fedit.prg:4133
+#, c-format
+msgid "Indent right"
+msgstr "Выровнять вправо"
+
+#: ../source/fedit.prg:4719 ../source/fview.prg:415
 #, c-format
 msgid "[Save]"
 msgstr "[Сохранить]"
 
-#: ../source/fedit.prg:4730
+#: ../source/fedit.prg:4723
 #, c-format
 msgid "Add BOM"
 msgstr "Добавить BOM"
 
-#: ../source/fedit.prg:4723
+#: ../source/fedit.prg:4716
 #, c-format
 msgid "Save file as"
 msgstr "Сохранить файл как"
@@ -447,15 +442,30 @@ msgstr "Сохранить файл как"
 msgid "Wait"
 msgstr "Ждите"
 
-#: ../source/fview.prg:38 ../source/fview.prg:156
+#: ../source/fview.prg:415
+#, c-format
+msgid "File will be updated"
+msgstr "Файл будет изменен"
+
+#: ../source/fview.prg:415
+#, c-format
+msgid "Edit byte:"
+msgstr "Ред. байт:"
+
+#: ../source/fview.prg:33 ../source/fview.prg:239
 #, c-format
 msgid "Can't open"
 msgstr "Не могу открыть"
 
-#: ../source/hbcommander.prg:2285 ../source/hbcommander.prg:2353 ../source/hbcommander.prg:2480 ../source/hbcommander.prg:2555 ../source/hbcommander.prg:3383 ../source/hbcommander.prg:3410 ../source/hbcommander.prg:3484 ../source/hbcommander.prg:3493
+#: ../source/fview.prg:415
 #, c-format
-msgid "Done"
-msgstr "Готово"
+msgid "immedeately!"
+msgstr "сразу!"
+
+#: ../source/hbcommander.prg:2510 ../source/hbcommander.prg:2548 ../source/hbcommander.prg:2577
+#, c-format
+msgid "Error deleting"
+msgstr "Ошибка удаления"
 
 #: ../source/hbcommander.prg:611 ../source/hbcommander.prg:625 ../source/hbcommander.prg:2140
 #, c-format
@@ -472,35 +482,35 @@ msgstr "Установить закладку"
 msgid "Go to Bookmark"
 msgstr "Перейти на закладку"
 
-#: ../source/hbcommander.prg:3645
-#, c-format
-msgid "Write by group"
-msgstr "Запись для группы"
-
-#: ../source/hbcommander.prg:3642
-#, c-format
-msgid "Write by owner"
-msgstr "Запись для владельца"
-
-#: ../source/hbcommander.prg:3275
-#, c-format
-msgid "Nothing found"
-msgstr "Не найдено"
-
-#: ../source/hbcommander.prg:3684
-#, c-format
-msgid "Can't set attributes"
-msgstr "Не удалось установить аттрибуты"
-
-#: ../source/hbcommander.prg:3647
-#, c-format
-msgid "Read by others"
-msgstr "Чтение для других"
-
 #: ../source/hbcommander.prg:1851
 #, c-format
 msgid "Refresh"
 msgstr "Перечитать"
+
+#: ../source/hbcommander.prg:2458
+#, c-format
+msgid "Move selected files to"
+msgstr "Переместить отмеченные файлы в"
+
+#: ../source/hbcommander.prg:1303
+#, c-format
+msgid "Set new path"
+msgstr "Установить путь"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "Change dir"
+msgstr "Другой каталог"
+
+#: ../source/hbcommander.prg:3347
+#, c-format
+msgid "Create archive"
+msgstr "Создать архив"
+
+#: ../source/hbcommander.prg:3639
+#, c-format
+msgid "Set group ID on execution"
+msgstr "Присвоить GID при выполнении"
 
 #: ../source/hbcommander.prg:2049
 #, c-format
@@ -512,365 +522,65 @@ msgstr "Больше не спрашивать"
 msgid "Existing"
 msgstr "Старый"
 
-#: ../source/hbcommander.prg:1907 ../source/hbcommander.prg:2248
+#: ../source/hbcommander.prg:3640
 #, c-format
-msgid "Copy"
-msgstr "Копировать"
-
-#: ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592
-#, c-format
-msgid "Really delete"
-msgstr "Удалить"
-
-#: ../source/hbcommander.prg:3099
-#, c-format
-msgid "File mask"
-msgstr "Маска файла"
+msgid "Sticky bit"
+msgstr ""
 
 #: ../source/hbcommander.prg:2023
 #, c-format
 msgid "copied"
 msgstr "скопировано"
 
-#: ../source/hbcommander.prg:3347
+#: ../source/hbcommander.prg:4345
 #, c-format
-msgid "Create archive"
-msgstr "Создать архив"
-
-#: ../source/hbcommander.prg:2621
-#, c-format
-msgid "Create new directory"
-msgstr "Создать новый каталог"
-
-#: ../source/hbcommander.prg:2049
-#, c-format
-msgid "[Yes]"
-msgstr "[Да]"
-
-#: ../source/hbcommander.prg:2049
-#, c-format
-msgid "[No]"
-msgstr "[Нет]"
-
-#: ../source/hbcommander.prg:2353 ../source/hbcommander.prg:2480
-#, c-format
-msgid "Aborted"
-msgstr "Прервано"
-
-#: ../source/hbcommander.prg:2049
-#, c-format
-msgid "exists already! Overwrite it?"
-msgstr "уже существует! Переписать?"
-
-#: ../source/hbcommander.prg:3433
-#, c-format
-msgid "Extract files to"
-msgstr "Извлечь файлы в"
-
-#: ../source/hbcommander.prg:3635
-#, c-format
-msgid "Attributes"
-msgstr "Атрибуты"
-
-#: ../source/hbcommander.prg:2555
-#, c-format
-msgid "files deleted"
-msgstr "файлов удалено"
-
-#: ../source/hbcommander.prg:3636
-#, c-format
-msgid "for"
-msgstr "для"
-
-#: ../source/hbcommander.prg:2275 ../source/hbcommander.prg:2640
-#, c-format
-msgid "Error creating"
-msgstr "Ошибка создания"
-
-#: ../source/hbcommander.prg:2248 ../source/hbcommander.prg:2381
-#, c-format
-msgid "to"
-msgstr "в"
-
-#: ../source/hbcommander.prg:2849
-#, c-format
-msgid "Sort by date"
-msgstr "Упорядочить по дате"
-
-#: ../source/hbcommander.prg:2870
-#, c-format
-msgid "Editing"
-msgstr "Редактирования"
-
-#: ../source/hbcommander.prg:2874
-#, c-format
-msgid "Documents"
-msgstr "Документов"
-
-#: ../source/hbcommander.prg:2870
-#, c-format
-msgid "Commands"
-msgstr "Команд"
-
-#: ../source/hbcommander.prg:3484
-#, c-format
-msgid "files unzipped"
-msgstr "файлов разархивировано"
-
-#: ../source/hbcommander.prg:2844
-#, c-format
-msgid "Mode"
-msgstr "Режим"
-
-#: ../source/hbcommander.prg:3609
-#, c-format
-msgid "Can't read attributes"
-msgstr "Не удалось прочесть атрибуты"
-
-#: ../source/hbcommander.prg:3638
-#, c-format
-msgid "Set user ID on execution"
-msgstr "Присвоить UID при выполнении"
-
-#: ../source/hbcommander.prg:3643
-#, c-format
-msgid "Execute/search by owner"
-msgstr "Запуск/поиск для владельца"
-
-#: ../source/hbcommander.prg:2849
-#, c-format
-msgid "Sort by name"
-msgstr "Упорядочить по имени"
-
-#: ../source/hbcommander.prg:3860
-#, c-format
-msgid "Help"
-msgstr "Помощь"
-
-#: ../source/hbcommander.prg:3750
-#, c-format
-msgid "Set autocompletion"
-msgstr "Автодополнение"
-
-#: ../source/hbcommander.prg:3129 ../source/hbcommander.prg:3137
-#, c-format
-msgid "Wrong date"
-msgstr "Неверная дата"
-
-#: ../source/hbcommander.prg:3648
-#, c-format
-msgid "Write by others"
-msgstr "Запись для других"
-
-#: ../source/hbcommander.prg:4667
-#, c-format
-msgid "Run in external window"
-msgstr "Запустить в другом окне"
-
-#: ../source/hbcommander.prg:3942
-#, c-format
-msgid "Input text"
-msgstr "Введите текст"
-
-#: ../source/hbcommander.prg:1913 ../source/hbcommander.prg:2540
-#, c-format
-msgid "Delete"
-msgstr "Удалить"
-
-#: ../source/hbcommander.prg:1303
-#, c-format
-msgid "Set new path"
-msgstr "Установить путь"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "Find file"
-msgstr "Найти файл"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "Apps"
-msgstr "Программы"
-
-#: ../source/hbcommander.prg:2480
-#, c-format
-msgid "files moved"
-msgstr "файлов перемещено"
-
-#: ../source/hbcommander.prg:2185
-#, c-format
-msgid "Error copying"
-msgstr "Ошибка копирования"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "Console"
-msgstr "Консоль"
-
-#: ../source/hbcommander.prg:1421
-#, c-format
-msgid "Password"
-msgstr "Пароль"
-
-#: ../source/hbcommander.prg:2285 ../source/hbcommander.prg:2353
-#, c-format
-msgid "files copied"
-msgstr "файлов скопировано"
-
-#: ../source/hbcommander.prg:1910 ../source/hbcommander.prg:2381
-#, c-format
-msgid "Rename"
-msgstr "Переименовать"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "History"
-msgstr "История"
-
-#: ../source/hbcommander.prg:1693
-#, c-format
-msgid "Not available"
-msgstr "Недоступен"
-
-#: ../source/hbcommander.prg:3649
-#, c-format
-msgid "Execute/search by others"
-msgstr "Запуск/поиск для других"
-
-#: ../source/hbcommander.prg:3650
-#, c-format
-msgid "Owner"
-msgstr "Владелец"
-
-#: ../source/hbcommander.prg:2023
-#, c-format
-msgid "[Abort]"
-msgstr "[Прервать]"
-
-#: ../source/hbcommander.prg:2458
-#, c-format
-msgid "Move selected files to"
-msgstr "Переместить отмеченные файлы в"
-
-#: ../source/hbcommander.prg:2023
-#, c-format
-msgid "[Continue]"
-msgstr "[Продолжить]"
-
-#: ../source/hbcommander.prg:2335
-#, c-format
-msgid "Copy seleted files to"
-msgstr "Копировать выбранные файлы в"
-
-#: ../source/hbcommander.prg:1827
-#, c-format
-msgid "Search results"
-msgstr "Результаты поиска"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "Change dir"
-msgstr "Другой каталог"
+msgid "Send to app"
+msgstr ""
 
 #: ../source/hbcommander.prg:2459
 #, c-format
 msgid "Move"
 msgstr "Перемещение"
 
-#: ../source/hbcommander.prg:1798
+#: ../source/hbcommander.prg:3636
 #, c-format
-msgid "Selected"
-msgstr "Отмеченные"
-
-#: ../source/hbcommander.prg:2397
-#, c-format
-msgid "Such a file exists already!"
-msgstr "Такой файл уже существует!"
-
-#: ../source/hbcommander.prg:1854 ../source/hbcommander.prg:3750
-#, c-format
-msgid "Stdout window"
-msgstr "Окно Stdout"
-
-#: ../source/hbcommander.prg:1851
-#, c-format
-msgid "Pane mode"
-msgstr "Режим панели"
-
-#: ../source/hbcommander.prg:2592
-#, c-format
-msgid "files"
-msgstr "файлы"
-
-#: ../source/hbcommander.prg:2510 ../source/hbcommander.prg:2548 ../source/hbcommander.prg:2577
-#, c-format
-msgid "Error deleting"
-msgstr "Ошибка удаления"
+msgid "for"
+msgstr "для"
 
 #: ../source/hbcommander.prg:2049
 #, c-format
-msgid "New"
-msgstr "Новый"
-
-#: ../source/hbcommander.prg:1851 ../source/hbcommander.prg:1851
-#, c-format
-msgid "Edit"
-msgstr "Редактировать"
-
-#: ../source/hbcommander.prg:4551
-#, c-format
-msgid "Login:"
-msgstr "Логин"
-
-#: ../source/hbcommander.prg:4667
-#, c-format
-msgid "Run in terminal"
-msgstr "Запустить в терминале"
-
-#: ../source/hbcommander.prg:3646
-#, c-format
-msgid "Execute/search by group"
-msgstr "Запуск/поиск для группы"
-
-#: ../source/hbcommander.prg:3969
-#, c-format
-msgid "Can't run commands in net environment"
-msgstr "Нельзя запускать команды в этой файловой системе"
-
-#: ../source/hbcommander.prg:3639
-#, c-format
-msgid "Set group ID on execution"
-msgstr "Присвоить GID при выполнении"
+msgid "[Yes]"
+msgstr "[Да]"
 
 #: ../source/hbcommander.prg:3644
 #, c-format
 msgid "Read by group"
 msgstr "Чтение для группы"
 
-#: ../source/hbcommander.prg:4203
+#: ../source/hbcommander.prg:2248 ../source/hbcommander.prg:2381
 #, c-format
-msgid "Error starting app"
-msgstr "Не удалось запустить"
+msgid "to"
+msgstr "в"
 
-#: ../source/hbcommander.prg:3750
+#: ../source/hbcommander.prg:2049
 #, c-format
-msgid "Shell"
-msgstr ""
+msgid "[No]"
+msgstr "[Нет]"
 
-#: ../source/hbcommander.prg:3750
+#: ../source/hbcommander.prg:2285 ../source/hbcommander.prg:2353
 #, c-format
-msgid "Commands history"
-msgstr "История команд"
+msgid "files copied"
+msgstr "файлов скопировано"
 
-#: ../source/hbcommander.prg:3641
+#: ../source/hbcommander.prg:3643
 #, c-format
-msgid "Read by owner"
-msgstr "Чтение для владельца"
+msgid "Execute/search by owner"
+msgstr "Запуск/поиск для владельца"
 
-#: ../source/hbcommander.prg:3104
+#: ../source/hbcommander.prg:2049
 #, c-format
-msgid "Recursive"
-msgstr "Рекурсивно"
+msgid "exists already! Overwrite it?"
+msgstr "уже существует! Переписать?"
 
 #: ../source/hbcommander.prg:3105
 #, c-format
@@ -882,37 +592,337 @@ msgstr "Выбрать"
 msgid "Date"
 msgstr "Дата"
 
+#: ../source/hbcommander.prg:3684
+#, c-format
+msgid "Can't set attributes"
+msgstr "Не удалось установить аттрибуты"
+
+#: ../source/hbcommander.prg:3645
+#, c-format
+msgid "Write by group"
+msgstr "Запись для группы"
+
+#: ../source/hbcommander.prg:3647
+#, c-format
+msgid "Read by others"
+msgstr "Чтение для других"
+
+#: ../source/hbcommander.prg:2849
+#, c-format
+msgid "Sort by date"
+msgstr "Упорядочить по дате"
+
+#: ../source/hbcommander.prg:2870
+#, c-format
+msgid "Editing"
+msgstr "Редактирования"
+
+#: ../source/hbcommander.prg:3942
+#, c-format
+msgid "Input text"
+msgstr "Введите текст"
+
+#: ../source/hbcommander.prg:2874
+#, c-format
+msgid "Documents"
+msgstr "Документов"
+
+#: ../source/hbcommander.prg:2870
+#, c-format
+msgid "Commands"
+msgstr "Команд"
+
+#: ../source/hbcommander.prg:3129 ../source/hbcommander.prg:3137
+#, c-format
+msgid "Wrong date"
+msgstr "Неверная дата"
+
+#: ../source/hbcommander.prg:2844
+#, c-format
+msgid "Mode"
+msgstr "Режим"
+
 #: ../source/hbcommander.prg:3383 ../source/hbcommander.prg:3410
 #, c-format
 msgid "files archived"
 msgstr "файлов архивировано"
+
+#: ../source/hbcommander.prg:3104
+#, c-format
+msgid "Recursive"
+msgstr "Рекурсивно"
 
 #: ../source/hbcommander.prg:3106
 #, c-format
 msgid "To text"
 msgstr "В текст"
 
-#: ../source/hbcommander.prg:3904
+#: ../source/hbcommander.prg:3635
 #, c-format
-msgid "Terminal is busy!"
-msgstr "Терминал занят"
+msgid "Attributes"
+msgstr "Атрибуты"
+
+#: ../source/hbcommander.prg:3750
+#, c-format
+msgid "Shell"
+msgstr "Шелл"
+
+#: ../source/hbcommander.prg:3275
+#, c-format
+msgid "Nothing found"
+msgstr "Не найдено"
+
+#: ../source/hbcommander.prg:2849
+#, c-format
+msgid "Sort by name"
+msgstr "Упорядочить по имени"
+
+#: ../source/hbcommander.prg:3609
+#, c-format
+msgid "Can't read attributes"
+msgstr "Не удалось прочесть атрибуты"
+
+#: ../source/hbcommander.prg:3433
+#, c-format
+msgid "Extract files to"
+msgstr "Извлечь файлы в"
+
+#: ../source/hbcommander.prg:3649
+#, c-format
+msgid "Execute/search by others"
+msgstr "Запуск/поиск для других"
+
+#: ../source/hbcommander.prg:2353 ../source/hbcommander.prg:2480
+#, c-format
+msgid "Aborted"
+msgstr "Прервано"
+
+#: ../source/hbcommander.prg:3650
+#, c-format
+msgid "Owner"
+msgstr "Владелец"
+
+#: ../source/hbcommander.prg:3648
+#, c-format
+msgid "Write by others"
+msgstr "Запись для других"
+
+#: ../source/hbcommander.prg:1827
+#, c-format
+msgid "Search results"
+msgstr "Результаты поиска"
+
+#: ../source/hbcommander.prg:2275 ../source/hbcommander.prg:2640
+#, c-format
+msgid "Error creating"
+msgstr "Ошибка создания"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "History"
+msgstr "История"
+
+#: ../source/hbcommander.prg:2530 ../source/hbcommander.prg:2592
+#, c-format
+msgid "Really delete"
+msgstr "Удалить"
+
+#: ../source/hbcommander.prg:2335
+#, c-format
+msgid "Copy seleted files to"
+msgstr "Копировать выбранные файлы в"
+
+#: ../source/hbcommander.prg:1421
+#, c-format
+msgid "Password"
+msgstr "Пароль"
+
+#: ../source/hbcommander.prg:1913 ../source/hbcommander.prg:2540
+#, c-format
+msgid "Delete"
+msgstr "Удалить"
+
+#: ../source/hbcommander.prg:2285 ../source/hbcommander.prg:2353 ../source/hbcommander.prg:2480 ../source/hbcommander.prg:2555 ../source/hbcommander.prg:3383 ../source/hbcommander.prg:3410 ../source/hbcommander.prg:3484 ../source/hbcommander.prg:3493
+#, c-format
+msgid "Done"
+msgstr "Готово"
+
+#: ../source/hbcommander.prg:1693
+#, c-format
+msgid "Not available"
+msgstr "Недоступен"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "Find file"
+msgstr "Найти файл"
+
+#: ../source/hbcommander.prg:3646
+#, c-format
+msgid "Execute/search by group"
+msgstr "Запуск/поиск для группы"
+
+#: ../source/hbcommander.prg:2185
+#, c-format
+msgid "Error copying"
+msgstr "Ошибка копирования"
+
+#: ../source/hbcommander.prg:1907 ../source/hbcommander.prg:2248
+#, c-format
+msgid "Copy"
+msgstr "Копировать"
+
+#: ../source/hbcommander.prg:1798
+#, c-format
+msgid "Selected"
+msgstr "Отмеченные"
+
+#: ../source/hbcommander.prg:3484
+#, c-format
+msgid "files unzipped"
+msgstr "файлов разархивировано"
+
+#: ../source/hbcommander.prg:2592
+#, c-format
+msgid "files"
+msgstr "файлы"
+
+#: ../source/hbcommander.prg:2397
+#, c-format
+msgid "Such a file exists already!"
+msgstr "Такой файл уже существует!"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "Apps"
+msgstr "Программы"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "Console"
+msgstr "Консоль"
+
+#: ../source/hbcommander.prg:2023
+#, c-format
+msgid "[Continue]"
+msgstr "[Продолжить]"
+
+#: ../source/hbcommander.prg:2621
+#, c-format
+msgid "Create new directory"
+msgstr "Создать новый каталог"
+
+#: ../source/hbcommander.prg:3641
+#, c-format
+msgid "Read by owner"
+msgstr "Чтение для владельца"
+
+#: ../source/hbcommander.prg:2023
+#, c-format
+msgid "[Abort]"
+msgstr "[Прервать]"
+
+#: ../source/hbcommander.prg:1854 ../source/hbcommander.prg:3750
+#, c-format
+msgid "Stdout window"
+msgstr "Окно Stdout"
+
+#: ../source/hbcommander.prg:1910 ../source/hbcommander.prg:2381
+#, c-format
+msgid "Rename"
+msgstr "Переименовать"
+
+#: ../source/hbcommander.prg:1851
+#, c-format
+msgid "Pane mode"
+msgstr "Режим панели"
+
+#: ../source/hbcommander.prg:2480
+#, c-format
+msgid "files moved"
+msgstr "файлов перемещено"
+
+#: ../source/hbcommander.prg:2555
+#, c-format
+msgid "files deleted"
+msgstr "файлов удалено"
+
+#: ../source/hbcommander.prg:1851 ../source/hbcommander.prg:1851
+#, c-format
+msgid "Edit"
+msgstr "Редактировать"
+
+#: ../source/hbcommander.prg:2049
+#, c-format
+msgid "New"
+msgstr "Новый"
+
+#: ../source/hbcommander.prg:4667
+#, c-format
+msgid "Run in external window"
+msgstr "Запустить в другом окне"
+
+#: ../source/hbcommander.prg:4551
+#, c-format
+msgid "Passw:"
+msgstr "Пароль"
+
+#: ../source/hbcommander.prg:3099
+#, c-format
+msgid "File mask"
+msgstr "Маска файла"
+
+#: ../source/hbcommander.prg:3638
+#, c-format
+msgid "Set user ID on execution"
+msgstr "Присвоить UID при выполнении"
+
+#: ../source/hbcommander.prg:4203
+#, c-format
+msgid "Error starting app"
+msgstr "Не удалось запустить"
 
 #: ../source/hbcommander.prg:4551
 #, c-format
 msgid "Save password"
 msgstr "Сохранить пароль"
 
-#: ../source/hbcommander.prg:4345
+#: ../source/hbcommander.prg:3750
 #, c-format
-msgid "Send to app"
-msgstr ""
+msgid "Commands history"
+msgstr "История команд"
 
-#: ../source/hbcommander.prg:3640
+#: ../source/hbcommander.prg:3750
 #, c-format
-msgid "Sticky bit"
-msgstr ""
+msgid "Set autocompletion"
+msgstr "Автодополнение"
+
+#: ../source/hbcommander.prg:3904
+#, c-format
+msgid "Terminal is busy!"
+msgstr "Терминал занят"
+
+#: ../source/hbcommander.prg:3860
+#, c-format
+msgid "Help"
+msgstr "Помощь"
+
+#: ../source/hbcommander.prg:3642
+#, c-format
+msgid "Write by owner"
+msgstr "Запись для владельца"
+
+#: ../source/hbcommander.prg:3969
+#, c-format
+msgid "Can't run commands in net environment"
+msgstr "Нельзя запускать команды в этой файловой системе"
+
+#: ../source/hbcommander.prg:4667
+#, c-format
+msgid "Run in terminal"
+msgstr "Запустить в терминале"
 
 #: ../source/hbcommander.prg:4551
 #, c-format
-msgid "Passw:"
-msgstr "Пароль"
+msgid "Login:"
+msgstr "Логин"

@@ -6,7 +6,7 @@
 #endif
 
 #define RDBUFFERSIZE  16384
-#define FILEINFO_LEN      8
+#define FILEINFO_LEN     16
 #define HEXBYTES         16
 
 #xtranslate _I( <x,...> ) => hb_i18n_gettext( <x> )
@@ -51,6 +51,7 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
    @ y1, x1, y2, x2 BOX "ÚÄ¿³ÙÄÀ³ "
    hb_cdpSelect( cp )
    @ y1, x1 + 2 SAY NameShortcut( cFileName, x2-x1-3-FILEINFO_LEN )
+   @ y1, x2 - 16 SAY "F1-Help"
    @ y1, x2 - 8 SAY aCPages[nCodePage]
 
    nHeight     := y2 - y1 - 1
@@ -86,6 +87,9 @@ FUNCTION FileView( cFileName, x1, y1, x2, y2, cColor, cColorSel )
          @ y1, x2 - 8 SAY PAdr( aCPages[nCodePage], 6 )
          lDraw := .T.
          LOOP
+      ELSEIF nKey == K_F1
+         edi_Alert( Iif( lHexMode, "Enter - Edit byte", "F2 - Show CR On/Off" ) + ;
+         ";F4 - Hex mode On/Off;F8 - Change codepage;Esc - Exit" )
       ENDIF
 
       IF lHexMode
@@ -408,9 +412,9 @@ STATIC FUNCTION _getByte( cInitValue )
    LOCAL x1 := Int( MaxCol()/2 ) - 12, x2 := x1 + 24, y1 := Int( MaxRow()/2 ) - 1, y2 := y1 + 7
    LOCAL aGets, cpold, nRes, cByte
 
-   aGets := { {y1+1,x1+2, 11, "Edit byte:"}, { y1+1,x1+13, 0, cInitValue, 2,,,"XX" }, ;
-   {y1+3,x1+2, 11, "File will be updated",,clr1,clr2}, ;
-   {y1+4,x1+2, 11, "immedeately!",,clr1,clr2}, ;
+   aGets := { {y1+1,x1+2, 11, _I("Edit byte:")}, { y1+1,x1+13, 0, cInitValue, 2,,,"XX" }, ;
+   {y1+3,x1+2, 11, _I("File will be updated"),,clr1,clr2}, ;
+   {y1+4,x1+2, 11, _I("immedeately!"),,clr1,clr2}, ;
    {y1+6,x1+2,2,_I("[Save]"),10,clr1,clr2,{||__KeyBoard(Chr(K_ENTER))}}, ;
    {y1+6,x2-10,2,_I("[Cancel]"),10,clr1,clr2,{||__KeyBoard(Chr(K_ESC))}} }
 
